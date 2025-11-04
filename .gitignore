@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-ai-dev
+/ai-dev
 
 # Test binary, built with `go test -c`
 *.test
@@ -32,7 +32,8 @@ go.work
 .claude/
 
 # ai-dev specific
-.aidv/
+.aidv/*
+!.aidv/*.example
 *.lock.json
 plan.json
 drift.sarif
