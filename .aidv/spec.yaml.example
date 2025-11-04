@@ -1,0 +1,145 @@
+product: ai-dev CLI
+goals:
+  - Enable spec-first development with AI assistance
+  - Enforce organizational guardrails automatically
+  - Maintain traceability from spec to code
+  - Provide drift detection across all artifacts
+
+features:
+  - id: feat-001
+    title: Interview Mode
+    desc: |
+      Interactive Q&A session that guides users from zero to a complete,
+      best-practice specification. Uses slot-filling engine with adaptive
+      follow-ups and preset templates.
+    priority: P0
+    api:
+      - method: CLI
+        path: ai-dev interview
+        request: User responses via stdin
+        response: spec.yaml file
+    success:
+      - Users can generate complete specs through guided questions
+      - Presets reduce setup time to under 15 minutes
+      - Strict mode catches 95%+ of incomplete specs
+    trace:
+      - PRD-section-4.1
+
+  - id: feat-002
+    title: SpecLock Generation
+    desc: |
+      Create canonical, hashed specification snapshots with blake3 hashing.
+      Generate OpenAPI stubs and acceptance test templates automatically.
+    priority: P0
+    success:
+      - Hash values are stable and deterministic
+      - OpenAPI stubs match spec API definitions
+      - Test stubs cover all success criteria
+    trace:
+      - PRD-section-4.2
+      - Tech-Design-section-3.2
+
+  - id: feat-003
+    title: Plan Generator
+    desc: |
+      Convert specifications into executable task DAGs with dependencies,
+      priorities, skill requirements, and model hints.
+    priority: P0
+    success:
+      - Tasks follow topological ordering
+      - Dependencies are validated
+      - Each task links to SpecLock via ExpectedHash
+    trace:
+      - PRD-section-4.3
+      - Tech-Design-section-3.3
+
+  - id: feat-004
+    title: Drift Detection
+    desc: |
+      Multi-level drift detection comparing plan hashes to SpecLock,
+      code contracts to OpenAPI, and infrastructure to policy.
+    priority: P0
+    success:
+      - Plan drift catches 100% of hash mismatches
+      - SARIF output integrates with CI/CD tools
+      - Reports include trace backrefs to spec
+    trace:
+      - PRD-section-4.4
+      - Tech-Design-section-3.4
+
+  - id: feat-005
+    title: Policy Engine
+    desc: |
+      YAML-based policy enforcement with preflight checks. Validates
+      Docker-only execution, image allowlists, network constraints,
+      linting, testing, and security scanning requirements.
+    priority: P0
+    success:
+      - 100% policy violations prevented before execution
+      - Wildcard patterns work for image matching
+      - Clear error messages for violations
+    trace:
+      - PRD-section-4.5
+      - Tech-Design-section-3.5
+
+  - id: feat-006
+    title: Docker Sandbox
+    desc: |
+      Secure isolated execution environment with read-only filesystem,
+      capability dropping, resource limits, and network isolation.
+    priority: P0
+    success:
+      - All execution passes security constraints
+      - Resource limits prevent runaway processes
+      - Audit logs capture full provenance
+    trace:
+      - PRD-section-4.6
+      - Tech-Design-section-3.6
+
+non_functional:
+  performance:
+    - PRD → Spec latency ≤ 60s
+    - Drift detection completes in < 5s for typical projects
+  security:
+    - Docker-only execution by default
+    - No network access unless explicitly allowed
+    - All secrets redacted from logs
+  scalability:
+    - Support projects with 100+ features
+    - Handle plans with 500+ tasks
+  availability:
+    - Offline/air-gapped mode support
+    - Graceful degradation when AI unavailable
+
+acceptance:
+  - Complete spec generated from interview in < 15 minutes
+  - SpecLock hashes remain stable across identical specs
+  - Policy violations block execution with clear errors
+  - Drift detection catches mismatches automatically
+  - Docker sandbox enforces security constraints
+  - Full audit trail for every run
+
+milestones:
+  - id: m1
+    name: Foundations
+    feature_ids:
+      - feat-002
+      - feat-005
+    target_date: 2025-01
+    description: Core types, SpecLock, policy enforcement
+
+  - id: m2
+    name: Interview MVP
+    feature_ids:
+      - feat-001
+    target_date: 2025-02
+    description: Interactive spec generation
+
+  - id: m3
+    name: Execution & Drift
+    feature_ids:
+      - feat-003
+      - feat-004
+      - feat-006
+    target_date: 2025-03
+    description: End-to-end pipeline with drift detection

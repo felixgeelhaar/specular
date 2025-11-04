@@ -1,0 +1,49 @@
+execution:
+  allow_local: false
+  docker:
+    required: true
+    image_allowlist:
+      - golang:*
+      - node:*
+      - alpine:*
+      - postgres:*
+    cpu_limit: "2"
+    mem_limit: "2g"
+    network: "none"
+
+linters:
+  go:
+    enabled: true
+    cmd: "golangci-lint run"
+  typescript:
+    enabled: true
+    cmd: "pnpm eslint ."
+
+formatters:
+  go:
+    enabled: true
+    cmd: "gofmt -w ."
+  typescript:
+    enabled: true
+    cmd: "pnpm prettier -w ."
+
+tests:
+  require_pass: true
+  min_coverage: 0.70
+
+security:
+  secrets_scan: true
+  dep_scan: true
+
+routing:
+  allow_models:
+    - provider: anthropic
+      names:
+        - claude-3.5-sonnet
+        - claude-4.x-sonnet
+    - provider: openai
+      names:
+        - gpt-4.1
+        - gpt-5-codex
+  deny_tools:
+    - shell_local
