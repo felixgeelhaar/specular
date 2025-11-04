@@ -31,6 +31,21 @@ make install
 
 ## Quick Start
 
+### Option 1: Generate spec with interview mode
+
+```bash
+# List available presets
+ai-dev interview --list
+
+# Run interactive interview (uses cli-tool preset as example)
+ai-dev interview --preset cli-tool --out .aidv/spec.yaml
+
+# Review the generated spec
+cat .aidv/spec.yaml
+```
+
+### Option 2: Use example spec
+
 ```bash
 # Use the example spec to get started
 cp .aidv/spec.yaml.example .aidv/spec.yaml
@@ -55,7 +70,14 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --report drift.sarif
 ./test-e2e.sh
 ```
 
-### Working Features (v0.2)
+### Working Features (v0.3)
+
+✅ **Interview Mode**
+- Guided Q&A to generate specifications
+- 5 preset templates (web-app, api-service, cli-tool, microservice, data-pipeline)
+- Automatic spec generation from answers
+- Question skip logic based on previous answers
+- Strict validation mode
 
 ✅ **Spec Management**
 - Validate YAML specifications
@@ -92,10 +114,11 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --report drift.sarif
 - Tool configuration validation
 
 ✅ **Test Coverage**
-- 40.5% - 78.3% across packages
+- 33.3% - 78.3% across packages
 - Race detection enabled
 - Table-driven test patterns
 - End-to-end integration test
+- Interview flow testing
 
 ## Project Structure
 

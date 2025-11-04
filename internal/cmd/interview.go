@@ -1,8 +1,13 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
+	"github.com/felixgeelhaar/ai-dev/internal/interview"
+	"github.com/felixgeelhaar/ai-dev/internal/spec"
 	"github.com/spf13/cobra"
 )
 
@@ -12,25 +17,200 @@ var interviewCmd = &cobra.Command{
 	Long: `Launch an interactive interview session that guides you through
 creating a best-practice specification from natural language inputs.
 
-Supports presets (saas-api, mobile-app, internal-tool) and strict mode
-for enhanced validation.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out, _ := cmd.Flags().GetString("out")
-		preset, _ := cmd.Flags().GetString("preset")
-		strict, _ := cmd.Flags().GetBool("strict")
-		tui, _ := cmd.Flags().GetBool("tui")
+Supports presets (web-app, api-service, cli-tool, microservice, data-pipeline)
+and strict mode for enhanced validation.`,
+	RunE: runInterview,
+}
 
-		// TODO: Implement interview logic
-		fmt.Printf("Interview mode (out=%s, preset=%s, strict=%v, tui=%v)\n", out, preset, strict, tui)
-		return nil
-	},
+func runInterview(cmd *cobra.Command, args []string) error {
+	out, _ := cmd.Flags().GetString("out")
+	preset, _ := cmd.Flags().GetString("preset")
+	strict, _ := cmd.Flags().GetBool("strict")
+	tui, _ := cmd.Flags().GetBool("tui")
+	list, _ := cmd.Flags().GetBool("list")
+
+	// List available presets
+	if list {
+		return listPresets()
+	}
+
+	// Require preset
+	if preset == "" {
+		return fmt.Errorf("preset is required (use --list to see available presets)")
+	}
+
+	// TUI mode not yet implemented
+	if tui {
+		return fmt.Errorf("TUI mode not yet implemented, use CLI mode (remove --tui flag)")
+	}
+
+	// Run CLI interview
+	return runCLIInterview(preset, strict, out)
+}
+
+func listPresets() error {
+	fmt.Println("Available interview presets:")
+
+	presets := interview.ListPresets()
+	for _, p := range presets {
+		fmt.Printf("  %s\n", p.Name)
+		fmt.Printf("    %s\n", p.Description)
+		fmt.Printf("    Questions: %d\n\n", len(p.Questions))
+	}
+
+	return nil
+}
+
+func runCLIInterview(preset string, strict bool, out string) error {
+	// Create interview engine
+	engine, err := interview.NewEngine(preset, strict)
+	if err != nil {
+		return fmt.Errorf("create interview engine: %w", err)
+	}
+
+	fmt.Printf("=== AI-Dev Interview Mode ===\n")
+	fmt.Printf("Preset: %s\n", preset)
+	fmt.Printf("Strict mode: %v\n\n", strict)
+
+	// Start interview
+	if err := engine.Start(); err != nil {
+		return fmt.Errorf("start interview: %w", err)
+	}
+
+	scanner := bufio.NewScanner(os.Stdin)
+
+	// Interview loop
+	for !engine.IsComplete() {
+		q, err := engine.CurrentQuestion()
+		if err != nil {
+			return fmt.Errorf("get current question: %w", err)
+		}
+
+		if q == nil {
+			break // Interview complete
+		}
+
+		// Display question
+		fmt.Printf("[%d%%] %s\n", int(engine.Progress()), q.Text)
+		if q.Description != "" {
+			fmt.Printf("     %s\n", q.Description)
+		}
+
+		// Show choices for choice/yesno questions
+		switch q.Type {
+		case interview.QuestionTypeYesNo:
+			fmt.Printf("     Options: yes, no\n")
+		case interview.QuestionTypeChoice:
+			fmt.Printf("     Options:\n")
+			for i, choice := range q.Choices {
+				fmt.Printf("       %d. %s\n", i+1, choice)
+			}
+		case interview.QuestionTypeMulti:
+			fmt.Printf("     (Enter each item on a new line, empty line to finish)\n")
+		}
+
+		// Mark required questions
+		if q.Required {
+			fmt.Printf("     (required)\n")
+		}
+
+		fmt.Printf("\n> ")
+
+		// Read answer
+		var answer interview.Answer
+
+		if q.Type == interview.QuestionTypeMulti {
+			// Read multi-line input
+			values := []string{}
+			for scanner.Scan() {
+				line := scanner.Text()
+				if line == "" {
+					break
+				}
+				values = append(values, strings.TrimSpace(line))
+			}
+			answer.Values = values
+		} else {
+			// Read single line
+			if !scanner.Scan() {
+				return fmt.Errorf("failed to read input")
+			}
+			answer.Value = strings.TrimSpace(scanner.Text())
+
+			// Convert choice number to text
+			if q.Type == interview.QuestionTypeChoice {
+				answer.Value = normalizeChoice(answer.Value, q.Choices)
+			}
+		}
+
+		// Submit answer
+		_, err = engine.Answer(answer)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			if strict {
+				return err
+			}
+			fmt.Println("Please try again.")
+			continue
+		}
+
+		fmt.Println()
+	}
+
+	// Generate spec from answers
+	fmt.Println("\nGenerating specification from your answers...")
+
+	result, err := engine.GetResult()
+	if err != nil {
+		return fmt.Errorf("generate spec: %w", err)
+	}
+
+	// Save spec
+	if err := spec.SaveSpec(result.Spec, out); err != nil {
+		return fmt.Errorf("save spec: %w", err)
+	}
+
+	fmt.Printf("\n✓ Specification generated successfully!\n")
+	fmt.Printf("  Output: %s\n", out)
+	fmt.Printf("  Product: %s\n", result.Spec.Product)
+	fmt.Printf("  Features: %d\n", len(result.Spec.Features))
+	fmt.Printf("  Generation time: %dms\n", result.Duration)
+
+	fmt.Println("\nNext steps:")
+	fmt.Printf("  1. Review and edit: %s\n", out)
+	fmt.Printf("  2. Validate spec: ai-dev spec validate --in %s\n", out)
+	fmt.Printf("  3. Generate lock: ai-dev spec lock --in %s --out .aidv/spec.lock.json\n", out)
+	fmt.Printf("  4. Create plan: ai-dev plan --in %s --lock .aidv/spec.lock.json --out plan.json\n", out)
+
+	return nil
+}
+
+// normalizeChoice converts a choice number or partial match to full choice text
+func normalizeChoice(input string, choices []string) string {
+	// Try to parse as number
+	for i, choice := range choices {
+		if input == fmt.Sprintf("%d", i+1) {
+			return choice
+		}
+	}
+
+	// Try case-insensitive match
+	for _, choice := range choices {
+		if strings.EqualFold(input, choice) {
+			return choice
+		}
+	}
+
+	// Return as-is if no match
+	return input
 }
 
 func init() {
 	rootCmd.AddCommand(interviewCmd)
 
 	interviewCmd.Flags().StringP("out", "o", ".aidv/spec.yaml", "Output path for generated spec")
-	interviewCmd.Flags().String("preset", "", "Use a preset template (saas-api|mobile-app|internal-tool)")
+	interviewCmd.Flags().String("preset", "", "Use a preset template (use --list to see options)")
 	interviewCmd.Flags().Bool("strict", false, "Enable strict validation mode")
-	interviewCmd.Flags().Bool("tui", false, "Use terminal UI mode")
+	interviewCmd.Flags().Bool("tui", false, "Use terminal UI mode (not yet implemented)")
+	interviewCmd.Flags().Bool("list", false, "List available presets")
 }
