@@ -5,6 +5,7 @@ import (
 
 	"github.com/felixgeelhaar/ai-dev/internal/drift"
 	"github.com/felixgeelhaar/ai-dev/internal/plan"
+	"github.com/felixgeelhaar/ai-dev/internal/policy"
 	"github.com/felixgeelhaar/ai-dev/internal/spec"
 	"github.com/spf13/cobra"
 )
@@ -24,6 +25,7 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 		planFile, _ := cmd.Flags().GetString("plan")
 		lockFile, _ := cmd.Flags().GetString("lock")
 		specFile, _ := cmd.Flags().GetString("spec")
+		policyFile, _ := cmd.Flags().GetString("policy")
 		reportFile, _ := cmd.Flags().GetString("report")
 		failOnDrift, _ := cmd.Flags().GetBool("fail-on-drift")
 		projectRoot, _ := cmd.Flags().GetString("project-root")
@@ -60,8 +62,26 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 			IgnoreGlobs: ignoreGlobs,
 		})
 
-		// TODO: Infrastructure drift detection (requires implementation)
+		// Detect infrastructure drift
+		fmt.Println("Detecting infrastructure drift...")
 		var infraDrift []drift.Finding
+		if policyFile != "" {
+			pol, err := policy.LoadPolicy(policyFile)
+			if err != nil {
+				return fmt.Errorf("failed to load policy: %w", err)
+			}
+
+			// Build task images map from plan
+			// Note: Currently plan.Task doesn't have Image field, so this will be empty
+			// This is a placeholder for future enhancement when task images are tracked
+			taskImages := make(map[string]string)
+			// Future: when plan.Task has Image field, populate taskImages here
+
+			infraDrift = drift.DetectInfraDrift(drift.InfraDriftOptions{
+				Policy:     pol,
+				TaskImages: taskImages,
+			})
+		}
 
 		// Generate report
 		report := drift.GenerateReport(planDrift, codeDrift, infraDrift)
@@ -86,6 +106,13 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 			fmt.Println("\nCode Drift:")
 			for _, f := range codeDrift {
 				fmt.Printf("  [%s] %s: %s (feature: %s)\n", f.Severity, f.Code, f.Message, f.FeatureID)
+			}
+		}
+
+		if len(infraDrift) > 0 {
+			fmt.Println("\nInfrastructure Drift:")
+			for _, f := range infraDrift {
+				fmt.Printf("  [%s] %s: %s\n", f.Severity, f.Code, f.Message)
 			}
 		}
 
@@ -115,6 +142,7 @@ func init() {
 	evalCmd.Flags().String("plan", "plan.json", "Plan file to evaluate")
 	evalCmd.Flags().String("lock", ".aidv/spec.lock.json", "SpecLock file")
 	evalCmd.Flags().String("spec", ".aidv/spec.yaml", "Spec file for code drift detection")
+	evalCmd.Flags().String("policy", "", "Policy file for infrastructure drift detection")
 	evalCmd.Flags().String("report", "drift.sarif", "Output report file (SARIF format)")
 	evalCmd.Flags().Bool("fail-on-drift", false, "Exit with error if drift is detected")
 	evalCmd.Flags().String("project-root", ".", "Project root directory")

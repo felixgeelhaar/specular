@@ -63,19 +63,21 @@ ai-dev plan --in .aidv/spec.yaml --lock .aidv/spec.lock.json --out plan.json
 # Execute build with policy enforcement (dry-run)
 ai-dev build --plan plan.json --policy .aidv/policy.yaml --dry-run
 
-# Run drift detection (plan + code)
-ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml --report drift.sarif
-
-# With code drift options
+# Run drift detection (plan + code + infrastructure)
 ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml \
-  --api-spec api/openapi.yaml --ignore "*.test.go" --ignore "vendor/**" \
+  --policy .aidv/policy.yaml --report drift.sarif
+
+# With all drift detection options
+ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml \
+  --policy .aidv/policy.yaml --api-spec api/openapi.yaml \
+  --ignore "*.test.go" --ignore "vendor/**" \
   --report drift.sarif --fail-on-drift
 
 # Run the full end-to-end test
 ./test-e2e.sh
 ```
 
-### Working Features (v0.6)
+### Working Features (v0.7)
 
 ✅ **AI Router**
 - Multi-model selection based on task characteristics
@@ -115,9 +117,13 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml 
 ✅ **Drift Detection**
 - Plan drift (hash mismatches)
 - Code drift (test coverage, API conformance, file tracking)
+- Infrastructure drift (policy compliance, resource validation)
 - OpenAPI 3.x contract validation
 - Endpoint and method verification
 - Path parameter matching
+- Docker image allowlist validation (exact, wildcard, prefix matching)
+- Execution policy validation (network, resources, tests, security)
+- Run manifest validation
 - SARIF 2.1.0 report generation
 - Error/warning/info severity levels
 - CI/CD integration ready
@@ -131,13 +137,14 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml 
 - Tool configuration validation
 
 ✅ **Test Coverage**
-- 33.3% - 83.0% across packages (drift: 83.0%, router: 66.3%)
+- 33.3% - 85.8% across packages (drift: 85.8%, router: 66.3%)
 - Race detection enabled
 - Table-driven test patterns
 - End-to-end integration test
 - Interview flow testing
 - Model selection and budget tests
 - Code drift and OpenAPI validation tests
+- Infrastructure drift and policy compliance tests
 
 ## Project Structure
 
