@@ -292,13 +292,25 @@ func TestCheckFileHashes(t *testing.T) {
 func TestCheckAPIImplementations(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Create API spec file
+	// Create API spec file with valid OpenAPI structure
 	apiSpecPath := "api/openapi.yaml"
 	fullPath := filepath.Join(tmpDir, apiSpecPath)
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
 		t.Fatalf("Failed to create api directory: %v", err)
 	}
-	if err := os.WriteFile(fullPath, []byte("openapi: 3.0.0"), 0644); err != nil {
+	validSpec := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /api/users:
+    get:
+      summary: Get users
+      responses:
+        '200':
+          description: Success
+`
+	if err := os.WriteFile(fullPath, []byte(validSpec), 0644); err != nil {
 		t.Fatalf("Failed to create API spec: %v", err)
 	}
 

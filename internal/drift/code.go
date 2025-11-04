@@ -118,29 +118,27 @@ func checkFileHashes(s *spec.ProductSpec, lock *spec.SpecLock, opts CodeDriftOpt
 func checkAPIImplementations(s *spec.ProductSpec, opts CodeDriftOptions) []Finding {
 	var findings []Finding
 
+	// Check if any features have APIs defined
+	hasAPIs := false
 	for _, feature := range s.Features {
-		if len(feature.API) == 0 {
-			continue // No APIs to check
-		}
-
-		for _, api := range feature.API {
-			// For now, we do a simple check: does an OpenAPI spec exist?
-			if opts.APISpecPath != "" && !pathExists(filepath.Join(opts.ProjectRoot, opts.APISpecPath)) {
-				findings = append(findings, Finding{
-					Code:      "MISSING_API_SPEC",
-					FeatureID: feature.ID,
-					Message:   fmt.Sprintf("OpenAPI spec not found at: %s", opts.APISpecPath),
-					Severity:  "warning",
-					Location:  opts.APISpecPath,
-				})
-				break // Only report once per feature
-			}
-
-			// Future enhancement: Parse OpenAPI spec and verify endpoint exists
-			// For now, we'll just verify the spec file exists
-			_ = api
+		if len(feature.API) > 0 {
+			hasAPIs = true
+			break
 		}
 	}
+
+	if !hasAPIs {
+		return findings // No APIs to check
+	}
+
+	// If no API spec path provided, we can't validate
+	if opts.APISpecPath == "" {
+		return findings
+	}
+
+	// Validate API spec and endpoints
+	apiFindings := ValidateAPISpec(opts.APISpecPath, opts.ProjectRoot, s.Features)
+	findings = append(findings, apiFindings...)
 
 	return findings
 }

@@ -75,7 +75,7 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml 
 ./test-e2e.sh
 ```
 
-### Working Features (v0.5)
+### Working Features (v0.6)
 
 ✅ **AI Router**
 - Multi-model selection based on task characteristics
@@ -115,6 +115,9 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml 
 ✅ **Drift Detection**
 - Plan drift (hash mismatches)
 - Code drift (test coverage, API conformance, file tracking)
+- OpenAPI 3.x contract validation
+- Endpoint and method verification
+- Path parameter matching
 - SARIF 2.1.0 report generation
 - Error/warning/info severity levels
 - CI/CD integration ready
@@ -128,13 +131,13 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml 
 - Tool configuration validation
 
 ✅ **Test Coverage**
-- 33.3% - 78.7% across packages (drift: 78.7%, router: 66.3%)
+- 33.3% - 83.0% across packages (drift: 83.0%, router: 66.3%)
 - Race detection enabled
 - Table-driven test patterns
 - End-to-end integration test
 - Interview flow testing
 - Model selection and budget tests
-- Code drift detection tests
+- Code drift and OpenAPI validation tests
 
 ## Project Structure
 
