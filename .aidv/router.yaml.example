@@ -1,0 +1,33 @@
+# AI Router Configuration
+# Manages multi-model selection and budget tracking
+
+providers:
+  - name: anthropic
+    api_key: ${ANTHROPIC_API_KEY}
+    enabled: true
+    models:
+      agentic: claude-sonnet-4
+      codegen: claude-sonnet-3.5
+      fast: claude-haiku-3.5
+      long-context: claude-sonnet-4
+
+  - name: openai
+    api_key: ${OPENAI_API_KEY}
+    enabled: true
+    models:
+      codegen: gpt-4o
+      long-context: gpt-4-turbo
+      cheap: gpt-4o-mini
+      fast: gpt-3.5-turbo
+
+# Budget configuration
+budget_usd: 20.0
+
+# Maximum acceptable latency in milliseconds
+max_latency_ms: 60000
+
+# Prefer cheaper models when quality difference is minimal
+prefer_cheap: false
+
+# Fallback model if preferred model is unavailable
+fallback_model: claude-haiku-3.5

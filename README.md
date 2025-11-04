@@ -70,7 +70,15 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --report drift.sarif
 ./test-e2e.sh
 ```
 
-### Working Features (v0.3)
+### Working Features (v0.4)
+
+✅ **AI Router**
+- Multi-model selection based on task characteristics
+- Support for Anthropic (Claude) and OpenAI (GPT) models
+- Budget tracking and cost management
+- Model selection by hint (codegen, agentic, long-context, fast, cheap)
+- Latency-aware routing
+- Usage statistics and reporting
 
 ✅ **Interview Mode**
 - Guided Q&A to generate specifications
@@ -114,11 +122,12 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --report drift.sarif
 - Tool configuration validation
 
 ✅ **Test Coverage**
-- 33.3% - 78.3% across packages
+- 33.3% - 78.3% across packages (router: 66.3%)
 - Race detection enabled
 - Table-driven test patterns
 - End-to-end integration test
 - Interview flow testing
+- Model selection and budget tests
 
 ## Project Structure
 
@@ -185,19 +194,30 @@ security:
   dep_scan: true
 ```
 
-### Provider Configuration (~/.ai-dev/config.yaml)
+### Router Configuration (.aidv/router.yaml)
 
 ```yaml
 providers:
-  anthropic:
+  - name: anthropic
     api_key: ${ANTHROPIC_API_KEY}
-    models: { agentic: "claude-sonnet" }
-  openai:
+    enabled: true
+    models:
+      agentic: claude-sonnet-4
+      codegen: claude-sonnet-3.5
+      fast: claude-haiku-3.5
+  - name: openai
     api_key: ${OPENAI_API_KEY}
-    models: { code: "gpt-4" }
-routing:
-  budget_usd: 20
-  max_latency_ms: 60000
+    enabled: true
+    models:
+      codegen: gpt-4o
+      long-context: gpt-4-turbo
+      cheap: gpt-4o-mini
+
+# Budget and routing
+budget_usd: 20.0
+max_latency_ms: 60000
+prefer_cheap: false
+fallback_model: claude-haiku-3.5
 ```
 
 ## Core Principles
