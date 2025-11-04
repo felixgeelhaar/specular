@@ -23,8 +23,12 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		planFile, _ := cmd.Flags().GetString("plan")
 		lockFile, _ := cmd.Flags().GetString("lock")
+		specFile, _ := cmd.Flags().GetString("spec")
 		reportFile, _ := cmd.Flags().GetString("report")
 		failOnDrift, _ := cmd.Flags().GetBool("fail-on-drift")
+		projectRoot, _ := cmd.Flags().GetString("project-root")
+		apiSpecPath, _ := cmd.Flags().GetString("api-spec")
+		ignoreGlobs, _ := cmd.Flags().GetStringSlice("ignore")
 
 		// Load plan
 		p, err := plan.LoadPlan(planFile)
@@ -38,12 +42,23 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 			return fmt.Errorf("failed to load SpecLock: %w", err)
 		}
 
+		// Load spec for code drift detection
+		s, err := spec.LoadSpec(specFile)
+		if err != nil {
+			return fmt.Errorf("failed to load spec: %w", err)
+		}
+
 		// Detect plan drift
 		fmt.Println("Detecting plan drift...")
 		planDrift := drift.DetectPlanDrift(lock, p)
 
-		// TODO: Code drift detection (requires implementation)
-		var codeDrift []drift.Finding
+		// Detect code drift
+		fmt.Println("Detecting code drift...")
+		codeDrift := drift.DetectCodeDrift(s, lock, drift.CodeDriftOptions{
+			ProjectRoot: projectRoot,
+			APISpecPath: apiSpecPath,
+			IgnoreGlobs: ignoreGlobs,
+		})
 
 		// TODO: Infrastructure drift detection (requires implementation)
 		var infraDrift []drift.Finding
@@ -64,6 +79,13 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 			fmt.Println("Plan Drift:")
 			for _, f := range planDrift {
 				fmt.Printf("  [%s] %s: %s\n", f.Severity, f.Code, f.Message)
+			}
+		}
+
+		if len(codeDrift) > 0 {
+			fmt.Println("\nCode Drift:")
+			for _, f := range codeDrift {
+				fmt.Printf("  [%s] %s: %s (feature: %s)\n", f.Severity, f.Code, f.Message, f.FeatureID)
 			}
 		}
 
@@ -92,6 +114,10 @@ func init() {
 
 	evalCmd.Flags().String("plan", "plan.json", "Plan file to evaluate")
 	evalCmd.Flags().String("lock", ".aidv/spec.lock.json", "SpecLock file")
+	evalCmd.Flags().String("spec", ".aidv/spec.yaml", "Spec file for code drift detection")
 	evalCmd.Flags().String("report", "drift.sarif", "Output report file (SARIF format)")
 	evalCmd.Flags().Bool("fail-on-drift", false, "Exit with error if drift is detected")
+	evalCmd.Flags().String("project-root", ".", "Project root directory")
+	evalCmd.Flags().String("api-spec", "", "Path to OpenAPI spec file")
+	evalCmd.Flags().StringSlice("ignore", []string{}, "Glob patterns to ignore (e.g., *.test.js)")
 }

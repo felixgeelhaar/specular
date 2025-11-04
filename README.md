@@ -63,14 +63,19 @@ ai-dev plan --in .aidv/spec.yaml --lock .aidv/spec.lock.json --out plan.json
 # Execute build with policy enforcement (dry-run)
 ai-dev build --plan plan.json --policy .aidv/policy.yaml --dry-run
 
-# Run drift detection
-ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --report drift.sarif
+# Run drift detection (plan + code)
+ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml --report drift.sarif
+
+# With code drift options
+ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --spec .aidv/spec.yaml \
+  --api-spec api/openapi.yaml --ignore "*.test.go" --ignore "vendor/**" \
+  --report drift.sarif --fail-on-drift
 
 # Run the full end-to-end test
 ./test-e2e.sh
 ```
 
-### Working Features (v0.4)
+### Working Features (v0.5)
 
 ✅ **AI Router**
 - Multi-model selection based on task characteristics
@@ -109,6 +114,7 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --report drift.sarif
 
 ✅ **Drift Detection**
 - Plan drift (hash mismatches)
+- Code drift (test coverage, API conformance, file tracking)
 - SARIF 2.1.0 report generation
 - Error/warning/info severity levels
 - CI/CD integration ready
@@ -122,12 +128,13 @@ ai-dev eval --plan plan.json --lock .aidv/spec.lock.json --report drift.sarif
 - Tool configuration validation
 
 ✅ **Test Coverage**
-- 33.3% - 78.3% across packages (router: 66.3%)
+- 33.3% - 78.7% across packages (drift: 78.7%, router: 66.3%)
 - Race detection enabled
 - Table-driven test patterns
 - End-to-end integration test
 - Interview flow testing
 - Model selection and budget tests
+- Code drift detection tests
 
 ## Project Structure
 
