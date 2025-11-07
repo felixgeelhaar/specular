@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo.png" alt="Specular Logo" width="400">
+</p>
+
 # Specular
 
 **AI-Native Spec and Build Assistant**

@@ -43,6 +43,10 @@ func runVersion(cmd *cobra.Command, args []string) error {
 
 	// Verbose output
 	if versionVerbose {
+		fmt.Println("\n  ╔══════════════════════════════════════════════════════════════╗")
+		fmt.Println("  ║                      [ specular ]                            ║")
+		fmt.Println("  ║            AI-Native Spec and Build Assistant                ║")
+		fmt.Println("  ╚══════════════════════════════════════════════════════════════╝\n")
 		fmt.Println(info.String())
 		return nil
 	}
