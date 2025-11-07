@@ -10,6 +10,7 @@ import (
 
 	"github.com/felixgeelhaar/specular/internal/interview"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/tui"
 )
 
 var interviewCmd = &cobra.Command{
@@ -40,9 +41,9 @@ func runInterview(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("preset is required (use --list to see available presets)")
 	}
 
-	// TUI mode not yet implemented
+	// Run TUI or CLI interview
 	if tui {
-		return fmt.Errorf("TUI mode not yet implemented, use CLI mode (remove --tui flag)")
+		return runTUIInterview(preset, strict, out)
 	}
 
 	// Run CLI interview
@@ -187,6 +188,39 @@ func runCLIInterview(preset string, strict bool, out string) error {
 	return nil
 }
 
+func runTUIInterview(preset string, strict bool, out string) error {
+	// Create interview engine
+	engine, err := interview.NewEngine(preset, strict)
+	if err != nil {
+		return fmt.Errorf("create interview engine: %w", err)
+	}
+
+	fmt.Printf("=== Specular Interview Mode (TUI) ===\n")
+	fmt.Printf("Preset: %s\n", preset)
+	fmt.Printf("Strict mode: %v\n\n", strict)
+	fmt.Println("Starting interactive interview...")
+	fmt.Println()
+
+	// Run TUI interview
+	result, err := tui.RunInterview(engine)
+	if err != nil {
+		return fmt.Errorf("run TUI interview: %w", err)
+	}
+
+	// Save result
+	if err := tui.SaveResult(result, out); err != nil {
+		return fmt.Errorf("save result: %w", err)
+	}
+
+	fmt.Printf("\nNext steps:\n")
+	fmt.Printf("  1. Review and edit: %s\n", out)
+	fmt.Printf("  2. Validate spec: specular spec validate --in %s\n", out)
+	fmt.Printf("  3. Generate lock: specular spec lock --in %s --out .specular/spec.lock.json\n", out)
+	fmt.Printf("  4. Create plan: specular plan --in %s --lock .specular/spec.lock.json --out plan.json\n", out)
+
+	return nil
+}
+
 // normalizeChoice converts a choice number or partial match to full choice text
 func normalizeChoice(input string, choices []string) string {
 	// Try to parse as number
@@ -213,6 +247,6 @@ func init() {
 	interviewCmd.Flags().StringP("out", "o", ".specular/spec.yaml", "Output path for generated spec")
 	interviewCmd.Flags().String("preset", "", "Use a preset template (use --list to see options)")
 	interviewCmd.Flags().Bool("strict", false, "Enable strict validation mode")
-	interviewCmd.Flags().Bool("tui", false, "Use terminal UI mode (not yet implemented)")
+	interviewCmd.Flags().Bool("tui", false, "Use interactive terminal UI mode")
 	interviewCmd.Flags().Bool("list", false, "List available presets")
 }
