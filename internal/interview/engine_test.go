@@ -369,7 +369,7 @@ func TestValidateAnswer(t *testing.T) {
 			},
 			answer:  Answer{Value: "maybe"},
 			wantErr: true,
-			errMsg:  "must be 'yes' or 'no'",
+			errMsg:  "INTERVIEW-006",
 		},
 		{
 			name: "choice question with valid choice",
@@ -403,7 +403,7 @@ func TestValidateAnswer(t *testing.T) {
 			},
 			answer:  Answer{Value: "Option X"},
 			wantErr: true,
-			errMsg:  "must be one of",
+			errMsg:  "INTERVIEW-006",
 		},
 		{
 			name: "multi question converts single value",

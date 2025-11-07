@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/felixgeelhaar/specular/internal/errors"
 )
 
 // Engine manages the interview flow
@@ -19,7 +21,7 @@ func NewEngine(preset string, strict bool) (*Engine, error) {
 	presets := GetPresets()
 	p, ok := presets[preset]
 	if !ok {
-		return nil, fmt.Errorf("unknown preset: %s", preset)
+		return nil, errors.NewInterviewPresetUnknownError(preset)
 	}
 
 	session := &Session{
@@ -129,7 +131,7 @@ func (e *Engine) validateAnswer(q *Question, a *Answer) error {
 	// Check if required question is answered
 	if q.Required {
 		if a.Value == "" && len(a.Values) == 0 {
-			return fmt.Errorf("answer is required for: %s", q.Text)
+			return errors.NewInterviewAnswerRequiredError(q.Text)
 		}
 	}
 
@@ -138,7 +140,7 @@ func (e *Engine) validateAnswer(q *Question, a *Answer) error {
 	case QuestionTypeYesNo:
 		normalized := strings.ToLower(strings.TrimSpace(a.Value))
 		if normalized != "yes" && normalized != "no" {
-			return fmt.Errorf("answer must be 'yes' or 'no'")
+			return errors.NewInterviewAnswerInvalidError(q.Text, "yes or no")
 		}
 
 	case QuestionTypeChoice:
@@ -151,7 +153,7 @@ func (e *Engine) validateAnswer(q *Question, a *Answer) error {
 				}
 			}
 			if !valid {
-				return fmt.Errorf("answer must be one of: %v", q.Choices)
+				return errors.NewInterviewAnswerInvalidError(q.Text, fmt.Sprintf("one of: %v", q.Choices))
 			}
 		}
 
