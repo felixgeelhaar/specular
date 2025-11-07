@@ -12,6 +12,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/progress"
+	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
 var buildCmd = &cobra.Command{
@@ -21,6 +22,7 @@ var buildCmd = &cobra.Command{
 All execution passes through guardrail checks including Docker-only enforcement,
 linting, testing, and security scanning.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		defaults := ux.NewPathDefaults()
 		planFile := cmd.Flags().Lookup("plan").Value.String()
 		policyFile := cmd.Flags().Lookup("policy").Value.String()
 		dryRun := cmd.Flags().Lookup("dry-run").Value.String() == "true"
@@ -29,10 +31,29 @@ linting, testing, and security scanning.`,
 		checkpointDir := cmd.Flags().Lookup("checkpoint-dir").Value.String()
 		checkpointID := cmd.Flags().Lookup("checkpoint-id").Value.String()
 
+		// Use smart defaults if not changed
+		if !cmd.Flags().Changed("plan") {
+			planFile = defaults.PlanFile()
+		}
+		if !cmd.Flags().Changed("policy") {
+			policyFile = defaults.PolicyFile()
+		}
+		if !cmd.Flags().Changed("manifest-dir") {
+			manifestDir = defaults.ManifestDir()
+		}
+		if !cmd.Flags().Changed("checkpoint-dir") {
+			checkpointDir = defaults.CheckpointDir()
+		}
+
+		// Validate plan file exists with helpful error
+		if err := ux.ValidateRequiredFile(planFile, "Plan file", "specular plan"); err != nil {
+			return ux.EnhanceError(err)
+		}
+
 		// Load plan
 		p, err := plan.LoadPlan(planFile)
 		if err != nil {
-			return fmt.Errorf("failed to load plan: %w", err)
+			return ux.FormatError(err, "loading plan file")
 		}
 
 		// Load or create default policy

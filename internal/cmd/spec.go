@@ -12,6 +12,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
 var specCmd = &cobra.Command{
@@ -25,33 +26,48 @@ var specGenerateCmd = &cobra.Command{
 	Short: "Generate spec from PRD markdown",
 	Long:  `Convert a Product Requirements Document (PRD) in markdown format into a structured specification using AI.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		defaults := ux.NewPathDefaults()
 		in := cmd.Flags().Lookup("in").Value.String()
 		out := cmd.Flags().Lookup("out").Value.String()
 		configPath := cmd.Flags().Lookup("config").Value.String()
+
+		// Interactive prompt if PRD file doesn't exist
+		if _, err := os.Stat(in); os.IsNotExist(err) && !cmd.Flags().Changed("in") {
+			in = ux.PromptForPath("Enter PRD markdown file path", in)
+		}
+
+		// Validate PRD file exists
+		if err := ux.ValidateRequiredFile(in, "PRD file", "Create a PRD markdown file or run 'specular interview'"); err != nil {
+			return ux.EnhanceError(err)
+		}
+
+		// Use defaults for output and config
+		if !cmd.Flags().Changed("out") {
+			out = defaults.SpecFile()
+		}
+		if !cmd.Flags().Changed("config") {
+			configPath = defaults.ProvidersFile()
+		}
 
 		fmt.Printf("Generating spec from PRD: %s\n", in)
 
 		// Read PRD file
 		prdContent, err := os.ReadFile(in)
 		if err != nil {
-			return fmt.Errorf("failed to read PRD file: %w", err)
+			return ux.FormatError(err, "reading PRD file")
 		}
 
 		// Load provider configuration
-		if configPath == "" {
-			configPath = ".specular/providers.yaml"
-		}
-
 		fmt.Println("Loading provider configuration...")
 		registry, err := provider.LoadRegistryFromConfig(configPath)
 		if err != nil {
-			return fmt.Errorf("failed to load providers: %w", err)
+			return ux.FormatError(err, "loading AI providers")
 		}
 
 		// Load provider config to get strategy settings
 		providerConfig, err := provider.LoadProvidersConfig(configPath)
 		if err != nil {
-			return fmt.Errorf("failed to load provider config: %w", err)
+			return ux.FormatError(err, "loading provider config")
 		}
 
 		// Create router config from provider strategy
@@ -72,7 +88,7 @@ var specGenerateCmd = &cobra.Command{
 		// Create router with providers
 		r, err := router.NewRouterWithProviders(routerConfig, registry)
 		if err != nil {
-			return fmt.Errorf("failed to create router: %w", err)
+			return ux.FormatError(err, "creating AI router")
 		}
 
 		// Create PRD parser (router handles provider access internally)
@@ -85,12 +101,12 @@ var specGenerateCmd = &cobra.Command{
 		fmt.Println("Parsing PRD with AI (this may take 30-60 seconds)...")
 		productSpec, err := parser.ParsePRD(ctx, string(prdContent))
 		if err != nil {
-			return fmt.Errorf("failed to parse PRD: %w", err)
+			return ux.FormatError(err, "parsing PRD with AI")
 		}
 
 		// Save spec
 		if saveErr := spec.SaveSpec(productSpec, out); saveErr != nil {
-			return fmt.Errorf("failed to save spec: %w", saveErr)
+			return ux.FormatError(saveErr, "saving spec file")
 		}
 
 		fmt.Printf("✓ Generated spec with %d features\n", len(productSpec.Features))
@@ -105,12 +121,23 @@ var specValidateCmd = &cobra.Command{
 	Short: "Validate a specification file",
 	Long:  `Validate a specification against the schema and semantic rules.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		defaults := ux.NewPathDefaults()
 		in := cmd.Flags().Lookup("in").Value.String()
+
+		// Use smart default if not changed
+		if !cmd.Flags().Changed("in") {
+			in = defaults.SpecFile()
+		}
+
+		// Validate file exists with helpful error
+		if err := ux.ValidateRequiredFile(in, "Spec file", "specular spec generate"); err != nil {
+			return ux.EnhanceError(err)
+		}
 
 		// Load spec
 		s, err := spec.LoadSpec(in)
 		if err != nil {
-			return fmt.Errorf("failed to load spec: %w", err)
+			return ux.FormatError(err, "loading spec file")
 		}
 
 		// Basic validation
@@ -149,25 +176,39 @@ var specLockCmd = &cobra.Command{
 	Short: "Generate SpecLock from specification",
 	Long:  `Create a canonical, hashed SpecLock file with blake3 hashes for drift detection.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		defaults := ux.NewPathDefaults()
 		in := cmd.Flags().Lookup("in").Value.String()
 		out := cmd.Flags().Lookup("out").Value.String()
 		version := cmd.Flags().Lookup("version").Value.String()
 
+		// Use smart defaults if not changed
+		if !cmd.Flags().Changed("in") {
+			in = defaults.SpecFile()
+		}
+		if !cmd.Flags().Changed("out") {
+			out = defaults.SpecLockFile()
+		}
+
+		// Validate spec file exists
+		if err := ux.ValidateRequiredFile(in, "Spec file", "specular spec generate"); err != nil {
+			return ux.EnhanceError(err)
+		}
+
 		// Load spec
 		s, err := spec.LoadSpec(in)
 		if err != nil {
-			return fmt.Errorf("failed to load spec: %w", err)
+			return ux.FormatError(err, "loading spec file")
 		}
 
 		// Generate SpecLock
 		lock, err := spec.GenerateSpecLock(*s, version)
 		if err != nil {
-			return fmt.Errorf("failed to generate SpecLock: %w", err)
+			return ux.FormatError(err, "generating SpecLock")
 		}
 
 		// Save SpecLock
 		if saveErr := spec.SaveSpecLock(lock, out); saveErr != nil {
-			return fmt.Errorf("failed to save spec lock: %w", saveErr)
+			return ux.FormatError(saveErr, "saving SpecLock file")
 		}
 
 		fmt.Printf("✓ Generated SpecLock with %d features\n", len(lock.Features))

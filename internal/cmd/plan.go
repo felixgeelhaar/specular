@@ -7,6 +7,7 @@ import (
 
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
 var planCmd = &cobra.Command{
@@ -16,21 +17,41 @@ var planCmd = &cobra.Command{
 The plan includes task dependencies, priorities, skill requirements, and
 expected hashes for drift detection.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		defaults := ux.NewPathDefaults()
 		specPath := cmd.Flags().Lookup("in").Value.String()
 		lockPath := cmd.Flags().Lookup("lock").Value.String()
 		out := cmd.Flags().Lookup("out").Value.String()
 		estimate := cmd.Flags().Lookup("estimate").Value.String() == "true"
 
+		// Use smart defaults if not changed
+		if !cmd.Flags().Changed("in") {
+			specPath = defaults.SpecFile()
+		}
+		if !cmd.Flags().Changed("lock") {
+			lockPath = defaults.SpecLockFile()
+		}
+		if !cmd.Flags().Changed("out") {
+			out = defaults.PlanFile()
+		}
+
+		// Validate required files with helpful errors
+		if err := ux.ValidateRequiredFile(specPath, "Spec file", "specular spec generate"); err != nil {
+			return ux.EnhanceError(err)
+		}
+		if err := ux.ValidateRequiredFile(lockPath, "SpecLock file", "specular spec lock"); err != nil {
+			return ux.EnhanceError(err)
+		}
+
 		// Load spec
 		s, err := spec.LoadSpec(specPath)
 		if err != nil {
-			return fmt.Errorf("failed to load spec: %w", err)
+			return ux.FormatError(err, "loading spec file")
 		}
 
 		// Load SpecLock
 		lock, err := spec.LoadSpecLock(lockPath)
 		if err != nil {
-			return fmt.Errorf("failed to load SpecLock: %w (run 'ai-dev spec lock' first)", err)
+			return ux.FormatError(err, "loading SpecLock file")
 		}
 
 		// Generate plan
@@ -41,12 +62,12 @@ expected hashes for drift detection.`,
 
 		p, err := plan.Generate(s, opts)
 		if err != nil {
-			return fmt.Errorf("failed to generate plan: %w", err)
+			return ux.FormatError(err, "generating plan")
 		}
 
 		// Save plan
 		if saveErr := plan.SavePlan(p, out); saveErr != nil {
-			return fmt.Errorf("failed to save plan: %w", saveErr)
+			return ux.FormatError(saveErr, "saving plan file")
 		}
 
 		fmt.Printf("✓ Generated plan with %d tasks\n", len(p.Tasks))

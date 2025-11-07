@@ -11,6 +11,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/interview"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/internal/tui"
+	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
 var interviewCmd = &cobra.Command{
@@ -25,20 +26,41 @@ and strict mode for enhanced validation.`,
 }
 
 func runInterview(cmd *cobra.Command, args []string) error {
+	defaults := ux.NewPathDefaults()
 	out := cmd.Flags().Lookup("out").Value.String()
 	preset := cmd.Flags().Lookup("preset").Value.String()
 	strict := cmd.Flags().Lookup("strict").Value.String() == "true"
 	tui := cmd.Flags().Lookup("tui").Value.String() == "true"
 	list := cmd.Flags().Lookup("list").Value.String() == "true"
 
+	// Use smart default for output if not changed
+	if !cmd.Flags().Changed("out") {
+		out = defaults.SpecFile()
+	}
+
 	// List available presets
 	if list {
 		return listPresets()
 	}
 
-	// Require preset
-	if preset == "" {
-		return fmt.Errorf("preset is required (use --list to see available presets)")
+	// Interactive preset selection if not provided
+	if preset == "" && !cmd.Flags().Changed("preset") {
+		fmt.Println("Select a preset for your project:")
+		presets := []string{
+			"web-app - Web application with UI and backend",
+			"api-service - RESTful API service",
+			"cli-tool - Command-line interface tool",
+			"microservice - Microservice component",
+			"data-pipeline - Data processing pipeline",
+		}
+		selected, _ := ux.Select("Choose preset:", presets, 0)
+		// Extract just the preset name (before the dash)
+		preset = strings.Split(selected, " ")[0]
+	} else if preset == "" {
+		return ux.NewErrorWithSuggestion(
+			fmt.Errorf("preset is required"),
+			"Use --list to see available presets or run without --preset for interactive selection",
+		)
 	}
 
 	// Run TUI or CLI interview
@@ -68,7 +90,7 @@ func runCLIInterview(preset string, strict bool, out string) error {
 	// Create interview engine
 	engine, err := interview.NewEngine(preset, strict)
 	if err != nil {
-		return fmt.Errorf("create interview engine: %w", err)
+		return ux.FormatError(err, "creating interview engine")
 	}
 
 	fmt.Printf("=== AI-Dev Interview Mode ===\n")
@@ -77,7 +99,7 @@ func runCLIInterview(preset string, strict bool, out string) error {
 
 	// Start interview
 	if startErr := engine.Start(); startErr != nil {
-		return fmt.Errorf("start interview: %w", err)
+		return ux.FormatError(startErr, "starting interview")
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -86,7 +108,7 @@ func runCLIInterview(preset string, strict bool, out string) error {
 	for !engine.IsComplete() {
 		q, qErr := engine.CurrentQuestion()
 		if qErr != nil {
-			return fmt.Errorf("get current question: %w", err)
+			return ux.FormatError(qErr, "getting current question")
 		}
 
 		if q == nil {
@@ -165,12 +187,12 @@ func runCLIInterview(preset string, strict bool, out string) error {
 
 	result, err := engine.GetResult()
 	if err != nil {
-		return fmt.Errorf("generate spec: %w", err)
+		return ux.FormatError(err, "generating spec from answers")
 	}
 
 	// Save spec
 	if saveErr := spec.SaveSpec(result.Spec, out); saveErr != nil {
-		return fmt.Errorf("save spec: %w", err)
+		return ux.FormatError(saveErr, "saving spec file")
 	}
 
 	fmt.Printf("\n✓ Specification generated successfully!\n")
@@ -192,7 +214,7 @@ func runTUIInterview(preset string, strict bool, out string) error {
 	// Create interview engine
 	engine, err := interview.NewEngine(preset, strict)
 	if err != nil {
-		return fmt.Errorf("create interview engine: %w", err)
+		return ux.FormatError(err, "creating interview engine")
 	}
 
 	fmt.Printf("=== Specular Interview Mode (TUI) ===\n")
@@ -204,12 +226,12 @@ func runTUIInterview(preset string, strict bool, out string) error {
 	// Run TUI interview
 	result, err := tui.RunInterview(engine)
 	if err != nil {
-		return fmt.Errorf("run TUI interview: %w", err)
+		return ux.FormatError(err, "running TUI interview")
 	}
 
 	// Save result
 	if err := tui.SaveResult(result, out); err != nil {
-		return fmt.Errorf("save result: %w", err)
+		return ux.FormatError(err, "saving interview result")
 	}
 
 	fmt.Printf("\nNext steps:\n")

@@ -14,6 +14,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/progress"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
 var evalCmd = &cobra.Command{
@@ -28,6 +29,7 @@ var evalCmd = &cobra.Command{
 
 Results are output in SARIF format for integration with CI/CD tools.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		defaults := ux.NewPathDefaults()
 		planFile := cmd.Flags().Lookup("plan").Value.String()
 		lockFile := cmd.Flags().Lookup("lock").Value.String()
 		specFile := cmd.Flags().Lookup("spec").Value.String()
@@ -40,6 +42,34 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 		resume := cmd.Flags().Lookup("resume").Value.String() == "true"
 		checkpointDir := cmd.Flags().Lookup("checkpoint-dir").Value.String()
 		checkpointID := cmd.Flags().Lookup("checkpoint-id").Value.String()
+
+		// Use smart defaults if not changed
+		if !cmd.Flags().Changed("plan") {
+			planFile = defaults.PlanFile()
+		}
+		if !cmd.Flags().Changed("lock") {
+			lockFile = defaults.SpecLockFile()
+		}
+		if !cmd.Flags().Changed("spec") {
+			specFile = defaults.SpecFile()
+		}
+		if !cmd.Flags().Changed("policy") && policyFile == "" {
+			policyFile = defaults.PolicyFile()
+		}
+		if !cmd.Flags().Changed("checkpoint-dir") {
+			checkpointDir = defaults.CheckpointDir()
+		}
+
+		// Validate required files with helpful errors
+		if err := ux.ValidateRequiredFile(planFile, "Plan file", "specular plan"); err != nil {
+			return ux.EnhanceError(err)
+		}
+		if err := ux.ValidateRequiredFile(lockFile, "SpecLock file", "specular spec lock"); err != nil {
+			return ux.EnhanceError(err)
+		}
+		if err := ux.ValidateRequiredFile(specFile, "Spec file", "specular spec generate"); err != nil {
+			return ux.EnhanceError(err)
+		}
 
 		// Setup checkpoint manager
 		checkpointMgr := checkpoint.NewManager(checkpointDir, true, 30*time.Second)
@@ -106,19 +136,19 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 		// Load plan
 		p, err := plan.LoadPlan(planFile)
 		if err != nil {
-			return fmt.Errorf("failed to load plan: %w", err)
+			return ux.FormatError(err, "loading plan file")
 		}
 
 		// Load SpecLock
 		lock, err := spec.LoadSpecLock(lockFile)
 		if err != nil {
-			return fmt.Errorf("failed to load SpecLock: %w", err)
+			return ux.FormatError(err, "loading SpecLock file")
 		}
 
 		// Load spec for code drift detection
 		s, err := spec.LoadSpec(specFile)
 		if err != nil {
-			return fmt.Errorf("failed to load spec: %w", err)
+			return ux.FormatError(err, "loading spec file")
 		}
 
 		// Run eval gate if policy is provided
