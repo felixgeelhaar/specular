@@ -15,10 +15,10 @@ var planCmd = &cobra.Command{
 The plan includes task dependencies, priorities, skill requirements, and
 expected hashes for drift detection.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		specPath, _ := cmd.Flags().GetString("in")
-		lockPath, _ := cmd.Flags().GetString("lock")
-		out, _ := cmd.Flags().GetString("out")
-		estimate, _ := cmd.Flags().GetBool("estimate")
+		specPath := cmd.Flags().Lookup("in").Value.String()
+		lockPath := cmd.Flags().Lookup("lock").Value.String()
+		out := cmd.Flags().Lookup("out").Value.String()
+		estimate := cmd.Flags().Lookup("estimate").Value.String() == "true"
 
 		// Load spec
 		s, err := spec.LoadSpec(specPath)

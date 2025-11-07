@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/exec"
@@ -17,15 +18,17 @@ var prewarmCmd = &cobra.Command{
 This command pulls Docker images in parallel to speed up subsequent builds.
 Use this command before running builds in CI/CD to cache images.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		planFile, _ := cmd.Flags().GetString("plan")
-		cacheDir, _ := cmd.Flags().GetString("cache-dir")
-		concurrency, _ := cmd.Flags().GetInt("concurrency")
-		maxAge, _ := cmd.Flags().GetDuration("max-age")
-		exportDir, _ := cmd.Flags().GetString("export")
-		importDir, _ := cmd.Flags().GetString("import")
-		prune, _ := cmd.Flags().GetBool("prune")
-		verbose, _ := cmd.Flags().GetBool("verbose")
-		all, _ := cmd.Flags().GetBool("all")
+		planFile := cmd.Flags().Lookup("plan").Value.String()
+		cacheDir := cmd.Flags().Lookup("cache-dir").Value.String()
+		concurrencyStr := cmd.Flags().Lookup("concurrency").Value.String()
+		concurrency, _ := strconv.Atoi(concurrencyStr) //nolint:errcheck // Has default value
+		maxAgeStr := cmd.Flags().Lookup("max-age").Value.String()
+		maxAge, _ := time.ParseDuration(maxAgeStr) //nolint:errcheck // Has default value
+		exportDir := cmd.Flags().Lookup("export").Value.String()
+		importDir := cmd.Flags().Lookup("import").Value.String()
+		prune := cmd.Flags().Lookup("prune").Value.String() == "true"
+		verbose := cmd.Flags().Lookup("verbose").Value.String() == "true"
+		all := cmd.Flags().Lookup("all").Value.String() == "true"
 
 		// Create cache manager
 		cache := exec.NewImageCache(cacheDir, maxAge)

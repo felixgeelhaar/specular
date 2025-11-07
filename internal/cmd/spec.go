@@ -24,9 +24,9 @@ var specGenerateCmd = &cobra.Command{
 	Short: "Generate spec from PRD markdown",
 	Long:  `Convert a Product Requirements Document (PRD) in markdown format into a structured specification using AI.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		in, _ := cmd.Flags().GetString("in")
-		out, _ := cmd.Flags().GetString("out")
-		configPath, _ := cmd.Flags().GetString("config")
+		in := cmd.Flags().Lookup("in").Value.String()
+		out := cmd.Flags().Lookup("out").Value.String()
+		configPath := cmd.Flags().Lookup("config").Value.String()
 
 		fmt.Printf("Generating spec from PRD: %s\n", in)
 
@@ -104,7 +104,7 @@ var specValidateCmd = &cobra.Command{
 	Short: "Validate a specification file",
 	Long:  `Validate a specification against the schema and semantic rules.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		in, _ := cmd.Flags().GetString("in")
+		in := cmd.Flags().Lookup("in").Value.String()
 
 		// Load spec
 		s, err := spec.LoadSpec(in)
@@ -148,9 +148,9 @@ var specLockCmd = &cobra.Command{
 	Short: "Generate SpecLock from specification",
 	Long:  `Create a canonical, hashed SpecLock file with blake3 hashes for drift detection.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		in, _ := cmd.Flags().GetString("in")
-		out, _ := cmd.Flags().GetString("out")
-		version, _ := cmd.Flags().GetString("version")
+		in := cmd.Flags().Lookup("in").Value.String()
+		out := cmd.Flags().Lookup("out").Value.String()
+		version := cmd.Flags().Lookup("version").Value.String()
 
 		// Load spec
 		s, err := spec.LoadSpec(in)

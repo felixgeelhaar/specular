@@ -27,18 +27,18 @@ var evalCmd = &cobra.Command{
 
 Results are output in SARIF format for integration with CI/CD tools.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		planFile, _ := cmd.Flags().GetString("plan")
-		lockFile, _ := cmd.Flags().GetString("lock")
-		specFile, _ := cmd.Flags().GetString("spec")
-		policyFile, _ := cmd.Flags().GetString("policy")
-		reportFile, _ := cmd.Flags().GetString("report")
-		failOnDrift, _ := cmd.Flags().GetBool("fail-on-drift")
-		projectRoot, _ := cmd.Flags().GetString("project-root")
-		apiSpecPath, _ := cmd.Flags().GetString("api-spec")
-		ignoreGlobs, _ := cmd.Flags().GetStringSlice("ignore")
-		resume, _ := cmd.Flags().GetBool("resume")
-		checkpointDir, _ := cmd.Flags().GetString("checkpoint-dir")
-		checkpointID, _ := cmd.Flags().GetString("checkpoint-id")
+		planFile := cmd.Flags().Lookup("plan").Value.String()
+		lockFile := cmd.Flags().Lookup("lock").Value.String()
+		specFile := cmd.Flags().Lookup("spec").Value.String()
+		policyFile := cmd.Flags().Lookup("policy").Value.String()
+		reportFile := cmd.Flags().Lookup("report").Value.String()
+		failOnDrift := cmd.Flags().Lookup("fail-on-drift").Value.String() == "true"
+		projectRoot := cmd.Flags().Lookup("project-root").Value.String()
+		apiSpecPath := cmd.Flags().Lookup("api-spec").Value.String()
+		ignoreGlobs, _ := cmd.Flags().GetStringSlice("ignore") //nolint:errcheck // Acceptable to ignore array return
+		resume := cmd.Flags().Lookup("resume").Value.String() == "true"
+		checkpointDir := cmd.Flags().Lookup("checkpoint-dir").Value.String()
+		checkpointID := cmd.Flags().Lookup("checkpoint-id").Value.String()
 
 		// Setup checkpoint manager
 		checkpointMgr := checkpoint.NewManager(checkpointDir, true, 30*time.Second)
@@ -123,24 +123,30 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 		// Run eval gate if policy is provided
 		if policyFile != "" && cpState.Tasks["quality-gate"].Status != "completed" {
 			progressIndicator.UpdateTask("quality-gate", "running", nil)
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 
-			pol, err := policy.LoadPolicy(policyFile)
+			polQualityGate, err := policy.LoadPolicy(policyFile)
 			if err != nil {
 				progressIndicator.UpdateTask("quality-gate", "failed", err)
-				checkpointMgr.Save(cpState)
+				if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+					fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+				}
 				return fmt.Errorf("failed to load policy: %w", err)
 			}
 
 			fmt.Println("Running quality gate checks...")
 			gateReport, err := eval.RunEvalGate(eval.GateOptions{
-				Policy:      pol,
+				Policy:      polQualityGate,
 				ProjectRoot: projectRoot,
 				Verbose:     false,
 			})
 			if err != nil {
 				progressIndicator.UpdateTask("quality-gate", "failed", err)
-				checkpointMgr.Save(cpState)
+				if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+					fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+				}
 				return fmt.Errorf("eval gate failed: %w", err)
 			}
 
@@ -164,15 +170,21 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 			// Fail early if gate failed
 			if !gateReport.AllPassed {
 				progressIndicator.UpdateTask("quality-gate", "failed", fmt.Errorf("quality gate failed with %d failed checks", gateReport.TotalFailed))
-				checkpointMgr.Save(cpState)
+				if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+					fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+				}
 				return fmt.Errorf("quality gate failed with %d failed checks", gateReport.TotalFailed)
 			}
 
 			progressIndicator.UpdateTask("quality-gate", "completed", nil)
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 		} else if policyFile == "" {
 			progressIndicator.UpdateTask("quality-gate", "skipped", nil)
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 		} else {
 			fmt.Println("✓ Quality gate check already completed (skipping)")
 		}
@@ -180,14 +192,18 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 		// Detect plan drift
 		if cpState.Tasks["plan-drift"].Status != "completed" {
 			progressIndicator.UpdateTask("plan-drift", "running", nil)
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 
 			fmt.Println("Detecting plan drift...")
 			planDrift := drift.DetectPlanDrift(lock, p)
 
 			progressIndicator.UpdateTask("plan-drift", "completed", nil)
 			cpState.SetMetadata("plan_drift_count", fmt.Sprintf("%d", len(planDrift)))
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 		} else {
 			fmt.Println("✓ Plan drift check already completed (skipping)")
 		}
@@ -195,7 +211,9 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 		// Detect code drift
 		if cpState.Tasks["code-drift"].Status != "completed" {
 			progressIndicator.UpdateTask("code-drift", "running", nil)
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 
 			fmt.Println("Detecting code drift...")
 			codeDrift := drift.DetectCodeDrift(s, lock, drift.CodeDriftOptions{
@@ -206,7 +224,9 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 
 			progressIndicator.UpdateTask("code-drift", "completed", nil)
 			cpState.SetMetadata("code_drift_count", fmt.Sprintf("%d", len(codeDrift)))
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 		} else {
 			fmt.Println("✓ Code drift check already completed (skipping)")
 		}
@@ -215,14 +235,18 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 		var infraDrift []drift.Finding
 		if cpState.Tasks["infra-drift"].Status != "completed" {
 			progressIndicator.UpdateTask("infra-drift", "running", nil)
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 
 			fmt.Println("Detecting infrastructure drift...")
 			if policyFile != "" {
-				pol, err := policy.LoadPolicy(policyFile)
+				polInfra, err := policy.LoadPolicy(policyFile)
 				if err != nil {
 					progressIndicator.UpdateTask("infra-drift", "failed", err)
-					checkpointMgr.Save(cpState)
+					if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+						fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+					}
 					return fmt.Errorf("failed to load policy: %w", err)
 				}
 
@@ -233,14 +257,16 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 				// Future: when plan.Task has Image field, populate taskImages here
 
 				infraDrift = drift.DetectInfraDrift(drift.InfraDriftOptions{
-					Policy:     pol,
+					Policy:     polInfra,
 					TaskImages: taskImages,
 				})
 			}
 
 			progressIndicator.UpdateTask("infra-drift", "completed", nil)
 			cpState.SetMetadata("infra_drift_count", fmt.Sprintf("%d", len(infraDrift)))
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 		} else {
 			fmt.Println("✓ Infrastructure drift check already completed (skipping)")
 		}
@@ -255,12 +281,16 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 
 		// Generate report
 		progressIndicator.UpdateTask("report-generation", "running", nil)
-		checkpointMgr.Save(cpState)
+		if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+			fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+		}
 
 		report := drift.GenerateReport(planDrift, codeDrift, infraDrift)
 
 		progressIndicator.UpdateTask("report-generation", "completed", nil)
-		checkpointMgr.Save(cpState)
+		if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+			fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+		}
 
 		// Print summary
 		fmt.Printf("\nDrift Detection Summary:\n")
@@ -294,21 +324,23 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 
 		// Generate SARIF output
 		sarif := report.ToSARIF()
-		if err := drift.SaveSARIF(sarif, reportFile); err != nil {
-			return fmt.Errorf("failed to save SARIF report: %w", err)
+		if errSARIF := drift.SaveSARIF(sarif, reportFile); errSARIF != nil {
+			return fmt.Errorf("failed to save SARIF report: %w", errSARIF)
 		}
 		fmt.Printf("✓ SARIF report saved to %s\n", reportFile)
 
 		// Mark evaluation as completed
 		cpState.Status = "completed"
-		if err := checkpointMgr.Save(cpState); err != nil {
-			fmt.Printf("Warning: failed to save final checkpoint: %v\n", err)
+		if errCP := checkpointMgr.Save(cpState); errCP != nil {
+			fmt.Printf("Warning: failed to save final checkpoint: %v\n", errCP)
 		}
 
 		// Fail if requested and drift detected
 		if failOnDrift && report.HasErrors() {
 			cpState.Status = "failed"
-			checkpointMgr.Save(cpState)
+			if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
+			}
 			return fmt.Errorf("drift detection failed with %d errors", report.Summary.Errors)
 		}
 
@@ -317,10 +349,10 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 		}
 
 		// Clean up checkpoint on success unless user wants to keep it
-		keepCheckpoint, _ := cmd.Flags().GetBool("keep-checkpoint")
+		keepCheckpoint := cmd.Flags().Lookup("keep-checkpoint").Value.String() == "true"
 		if !keepCheckpoint && cpState.Status == "completed" {
-			if err := checkpointMgr.Delete(checkpointID); err != nil {
-				fmt.Printf("Warning: failed to delete checkpoint: %v\n", err)
+			if errDel := checkpointMgr.Delete(checkpointID); errDel != nil {
+				fmt.Printf("Warning: failed to delete checkpoint: %v\n", errDel)
 			} else {
 				fmt.Printf("Checkpoint cleaned up: %s\n", checkpointID)
 			}

@@ -29,7 +29,7 @@ var providerListCmd = &cobra.Command{
 	Short: "List configured providers",
 	Long:  `List all configured providers and their current status (enabled/disabled, loaded/not loaded).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, _ := cmd.Flags().GetString("config")
+		configPath := cmd.Flags().Lookup("config").Value.String()
 		if configPath == "" {
 			configPath = defaultProviderConfigPath
 		}
@@ -49,8 +49,8 @@ var providerListCmd = &cobra.Command{
 
 		// Print providers table
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-		fmt.Fprintln(w, "NAME\tTYPE\tENABLED\tSOURCE\tVERSION")
-		fmt.Fprintln(w, "----\t----\t-------\t------\t-------")
+		fmt.Fprintln(w, "NAME\tTYPE\tENABLED\tSOURCE\tVERSION") //nolint:errcheck
+		fmt.Fprintln(w, "----\t----\t-------\t------\t-------") //nolint:errcheck
 
 		for _, p := range config.Providers {
 			enabled := "no"
@@ -68,11 +68,11 @@ var providerListCmd = &cobra.Command{
 				version = "-"
 			}
 
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", //nolint:errcheck
 				p.Name, p.Type, enabled, source, version)
 		}
 
-		w.Flush()
+		w.Flush() //nolint:errcheck
 
 		// Print strategy info
 		if config.Strategy.Budget.MaxCostPerDay > 0 || config.Strategy.Budget.MaxCostPerRequest > 0 {
@@ -101,7 +101,7 @@ var providerHealthCmd = &cobra.Command{
 	Short: "Check provider health",
 	Long:  `Check the health status of providers. If no provider name is specified, checks all enabled providers.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, _ := cmd.Flags().GetString("config")
+		configPath := cmd.Flags().Lookup("config").Value.String()
 		if configPath == "" {
 			configPath = defaultProviderConfigPath
 		}
@@ -135,25 +135,25 @@ var providerHealthCmd = &cobra.Command{
 		defer cancel()
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-		fmt.Fprintln(w, "PROVIDER\tSTATUS\tMESSAGE")
-		fmt.Fprintln(w, "--------\t------\t-------")
+		fmt.Fprintln(w, "PROVIDER\tSTATUS\tMESSAGE") //nolint:errcheck
+		fmt.Fprintln(w, "--------\t------\t-------") //nolint:errcheck
 
 		for _, name := range providersToCheck {
 			prov, err := registry.Get(name)
 			if err != nil {
-				fmt.Fprintf(w, "%s\t❌ ERROR\t%v\n", name, err)
+			fmt.Fprintf(w, "%s\t❌ ERROR\t%v\n", name, err) //nolint:errcheck
 				continue
 			}
 
 			if err := prov.Health(ctx); err != nil {
-				fmt.Fprintf(w, "%s\t❌ UNHEALTHY\t%v\n", name, err)
+			fmt.Fprintf(w, "%s\t❌ UNHEALTHY\t%v\n", name, err) //nolint:errcheck
 			} else {
 				info := prov.GetInfo()
-				fmt.Fprintf(w, "%s\t✅ HEALTHY\t%s\n", name, info.Description)
+			fmt.Fprintf(w, "%s\t✅ HEALTHY\t%s\n", name, info.Description) //nolint:errcheck
 			}
 		}
 
-		w.Flush()
+		w.Flush() //nolint:errcheck
 
 		return nil
 	},
@@ -165,7 +165,7 @@ var providerInitCmd = &cobra.Command{
 	Long: `Initialize provider configuration by copying the example file.
 This creates a providers.yaml file from providers.yaml.example with default settings.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		force, _ := cmd.Flags().GetBool("force")
+		force := cmd.Flags().Lookup("force").Value.String() == "true"
 
 		// Check if example file exists
 		if _, err := os.Stat(exampleProviderConfigPath); os.IsNotExist(err) {

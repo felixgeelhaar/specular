@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,16 +21,19 @@ The router will automatically select the best model based on complexity, budget,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Get flags
-		providerConfigPath, _ := cmd.Flags().GetString("provider-config")
-		routerConfigPath, _ := cmd.Flags().GetString("router-config")
-		modelHint, _ := cmd.Flags().GetString("model-hint")
-		systemPrompt, _ := cmd.Flags().GetString("system")
-		complexity, _ := cmd.Flags().GetInt("complexity")
-		priority, _ := cmd.Flags().GetString("priority")
-		temperature, _ := cmd.Flags().GetFloat64("temperature")
-		maxTokens, _ := cmd.Flags().GetInt("max-tokens")
-		stream, _ := cmd.Flags().GetBool("stream")
-		verbose, _ := cmd.Flags().GetBool("verbose")
+		providerConfigPath := cmd.Flags().Lookup("provider-config").Value.String()
+		routerConfigPath := cmd.Flags().Lookup("router-config").Value.String()
+		modelHint := cmd.Flags().Lookup("model-hint").Value.String()
+		systemPrompt := cmd.Flags().Lookup("system").Value.String()
+		complexityStr := cmd.Flags().Lookup("complexity").Value.String()
+		complexity, _ := strconv.Atoi(complexityStr) //nolint:errcheck // Has default value
+		priority := cmd.Flags().Lookup("priority").Value.String()
+		temperatureStr := cmd.Flags().Lookup("temperature").Value.String()
+		temperature, _ := strconv.ParseFloat(temperatureStr, 64) //nolint:errcheck // Has default value
+		maxTokensStr := cmd.Flags().Lookup("max-tokens").Value.String()
+		maxTokens, _ := strconv.Atoi(maxTokensStr) //nolint:errcheck // Has default value
+		stream := cmd.Flags().Lookup("stream").Value.String() == "true"
+		verbose := cmd.Flags().Lookup("verbose").Value.String() == "true"
 
 		// Use default paths if not specified
 		if providerConfigPath == "" {
@@ -67,9 +71,9 @@ The router will automatically select the best model based on complexity, budget,
 			}
 		} else {
 			// Load provider config to get strategy settings
-			providerConfig, err := provider.LoadProvidersConfig(providerConfigPath)
-			if err != nil {
-				return fmt.Errorf("failed to load provider config: %w", err)
+			providerConfig, loadErr := provider.LoadProvidersConfig(providerConfigPath)
+			if loadErr != nil {
+				return fmt.Errorf("failed to load provider config: %w", loadErr)
 			}
 
 			// Create router config from provider strategy
@@ -199,7 +203,7 @@ func runStreamingGenerate(ctx context.Context, r *router.Router, req router.Gene
 		// Print the delta (incremental text)
 		if chunk.Delta != "" {
 			fmt.Print(chunk.Delta)
-			os.Stdout.Sync() // Flush output immediately for streaming effect
+			os.Stdout.Sync() //nolint:errcheck,gosec // Flush output immediately for streaming effect
 		}
 
 		totalContent = chunk.Content

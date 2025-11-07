@@ -23,11 +23,11 @@ and strict mode for enhanced validation.`,
 }
 
 func runInterview(cmd *cobra.Command, args []string) error {
-	out, _ := cmd.Flags().GetString("out")
-	preset, _ := cmd.Flags().GetString("preset")
-	strict, _ := cmd.Flags().GetBool("strict")
-	tui, _ := cmd.Flags().GetBool("tui")
-	list, _ := cmd.Flags().GetBool("list")
+	out := cmd.Flags().Lookup("out").Value.String()
+	preset := cmd.Flags().Lookup("preset").Value.String()
+	strict := cmd.Flags().Lookup("strict").Value.String() == "true"
+	tui := cmd.Flags().Lookup("tui").Value.String() == "true"
+	list := cmd.Flags().Lookup("list").Value.String() == "true"
 
 	// List available presets
 	if list {

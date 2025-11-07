@@ -22,9 +22,9 @@ linting, testing, and security scanning.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		planFile := cmd.Flags().Lookup("plan").Value.String()
 		policyFile := cmd.Flags().Lookup("policy").Value.String()
-		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		dryRun := cmd.Flags().Lookup("dry-run").Value.String() == "true"
 		manifestDir := cmd.Flags().Lookup("manifest-dir").Value.String()
-		resume, _ := cmd.Flags().GetBool("resume")
+		resume := cmd.Flags().Lookup("resume").Value.String() == "true"
 		checkpointDir := cmd.Flags().Lookup("checkpoint-dir").Value.String()
 		checkpointID := cmd.Flags().Lookup("checkpoint-id").Value.String()
 
@@ -97,21 +97,25 @@ linting, testing, and security scanning.`,
 		}
 
 		// Save initial checkpoint
-		if err := checkpointMgr.Save(cpState); err != nil {
-			fmt.Printf("Warning: failed to save initial checkpoint: %v\n", err)
+		if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
+			fmt.Printf("Warning: failed to save initial checkpoint: %v\n", saveErr)
 		}
 
 		// Initialize image cache
-		verbose, _ := cmd.Flags().GetBool("verbose")
-		enableCache, _ := cmd.Flags().GetBool("enable-cache")
-		cacheDir, _ := cmd.Flags().GetString("cache-dir")
-		cacheMaxAge, _ := cmd.Flags().GetDuration("cache-max-age")
+		verbose := cmd.Flags().Lookup("verbose").Value.String() == "true"
+		enableCache := cmd.Flags().Lookup("enable-cache").Value.String() == "true"
+		cacheDir := cmd.Flags().Lookup("cache-dir").Value.String()
+		cacheMaxAgeStr := cmd.Flags().Lookup("cache-max-age").Value.String()
+		cacheMaxAge, parseErr := time.ParseDuration(cacheMaxAgeStr)
+		if parseErr != nil {
+			cacheMaxAge = 7 * 24 * time.Hour // default
+		}
 
 		var imageCache *exec.ImageCache
 		if enableCache {
 			imageCache = exec.NewImageCache(cacheDir, cacheMaxAge)
-			if err := imageCache.LoadManifest(); err != nil {
-				fmt.Printf("Warning: failed to load cache manifest: %v\n", err)
+			if loadErr := imageCache.LoadManifest(); loadErr != nil {
+				fmt.Printf("Warning: failed to load cache manifest: %v\n", loadErr)
 			}
 		}
 
@@ -158,8 +162,8 @@ linting, testing, and security scanning.`,
 
 		// Mark as completed
 		cpState.Status = "completed"
-		if err := checkpointMgr.Save(cpState); err != nil {
-			fmt.Printf("Warning: failed to save final checkpoint: %v\n", err)
+		if finalSaveErr := checkpointMgr.Save(cpState); finalSaveErr != nil {
+			fmt.Printf("Warning: failed to save final checkpoint: %v\n", finalSaveErr)
 		}
 
 		// Print summary using progress indicator
@@ -173,10 +177,10 @@ linting, testing, and security scanning.`,
 		fmt.Println("\n✓ All tasks completed successfully")
 
 		// Clean up checkpoint on success unless user wants to keep it
-		keepCheckpoint, _ := cmd.Flags().GetBool("keep-checkpoint")
+		keepCheckpoint := cmd.Flags().Lookup("keep-checkpoint").Value.String() == "true"
 		if !keepCheckpoint {
-			if err := checkpointMgr.Delete(checkpointID); err != nil {
-				fmt.Printf("Warning: failed to delete checkpoint: %v\n", err)
+			if deleteErr := checkpointMgr.Delete(checkpointID); deleteErr != nil {
+				fmt.Printf("Warning: failed to delete checkpoint: %v\n", deleteErr)
 			} else {
 				fmt.Printf("Checkpoint cleaned up: %s\n", checkpointID)
 			}
