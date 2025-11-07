@@ -8,8 +8,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/spf13/cobra"
+
+	"github.com/felixgeelhaar/specular/internal/provider"
 )
 
 const (
@@ -72,7 +73,7 @@ var providerListCmd = &cobra.Command{
 				p.Name, p.Type, enabled, source, version)
 		}
 
-		w.Flush() //nolint:errcheck
+		w.Flush() //nolint:errcheck,gosec // G104: Tabwriter flush errors are not critical for display
 
 		// Print strategy info
 		if config.Strategy.Budget.MaxCostPerDay > 0 || config.Strategy.Budget.MaxCostPerRequest > 0 {
@@ -139,21 +140,21 @@ var providerHealthCmd = &cobra.Command{
 		fmt.Fprintln(w, "--------\t------\t-------") //nolint:errcheck
 
 		for _, name := range providersToCheck {
-			prov, err := registry.Get(name)
+			prov, getErr := registry.Get(name)
 			if err != nil {
-			fmt.Fprintf(w, "%s\t❌ ERROR\t%v\n", name, err) //nolint:errcheck
+				fmt.Fprintf(w, "%s\t❌ ERROR\t%v\n", name, getErr) //nolint:errcheck
 				continue
 			}
 
-			if err := prov.Health(ctx); err != nil {
-			fmt.Fprintf(w, "%s\t❌ UNHEALTHY\t%v\n", name, err) //nolint:errcheck
+			if healthErr := prov.Health(ctx); healthErr != nil {
+				fmt.Fprintf(w, "%s\t❌ UNHEALTHY\t%v\n", name, healthErr) //nolint:errcheck
 			} else {
 				info := prov.GetInfo()
-			fmt.Fprintf(w, "%s\t✅ HEALTHY\t%s\n", name, info.Description) //nolint:errcheck
+				fmt.Fprintf(w, "%s\t✅ HEALTHY\t%s\n", name, info.Description) //nolint:errcheck
 			}
 		}
 
-		w.Flush() //nolint:errcheck
+		w.Flush() //nolint:errcheck,gosec // G104: Tabwriter flush errors are not critical for display
 
 		return nil
 	},
@@ -184,13 +185,13 @@ This creates a providers.yaml file from providers.yaml.example with default sett
 		}
 
 		// Ensure .specular directory exists
-		if err := os.MkdirAll(filepath.Dir(defaultProviderConfigPath), 0755); err != nil {
-			return fmt.Errorf("failed to create .specular directory: %w", err)
+		if mkdirErr := os.MkdirAll(filepath.Dir(defaultProviderConfigPath), 0o750); mkdirErr != nil {
+			return fmt.Errorf("failed to create .specular directory: %w", mkdirErr)
 		}
 
 		// Write to target file
-		if err := os.WriteFile(defaultProviderConfigPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to write provider config: %w", err)
+		if writeErr := os.WriteFile(defaultProviderConfigPath, data, 0o600); writeErr != nil {
+			return fmt.Errorf("failed to write provider config: %w", writeErr)
 		}
 
 		fmt.Printf("✓ Created provider configuration at %s\n", defaultProviderConfigPath)

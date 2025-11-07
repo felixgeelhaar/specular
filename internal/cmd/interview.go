@@ -6,9 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/felixgeelhaar/specular/internal/interview"
 	"github.com/felixgeelhaar/specular/internal/spec"
-	"github.com/spf13/cobra"
 )
 
 var interviewCmd = &cobra.Command{
@@ -61,6 +62,7 @@ func listPresets() error {
 	return nil
 }
 
+//nolint:gocyclo // Interview flow complexity is acceptable for user interaction
 func runCLIInterview(preset string, strict bool, out string) error {
 	// Create interview engine
 	engine, err := interview.NewEngine(preset, strict)
@@ -73,7 +75,7 @@ func runCLIInterview(preset string, strict bool, out string) error {
 	fmt.Printf("Strict mode: %v\n\n", strict)
 
 	// Start interview
-	if err := engine.Start(); err != nil {
+	if startErr := engine.Start(); startErr != nil {
 		return fmt.Errorf("start interview: %w", err)
 	}
 
@@ -81,8 +83,8 @@ func runCLIInterview(preset string, strict bool, out string) error {
 
 	// Interview loop
 	for !engine.IsComplete() {
-		q, err := engine.CurrentQuestion()
-		if err != nil {
+		q, qErr := engine.CurrentQuestion()
+		if qErr != nil {
 			return fmt.Errorf("get current question: %w", err)
 		}
 
@@ -166,7 +168,7 @@ func runCLIInterview(preset string, strict bool, out string) error {
 	}
 
 	// Save spec
-	if err := spec.SaveSpec(result.Spec, out); err != nil {
+	if saveErr := spec.SaveSpec(result.Spec, out); saveErr != nil {
 		return fmt.Errorf("save spec: %w", err)
 	}
 

@@ -6,11 +6,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/felixgeelhaar/specular/internal/prd"
 	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
-	"github.com/spf13/cobra"
 )
 
 var specCmd = &cobra.Command{
@@ -88,8 +89,8 @@ var specGenerateCmd = &cobra.Command{
 		}
 
 		// Save spec
-		if err := spec.SaveSpec(productSpec, out); err != nil {
-			return fmt.Errorf("failed to save spec: %w", err)
+		if saveErr := spec.SaveSpec(productSpec, out); saveErr != nil {
+			return fmt.Errorf("failed to save spec: %w", saveErr)
 		}
 
 		fmt.Printf("✓ Generated spec with %d features\n", len(productSpec.Features))
@@ -165,8 +166,8 @@ var specLockCmd = &cobra.Command{
 		}
 
 		// Save SpecLock
-		if err := spec.SaveSpecLock(lock, out); err != nil {
-			return fmt.Errorf("failed to save SpecLock: %w", err)
+		if saveErr := spec.SaveSpecLock(lock, out); saveErr != nil {
+			return fmt.Errorf("failed to save spec lock: %w", saveErr)
 		}
 
 		fmt.Printf("✓ Generated SpecLock with %d features\n", len(lock.Features))

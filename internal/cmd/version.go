@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/felixgeelhaar/specular/internal/version"
 	"github.com/spf13/cobra"
+
+	"github.com/felixgeelhaar/specular/internal/version"
 )
 
 var versionCmd = &cobra.Command{

@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/felixgeelhaar/specular/internal/checkpoint"
 	"github.com/felixgeelhaar/specular/internal/drift"
 	"github.com/felixgeelhaar/specular/internal/eval"
@@ -12,7 +14,6 @@ import (
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/progress"
 	"github.com/felixgeelhaar/specular/internal/spec"
-	"github.com/spf13/cobra"
 )
 
 var evalCmd = &cobra.Command{
@@ -127,27 +128,27 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 				fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
 			}
 
-			polQualityGate, err := policy.LoadPolicy(policyFile)
-			if err != nil {
-				progressIndicator.UpdateTask("quality-gate", "failed", err)
+			polQualityGate, polErr := policy.LoadPolicy(policyFile)
+			if polErr != nil {
+				progressIndicator.UpdateTask("quality-gate", "failed", polErr)
 				if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
 					fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
 				}
-				return fmt.Errorf("failed to load policy: %w", err)
+				return fmt.Errorf("failed to load policy: %w", polErr)
 			}
 
 			fmt.Println("Running quality gate checks...")
-			gateReport, err := eval.RunEvalGate(eval.GateOptions{
+			gateReport, gateErr := eval.RunEvalGate(eval.GateOptions{
 				Policy:      polQualityGate,
 				ProjectRoot: projectRoot,
 				Verbose:     false,
 			})
-			if err != nil {
-				progressIndicator.UpdateTask("quality-gate", "failed", err)
+			if gateErr != nil {
+				progressIndicator.UpdateTask("quality-gate", "failed", gateErr)
 				if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
 					fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
 				}
-				return fmt.Errorf("eval gate failed: %w", err)
+				return fmt.Errorf("eval gate failed: %w", gateErr)
 			}
 
 			// Print gate results
@@ -241,13 +242,13 @@ Results are output in SARIF format for integration with CI/CD tools.`,
 
 			fmt.Println("Detecting infrastructure drift...")
 			if policyFile != "" {
-				polInfra, err := policy.LoadPolicy(policyFile)
-				if err != nil {
-					progressIndicator.UpdateTask("infra-drift", "failed", err)
+				polInfra, polInfraErr := policy.LoadPolicy(policyFile)
+				if polInfraErr != nil {
+					progressIndicator.UpdateTask("infra-drift", "failed", polInfraErr)
 					if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
 						fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
 					}
-					return fmt.Errorf("failed to load policy: %w", err)
+					return fmt.Errorf("failed to load policy: %w", polInfraErr)
 				}
 
 				// Build task images map from plan

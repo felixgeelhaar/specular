@@ -158,6 +158,8 @@ func runLinters(opts GateOptions) []CheckResult {
 }
 
 // runGoLinter executes Go linting
+//
+//nolint:dupl // Linter patterns are similar by design, extraction would reduce clarity
 func runGoLinter(opts GateOptions) CheckResult {
 	startTime := time.Now()
 

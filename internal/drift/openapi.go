@@ -7,8 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/getkin/kin-openapi/openapi3"
+
+	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
 // OpenAPIValidator validates API implementations against OpenAPI specs
@@ -29,7 +30,7 @@ func NewOpenAPIValidator(specPath string) (*OpenAPIValidator, error) {
 	}
 
 	// Validate the spec
-	if err := doc.Validate(context.Background()); err != nil {
+	if validateErr := doc.Validate(context.Background()); validateErr != nil {
 		return nil, fmt.Errorf("invalid OpenAPI spec: %w", err)
 	}
 

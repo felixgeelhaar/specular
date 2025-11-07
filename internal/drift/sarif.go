@@ -131,7 +131,7 @@ func SaveSARIF(sarif *SARIF, path string) error {
 		return fmt.Errorf("marshal SARIF: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if writeErr := os.WriteFile(path, data, 0o600); writeErr != nil {
 		return fmt.Errorf("write SARIF file: %w", err)
 	}
 

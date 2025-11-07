@@ -3,9 +3,10 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
-	"github.com/spf13/cobra"
 )
 
 var planCmd = &cobra.Command{
@@ -44,8 +45,8 @@ expected hashes for drift detection.`,
 		}
 
 		// Save plan
-		if err := plan.SavePlan(p, out); err != nil {
-			return fmt.Errorf("failed to save plan: %w", err)
+		if saveErr := plan.SavePlan(p, out); saveErr != nil {
+			return fmt.Errorf("failed to save plan: %w", saveErr)
 		}
 
 		fmt.Printf("✓ Generated plan with %d tasks\n", len(p.Tasks))

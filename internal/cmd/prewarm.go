@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/felixgeelhaar/specular/internal/exec"
 	"github.com/felixgeelhaar/specular/internal/plan"
-	"github.com/spf13/cobra"
 )
 
 var prewarmCmd = &cobra.Command{

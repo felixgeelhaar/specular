@@ -159,6 +159,7 @@ func checkTestCoverage(s *spec.ProductSpec, opts CodeDriftOptions) []Finding {
 			featureName := strings.ToLower(strings.ReplaceAll(feature.Title, " ", "_"))
 
 			// Walk the directory tree to find matching test files
+			//nolint:errcheck,gosec // Walk errors handled inline
 			filepath.Walk(opts.ProjectRoot, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return nil // Skip files with errors
@@ -214,11 +215,11 @@ func hashFile(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // Deferred close is best effort
 
 	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", err
+	if _, copyErr := io.Copy(h, f); copyErr != nil {
+		return "", copyErr
 	}
 
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
@@ -227,7 +228,7 @@ func hashFile(path string) (string, error) {
 // shouldIgnore checks if a path should be ignored
 func shouldIgnore(path string, ignoreGlobs []string) bool {
 	for _, pattern := range ignoreGlobs {
-		matched, _ := filepath.Match(pattern, filepath.Base(path))
+		matched, _ := filepath.Match(pattern, filepath.Base(path)) //nolint:errcheck // Match error only on malformed pattern, not possible here
 		if matched {
 			return true
 		}

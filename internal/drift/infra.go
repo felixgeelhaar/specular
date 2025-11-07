@@ -190,6 +190,7 @@ func checkRunManifests(manifests []exec.RunManifest, pol *policy.Policy) []Findi
 
 		// Check for output hash changes that might indicate drift
 		// This is informational for now - could be enhanced to compare against baselines
+		//nolint:staticcheck // Empty branch reserved for future output hash validation
 		if len(manifest.OutputHashes) > 0 {
 			// Future: Compare against baseline hashes to detect unexpected changes
 		}
