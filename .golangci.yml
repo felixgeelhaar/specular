@@ -74,12 +74,14 @@ issues:
         - errcheck
         - dupl
         - gosec
+        - govet
 
     # Exclude E2E test files
     - path: test/e2e/
       linters:
         - errcheck
         - gosec
+        - govet
 
   max-issues-per-linter: 0
   max-same-issues: 0

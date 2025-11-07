@@ -81,7 +81,8 @@ func (m *Manager) Save(state *State) error {
 		return fmt.Errorf("failed to marshal checkpoint state: %w", err)
 	}
 
-	if err := os.WriteFile(checkpointPath, data, 0o600); err != nil {
+	err = os.WriteFile(checkpointPath, data, 0o600)
+	if err != nil {
 		return fmt.Errorf("failed to write checkpoint file: %w", err)
 	}
 
