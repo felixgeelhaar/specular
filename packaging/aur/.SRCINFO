@@ -1,0 +1,20 @@
+pkgbase = specular
+	pkgdesc = AI-Native Spec and Build Assistant with policy enforcement
+	pkgver = 1.1.0
+	pkgrel = 1
+	url = https://github.com/felixgeelhaar/specular
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	depends = docker
+	optdepends = git: for version control integration
+	optdepends = ollama: for local AI models
+	provides = specular
+	conflicts = specular-bin
+	conflicts = specular-git
+	source_x86_64 = specular-1.1.0-x86_64.tar.gz::https://github.com/felixgeelhaar/specular/releases/download/v1.1.0/specular_1.1.0_linux_amd64.tar.gz
+	sha256sums_x86_64 = SKIP
+	source_aarch64 = specular-1.1.0-aarch64.tar.gz::https://github.com/felixgeelhaar/specular/releases/download/v1.1.0/specular_1.1.0_linux_arm64.tar.gz
+	sha256sums_aarch64 = SKIP
+
+pkgname = specular
