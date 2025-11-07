@@ -33,6 +33,100 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 
 ## Installation
 
+### macOS / Linux (Homebrew)
+
+```bash
+# Add the tap
+brew tap felixgeelhaar/tap
+
+# Install specular
+brew install specular
+
+# Verify installation
+specular version
+```
+
+### Linux Packages
+
+#### Debian/Ubuntu (.deb)
+
+```bash
+# Download the latest .deb package
+wget https://github.com/felixgeelhaar/specular/releases/latest/download/specular_linux_amd64.deb
+
+# Install the package
+sudo dpkg -i specular_linux_amd64.deb
+
+# Or for ARM64
+wget https://github.com/felixgeelhaar/specular/releases/latest/download/specular_linux_arm64.deb
+sudo dpkg -i specular_linux_arm64.deb
+```
+
+#### RedHat/Fedora/CentOS (.rpm)
+
+```bash
+# Download the latest .rpm package
+wget https://github.com/felixgeelhaar/specular/releases/latest/download/specular_linux_amd64.rpm
+
+# Install the package
+sudo rpm -i specular_linux_amd64.rpm
+
+# Or for ARM64
+wget https://github.com/felixgeelhaar/specular/releases/latest/download/specular_linux_arm64.rpm
+sudo rpm -i specular_linux_arm64.rpm
+```
+
+#### Alpine Linux (.apk)
+
+```bash
+# Download the latest .apk package
+wget https://github.com/felixgeelhaar/specular/releases/latest/download/specular_linux_amd64.apk
+
+# Install the package
+sudo apk add --allow-untrusted specular_linux_amd64.apk
+
+# Or for ARM64
+wget https://github.com/felixgeelhaar/specular/releases/latest/download/specular_linux_arm64.apk
+sudo apk add --allow-untrusted specular_linux_arm64.apk
+```
+
+### Direct Binary Download
+
+Download pre-built binaries from the [releases page](https://github.com/felixgeelhaar/specular/releases):
+
+```bash
+# Linux AMD64
+wget https://github.com/felixgeelhaar/specular/releases/latest/download/specular_linux_amd64.tar.gz
+tar -xzf specular_linux_amd64.tar.gz
+sudo mv specular /usr/local/bin/
+
+# macOS AMD64 (Intel)
+wget https://github.com/felixgeelhaar/specular/releases/latest/download/specular_darwin_amd64.tar.gz
+tar -xzf specular_darwin_amd64.tar.gz
+sudo mv specular /usr/local/bin/
+
+# macOS ARM64 (Apple Silicon)
+wget https://github.com/felixgeelhaar/specular/releases/latest/download/specular_darwin_arm64.tar.gz
+tar -xzf specular_darwin_arm64.tar.gz
+sudo mv specular /usr/local/bin/
+
+# Windows AMD64
+# Download specular_windows_amd64.zip from releases page
+# Extract and add to PATH
+```
+
+### Docker
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/felixgeelhaar/specular:latest
+
+# Run with current directory mounted
+docker run -v $(pwd):/workspace ghcr.io/felixgeelhaar/specular:latest version
+```
+
+### Build from Source
+
 ```bash
 # Clone the repository
 git clone https://github.com/felixgeelhaar/specular.git
