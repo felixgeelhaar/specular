@@ -20,8 +20,10 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 ## Features
 
 - **AI Provider Plugin System**: Pluggable architecture for local models (Ollama), cloud APIs (OpenAI, Anthropic, Gemini), and custom providers
+- **CLI Provider Protocol**: Language-agnostic protocol for creating custom AI providers (see [docs/CLI_PROVIDERS.md](docs/CLI_PROVIDERS.md))
 - **Intelligent Model Routing**: Smart model selection based on task complexity, budget, and performance constraints
-- **Interview Mode**: Guided Q&A to generate best-practice specifications
+- **Interview Mode**: Guided Q&A with interactive TUI to generate best-practice specifications
+- **Enhanced Error System**: Structured errors with error codes, suggestions, and documentation links
 - **SpecLock**: Canonical, hashed specification snapshots for drift detection
 - **Plan Generator**: Converts specs into task DAGs with dependencies
 - **Drift Detection**: Multi-level drift detection (plan, code, infrastructure)
@@ -202,7 +204,10 @@ For detailed provider documentation, see [internal/provider/README.md](internal/
 # List available presets
 specular interview --list
 
-# Run interactive interview (uses cli-tool preset as example)
+# Run interactive TUI interview (recommended - uses cli-tool preset as example)
+specular interview --preset cli-tool --out .specular/spec.yaml --tui
+
+# Or run non-interactive interview
 specular interview --preset cli-tool --out .specular/spec.yaml
 
 # Review the generated spec
@@ -242,7 +247,34 @@ specular eval --plan plan.json --lock .specular/spec.lock.json --spec .specular/
 ./test-e2e.sh
 ```
 
-### Working Features (v0.8)
+### Working Features (v1.1.0)
+
+✅ **Interactive TUI Mode** (v1.1.0)
+- Beautiful terminal UI powered by bubbletea
+- Real-time progress tracking with progress bars
+- Visual question navigation
+- Answer validation with immediate feedback
+- Answer history with up/down arrow navigation
+- Strict and non-strict validation modes
+- Seamless integration with interview command (`--tui` flag)
+
+✅ **Enhanced Error System** (v1.1.0)
+- Structured errors with hierarchical error codes (CATEGORY-NNN format)
+- 8 error categories: SPEC, POLICY, PLAN, INTERVIEW, PROVIDER, EXEC, DRIFT, IO
+- Actionable suggestions for every error
+- Documentation links for detailed guidance
+- Fluent API for error building with method chaining
+- Go 1.13+ error wrapping support for `errors.Is()` and `errors.As()`
+- Beautiful formatted error messages with bullet points
+
+✅ **CLI Provider Protocol** (v1.1.0)
+- Language-agnostic JSON-based stdin/stdout protocol
+- Three required commands: generate, stream, health
+- Support for streaming with newline-delimited JSON (NDJSON)
+- Comprehensive documentation in [docs/CLI_PROVIDERS.md](docs/CLI_PROVIDERS.md)
+- Example router configuration in `.specular/router.example.yaml`
+- Reference implementation with ollama provider
+- Easy integration with ExecutableProvider adapter
 
 ✅ **AI Provider Plugin System** (Phase 1 Complete)
 - Pluggable provider architecture (CLI executables, API clients, gRPC, native Go plugins)
