@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="Specular Logo" width="400">
+  <img src="docs/assets/logo.svg" alt="Specular Logo" width="400">
 </p>
 
 # Specular
