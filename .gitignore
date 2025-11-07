@@ -5,6 +5,7 @@
 *.so
 *.dylib
 /ai-dev
+/specular
 
 # Test binary, built with `go test -c`
 *.test
@@ -31,9 +32,11 @@ go.work
 # Claude Code runtime files
 .claude/
 
-# ai-dev specific
+# Specular specific
 .specular/*
 !.specular/*.example
+.aidv/*
+!.aidv/*.example
 *.lock.json
 plan.json
 drift.sarif
