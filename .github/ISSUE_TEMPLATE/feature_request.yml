@@ -1,0 +1,108 @@
+name: Feature Request
+description: Suggest an idea for Specular
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see
+      placeholder: I would like Specular to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe alternatives you've considered
+      placeholder: I've considered...
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component does this feature affect?
+      multiple: true
+      options:
+        - CLI
+        - Specification Generation
+        - Plan Generation
+        - Build/Execution
+        - Drift Detection
+        - Policy Enforcement
+        - Provider Integration
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - P0 - Critical (blocking my workflow)
+        - P1 - High (significantly impacts my productivity)
+        - P2 - Medium (would be nice to have)
+        - P3 - Low (minor improvement)
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Describe your specific use case
+      placeholder: |
+        I am working on...
+        This feature would help me...
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples
+      description: Code examples, mockups, or reference implementations
+      placeholder: |
+        ```bash
+        specular new-command --example
+        ```
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or examples
+      placeholder: Add any other context here
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify the following
+      options:
+        - label: I have searched existing issues/discussions to avoid duplicates
+          required: true
+        - label: This feature aligns with Specular's goals and principles
+          required: true
+        - label: I would be willing to contribute this feature
+          required: false
