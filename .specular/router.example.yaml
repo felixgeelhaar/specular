@@ -1,0 +1,203 @@
+# Specular Router Configuration Example
+# Copy this file to .specular/router.yaml and customize for your setup
+
+# Provider configurations
+providers:
+  # =============================================================================
+  # CLI PROVIDERS - External executables following the CLI provider protocol
+  # =============================================================================
+
+  # Ollama - Local LLM provider (open-source models)
+  - name: ollama
+    type: cli
+    enabled: true
+    priority: 50  # Medium priority (higher = preferred)
+
+    config:
+      # Path to provider executable (absolute, relative, or in $PATH)
+      path: ./providers/ollama/ollama-provider
+
+      # Request timeout (default: 120s)
+      timeout: 120s
+
+      # Default model (can be overridden per request)
+      model: llama3.2:latest
+
+    # Model routing based on task hints
+    # The router selects appropriate models based on complexity and type
+    models:
+      # Fast, simple tasks (chat, simple questions)
+      fast: llama3.2:latest
+
+      # Complex reasoning and analysis
+      capable: qwen3:8b
+
+      # Code generation and understanding
+      codegen: deepseek-coder:6.7b
+
+      # Long context tasks (documentation, large codebases)
+      longcontext: llama3.2:latest
+
+  # Custom Provider Example - Your own CLI provider
+  - name: custom-local
+    type: cli
+    enabled: false  # Disabled by default
+    priority: 40
+
+    config:
+      path: /usr/local/bin/my-provider
+      timeout: 60s
+      model: default-model
+
+    models:
+      fast: fast-model
+      capable: capable-model
+
+  # =============================================================================
+  # API PROVIDERS - Cloud-based providers with direct API integration
+  # =============================================================================
+
+  # OpenAI - GPT models
+  - name: openai
+    type: api
+    enabled: false  # Requires OPENAI_API_KEY environment variable
+    priority: 80
+
+    config:
+      # API key read from environment variable
+      # Set: export OPENAI_API_KEY=sk-...
+      api_key_env: OPENAI_API_KEY
+
+      # API endpoint (optional, for custom deployments)
+      base_url: https://api.openai.com/v1
+
+    models:
+      fast: gpt-4o-mini
+      capable: gpt-4o
+      codegen: gpt-4o
+      longcontext: gpt-4o
+
+  # Anthropic - Claude models
+  - name: anthropic
+    type: api
+    enabled: false  # Requires ANTHROPIC_API_KEY environment variable
+    priority: 90  # Highest priority (preferred when available)
+
+    config:
+      api_key_env: ANTHROPIC_API_KEY
+      base_url: https://api.anthropic.com/v1
+
+    models:
+      fast: claude-3-5-haiku-20241022
+      capable: claude-3-7-sonnet-20250219
+      codegen: claude-3-7-sonnet-20250219
+      longcontext: claude-3-7-sonnet-20250219
+
+  # Google AI - Gemini models
+  - name: gemini
+    type: api
+    enabled: false  # Requires GEMINI_API_KEY environment variable
+    priority: 70
+
+    config:
+      api_key_env: GEMINI_API_KEY
+      base_url: https://generativelanguage.googleapis.com/v1beta
+
+    models:
+      fast: gemini-1.5-flash
+      capable: gemini-2.0-flash-exp
+      codegen: gemini-2.0-flash-exp
+      longcontext: gemini-2.0-flash-exp
+
+# =============================================================================
+# ROUTING RULES - How to select providers based on task characteristics
+# =============================================================================
+
+routing:
+  # Default strategy for provider selection
+  # Options: priority | round-robin | least-latency | least-cost
+  strategy: priority
+
+  # Fallback behavior when primary provider fails
+  # Options: next | none | retry
+  fallback: next
+
+  # Maximum retry attempts per provider
+  max_retries: 2
+
+  # Timeout for provider selection and routing
+  selection_timeout: 5s
+
+  # Model hint preferences by task type
+  # These hints are used when --model-hint flag is provided
+  model_hints:
+    # Quick tasks: chat, simple questions, fast responses
+    fast:
+      max_tokens: 500
+      temperature: 0.7
+      prefer_local: true  # Prefer local providers (ollama)
+
+    # Complex tasks: reasoning, analysis, planning
+    capable:
+      max_tokens: 2000
+      temperature: 0.5
+      prefer_local: false  # Prefer cloud providers
+
+    # Code generation: writing code, refactoring
+    codegen:
+      max_tokens: 4000
+      temperature: 0.3  # Lower temperature for deterministic code
+      prefer_local: false
+
+    # Long context: documentation, large codebase analysis
+    longcontext:
+      max_tokens: 8000
+      temperature: 0.4
+      prefer_local: false
+
+# =============================================================================
+# EXAMPLE SCENARIOS - Uncomment and customize for your use case
+# =============================================================================
+
+# Scenario 1: Local-Only Development (No cloud providers, no costs)
+# providers:
+#   - name: ollama
+#     type: cli
+#     enabled: true
+#     priority: 100
+#     config:
+#       path: ./providers/ollama/ollama-provider
+#       model: llama3.2:latest
+#     models:
+#       fast: llama3.2:latest
+#       capable: qwen3:8b
+#       codegen: deepseek-coder:6.7b
+
+# Scenario 2: Cloud-First with Local Fallback
+# providers:
+#   - name: anthropic
+#     type: api
+#     enabled: true
+#     priority: 90
+#     config:
+#       api_key_env: ANTHROPIC_API_KEY
+#   - name: ollama
+#     type: cli
+#     enabled: true
+#     priority: 50
+#     config:
+#       path: ./providers/ollama/ollama-provider
+
+# Scenario 3: Multi-Provider Load Distribution
+# routing:
+#   strategy: round-robin  # Distribute requests across providers
+# providers:
+#   - name: openai
+#     enabled: true
+#     priority: 80
+#   - name: anthropic
+#     enabled: true
+#     priority: 85
+#   - name: gemini
+#     enabled: true
+#     priority: 75
