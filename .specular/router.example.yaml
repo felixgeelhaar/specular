@@ -38,6 +38,57 @@ providers:
       # Long context tasks (documentation, large codebases)
       longcontext: llama3.2:latest
 
+  # Claude Code - Anthropic Claude CLI (requires 'claude' CLI installed)
+  - name: claude
+    type: cli
+    enabled: false
+    priority: 85
+
+    config:
+      path: ./providers/claude/claude-provider
+      timeout: 120s
+      model: claude-sonnet-4-20250514
+
+    models:
+      fast: claude-3-5-haiku-20241022
+      capable: claude-sonnet-4-20250514
+      codegen: claude-sonnet-4-20250514
+      longcontext: claude-3-7-sonnet-20250219
+
+  # OpenAI Codex - Code generation CLI (requires 'openai' CLI + OPENAI_API_KEY)
+  - name: codex
+    type: cli
+    enabled: false
+    priority: 75
+
+    config:
+      path: ./providers/codex/codex-provider
+      timeout: 120s
+      model: gpt-3.5-turbo-instruct
+
+    models:
+      fast: gpt-3.5-turbo-instruct
+      capable: gpt-4-turbo
+      codegen: gpt-4o
+      longcontext: gpt-4-turbo
+
+  # Google Gemini CLI - Google AI CLI (requires 'gemini' or 'gcloud' CLI)
+  - name: gemini-cli
+    type: cli
+    enabled: false
+    priority: 70
+
+    config:
+      path: ./providers/gemini/gemini-provider
+      timeout: 120s
+      model: gemini-2.0-flash-exp
+
+    models:
+      fast: gemini-1.5-flash
+      capable: gemini-2.0-flash-exp
+      codegen: gemini-2.0-flash-exp
+      longcontext: gemini-2.5-pro-exp-03
+
   # Custom Provider Example - Your own CLI provider
   - name: custom-local
     type: cli
@@ -201,3 +252,25 @@ routing:
 #   - name: gemini
 #     enabled: true
 #     priority: 75
+
+# Scenario 4: Multi-CLI Setup (Local + Cloud CLIs)
+# providers:
+#   - name: ollama
+#     type: cli
+#     enabled: true
+#     priority: 50
+#   - name: claude
+#     type: cli
+#     enabled: true
+#     priority: 85
+#   - name: codex
+#     type: cli
+#     enabled: true
+#     priority: 75
+#   - name: gemini-cli
+#     type: cli
+#     enabled: true
+#     priority: 70
+# routing:
+#   strategy: priority  # Use highest priority available
+#   fallback: next  # Cascade to lower priority on failure
