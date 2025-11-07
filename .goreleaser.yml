@@ -49,8 +49,7 @@ archives:
     files:
       - LICENSE
       - README.md
-      - docs/**/*
-      - examples/**/*
+      - CHANGELOG.md
       - completions/*
 
 checksum:

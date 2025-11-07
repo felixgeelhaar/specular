@@ -1,0 +1,230 @@
+# GitLab CI/CD Pipeline for Specular AI Governance
+# This pipeline validates specs, generates plans, and detects drift on every merge request
+
+# Define stages
+stages:
+  - validate
+  - plan
+  - build
+  - evaluate
+  - report
+
+# Global variables
+variables:
+  SPECULAR_VERSION: "latest"
+  SPECULAR_NO_TELEMETRY: "true"
+  SPEC_FILE: ".specular/spec.yaml"
+  LOCK_FILE: ".specular/spec.lock.json"
+  PLAN_FILE: "plan.json"
+  POLICY_FILE: ".specular/policy.yaml"
+  ROUTER_FILE: ".specular/router.yaml"
+
+# Install Specular binary (reusable script)
+.install_specular: &install_specular
+  - |
+    echo "Installing Specular ${SPECULAR_VERSION}..."
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+    case "$ARCH" in
+      x86_64) ARCH="amd64" ;;
+      aarch64|arm64) ARCH="arm64" ;;
+    esac
+    if [ "$SPECULAR_VERSION" = "latest" ]; then
+      DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/latest/download/specular_${OS}_${ARCH}.tar.gz"
+    else
+      DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/download/${SPECULAR_VERSION}/specular_${OS}_${ARCH}.tar.gz"
+    fi
+    curl -fsSL "$DOWNLOAD_URL" | tar -xz -C /usr/local/bin specular
+    chmod +x /usr/local/bin/specular
+    specular version
+
+# Validate specification
+validate_spec:
+  stage: validate
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl tar bash
+    - *install_specular
+  script:
+    - echo "Locking and validating specification..."
+    - specular spec lock --in "$SPEC_FILE" --out "$LOCK_FILE"
+    - echo "Specification validated successfully"
+  artifacts:
+    paths:
+      - $LOCK_FILE
+    expire_in: 1 hour
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Run system diagnostics
+system_health:
+  stage: validate
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl tar bash
+    - *install_specular
+  script:
+    - echo "Running system diagnostics..."
+    - specular doctor --format json | tee doctor-output.json || true
+  artifacts:
+    paths:
+      - doctor-output.json
+    expire_in: 1 day
+  allow_failure: true
+
+# Generate execution plan
+generate_plan:
+  stage: plan
+  image: alpine:latest
+  needs:
+    - validate_spec
+  before_script:
+    - apk add --no-cache curl tar bash
+    - *install_specular
+  script:
+    - echo "Generating execution plan..."
+    - specular plan --spec "$LOCK_FILE" --out "$PLAN_FILE" --router "$ROUTER_FILE"
+    - echo "Plan generated successfully"
+  artifacts:
+    paths:
+      - $PLAN_FILE
+    expire_in: 1 hour
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Detect drift (only on MRs)
+detect_drift:
+  stage: evaluate
+  image: alpine:latest
+  needs:
+    - validate_spec
+  before_script:
+    - apk add --no-cache curl tar bash jq
+    - *install_specular
+  script:
+    - echo "Running drift detection..."
+    - |
+      set +e
+      specular eval --spec "$LOCK_FILE" --policy "$POLICY_FILE"
+      EXIT_CODE=$?
+      set -e
+
+      # Parse SARIF report
+      if [ -f ".specular/drift.sarif" ]; then
+        DRIFT_COUNT=$(jq '.runs[0].results | length' .specular/drift.sarif)
+
+        if [ "$DRIFT_COUNT" -gt 0 ]; then
+          echo "⚠️ Drift detected: $DRIFT_COUNT issue(s) found"
+
+          # Output drift summary
+          echo "## Drift Detection Results" > drift-summary.md
+          echo "" >> drift-summary.md
+          echo "Found $DRIFT_COUNT drift issue(s):" >> drift-summary.md
+          echo "" >> drift-summary.md
+
+          jq -r '.runs[0].results[] | "- **\(.ruleId)**: \(.message.text)\n  - File: `\(.locations[0].physicalLocation.artifactLocation.uri)`"' .specular/drift.sarif >> drift-summary.md
+
+          cat drift-summary.md
+
+          exit $EXIT_CODE
+        else
+          echo "✅ No drift detected! Code matches specification."
+        fi
+      fi
+  artifacts:
+    paths:
+      - .specular/drift.sarif
+      - drift-summary.md
+    reports:
+      sast: .specular/drift.sarif
+    expire_in: 30 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  allow_failure: false
+
+# Build execution (protected branches only)
+execute_build:
+  stage: build
+  image: alpine:latest
+  needs:
+    - generate_plan
+  before_script:
+    - apk add --no-cache curl tar bash docker
+    - *install_specular
+  script:
+    - echo "Executing build with policy enforcement..."
+    - specular build --plan "$PLAN_FILE" --policy "$POLICY_FILE"
+  artifacts:
+    paths:
+      - .specular/runs/
+    expire_in: 7 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  services:
+    - docker:dind
+
+# Generate compliance report
+compliance_report:
+  stage: report
+  image: alpine:latest
+  needs:
+    - detect_drift
+  before_script:
+    - apk add --no-cache jq
+  script:
+    - |
+      echo "Generating compliance report..."
+
+      if [ -f ".specular/drift.sarif" ]; then
+        TOTAL_ISSUES=$(jq '.runs[0].results | length' .specular/drift.sarif)
+        CRITICAL=$(jq '[.runs[0].results[] | select(.level == "error")] | length' .specular/drift.sarif)
+        WARNING=$(jq '[.runs[0].results[] | select(.level == "warning")] | length' .specular/drift.sarif)
+
+        cat > compliance-report.json <<EOF
+      {
+        "timestamp": "$(date -Iseconds)",
+        "commit": "$CI_COMMIT_SHA",
+        "branch": "$CI_COMMIT_BRANCH",
+        "total_issues": $TOTAL_ISSUES,
+        "critical": $CRITICAL,
+        "warnings": $WARNING,
+        "passed": $([ "$TOTAL_ISSUES" -eq 0 ] && echo "true" || echo "false")
+      }
+      EOF
+
+        cat compliance-report.json
+      fi
+  artifacts:
+    paths:
+      - compliance-report.json
+    expire_in: 90 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  allow_failure: true
+
+# Post MR comment with results (requires GitLab API token)
+post_mr_comment:
+  stage: report
+  image: alpine:latest
+  needs:
+    - detect_drift
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - |
+      if [ -f "drift-summary.md" ] && [ -n "$CI_MERGE_REQUEST_IID" ]; then
+        COMMENT_BODY=$(cat drift-summary.md | jq -Rs .)
+
+        curl --request POST \
+          --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
+          --header "Content-Type: application/json" \
+          --data "{\"body\": $COMMENT_BODY}" \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes"
+      fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+  allow_failure: true

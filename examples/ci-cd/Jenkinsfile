@@ -1,0 +1,316 @@
+// Jenkins Pipeline for Specular AI Governance
+// This pipeline validates specs, generates plans, and detects drift
+
+pipeline {
+    agent any
+
+    options {
+        // Keep last 30 builds
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+
+        // Timeout after 30 minutes
+        timeout(time: 30, unit: 'MINUTES')
+
+        // No concurrent builds
+        disableConcurrentBuilds()
+
+        // Timestamps in console output
+        timestamps()
+    }
+
+    environment {
+        // Specular configuration
+        SPECULAR_VERSION = 'latest'
+        SPECULAR_NO_TELEMETRY = 'true'
+
+        // File paths
+        SPEC_FILE = '.specular/spec.yaml'
+        LOCK_FILE = '.specular/spec.lock.json'
+        PLAN_FILE = 'plan.json'
+        POLICY_FILE = '.specular/policy.yaml'
+        ROUTER_FILE = '.specular/router.yaml'
+
+        // API keys (configured in Jenkins credentials)
+        ANTHROPIC_API_KEY = credentials('specular-anthropic-key')
+        OPENAI_API_KEY = credentials('specular-openai-key')
+        GEMINI_API_KEY = credentials('specular-gemini-key')
+    }
+
+    stages {
+        stage('Setup') {
+            steps {
+                script {
+                    echo "Setting up Specular environment..."
+
+                    // Install Specular
+                    sh '''
+                        echo "Installing Specular ${SPECULAR_VERSION}..."
+
+                        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+                        ARCH=$(uname -m)
+
+                        case "$ARCH" in
+                            x86_64) ARCH="amd64" ;;
+                            aarch64|arm64) ARCH="arm64" ;;
+                        esac
+
+                        if [ "$SPECULAR_VERSION" = "latest" ]; then
+                            DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/latest/download/specular_${OS}_${ARCH}.tar.gz"
+                        else
+                            DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/download/${SPECULAR_VERSION}/specular_${OS}_${ARCH}.tar.gz"
+                        fi
+
+                        curl -fsSL "$DOWNLOAD_URL" | tar -xz -C /usr/local/bin specular
+                        chmod +x /usr/local/bin/specular
+
+                        specular version
+                    '''
+                }
+            }
+        }
+
+        stage('System Health') {
+            steps {
+                script {
+                    echo "Running system diagnostics..."
+
+                    sh '''
+                        specular doctor --format json | tee doctor-output.json || true
+                    '''
+
+                    archiveArtifacts artifacts: 'doctor-output.json', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Validate Specification') {
+            steps {
+                script {
+                    echo "Locking and validating specification..."
+
+                    sh '''
+                        specular spec lock --in "$SPEC_FILE" --out "$LOCK_FILE"
+                    '''
+
+                    echo "Specification validated successfully"
+
+                    // Archive the lock file
+                    archiveArtifacts artifacts: "${LOCK_FILE}", fingerprint: true
+                    stash includes: "${LOCK_FILE}", name: 'spec-lock'
+                }
+            }
+        }
+
+        stage('Generate Plan') {
+            steps {
+                script {
+                    echo "Generating execution plan..."
+
+                    unstash 'spec-lock'
+
+                    sh '''
+                        specular plan --spec "$LOCK_FILE" --out "$PLAN_FILE" --router "$ROUTER_FILE"
+                    '''
+
+                    echo "Plan generated successfully"
+
+                    // Archive the plan
+                    archiveArtifacts artifacts: "${PLAN_FILE}", fingerprint: true
+                    stash includes: "${PLAN_FILE}", name: 'execution-plan'
+                }
+            }
+        }
+
+        stage('Drift Detection') {
+            when {
+                anyOf {
+                    changeRequest()
+                    branch 'main'
+                    branch 'develop'
+                }
+            }
+            steps {
+                script {
+                    echo "Running drift detection..."
+
+                    unstash 'spec-lock'
+
+                    // Run drift detection
+                    def exitCode = sh(
+                        script: '''
+                            set +e
+                            specular eval --spec "$LOCK_FILE" --policy "$POLICY_FILE"
+                            echo $?
+                        ''',
+                        returnStdout: true
+                    ).trim().toInteger()
+
+                    // Parse SARIF report
+                    if (fileExists('.specular/drift.sarif')) {
+                        def driftCount = sh(
+                            script: 'jq ".runs[0].results | length" .specular/drift.sarif',
+                            returnStdout: true
+                        ).trim().toInteger()
+
+                        if (driftCount > 0) {
+                            echo "⚠️ Drift detected: ${driftCount} issue(s) found"
+
+                            // Generate drift summary
+                            sh '''
+                                echo "## 🔍 Specular Drift Detection Results" > drift-summary.md
+                                echo "" >> drift-summary.md
+                                echo "Found $(jq '.runs[0].results | length' .specular/drift.sarif) drift issue(s):" >> drift-summary.md
+                                echo "" >> drift-summary.md
+
+                                jq -r '.runs[0].results[] | "- **\\(.ruleId)**: \\(.message.text)\\n  - File: `\\(.locations[0].physicalLocation.artifactLocation.uri)`\\n  - Line: \\(.locations[0].physicalLocation.region.startLine)"' .specular/drift.sarif >> drift-summary.md
+                            '''
+
+                            // Archive results
+                            archiveArtifacts artifacts: '.specular/drift.sarif,drift-summary.md', fingerprint: true
+
+                            // Publish SARIF
+                            recordIssues(
+                                tool: sarif(pattern: '.specular/drift.sarif'),
+                                name: 'Specular Drift Detection',
+                                qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]]
+                            )
+
+                            // Fail if drift detected
+                            if (exitCode != 0) {
+                                error("Drift detected - build failed")
+                            }
+                        } else {
+                            echo "✅ No drift detected! Code matches specification."
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Execute Build') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'develop'
+                }
+            }
+            agent {
+                docker {
+                    image 'docker:latest'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
+            steps {
+                script {
+                    echo "Executing build with policy enforcement..."
+
+                    unstash 'execution-plan'
+
+                    sh '''
+                        specular build --plan "$PLAN_FILE" --policy "$POLICY_FILE"
+                    '''
+
+                    // Archive run manifests
+                    archiveArtifacts artifacts: '.specular/runs/**/*', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Compliance Report') {
+            when {
+                anyOf {
+                    changeRequest()
+                    branch 'main'
+                    branch 'develop'
+                }
+            }
+            steps {
+                script {
+                    echo "Generating compliance report..."
+
+                    if (fileExists('.specular/drift.sarif')) {
+                        sh '''
+                            TOTAL_ISSUES=$(jq '.runs[0].results | length' .specular/drift.sarif)
+                            CRITICAL=$(jq '[.runs[0].results[] | select(.level == "error")] | length' .specular/drift.sarif)
+                            WARNING=$(jq '[.runs[0].results[] | select(.level == "warning")] | length' .specular/drift.sarif)
+
+                            cat > compliance-report.json <<EOF
+{
+  "timestamp": "$(date -Iseconds)",
+  "commit": "${GIT_COMMIT}",
+  "branch": "${GIT_BRANCH}",
+  "build_number": ${BUILD_NUMBER},
+  "total_issues": $TOTAL_ISSUES,
+  "critical": $CRITICAL,
+  "warnings": $WARNING,
+  "passed": $([ "$TOTAL_ISSUES" -eq 0 ] && echo "true" || echo "false")
+}
+EOF
+
+                            cat compliance-report.json
+                        '''
+
+                        archiveArtifacts artifacts: 'compliance-report.json', fingerprint: true
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean up workspace
+            cleanWs(
+                deleteDirs: true,
+                patterns: [
+                    [pattern: '.specular/runs/**', type: 'EXCLUDE'],
+                    [pattern: '*.sarif', type: 'EXCLUDE'],
+                    [pattern: '*.json', type: 'EXCLUDE']
+                ]
+            )
+        }
+
+        success {
+            echo '✅ Specular pipeline completed successfully!'
+        }
+
+        failure {
+            echo '❌ Specular pipeline failed. Check the logs for details.'
+        }
+
+        unstable {
+            echo '⚠️ Specular pipeline completed with warnings.'
+        }
+    }
+}
+
+// Multibranch pipeline configuration
+properties([
+    pipelineTriggers([
+        // Poll SCM every 5 minutes
+        pollSCM('H/5 * * * *'),
+
+        // Trigger on PR events
+        [$class: 'GitHubPRTrigger',
+         triggerMode: 'HEAVY_HOOKS']
+    ]),
+
+    // Build parameters
+    parameters([
+        choice(
+            name: 'SPECULAR_VERSION',
+            choices: ['latest', 'v1.0.0', 'v1.1.0', 'v1.2.0'],
+            description: 'Specular version to use'
+        ),
+        booleanParam(
+            name: 'SKIP_DRIFT_DETECTION',
+            defaultValue: false,
+            description: 'Skip drift detection (not recommended)'
+        ),
+        booleanParam(
+            name: 'FAIL_ON_DRIFT',
+            defaultValue: true,
+            description: 'Fail build if drift is detected'
+        )
+    ])
+])

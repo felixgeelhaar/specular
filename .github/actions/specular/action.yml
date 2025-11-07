@@ -1,0 +1,250 @@
+name: 'Specular AI Governance'
+description: 'Run Specular spec validation, planning, building, and drift detection in your CI/CD pipeline'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  version:
+    description: 'Specular version to install (default: latest)'
+    required: false
+    default: 'latest'
+
+  command:
+    description: 'Specular command to run (spec, plan, build, eval, doctor)'
+    required: true
+
+  spec-file:
+    description: 'Path to spec.yaml file'
+    required: false
+    default: '.specular/spec.yaml'
+
+  lock-file:
+    description: 'Path to spec.lock.json file'
+    required: false
+    default: '.specular/spec.lock.json'
+
+  plan-file:
+    description: 'Path to plan.json file'
+    required: false
+    default: 'plan.json'
+
+  policy-file:
+    description: 'Path to policy.yaml file'
+    required: false
+    default: '.specular/policy.yaml'
+
+  router-file:
+    description: 'Path to router.yaml file'
+    required: false
+    default: '.specular/router.yaml'
+
+  fail-on-drift:
+    description: 'Fail the build if drift is detected'
+    required: false
+    default: 'true'
+
+  anthropic-api-key:
+    description: 'Anthropic API key for Claude models'
+    required: false
+
+  openai-api-key:
+    description: 'OpenAI API key for GPT models'
+    required: false
+
+  gemini-api-key:
+    description: 'Google Gemini API key'
+    required: false
+
+  additional-args:
+    description: 'Additional arguments to pass to specular command'
+    required: false
+    default: ''
+
+outputs:
+  result:
+    description: 'Command execution result (success/failure)'
+    value: ${{ steps.run-specular.outputs.result }}
+
+  exit-code:
+    description: 'Exit code from specular command'
+    value: ${{ steps.run-specular.outputs.exit-code }}
+
+  drift-detected:
+    description: 'Whether drift was detected (true/false)'
+    value: ${{ steps.check-drift.outputs.drift-detected }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Specular
+      id: install
+      shell: bash
+      run: |
+        echo "::group::Installing Specular ${{ inputs.version }}"
+
+        # Determine OS and architecture
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+
+        case "$ARCH" in
+          x86_64) ARCH="amd64" ;;
+          aarch64|arm64) ARCH="arm64" ;;
+        esac
+
+        # Download URL
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/latest/download/specular_${OS}_${ARCH}.tar.gz"
+        else
+          DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/download/${{ inputs.version }}/specular_${OS}_${ARCH}.tar.gz"
+        fi
+
+        echo "Downloading from: $DOWNLOAD_URL"
+
+        # Download and extract
+        curl -fsSL "$DOWNLOAD_URL" | tar -xz -C /usr/local/bin specular
+        chmod +x /usr/local/bin/specular
+
+        # Verify installation
+        specular version
+
+        echo "::endgroup::"
+
+    - name: Setup environment
+      id: setup-env
+      shell: bash
+      run: |
+        echo "::group::Setting up environment"
+
+        # Set API keys if provided
+        if [ -n "${{ inputs.anthropic-api-key }}" ]; then
+          echo "ANTHROPIC_API_KEY=${{ inputs.anthropic-api-key }}" >> $GITHUB_ENV
+        fi
+
+        if [ -n "${{ inputs.openai-api-key }}" ]; then
+          echo "OPENAI_API_KEY=${{ inputs.openai-api-key }}" >> $GITHUB_ENV
+        fi
+
+        if [ -n "${{ inputs.gemini-api-key }}" ]; then
+          echo "GEMINI_API_KEY=${{ inputs.gemini-api-key }}" >> $GITHUB_ENV
+        fi
+
+        # Disable telemetry in CI
+        echo "SPECULAR_NO_TELEMETRY=true" >> $GITHUB_ENV
+
+        echo "::endgroup::"
+
+    - name: Run Specular diagnostics
+      id: doctor
+      shell: bash
+      run: |
+        echo "::group::Running system diagnostics"
+        specular doctor --format json || true
+        echo "::endgroup::"
+
+    - name: Run Specular command
+      id: run-specular
+      shell: bash
+      run: |
+        echo "::group::Running specular ${{ inputs.command }}"
+
+        set +e  # Don't exit on error
+
+        case "${{ inputs.command }}" in
+          spec)
+            specular spec lock \
+              --in "${{ inputs.spec-file }}" \
+              --out "${{ inputs.lock-file }}" \
+              ${{ inputs.additional-args }}
+            EXIT_CODE=$?
+            ;;
+
+          plan)
+            specular plan \
+              --spec "${{ inputs.lock-file }}" \
+              --out "${{ inputs.plan-file }}" \
+              --router "${{ inputs.router-file }}" \
+              ${{ inputs.additional-args }}
+            EXIT_CODE=$?
+            ;;
+
+          build)
+            specular build \
+              --plan "${{ inputs.plan-file }}" \
+              --policy "${{ inputs.policy-file }}" \
+              ${{ inputs.additional-args }}
+            EXIT_CODE=$?
+            ;;
+
+          eval)
+            specular eval \
+              --spec "${{ inputs.lock-file }}" \
+              --policy "${{ inputs.policy-file }}" \
+              ${{ inputs.additional-args }}
+            EXIT_CODE=$?
+            ;;
+
+          doctor)
+            specular doctor --format json ${{ inputs.additional-args }}
+            EXIT_CODE=$?
+            ;;
+
+          *)
+            specular ${{ inputs.command }} ${{ inputs.additional-args }}
+            EXIT_CODE=$?
+            ;;
+        esac
+
+        echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "result=success" >> $GITHUB_OUTPUT
+        else
+          echo "result=failure" >> $GITHUB_OUTPUT
+        fi
+
+        echo "::endgroup::"
+
+        exit $EXIT_CODE
+
+    - name: Check for drift
+      id: check-drift
+      if: always() && inputs.command == 'eval'
+      shell: bash
+      run: |
+        echo "::group::Checking for drift"
+
+        # Check if SARIF report exists
+        if [ -f ".specular/drift.sarif" ]; then
+          # Parse SARIF to check for drift
+          DRIFT_COUNT=$(jq '.runs[0].results | length' .specular/drift.sarif)
+
+          if [ "$DRIFT_COUNT" -gt 0 ]; then
+            echo "drift-detected=true" >> $GITHUB_OUTPUT
+            echo "::warning::Drift detected: $DRIFT_COUNT issue(s) found"
+
+            # Output drift summary
+            jq -r '.runs[0].results[] | "::warning file=\(.locations[0].physicalLocation.artifactLocation.uri),line=\(.locations[0].physicalLocation.region.startLine)::\(.message.text)"' .specular/drift.sarif || true
+          else
+            echo "drift-detected=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "drift-detected=false" >> $GITHUB_OUTPUT
+        fi
+
+        echo "::endgroup::"
+
+    - name: Upload SARIF report
+      if: always() && inputs.command == 'eval'
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: .specular/drift.sarif
+        category: specular-drift
+      continue-on-error: true
+
+    - name: Fail on drift
+      if: steps.check-drift.outputs.drift-detected == 'true' && inputs.fail-on-drift == 'true'
+      shell: bash
+      run: |
+        echo "::error::Drift detected and fail-on-drift is enabled"
+        exit 4

@@ -1,0 +1,304 @@
+# CircleCI Configuration for Specular AI Governance
+# This workflow validates specs, generates plans, and detects drift
+
+version: 2.1
+
+# Orbs for common tasks
+orbs:
+  docker: circleci/docker@2.2.0
+
+# Reusable commands
+commands:
+  install_specular:
+    description: "Install Specular binary"
+    parameters:
+      version:
+        type: string
+        default: "latest"
+    steps:
+      - run:
+          name: Install Specular
+          command: |
+            echo "Installing Specular <<parameters.version>>..."
+
+            OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+            ARCH=$(uname -m)
+
+            case "$ARCH" in
+              x86_64) ARCH="amd64" ;;
+              aarch64|arm64) ARCH="arm64" ;;
+            esac
+
+            if [ "<<parameters.version>>" = "latest" ]; then
+              DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/latest/download/specular_${OS}_${ARCH}.tar.gz"
+            else
+              DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/download/<<parameters.version>>/specular_${OS}_${ARCH}.tar.gz"
+            fi
+
+            curl -fsSL "$DOWNLOAD_URL" | sudo tar -xz -C /usr/local/bin specular
+            sudo chmod +x /usr/local/bin/specular
+
+            specular version
+
+  setup_environment:
+    description: "Setup Specular environment variables"
+    steps:
+      - run:
+          name: Setup Environment
+          command: |
+            echo 'export SPECULAR_NO_TELEMETRY=true' >> $BASH_ENV
+            echo 'export SPEC_FILE=.specular/spec.yaml' >> $BASH_ENV
+            echo 'export LOCK_FILE=.specular/spec.lock.json' >> $BASH_ENV
+            echo 'export PLAN_FILE=plan.json' >> $BASH_ENV
+            echo 'export POLICY_FILE=.specular/policy.yaml' >> $BASH_ENV
+            echo 'export ROUTER_FILE=.specular/router.yaml' >> $BASH_ENV
+
+# Job definitions
+jobs:
+  validate_spec:
+    docker:
+      - image: cimg/base:stable
+    resource_class: medium
+    steps:
+      - checkout
+      - setup_environment
+      - install_specular
+      - run:
+          name: Lock and validate specification
+          command: |
+            specular spec lock --in "$SPEC_FILE" --out "$LOCK_FILE"
+            echo "Specification validated successfully"
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .specular/spec.lock.json
+      - store_artifacts:
+          path: .specular/spec.lock.json
+          destination: spec.lock.json
+
+  system_health:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+    steps:
+      - checkout
+      - install_specular
+      - run:
+          name: Run system diagnostics
+          command: |
+            specular doctor --format json | tee doctor-output.json || true
+      - store_artifacts:
+          path: doctor-output.json
+          destination: diagnostics/doctor-output.json
+
+  generate_plan:
+    docker:
+      - image: cimg/base:stable
+    resource_class: medium
+    steps:
+      - checkout
+      - setup_environment
+      - attach_workspace:
+          at: .
+      - install_specular
+      - run:
+          name: Generate execution plan
+          command: |
+            specular plan --spec "$LOCK_FILE" --out "$PLAN_FILE" --router "$ROUTER_FILE"
+            echo "Plan generated successfully"
+      - persist_to_workspace:
+          root: .
+          paths:
+            - plan.json
+      - store_artifacts:
+          path: plan.json
+          destination: plan.json
+
+  detect_drift:
+    docker:
+      - image: cimg/base:stable
+    resource_class: medium
+    steps:
+      - checkout
+      - setup_environment
+      - attach_workspace:
+          at: .
+      - install_specular
+      - run:
+          name: Install jq
+          command: sudo apt-get update && sudo apt-get install -y jq
+      - run:
+          name: Run drift detection
+          command: |
+            set +e
+            specular eval --spec "$LOCK_FILE" --policy "$POLICY_FILE"
+            EXIT_CODE=$?
+            set -e
+
+            # Parse SARIF report
+            if [ -f ".specular/drift.sarif" ]; then
+              DRIFT_COUNT=$(jq '.runs[0].results | length' .specular/drift.sarif)
+
+              if [ "$DRIFT_COUNT" -gt 0 ]; then
+                echo "⚠️ Drift detected: $DRIFT_COUNT issue(s) found"
+
+                # Create drift summary
+                echo "## 🔍 Specular Drift Detection Results" > drift-summary.md
+                echo "" >> drift-summary.md
+                echo "Found $DRIFT_COUNT drift issue(s):" >> drift-summary.md
+                echo "" >> drift-summary.md
+
+                jq -r '.runs[0].results[] | "- **\(.ruleId)**: \(.message.text)\n  - File: `\(.locations[0].physicalLocation.artifactLocation.uri)`\n  - Line: \(.locations[0].physicalLocation.region.startLine)"' .specular/drift.sarif >> drift-summary.md
+
+                cat drift-summary.md
+
+                # Fail if drift detected
+                exit $EXIT_CODE
+              else
+                echo "✅ No drift detected! Code matches specification."
+              fi
+            fi
+      - store_artifacts:
+          path: .specular/drift.sarif
+          destination: drift.sarif
+      - store_artifacts:
+          path: drift-summary.md
+          destination: drift-summary.md
+      - store_test_results:
+          path: .specular/drift.sarif
+
+  execute_build:
+    docker:
+      - image: cimg/base:stable
+    resource_class: large
+    steps:
+      - checkout
+      - setup_environment
+      - attach_workspace:
+          at: .
+      - setup_remote_docker:
+          version: 20.10.24
+          docker_layer_caching: true
+      - install_specular
+      - run:
+          name: Execute build with policy enforcement
+          command: |
+            specular build --plan "$PLAN_FILE" --policy "$POLICY_FILE"
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .specular/runs/
+      - store_artifacts:
+          path: .specular/runs/
+          destination: runs/
+
+  compliance_report:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install jq
+          command: sudo apt-get update && sudo apt-get install -y jq
+      - run:
+          name: Generate compliance report
+          command: |
+            if [ -f ".specular/drift.sarif" ]; then
+              TOTAL_ISSUES=$(jq '.runs[0].results | length' .specular/drift.sarif)
+              CRITICAL=$(jq '[.runs[0].results[] | select(.level == "error")] | length' .specular/drift.sarif)
+              WARNING=$(jq '[.runs[0].results[] | select(.level == "warning")] | length' .specular/drift.sarif)
+
+              cat > compliance-report.json <<EOF
+            {
+              "timestamp": "$(date -Iseconds)",
+              "commit": "$CIRCLE_SHA1",
+              "branch": "$CIRCLE_BRANCH",
+              "build_num": $CIRCLE_BUILD_NUM,
+              "total_issues": $TOTAL_ISSUES,
+              "critical": $CRITICAL,
+              "warnings": $WARNING,
+              "passed": $([ "$TOTAL_ISSUES" -eq 0 ] && echo "true" || echo "false")
+            }
+            EOF
+
+              cat compliance-report.json
+            fi
+      - store_artifacts:
+          path: compliance-report.json
+          destination: compliance-report.json
+
+# Workflow definitions
+workflows:
+  version: 2
+
+  # Main workflow for all commits
+  specular_governance:
+    jobs:
+      # Validation stage
+      - validate_spec:
+          filters:
+            branches:
+              only: /.*/
+
+      - system_health:
+          filters:
+            branches:
+              only: /.*/
+
+      # Plan generation stage
+      - generate_plan:
+          requires:
+            - validate_spec
+          filters:
+            branches:
+              only: /.*/
+
+      # Drift detection (all branches)
+      - detect_drift:
+          requires:
+            - validate_spec
+          filters:
+            branches:
+              only: /.*/
+
+      # Build execution (protected branches only)
+      - execute_build:
+          requires:
+            - generate_plan
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+
+      # Reporting stage
+      - compliance_report:
+          requires:
+            - detect_drift
+          filters:
+            branches:
+              only: /.*/
+
+  # Scheduled nightly compliance check
+  nightly_compliance:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"  # 2 AM UTC
+          filters:
+            branches:
+              only:
+                - main
+    jobs:
+      - validate_spec
+      - generate_plan:
+          requires:
+            - validate_spec
+      - detect_drift:
+          requires:
+            - validate_spec
+      - compliance_report:
+          requires:
+            - detect_drift

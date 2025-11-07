@@ -1,0 +1,124 @@
+# Basic GitHub Actions workflow for Specular AI Governance
+# This workflow validates specs, generates plans, and detects drift on every pull request
+
+name: Specular AI Governance
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+jobs:
+  validate-spec:
+    name: Validate Specification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lock and validate spec
+        uses: ./.github/actions/specular
+        with:
+          command: spec
+          spec-file: .specular/spec.yaml
+          lock-file: .specular/spec.lock.json
+
+      - name: Upload spec.lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-lock
+          path: .specular/spec.lock.json
+
+  generate-plan:
+    name: Generate Execution Plan
+    runs-on: ubuntu-latest
+    needs: validate-spec
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download spec.lock
+        uses: actions/download-artifact@v4
+        with:
+          name: spec-lock
+          path: .specular
+
+      - name: Generate plan
+        uses: ./.github/actions/specular
+        with:
+          command: plan
+          lock-file: .specular/spec.lock.json
+          plan-file: plan.json
+          router-file: .specular/router.yaml
+
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: execution-plan
+          path: plan.json
+
+  drift-detection:
+    name: Detect Drift
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run drift detection
+        uses: ./.github/actions/specular
+        with:
+          command: eval
+          lock-file: .specular/spec.lock.json
+          policy-file: .specular/policy.yaml
+          fail-on-drift: true
+
+      - name: Comment PR with drift report
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('.specular/drift.sarif')) {
+              const sarif = JSON.parse(fs.readFileSync('.specular/drift.sarif', 'utf8'));
+              const results = sarif.runs[0].results || [];
+
+              let comment = '## 🔍 Specular Drift Detection Results\n\n';
+
+              if (results.length === 0) {
+                comment += '✅ No drift detected! Code matches specification.\n';
+              } else {
+                comment += `⚠️ Found ${results.length} drift issue(s):\n\n`;
+                results.forEach(r => {
+                  comment += `- **${r.ruleId}**: ${r.message.text}\n`;
+                  if (r.locations && r.locations[0]) {
+                    const loc = r.locations[0].physicalLocation;
+                    comment += `  - File: \`${loc.artifactLocation.uri}\`\n`;
+                  }
+                });
+              }
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  system-health:
+    name: System Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run system diagnostics
+        uses: ./.github/actions/specular
+        with:
+          command: doctor
+          additional-args: --format json
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics
+          path: doctor-output.json
