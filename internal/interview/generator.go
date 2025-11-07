@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/ai-dev/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
 // generateSpec converts interview answers to a ProductSpec

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/felixgeelhaar/ai-dev/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
@@ -219,13 +219,17 @@ func ValidateAPISpec(specPath string, projectRoot string, features []spec.Featur
 	var findings []Finding
 
 	// Check if spec file exists
-	fullPath := filepath.Join(projectRoot, specPath)
+	// Handle both absolute and relative paths
+	fullPath := specPath
+	if !filepath.IsAbs(specPath) {
+		fullPath = filepath.Join(projectRoot, specPath)
+	}
 	if _, err := os.Stat(fullPath); err != nil {
 		findings = append(findings, Finding{
 			Code:     "MISSING_API_SPEC",
-			Message:  fmt.Sprintf("OpenAPI spec not found at: %s", specPath),
+			Message:  fmt.Sprintf("OpenAPI spec not found at: %s", fullPath),
 			Severity: "error",
-			Location: specPath,
+			Location: fullPath,
 		})
 		return findings
 	}
@@ -237,7 +241,7 @@ func ValidateAPISpec(specPath string, projectRoot string, features []spec.Featur
 			Code:     "INVALID_API_SPEC",
 			Message:  fmt.Sprintf("Invalid OpenAPI spec: %v", err),
 			Severity: "error",
-			Location: specPath,
+			Location: fullPath,
 		})
 		return findings
 	}

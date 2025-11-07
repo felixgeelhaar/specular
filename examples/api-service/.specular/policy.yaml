@@ -1,0 +1,164 @@
+version: 1.0
+
+execution:
+  allow_local: false
+  docker:
+    required: true
+    image_allowlist:
+      - golang:1.22-alpine
+      - golang:1.22
+      - postgres:15-alpine
+      - redis:7-alpine
+    resource_limits:
+      cpu: "4"
+      memory: "4g"
+      disk: "5g"
+    network: "bridge"
+    privileged: false
+
+tests:
+  require_pass: true
+  min_coverage: 0.85
+  coverage_packages:
+    - ./...
+  exclude_patterns:
+    - "**/*_test.go"
+    - "**/mock_*.go"
+    - "**/testdata/**"
+  frameworks:
+    - testing
+    - testify
+  race_detection: true
+  parallel: true
+  timeout: 300
+
+linting:
+  enabled: true
+  tools:
+    - golangci-lint
+    - staticcheck
+    - gosec
+  fail_on_warning: false
+  fail_on_error: true
+  config_files:
+    - .golangci.yml
+
+security:
+  secrets_scan: true
+  dep_scan: true
+  sast_scan: true
+  allowed_licenses:
+    - MIT
+    - Apache-2.0
+    - BSD-2-Clause
+    - BSD-3-Clause
+  severity_threshold: "medium"
+  gosec_config:
+    exclude_dirs:
+      - vendor/
+      - testdata/
+
+builds:
+  require_success: true
+  artifacts:
+    - bin/
+  retention_days: 90
+  parallel: false
+  ldflags: "-s -w"
+  tags:
+    - netgo
+
+performance:
+  load_testing:
+    enabled: true
+    tool: "k6"
+    min_rps: 10000
+    max_latency_p95: 100
+    max_latency_p99: 200
+  profiling:
+    enabled: true
+    cpu_profile: true
+    mem_profile: true
+    block_profile: true
+
+api:
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst: 100
+  response_time:
+    p95_threshold_ms: 100
+    p99_threshold_ms: 200
+  openapi:
+    spec_file: openapi.yaml
+    validate_requests: true
+    validate_responses: true
+
+database:
+  migrations:
+    required: true
+    reversible: true
+    backup_before: true
+    tool: "golang-migrate"
+  connection_pooling:
+    min_connections: 5
+    max_connections: 50
+    max_idle_time: 300
+  query_timeout_ms: 3000
+  indexes:
+    required_on_foreign_keys: true
+    analyze_query_plans: true
+
+compliance:
+  gdpr:
+    enabled: true
+    data_retention_days: 365
+  audit_logging: true
+  encryption_at_rest: true
+  encryption_in_transit: true
+
+quality_gates:
+  - name: "Type Check"
+    command: "go vet ./..."
+    required: true
+  - name: "Unit Tests"
+    command: "go test -race -coverprofile=coverage.txt ./..."
+    required: true
+  - name: "Integration Tests"
+    command: "go test -tags=integration ./..."
+    required: true
+  - name: "Build"
+    command: "go build -o bin/api ./cmd/api"
+    required: true
+  - name: "Security Scan"
+    command: "gosec ./..."
+    required: true
+  - name: "Lint"
+    command: "golangci-lint run"
+    required: true
+
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9090
+    metrics:
+      - http_requests_total
+      - http_request_duration_seconds
+      - http_request_size_bytes
+      - http_response_size_bytes
+      - cache_hits_total
+      - cache_misses_total
+      - db_queries_total
+      - db_query_duration_seconds
+  health_checks:
+    - name: "liveness"
+      path: "/health/live"
+      interval: 10
+    - name: "readiness"
+      path: "/health/ready"
+      interval: 30
+
+sla:
+  uptime: 0.999
+  latency_p95: 100
+  error_rate: 0.001

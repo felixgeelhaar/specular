@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/felixgeelhaar/ai-dev/internal/interview"
-	"github.com/felixgeelhaar/ai-dev/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/interview"
+	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/spf13/cobra"
 )
 
@@ -179,8 +179,8 @@ func runCLIInterview(preset string, strict bool, out string) error {
 	fmt.Println("\nNext steps:")
 	fmt.Printf("  1. Review and edit: %s\n", out)
 	fmt.Printf("  2. Validate spec: ai-dev spec validate --in %s\n", out)
-	fmt.Printf("  3. Generate lock: ai-dev spec lock --in %s --out .aidv/spec.lock.json\n", out)
-	fmt.Printf("  4. Create plan: ai-dev plan --in %s --lock .aidv/spec.lock.json --out plan.json\n", out)
+	fmt.Printf("  3. Generate lock: ai-dev spec lock --in %s --out .specular/spec.lock.json\n", out)
+	fmt.Printf("  4. Create plan: ai-dev plan --in %s --lock .specular/spec.lock.json --out plan.json\n", out)
 
 	return nil
 }
@@ -208,7 +208,7 @@ func normalizeChoice(input string, choices []string) string {
 func init() {
 	rootCmd.AddCommand(interviewCmd)
 
-	interviewCmd.Flags().StringP("out", "o", ".aidv/spec.yaml", "Output path for generated spec")
+	interviewCmd.Flags().StringP("out", "o", ".specular/spec.yaml", "Output path for generated spec")
 	interviewCmd.Flags().String("preset", "", "Use a preset template (use --list to see options)")
 	interviewCmd.Flags().Bool("strict", false, "Enable strict validation mode")
 	interviewCmd.Flags().Bool("tui", false, "Use terminal UI mode (not yet implemented)")

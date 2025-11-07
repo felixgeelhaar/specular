@@ -1,16 +1,23 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/felixgeelhaar/specular/internal/provider"
 )
 
 // Router manages model selection and routing
 type Router struct {
-	config  *RouterConfig
-	budget  *Budget
-	models  []Model
-	usage   []Usage
+	config           *RouterConfig
+	budget           *Budget
+	models           []Model
+	usage            []Usage
+	registry         *provider.Registry
+	contextValidator *ContextValidator
+	contextTruncator *ContextTruncator
 }
 
 // NewRouter creates a new router with configuration
@@ -19,7 +26,7 @@ func NewRouter(config *RouterConfig) (*Router, error) {
 		return nil, fmt.Errorf("config is required")
 	}
 
-	return &Router{
+	r := &Router{
 		config: config,
 		budget: &Budget{
 			LimitUSD:     config.BudgetUSD,
@@ -27,9 +34,91 @@ func NewRouter(config *RouterConfig) (*Router, error) {
 			RemainingUSD: config.BudgetUSD,
 			UsageCount:   0,
 		},
-		models: GetAvailableModels(),
-		usage:  []Usage{},
-	}, nil
+		models:   GetAvailableModels(),
+		usage:    []Usage{},
+		registry: provider.NewRegistry(),
+	}
+
+	// Initialize context management if enabled
+	if config.EnableContextValidation {
+		r.contextValidator = NewContextValidator()
+
+		// Create truncator with configured strategy
+		strategy := TruncationStrategy(config.TruncationStrategy)
+		if strategy == "" {
+			strategy = TruncateOldest // Default to oldest
+		}
+		r.contextTruncator = NewContextTruncator(strategy)
+	}
+
+	// Update model availability based on loaded providers
+	r.updateModelAvailability()
+
+	return r, nil
+}
+
+// NewRouterWithProviders creates a router with pre-loaded providers
+func NewRouterWithProviders(config *RouterConfig, registry *provider.Registry) (*Router, error) {
+	if config == nil {
+		return nil, fmt.Errorf("config is required")
+	}
+	if registry == nil {
+		registry = provider.NewRegistry()
+	}
+
+	r := &Router{
+		config: config,
+		budget: &Budget{
+			LimitUSD:     config.BudgetUSD,
+			SpentUSD:     0,
+			RemainingUSD: config.BudgetUSD,
+			UsageCount:   0,
+		},
+		models:   GetAvailableModels(),
+		usage:    []Usage{},
+		registry: registry,
+	}
+
+	// Initialize context management if enabled
+	if config.EnableContextValidation {
+		r.contextValidator = NewContextValidator()
+
+		// Create truncator with configured strategy
+		strategy := TruncationStrategy(config.TruncationStrategy)
+		if strategy == "" {
+			strategy = TruncateOldest // Default to oldest
+		}
+		r.contextTruncator = NewContextTruncator(strategy)
+	}
+
+	// Update model availability based on provider availability
+	r.updateModelAvailability()
+
+	return r, nil
+}
+
+// updateModelAvailability checks which models are actually available based on loaded providers
+func (r *Router) updateModelAvailability() {
+	providerNames := r.registry.List()
+	providerMap := make(map[string]bool)
+	for _, name := range providerNames {
+		providerMap[name] = true
+	}
+
+	// Mark models as unavailable if their provider isn't loaded
+	for i := range r.models {
+		// Check if provider is loaded (map provider name to registry name)
+		providerLoaded := false
+		switch r.models[i].Provider {
+		case ProviderAnthropic:
+			providerLoaded = providerMap["anthropic"]
+		case ProviderOpenAI:
+			providerLoaded = providerMap["openai"]
+		case ProviderLocal:
+			providerLoaded = providerMap["ollama"] || providerMap["local"]
+		}
+		r.models[i].Available = providerLoaded
+	}
 }
 
 // SelectModel chooses the best model for a routing request
@@ -309,4 +398,556 @@ func (r *Router) GetUsageStats() map[string]interface{} {
 	stats["provider_usage"] = providerCounts
 
 	return stats
+}
+
+// Generate sends a prompt to the selected AI provider and returns a response
+func (r *Router) Generate(ctx context.Context, req GenerateRequest) (*GenerateResponse, error) {
+	startTime := time.Now()
+
+	// Select the best model for this request
+	routing := RoutingRequest{
+		ModelHint:   req.ModelHint,
+		Complexity:  req.Complexity,
+		Priority:    req.Priority,
+		ContextSize: req.ContextSize,
+	}
+
+	result, err := r.SelectModel(routing)
+	if err != nil {
+		return nil, fmt.Errorf("model selection failed: %w", err)
+	}
+
+	// Validate context window if enabled
+	if r.config.EnableContextValidation && r.contextValidator != nil {
+		validationErr := r.contextValidator.ValidateRequest(&req, result.Model)
+		if validationErr != nil {
+			// Try auto-truncation if enabled
+			if r.config.AutoTruncate && r.contextTruncator != nil {
+				truncatedReq, truncated, truncErr := r.contextTruncator.TruncateRequest(&req, result.Model)
+				if truncErr != nil {
+					return nil, fmt.Errorf("context validation failed and truncation failed: %w", truncErr)
+				}
+				if truncated {
+					// Use truncated request
+					req = *truncatedReq
+				}
+			} else {
+				// Return validation error if auto-truncate is disabled
+				return nil, fmt.Errorf("context validation failed: %w", validationErr)
+			}
+		}
+	}
+
+	// Try primary provider with retries
+	provResp, err := r.generateWithRetry(ctx, req, result)
+	if err != nil {
+		// If fallback is enabled, try alternative providers
+		if r.config.EnableFallback {
+			return r.generateWithFallback(ctx, req, result, startTime)
+		}
+		return nil, fmt.Errorf("generation failed: %w", err)
+	}
+
+	// Calculate actual cost
+	actualCost := (float64(provResp.TokensUsed) / 1000000.0) * result.Model.CostPerMToken
+
+	// Record usage
+	usage := Usage{
+		Model:     result.Model.ID,
+		Provider:  result.Model.Provider,
+		Tokens:    provResp.TokensUsed,
+		CostUSD:   actualCost,
+		LatencyMs: int(time.Since(startTime).Milliseconds()),
+		Timestamp: time.Now(),
+		TaskID:    req.TaskID,
+		Success:   provResp.Error == "",
+	}
+	r.RecordUsage(usage)
+
+	// Build response
+	return &GenerateResponse{
+		Content:         provResp.Content,
+		Model:           result.Model.ID,
+		Provider:        result.Model.Provider,
+		TokensUsed:      provResp.TokensUsed,
+		InputTokens:     provResp.InputTokens,
+		OutputTokens:    provResp.OutputTokens,
+		CostUSD:         actualCost,
+		Latency:         provResp.Latency,
+		FinishReason:    provResp.FinishReason,
+		SelectionReason: result.Reason,
+		ToolCalls:       provResp.ToolCalls,
+		Error:           provResp.Error,
+	}, nil
+}
+
+// Stream sends a prompt and returns a streaming response with retry and fallback
+func (r *Router) Stream(ctx context.Context, req GenerateRequest) (<-chan StreamChunk, error) {
+	startTime := time.Now()
+
+	// Select the best model for this request
+	routing := RoutingRequest{
+		ModelHint:   req.ModelHint,
+		Complexity:  req.Complexity,
+		Priority:    req.Priority,
+		ContextSize: req.ContextSize,
+	}
+
+	result, err := r.SelectModel(routing)
+	if err != nil {
+		return nil, fmt.Errorf("model selection failed: %w", err)
+	}
+
+	// Validate context window if enabled
+	if r.config.EnableContextValidation && r.contextValidator != nil {
+		validationErr := r.contextValidator.ValidateRequest(&req, result.Model)
+		if validationErr != nil {
+			// Try auto-truncation if enabled
+			if r.config.AutoTruncate && r.contextTruncator != nil {
+				truncatedReq, truncated, truncErr := r.contextTruncator.TruncateRequest(&req, result.Model)
+				if truncErr != nil {
+					return nil, fmt.Errorf("context validation failed and truncation failed: %w", truncErr)
+				}
+				if truncated {
+					// Use truncated request
+					req = *truncatedReq
+				}
+			} else {
+				// Return validation error if auto-truncate is disabled
+				return nil, fmt.Errorf("context validation failed: %w", validationErr)
+			}
+		}
+	}
+
+	// Try primary provider with retries
+	provStream, streamResult, err := r.streamWithRetry(ctx, req, result)
+	if err != nil {
+		// If fallback is enabled, try alternative providers
+		if r.config.EnableFallback {
+			return r.streamWithFallback(ctx, req, result, startTime)
+		}
+		return nil, fmt.Errorf("streaming failed: %w", err)
+	}
+
+	// Create output channel
+	outChan := make(chan StreamChunk, 10)
+
+	// Forward stream chunks with usage tracking
+	go func() {
+		defer close(outChan)
+		var totalTokens int
+
+		for chunk := range provStream {
+			outChan <- StreamChunk{
+				Content: chunk.Content,
+				Delta:   chunk.Delta,
+				Done:    chunk.Done,
+				Error:   chunk.Error,
+			}
+
+			if chunk.Done {
+				totalTokens = chunk.TokensUsed
+			}
+		}
+
+		// Record usage after stream completes
+		if totalTokens > 0 {
+			actualCost := (float64(totalTokens) / 1000000.0) * streamResult.Model.CostPerMToken
+			usage := Usage{
+				Model:     streamResult.Model.ID,
+				Provider:  streamResult.Model.Provider,
+				Tokens:    totalTokens,
+				CostUSD:   actualCost,
+				LatencyMs: int(time.Since(startTime).Milliseconds()),
+				Timestamp: time.Now(),
+				TaskID:    req.TaskID,
+				Success:   true,
+			}
+			r.RecordUsage(usage)
+		}
+	}()
+
+	return outChan, nil
+}
+
+// getProviderName maps router Provider to registry provider name
+func (r *Router) getProviderName(p Provider) string {
+	switch p {
+	case ProviderAnthropic:
+		return "anthropic"
+	case ProviderOpenAI:
+		return "openai"
+	case ProviderLocal:
+		// Try ollama first, then local
+		if _, err := r.registry.Get("ollama"); err == nil {
+			return "ollama"
+		}
+		return "local"
+	default:
+		return ""
+	}
+}
+
+// GetRegistry returns the provider registry
+func (r *Router) GetRegistry() *provider.Registry {
+	return r.registry
+}
+
+// SetModelsAvailable is a test helper that marks all models as available
+// This is useful for testing model selection logic without needing actual providers
+func (r *Router) SetModelsAvailable(available bool) {
+	for i := range r.models {
+		r.models[i].Available = available
+	}
+}
+
+// generateWithRetry attempts generation with exponential backoff retry logic
+func (r *Router) generateWithRetry(ctx context.Context, req GenerateRequest, result *RoutingResult) (*provider.GenerateResponse, error) {
+	// Get provider name from model
+	providerName := r.getProviderName(result.Model.Provider)
+	if providerName == "" {
+		return nil, fmt.Errorf("no provider available for model %s", result.Model.ID)
+	}
+
+	// Get provider from registry
+	prov, err := r.registry.Get(providerName)
+	if err != nil {
+		return nil, fmt.Errorf("provider %s not available: %w", providerName, err)
+	}
+
+	// Build provider request
+	provReq := &provider.GenerateRequest{
+		Prompt:       req.Prompt,
+		SystemPrompt: req.SystemPrompt,
+		MaxTokens:    req.MaxTokens,
+		Temperature:  req.Temperature,
+		TopP:         req.TopP,
+		Tools:        req.Tools,
+		Context:      req.Context,
+		Config: map[string]interface{}{
+			"model": result.Model.Name,
+		},
+		Metadata: map[string]string{
+			"task_id":  req.TaskID,
+			"hint":     req.ModelHint,
+			"priority": req.Priority,
+		},
+	}
+
+	// Retry logic with exponential backoff
+	maxRetries := r.config.MaxRetries
+	if maxRetries <= 0 {
+		maxRetries = 0 // No retries
+	}
+
+	var lastErr error
+	backoff := time.Duration(r.config.RetryBackoffMs) * time.Millisecond
+	maxBackoff := time.Duration(r.config.RetryMaxBackoffMs) * time.Millisecond
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		// Call provider
+		provResp, err := prov.Generate(ctx, provReq)
+		if err == nil && provResp.Error == "" {
+			return provResp, nil
+		}
+
+		lastErr = err
+		if err == nil && provResp.Error != "" {
+			lastErr = fmt.Errorf("provider returned error: %s", provResp.Error)
+		}
+
+		// Don't retry on last attempt
+		if attempt == maxRetries {
+			break
+		}
+
+		// Check if error is retryable (network errors, timeouts, rate limits)
+		if !r.isRetryableError(lastErr) {
+			return nil, lastErr
+		}
+
+		// Wait with exponential backoff before retry
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(backoff):
+			// Double the backoff for next retry, up to max
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("all retry attempts failed (tried %d times): %w", maxRetries+1, lastErr)
+}
+
+// generateWithFallback attempts generation with fallback providers
+func (r *Router) generateWithFallback(ctx context.Context, req GenerateRequest, primaryResult *RoutingResult, startTime time.Time) (*GenerateResponse, error) {
+	// Get all available models sorted by score
+	routing := RoutingRequest{
+		ModelHint:   req.ModelHint,
+		Complexity:  req.Complexity,
+		Priority:    req.Priority,
+		ContextSize: req.ContextSize,
+	}
+
+	candidates := r.getCandidateModels(routing)
+	scored := r.scoreModels(candidates, routing)
+
+	// Try each candidate in order (skip the primary that already failed)
+	for i := range scored {
+		model := scored[i]
+		if model.ID == primaryResult.Model.ID {
+			continue // Skip primary model that already failed
+		}
+
+		// Create result for this fallback model
+		fallbackResult := &RoutingResult{
+			Model:          model,
+			Reason:         fmt.Sprintf("Fallback after primary failure: %s", primaryResult.Model.ID),
+			EstimatedCost:  (float64(r.estimateTokens(routing)) / 1000000.0) * model.CostPerMToken,
+			EstimatedTokens: r.estimateTokens(routing),
+		}
+
+		// Try this fallback model with retries
+		provResp, err := r.generateWithRetry(ctx, req, fallbackResult)
+		if err == nil && provResp.Error == "" {
+			// Success with fallback!
+			actualCost := (float64(provResp.TokensUsed) / 1000000.0) * model.CostPerMToken
+
+			// Record usage
+			usage := Usage{
+				Model:     model.ID,
+				Provider:  model.Provider,
+				Tokens:    provResp.TokensUsed,
+				CostUSD:   actualCost,
+				LatencyMs: int(time.Since(startTime).Milliseconds()),
+				Timestamp: time.Now(),
+				TaskID:    req.TaskID,
+				Success:   true,
+			}
+			r.RecordUsage(usage)
+
+			return &GenerateResponse{
+				Content:         provResp.Content,
+				Model:           model.ID,
+				Provider:        model.Provider,
+				TokensUsed:      provResp.TokensUsed,
+				InputTokens:     provResp.InputTokens,
+				OutputTokens:    provResp.OutputTokens,
+				CostUSD:         actualCost,
+				Latency:         provResp.Latency,
+				FinishReason:    provResp.FinishReason,
+				SelectionReason: fmt.Sprintf("Fallback: %s (primary %s failed)", model.ID, primaryResult.Model.ID),
+				ToolCalls:       provResp.ToolCalls,
+				Error:           provResp.Error,
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("all fallback providers failed")
+}
+
+// isRetryableError checks if an error is transient and worth retrying
+func (r *Router) isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errStr := strings.ToLower(err.Error())
+
+	// Network and timeout errors
+	if strings.Contains(errStr, "timeout") ||
+		strings.Contains(errStr, "connection refused") ||
+		strings.Contains(errStr, "connection reset") ||
+		strings.Contains(errStr, "temporary failure") ||
+		strings.Contains(errStr, "network") {
+		return true
+	}
+
+	// Rate limiting and service unavailability
+	if strings.Contains(errStr, "rate limit") ||
+		strings.Contains(errStr, "429") ||
+		strings.Contains(errStr, "503") ||
+		strings.Contains(errStr, "service unavailable") ||
+		strings.Contains(errStr, "too many requests") {
+		return true
+	}
+
+	// Context errors are not retryable
+	if strings.Contains(errStr, "context") {
+		return false
+	}
+
+	// Authentication and authorization errors are not retryable
+	if strings.Contains(errStr, "401") ||
+		strings.Contains(errStr, "403") ||
+		strings.Contains(errStr, "unauthorized") ||
+		strings.Contains(errStr, "forbidden") ||
+		strings.Contains(errStr, "invalid api key") {
+		return false
+	}
+
+	// Default: don't retry unknown errors
+	return false
+}
+
+// streamWithRetry attempts streaming with exponential backoff retry logic
+func (r *Router) streamWithRetry(ctx context.Context, req GenerateRequest, result *RoutingResult) (<-chan provider.StreamChunk, *RoutingResult, error) {
+	// Get provider from registry
+	providerName := r.getProviderName(result.Model.Provider)
+	prov, err := r.registry.Get(providerName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("provider %s not available: %w", providerName, err)
+	}
+
+	// Check if provider supports streaming
+	caps := prov.GetCapabilities()
+	if !caps.SupportsStreaming {
+		return nil, nil, fmt.Errorf("provider %s does not support streaming", providerName)
+	}
+
+	// Build provider request
+	provReq := &provider.GenerateRequest{
+		Prompt:       req.Prompt,
+		SystemPrompt: req.SystemPrompt,
+		MaxTokens:    req.MaxTokens,
+		Temperature:  req.Temperature,
+		TopP:         req.TopP,
+		Tools:        req.Tools,
+		Context:      req.Context,
+		Config: map[string]interface{}{
+			"model": result.Model.Name,
+		},
+		Metadata: map[string]string{
+			"task_id":  req.TaskID,
+			"hint":     req.ModelHint,
+			"priority": req.Priority,
+		},
+	}
+
+	// Retry logic with exponential backoff
+	maxRetries := r.config.MaxRetries
+	if maxRetries <= 0 {
+		maxRetries = 0 // No retries
+	}
+
+	var lastErr error
+	backoff := time.Duration(r.config.RetryBackoffMs) * time.Millisecond
+	maxBackoff := time.Duration(r.config.RetryMaxBackoffMs) * time.Millisecond
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		// Call provider stream
+		provStream, err := prov.Stream(ctx, provReq)
+		if err == nil {
+			return provStream, result, nil
+		}
+
+		lastErr = err
+
+		// Don't retry on last attempt
+		if attempt == maxRetries {
+			break
+		}
+
+		// Check if error is retryable
+		if !r.isRetryableError(lastErr) {
+			return nil, nil, lastErr
+		}
+
+		// Wait with exponential backoff before retry
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		case <-time.After(backoff):
+			// Double the backoff for next retry, up to max
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
+	}
+
+	return nil, nil, fmt.Errorf("all streaming retry attempts failed (tried %d times): %w", maxRetries+1, lastErr)
+}
+
+// streamWithFallback tries alternative providers when primary streaming fails
+func (r *Router) streamWithFallback(ctx context.Context, req GenerateRequest, primaryResult *RoutingResult, startTime time.Time) (<-chan StreamChunk, error) {
+	// Get all available models sorted by score
+	routing := RoutingRequest{
+		ModelHint:   req.ModelHint,
+		Complexity:  req.Complexity,
+		Priority:    req.Priority,
+		ContextSize: req.ContextSize,
+	}
+
+	candidates := r.getCandidateModels(routing)
+	scored := r.scoreModels(candidates, routing)
+
+	// Try each candidate in order (skip the primary that already failed)
+	for i := range scored {
+		model := scored[i]
+		if model.ID == primaryResult.Model.ID {
+			continue // Skip primary model that already failed
+		}
+
+		// Create result for this fallback model
+		fallbackResult := &RoutingResult{
+			Model:           model,
+			Reason:          fmt.Sprintf("Fallback after primary streaming failure: %s", primaryResult.Model.ID),
+			EstimatedCost:   (float64(r.estimateTokens(routing)) / 1000000.0) * model.CostPerMToken,
+			EstimatedTokens: r.estimateTokens(routing),
+		}
+
+		// Try this fallback model with retries
+		provStream, streamResult, err := r.streamWithRetry(ctx, req, fallbackResult)
+		if err == nil {
+			// Success with fallback!
+			// Create output channel
+			outChan := make(chan StreamChunk, 10)
+
+			// Forward stream chunks with usage tracking
+			go func() {
+				defer close(outChan)
+				var totalTokens int
+
+				for chunk := range provStream {
+					outChan <- StreamChunk{
+						Content: chunk.Content,
+						Delta:   chunk.Delta,
+						Done:    chunk.Done,
+						Error:   chunk.Error,
+					}
+
+					if chunk.Done {
+						totalTokens = chunk.TokensUsed
+					}
+				}
+
+				// Record usage after stream completes
+				if totalTokens > 0 {
+					actualCost := (float64(totalTokens) / 1000000.0) * model.CostPerMToken
+					usage := Usage{
+						Model:     model.ID,
+						Provider:  model.Provider,
+						Tokens:    totalTokens,
+						CostUSD:   actualCost,
+						LatencyMs: int(time.Since(startTime).Milliseconds()),
+						Timestamp: time.Now(),
+						TaskID:    req.TaskID,
+						Success:   true,
+					}
+					r.RecordUsage(usage)
+				}
+			}()
+
+			return outChan, nil
+		}
+
+		// Continue to next fallback if this one failed
+		_ = streamResult // Avoid unused variable warning
+	}
+
+	return nil, fmt.Errorf("all fallback providers failed for streaming")
 }

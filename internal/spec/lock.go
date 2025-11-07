@@ -22,9 +22,9 @@ func GenerateSpecLock(spec ProductSpec, version string) (*SpecLock, error) {
 
 		lock.Features[feature.ID] = LockedFeature{
 			Hash:        hash,
-			OpenAPIPath: fmt.Sprintf(".aidv/openapi/%s.yaml", feature.ID),
+			OpenAPIPath: fmt.Sprintf(".specular/openapi/%s.yaml", feature.ID),
 			TestPaths: []string{
-				fmt.Sprintf(".aidv/tests/%s_test.go", feature.ID),
+				fmt.Sprintf(".specular/tests/%s_test.go", feature.ID),
 			},
 		}
 	}

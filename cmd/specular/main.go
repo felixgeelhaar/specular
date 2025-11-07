@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/felixgeelhaar/ai-dev/internal/cmd"
+	"github.com/felixgeelhaar/specular/internal/cmd"
 )
 
 func main() {

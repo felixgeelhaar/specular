@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/ai-dev/internal/exec"
-	"github.com/felixgeelhaar/ai-dev/internal/policy"
+	"github.com/felixgeelhaar/specular/internal/exec"
+	"github.com/felixgeelhaar/specular/internal/policy"
 )
 
 // InfraDriftOptions configures infrastructure drift detection

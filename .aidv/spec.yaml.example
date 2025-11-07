@@ -1,4 +1,4 @@
-product: ai-dev CLI
+product: specular CLI
 goals:
   - Enable spec-first development with AI assistance
   - Enforce organizational guardrails automatically
@@ -15,7 +15,7 @@ features:
     priority: P0
     api:
       - method: CLI
-        path: ai-dev interview
+        path: specular interview
         request: User responses via stdin
         response: spec.yaml file
     success:

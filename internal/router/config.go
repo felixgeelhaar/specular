@@ -54,10 +54,17 @@ func DefaultConfig() *RouterConfig {
 				},
 			},
 		},
-		BudgetUSD:     20.0,
-		MaxLatencyMs:  60000,
-		PreferCheap:   false,
-		FallbackModel: "claude-haiku-3.5",
+		BudgetUSD:         20.0,
+		MaxLatencyMs:      60000,
+		PreferCheap:       false,
+		FallbackModel:     "claude-haiku-3.5",
+		EnableFallback:    true,               // Enable fallback by default
+		MaxRetries:        3,                  // Retry up to 3 times
+		RetryBackoffMs:    1000,               // Start with 1 second backoff
+		RetryMaxBackoffMs: 30000,              // Max 30 second backoff
+		EnableContextValidation: true,         // Validate context fits in model window
+		AutoTruncate:      false,              // Error out by default (safer)
+		TruncationStrategy: "oldest",          // Remove oldest context messages first
 	}
 }
 

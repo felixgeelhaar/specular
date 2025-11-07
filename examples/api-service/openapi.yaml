@@ -1,0 +1,339 @@
+openapi: 3.0.3
+info:
+  title: WeatherAPI
+  description: High-Performance Weather Service API
+  version: 1.0.0
+  contact:
+    name: WeatherAPI Team
+    email: api@weatherapi.dev
+
+servers:
+  - url: https://api.weatherapi.dev/v1
+    description: Production
+  - url: http://localhost:8080/api/v1
+    description: Development
+
+tags:
+  - name: Weather
+  - name: Admin
+  - name: Monitoring
+
+paths:
+  /weather/current:
+    get:
+      tags: [Weather]
+      summary: Get current weather
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Current weather data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentWeatherResponse'
+
+  /weather/forecast:
+    get:
+      tags: [Weather]
+      summary: Get 5-day forecast
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Forecast data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+
+  /weather/historical:
+    get:
+      tags: [Weather]
+      summary: Get historical weather data
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        '200':
+          description: Historical data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoricalWeatherResponse'
+
+  /keys:
+    post:
+      tags: [Admin]
+      summary: Create API key
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateKeyRequest'
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIKeyResponse'
+
+  /keys/{id}:
+    get:
+      tags: [Admin]
+      summary: Get API key details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: API key details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIKeyResponse'
+    delete:
+      tags: [Admin]
+      summary: Revoke API key
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: API key revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /health:
+    get:
+      tags: [Monitoring]
+      summary: Health check
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /metrics:
+    get:
+      tags: [Monitoring]
+      summary: Prometheus metrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    CurrentWeatherResponse:
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        temperature:
+          type: number
+        humidity:
+          type: integer
+        pressure:
+          type: number
+        wind_speed:
+          type: number
+        wind_direction:
+          type: integer
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ForecastResponse:
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        forecast:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              temperature:
+                type: number
+              humidity:
+                type: integer
+              precipitation_probability:
+                type: number
+              description:
+                type: string
+
+    HistoricalWeatherResponse:
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CurrentWeatherResponse'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Location:
+      type: object
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        name:
+          type: string
+        country:
+          type: string
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+
+    CreateKeyRequest:
+      type: object
+      required:
+        - name
+        - tier
+      properties:
+        name:
+          type: string
+        tier:
+          type: string
+          enum: [free, basic, pro, enterprise]
+
+    APIKeyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        name:
+          type: string
+        tier:
+          type: string
+        rate_limit:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        success:
+          type: boolean
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        version:
+          type: string
+        uptime:
+          type: integer
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+            redis:
+              type: string
+            external_api:
+              type: string

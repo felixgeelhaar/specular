@@ -83,6 +83,41 @@ func GetAvailableModels() []Model {
 			CapabilityScore: 65,
 			Available:       true,
 		},
+
+		// Local Models (Ollama)
+		{
+			ID:              "llama3.2",
+			Provider:        ProviderLocal,
+			Name:            "llama3.2:latest",  // Ollama model name
+			Type:            ModelTypeFast,
+			ContextWindow:   8192,
+			CostPerMToken:   0.00,  // Free (local)
+			MaxLatencyMs:    3000,
+			CapabilityScore: 60,
+			Available:       false,  // Only available if ollama provider loaded
+		},
+		{
+			ID:              "codellama",
+			Provider:        ProviderLocal,
+			Name:            "codellama:latest",  // Ollama model name
+			Type:            ModelTypeCodegen,
+			ContextWindow:   16384,
+			CostPerMToken:   0.00,  // Free (local)
+			MaxLatencyMs:    4000,
+			CapabilityScore: 65,
+			Available:       false,  // Only available if ollama provider loaded
+		},
+		{
+			ID:              "llama3",
+			Provider:        ProviderLocal,
+			Name:            "llama3:latest",  // Ollama model name
+			Type:            ModelTypeAgentic,
+			ContextWindow:   8192,
+			CostPerMToken:   0.00,  // Free (local)
+			MaxLatencyMs:    4000,
+			CapabilityScore: 70,
+			Available:       false,  // Only available if ollama provider loaded
+		},
 	}
 }
 

@@ -1,0 +1,65 @@
+{
+  "tasks": [
+    {
+      "id": "task-001",
+      "feature_id": "feat-001",
+      "expected_hash": "c27735beecf0e443168ebde4bf9a4ca8a71c9464fb17507d9470f788e587bc74",
+      "depends_on": null,
+      "skill": "go-backend",
+      "priority": "P0",
+      "model_hint": "codegen",
+      "estimate": 2
+    },
+    {
+      "id": "task-002",
+      "feature_id": "feat-002",
+      "expected_hash": "c94c4a019380e1fe7d1bf87065ca634ec44d66e5e0abca1bb11c01941e1b5ae2",
+      "depends_on": null,
+      "skill": "go-backend",
+      "priority": "P0",
+      "model_hint": "codegen",
+      "estimate": 2
+    },
+    {
+      "id": "task-003",
+      "feature_id": "feat-003",
+      "expected_hash": "b24c80904e56bf1101bc63f5f34e3ffc914c63e032a60f918a2bf84714f4f51b",
+      "depends_on": [
+        "task-001",
+        "task-002"
+      ],
+      "skill": "go-backend",
+      "priority": "P1",
+      "model_hint": "codegen",
+      "estimate": 2
+    },
+    {
+      "id": "task-004",
+      "feature_id": "feat-004",
+      "expected_hash": "6f9604889d9cc92f0dc68231a0edd1c68188845d4c6556f6aed740076038e702",
+      "depends_on": [
+        "task-001",
+        "task-002"
+      ],
+      "skill": "go-backend",
+      "priority": "P1",
+      "model_hint": "codegen",
+      "estimate": 2
+    },
+    {
+      "id": "task-005",
+      "feature_id": "feat-005",
+      "expected_hash": "64d3bfcf77e5df1c9996a92a6159af7be34a462d44acb42152ca575197cc8915",
+      "depends_on": [
+        "task-001",
+        "task-002",
+        "task-003",
+        "task-004"
+      ],
+      "skill": "go-backend",
+      "priority": "P2",
+      "model_hint": "codegen",
+      "estimate": 1
+    }
+  ]
+}

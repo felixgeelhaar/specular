@@ -1,4 +1,4 @@
-module github.com/felixgeelhaar/ai-dev
+module github.com/felixgeelhaar/specular
 
 go 1.24.6
 

@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/felixgeelhaar/ai-dev/internal/plan"
-	"github.com/felixgeelhaar/ai-dev/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/plan"
+	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/spf13/cobra"
 )
 
@@ -65,8 +65,8 @@ expected hashes for drift detection.`,
 func init() {
 	rootCmd.AddCommand(planCmd)
 
-	planCmd.Flags().StringP("in", "i", ".aidv/spec.yaml", "Input spec file")
-	planCmd.Flags().String("lock", ".aidv/spec.lock.json", "Input SpecLock file")
+	planCmd.Flags().StringP("in", "i", ".specular/spec.yaml", "Input spec file")
+	planCmd.Flags().String("lock", ".specular/spec.lock.json", "Input SpecLock file")
 	planCmd.Flags().StringP("out", "o", "plan.json", "Output plan file")
 	planCmd.Flags().Bool("estimate", true, "Estimate task complexity")
 }

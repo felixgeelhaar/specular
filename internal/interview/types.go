@@ -1,6 +1,6 @@
 package interview
 
-import "github.com/felixgeelhaar/ai-dev/internal/spec"
+import "github.com/felixgeelhaar/specular/internal/spec"
 
 // QuestionType defines the type of question
 type QuestionType string

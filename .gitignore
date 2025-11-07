@@ -32,8 +32,8 @@ go.work
 .claude/
 
 # ai-dev specific
-.aidv/*
-!.aidv/*.example
+.specular/*
+!.specular/*.example
 *.lock.json
 plan.json
 drift.sarif

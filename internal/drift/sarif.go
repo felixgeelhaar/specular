@@ -70,7 +70,7 @@ func (r *Report) ToSARIF() *SARIF {
 				Tool: SARIFTool{
 					Driver: SARIFDriver{
 						Name:            "ai-dev",
-						InformationURI:  "https://github.com/felixgeelhaar/ai-dev",
+						InformationURI:  "https://github.com/felixgeelhaar/specular",
 						SemanticVersion: "0.1.0",
 					},
 				},

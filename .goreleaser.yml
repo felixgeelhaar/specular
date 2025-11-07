@@ -1,0 +1,306 @@
+# GoReleaser configuration for Specular CLI
+# https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    # Run tests before building
+    - go mod tidy
+    - go test ./...
+    # Generate shell completions
+    - mkdir -p completions
+    - bash -c './specular completion bash > completions/specular.bash || true'
+    - bash -c './specular completion zsh > completions/_specular || true'
+    - bash -c './specular completion fish > completions/specular.fish || true'
+
+builds:
+  - id: specular
+    binary: specular
+    main: ./cmd/specular
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Ignore arm64 on Windows (not commonly used)
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/felixgeelhaar/specular/internal/version.Version={{.Version}}
+      - -X github.com/felixgeelhaar/specular/internal/version.Commit={{.Commit}}
+      - -X github.com/felixgeelhaar/specular/internal/version.Date={{.Date}}
+    flags:
+      - -trimpath
+
+archives:
+  - id: specular-archive
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - docs/**/*
+      - examples/**/*
+      - completions/*
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: 'Performance Improvements'
+      regexp: "^.*perf[(\\w)]*:+.*$"
+      order: 2
+    - title: 'Refactoring'
+      regexp: "^.*refactor[(\\w)]*:+.*$"
+      order: 3
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: felixgeelhaar
+    name: specular
+  draft: false
+  prerelease: auto
+  mode: replace
+  name_template: "Release {{.Tag}}"
+  header: |
+    ## specular {{ .Tag }} ({{ .Date }})
+
+    AI-Native Spec and Build Assistant - Multi-platform release for {{ .Tag }}.
+
+    ### Installation
+
+    #### macOS/Linux (Homebrew)
+    ```bash
+    brew tap felixgeelhaar/tap
+    brew install specular
+    ```
+
+    #### Direct Download
+    Download the appropriate archive for your platform from the assets below.
+
+    ### What's Changed
+  footer: |
+    **Full Changelog**: https://github.com/felixgeelhaar/specular/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ---
+
+    ### Docker Support
+    Docker Engine 24.0+ or Docker Desktop is required for execution sandboxing.
+
+    ### AI Provider Support
+    - Anthropic Claude (API key required)
+    - OpenAI GPT (API key required)
+    - Google Gemini (API key required)
+    - Ollama (self-hosted, no API key needed)
+
+# Homebrew formula
+brews:
+  - name: specular
+    repository:
+      owner: felixgeelhaar
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    homepage: "https://github.com/felixgeelhaar/specular"
+    description: "AI-Native Spec and Build Assistant with policy enforcement"
+    license: "MIT"
+    skip_upload: auto
+    dependencies:
+      - name: docker
+        type: optional
+    install: |
+      bin.install "specular"
+
+      # Install shell completions
+      bash_completion.install "completions/specular.bash" => "specular"
+      zsh_completion.install "completions/_specular" => "_specular"
+      fish_completion.install "completions/specular.fish"
+    test: |
+      system "#{bin}/specular", "version"
+
+# Linux packages (deb, rpm, apk)
+nfpms:
+  - id: packages
+    package_name: specular
+    vendor: Felix Geelhaar
+    homepage: https://github.com/felixgeelhaar/specular
+    maintainer: Felix Geelhaar <felix@geelhaar.com>
+    description: |
+      AI-Native Spec and Build Assistant
+      Specular provides policy-enforced, AI-powered development workflows
+      with multi-provider support and drift detection.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+      - apk
+
+    dependencies:
+      - docker-ce
+    recommends:
+      - git
+    suggests:
+      - docker-compose
+
+    bindir: /usr/bin
+    contents:
+      - src: ./completions/specular.bash
+        dst: /usr/share/bash-completion/completions/specular
+        file_info:
+          mode: 0644
+      - src: ./completions/_specular
+        dst: /usr/share/zsh/site-functions/_specular
+        file_info:
+          mode: 0644
+      - src: ./completions/specular.fish
+        dst: /usr/share/fish/vendor_completions.d/specular.fish
+        file_info:
+          mode: 0644
+      - src: ./LICENSE
+        dst: /usr/share/doc/specular/copyright
+        file_info:
+          mode: 0644
+      - src: ./README.md
+        dst: /usr/share/doc/specular/README.md
+        file_info:
+          mode: 0644
+
+    scripts:
+      postinstall: "scripts/postinstall.sh"
+
+    deb:
+      lintian_overrides:
+        - statically-linked-binary
+        - changelog-file-missing-in-native-package
+
+    rpm:
+      summary: AI-Native Spec and Build Assistant
+      group: Development/Tools
+
+# Docker images (multi-architecture support)
+dockers:
+  # AMD64 image
+  - image_templates:
+      - "ghcr.io/felixgeelhaar/specular:{{ .Tag }}-amd64"
+      - "ghcr.io/felixgeelhaar/specular:v{{ .Major }}-amd64"
+      - "ghcr.io/felixgeelhaar/specular:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "ghcr.io/felixgeelhaar/specular:latest-amd64"
+    dockerfile: Dockerfile.release
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source=https://github.com/felixgeelhaar/specular"
+      - "--label=org.opencontainers.image.description=AI-Native Spec and Build Assistant"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+  # ARM64 image
+  - image_templates:
+      - "ghcr.io/felixgeelhaar/specular:{{ .Tag }}-arm64"
+      - "ghcr.io/felixgeelhaar/specular:v{{ .Major }}-arm64"
+      - "ghcr.io/felixgeelhaar/specular:v{{ .Major }}.{{ .Minor }}-arm64"
+      - "ghcr.io/felixgeelhaar/specular:latest-arm64"
+    dockerfile: Dockerfile.release
+    use: buildx
+    goarch: arm64
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source=https://github.com/felixgeelhaar/specular"
+      - "--label=org.opencontainers.image.description=AI-Native Spec and Build Assistant"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+# Multi-platform Docker manifests
+docker_manifests:
+  # Version-specific manifest
+  - name_template: "ghcr.io/felixgeelhaar/specular:{{ .Tag }}"
+    image_templates:
+      - "ghcr.io/felixgeelhaar/specular:{{ .Tag }}-amd64"
+      - "ghcr.io/felixgeelhaar/specular:{{ .Tag }}-arm64"
+
+  # Major version manifest
+  - name_template: "ghcr.io/felixgeelhaar/specular:v{{ .Major }}"
+    image_templates:
+      - "ghcr.io/felixgeelhaar/specular:v{{ .Major }}-amd64"
+      - "ghcr.io/felixgeelhaar/specular:v{{ .Major }}-arm64"
+
+  # Major.Minor version manifest
+  - name_template: "ghcr.io/felixgeelhaar/specular:v{{ .Major }}.{{ .Minor }}"
+    image_templates:
+      - "ghcr.io/felixgeelhaar/specular:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "ghcr.io/felixgeelhaar/specular:v{{ .Major }}.{{ .Minor }}-arm64"
+
+  # Latest manifest
+  - name_template: "ghcr.io/felixgeelhaar/specular:latest"
+    image_templates:
+      - "ghcr.io/felixgeelhaar/specular:latest-amd64"
+      - "ghcr.io/felixgeelhaar/specular:latest-arm64"
+
+# Snapshots for development builds
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+# Announce releases
+announce:
+  skip: '{{gt .Patch 0}}'  # Only announce major/minor releases
+
+# Metadata
+metadata:
+  mod_timestamp: '{{ .CommitTimestamp }}'
+
+# SBOM and signatures
+sboms:
+  - artifacts: archive
+
+signs:
+  - cmd: gpg
+    args:
+      - --batch
+      - --local-user
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - --output
+      - "${signature}"
+      - --detach-sign
+      - "${artifact}"
+    artifacts: checksum

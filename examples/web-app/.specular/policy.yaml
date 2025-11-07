@@ -1,0 +1,161 @@
+version: 1.0
+
+execution:
+  allow_local: false
+  docker:
+    required: true
+    image_allowlist:
+      - node:20-alpine
+      - node:20
+      - postgres:15-alpine
+      - postgres:15
+      - redis:7-alpine
+    resource_limits:
+      cpu: "4"
+      memory: "4g"
+      disk: "10g"
+    network: "bridge"
+    privileged: false
+
+tests:
+  require_pass: true
+  min_coverage: 0.80
+  coverage_packages:
+    - src/**/*.ts
+    - src/**/*.tsx
+  exclude_patterns:
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/*.spec.ts"
+    - "**/test-utils/**"
+    - "**/__mocks__/**"
+  frameworks:
+    - vitest
+    - playwright
+  parallel: true
+  timeout: 300
+
+linting:
+  enabled: true
+  tools:
+    - eslint
+    - prettier
+    - typescript
+  fail_on_warning: false
+  fail_on_error: true
+  config_files:
+    - .eslintrc.json
+    - .prettierrc
+    - tsconfig.json
+
+security:
+  secrets_scan: true
+  dep_scan: true
+  sast_scan: true
+  allowed_licenses:
+    - MIT
+    - Apache-2.0
+    - BSD-2-Clause
+    - BSD-3-Clause
+    - ISC
+  blocked_packages:
+    - colors
+    - faker
+  severity_threshold: "medium"
+
+builds:
+  require_success: true
+  artifacts:
+    - dist/
+    - build/
+  retention_days: 90
+  parallel: true
+
+performance:
+  lighthouse:
+    enabled: true
+    thresholds:
+      performance: 85
+      accessibility: 90
+      best-practices: 90
+      seo: 85
+  bundle_size:
+    max_js: "500kb"
+    max_css: "100kb"
+    warn_threshold: 0.8
+
+api:
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+  response_time:
+    p95_threshold_ms: 200
+    p99_threshold_ms: 500
+  openapi:
+    spec_file: openapi.yaml
+    validate_requests: true
+    validate_responses: true
+
+database:
+  migrations:
+    required: true
+    reversible: true
+    backup_before: true
+  connection_pooling:
+    min_connections: 2
+    max_connections: 20
+  query_timeout_ms: 5000
+
+compliance:
+  gdpr:
+    enabled: true
+    data_retention_days: 365
+    right_to_deletion: true
+  audit_logging: true
+  encryption_at_rest: true
+  encryption_in_transit: true
+
+quality_gates:
+  - name: "Type Safety"
+    command: "npm run type-check"
+    required: true
+  - name: "Unit Tests"
+    command: "npm run test:unit"
+    required: true
+  - name: "Integration Tests"
+    command: "npm run test:integration"
+    required: true
+  - name: "E2E Tests"
+    command: "npm run test:e2e"
+    required: false
+  - name: "Build"
+    command: "npm run build"
+    required: true
+  - name: "Security Audit"
+    command: "npm audit --audit-level=moderate"
+    required: true
+
+notifications:
+  on_failure:
+    - slack
+    - email
+  on_success:
+    - slack
+
+environments:
+  development:
+    allowed_origins:
+      - http://localhost:3000
+      - http://localhost:5173
+    debug: true
+  staging:
+    allowed_origins:
+      - https://staging.taskflow.app
+    debug: false
+  production:
+    allowed_origins:
+      - https://taskflow.app
+      - https://www.taskflow.app
+    debug: false
+    require_https: true
+    hsts_enabled: true

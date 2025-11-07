@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ai-dev** is a Go-based CLI tool that enables spec-first, policy-enforced software development using AI. It transforms natural language product requirements into structured specifications, executable plans, and production-ready code while maintaining traceability and enforcing organizational guardrails.
+**specular** is a Go-based CLI tool that enables spec-first, policy-enforced software development using AI. It transforms natural language product requirements into structured specifications, executable plans, and production-ready code while maintaining traceability and enforcing organizational guardrails.
 
 ### Core Principles
 
-- **Spec-first**: SpecLock (`.aidv/spec.lock.json`) is the single source of truth
+- **Spec-first**: SpecLock (`.specular/spec.lock.json`) is the single source of truth
 - **Traceability**: Stable links across spec → plan → code/tests with hash-based verification
 - **Governance**: All execution passes policy gates (Docker-only, linters, tests, coverage, security)
 - **Reproducibility**: Every run emits hashes, costs, and provenance for audit trails
@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Directory Structure
 
 ```
-ai-dev/
+specular/
  ├─ cmd/                 # Cobra commands (interview, spec, plan, build, eval)
  ├─ internal/
  │   ├─ interview/       # Q&A engine (slot-filling, templates, validators)
@@ -29,7 +29,7 @@ ai-dev/
  │   ├─ exec/            # Docker runner (limits, logs, sandboxing)
  │   ├─ router/          # model routing (rule-based → learned)
  │   └─ tools/           # linters, formatters, tests, codegen adapters
- ├─ .aidv/               # workspace: policy.yaml, spec.lock.json, runs/, logs/
+ ├─ .specular/               # workspace: policy.yaml, spec.lock.json, runs/, logs/
  └─ docs/                # PRD and technical design documentation
 ```
 
@@ -38,7 +38,7 @@ ai-dev/
 The system follows a linear pipeline with strict validation at each stage:
 
 ```
-[PRD.md or Interview] → spec.generate → .aidv/spec.yaml + .aidv/spec.lock.json
+[PRD.md or Interview] → spec.generate → .specular/spec.yaml + .specular/spec.lock.json
                               ↓
                        plan.build → plan.json (DAG w/ ExpectedHash)
                               ↓
@@ -57,7 +57,7 @@ Implements finite-state slot-filling to guide product managers from zero to best
 ### spec/ - Specification Management
 - Schema: JSON Schema (draft 2020-12) for `ProductSpec`
 - Canonicalization: Normalizes ordering/whitespace for stable hashing
-- SpecLock: `.aidv/spec.lock.json` with per-feature blake3 hash, generated OpenAPI, and acceptance test stubs
+- SpecLock: `.specular/spec.lock.json` with per-feature blake3 hash, generated OpenAPI, and acceptance test stubs
 - Validation: Uses `gojsonschema` with optional CUE semantics
 
 ### plan/ - Task DAG Generation
@@ -73,7 +73,7 @@ Converts `spec.lock.json` into `plan.json` containing tasks, dependencies, estim
 YAML-based policy for common guardrails with optional OPA/CUE for complex org rules. Performs preflight checks before any step; hard-fails on violations. Covers execution (Docker-only, image allowlist, net limits), linters/formatters, tests/coverage, security scans, and allowed models/tools.
 
 ### exec/ - Secure Sandboxed Execution
-Docker-only runner enforcing network controls, CPU/mem limits, read-only FS, `cap-drop=ALL`, `pids-limit`. Uses ephemeral workdir mounts and logs all commands, images, env, exit codes, stdout/stderr. Emits `.aidv/runs/<ts>.json` manifests with input/output hashes.
+Docker-only runner enforcing network controls, CPU/mem limits, read-only FS, `cap-drop=ALL`, `pids-limit`. Uses ephemeral workdir mounts and logs all commands, images, env, exit codes, stdout/stderr. Emits `.specular/runs/<ts>.json` manifests with input/output hashes.
 
 ### router/ - Multi-Model AI Routing
 - Phase 1: Rule-based routing (task kind, token budget, latency, cost)
@@ -117,19 +117,19 @@ Enforcement configuration:
 
 ```bash
 # Interactive interview mode to generate spec from Q&A
-ai-dev interview --out .aidv/spec.yaml [--preset saas-api|mobile-app|internal-tool] [--strict] [--tui]
+specular interview --out .specular/spec.yaml [--preset saas-api|mobile-app|internal-tool] [--strict] [--tui]
 
 # Generate spec from PRD markdown
-ai-dev spec generate --in PRD.md --out .aidv/spec.yaml
+specular spec generate --in PRD.md --out .specular/spec.yaml
 
 # Build execution plan from spec
-ai-dev plan --in .aidv/spec.yaml --out plan.json
+specular plan --in .specular/spec.yaml --out plan.json
 
 # Execute build with policy enforcement
-ai-dev build --plan plan.json [--policy .aidv/policy.yaml] [--dry-run]
+specular build --plan plan.json [--policy .specular/policy.yaml] [--dry-run]
 
 # Run evaluation and drift detection
-ai-dev eval --plan plan.json --report drift.sarif
+specular eval --plan plan.json --report drift.sarif
 ```
 
 ### Common Flags
@@ -181,7 +181,7 @@ Captures logs, exit code, and emits run manifest for audit.
 
 ## Configuration Examples
 
-### .aidv/policy.yaml
+### .specular/policy.yaml
 ```yaml
 execution:
   allow_local: false
@@ -214,7 +214,7 @@ routing:
   deny_tools: ["shell_local"]
 ```
 
-### ~/.ai-dev/config.yaml
+### ~/.specular/config.yaml
 ```yaml
 providers:
   openai:

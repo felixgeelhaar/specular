@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/ai-dev/internal/policy"
+	"github.com/felixgeelhaar/specular/internal/policy"
 )
 
 // EnforcePolicy validates a step against policy constraints

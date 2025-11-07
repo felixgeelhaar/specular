@@ -2,11 +2,11 @@
 
 # Build the binary
 build:
-	go build -o ai-dev ./cmd/ai-dev
+	go build -o specular ./cmd/specular
 
 # Install the binary to GOPATH/bin
 install:
-	go install ./cmd/ai-dev
+	go install ./cmd/specular
 
 # Run tests
 test:
@@ -19,7 +19,7 @@ test-coverage: test
 
 # Clean build artifacts
 clean:
-	rm -f ai-dev coverage.txt coverage.html
+	rm -f specular coverage.txt coverage.html
 	go clean
 
 # Run linter (requires golangci-lint)
@@ -40,13 +40,13 @@ check: fmt lint test
 
 # Development build and run
 dev: build
-	./ai-dev
+	./specular
 
 # Show help
 help:
 	@echo "Available targets:"
-	@echo "  build          - Build the ai-dev binary"
-	@echo "  install        - Install ai-dev to GOPATH/bin"
+	@echo "  build          - Build the specular binary"
+	@echo "  install        - Install specular to GOPATH/bin"
 	@echo "  test           - Run all tests with race detection"
 	@echo "  test-coverage  - Run tests and generate HTML coverage report"
 	@echo "  clean          - Remove build artifacts"
@@ -54,5 +54,5 @@ help:
 	@echo "  fmt            - Format all Go code"
 	@echo "  tidy           - Tidy Go module dependencies"
 	@echo "  check          - Run fmt, lint, and test"
-	@echo "  dev            - Build and run ai-dev"
+	@echo "  dev            - Build and run specular"
 	@echo "  help           - Show this help message"

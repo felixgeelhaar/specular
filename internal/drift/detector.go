@@ -3,8 +3,8 @@ package drift
 import (
 	"fmt"
 
-	"github.com/felixgeelhaar/ai-dev/internal/plan"
-	"github.com/felixgeelhaar/ai-dev/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/plan"
+	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
 // DetectPlanDrift compares a plan against the SpecLock to find mismatches

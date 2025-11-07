@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/felixgeelhaar/ai-dev/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
 // createTestOpenAPISpec creates a test OpenAPI spec file
@@ -507,5 +507,112 @@ func TestFindPathWithParams(t *testing.T) {
 				t.Errorf("findPathWithParams() match = %v, want %v", gotMatch, tt.wantMatch)
 			}
 		})
+	}
+}
+
+func TestValidateEndpoints_AllHTTPMethods(t *testing.T) {
+	tmpDir := t.TempDir()
+	
+	// Create OpenAPI spec with all HTTP methods
+	specContent := `
+openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /api/resource:
+    get:
+      summary: Get resource
+      responses:
+        '200':
+          description: Success
+    post:
+      summary: Create resource
+      responses:
+        '201':
+          description: Created
+    put:
+      summary: Update resource
+      responses:
+        '200':
+          description: Updated
+    patch:
+      summary: Partial update
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete resource
+      responses:
+        '204':
+          description: Deleted
+    head:
+      summary: Get headers
+      responses:
+        '200':
+          description: Success
+    options:
+      summary: Get options
+      responses:
+        '200':
+          description: Success
+`
+	specPath := filepath.Join(tmpDir, "openapi.yaml")
+	if err := os.WriteFile(specPath, []byte(specContent), 0644); err != nil {
+		t.Fatalf("Failed to write spec: %v", err)
+	}
+
+	validator, err := NewOpenAPIValidator(specPath)
+	if err != nil {
+		t.Fatalf("Failed to create validator: %v", err)
+	}
+
+	// Test all HTTP methods
+	features := []spec.Feature{
+		{
+			ID: "feat-all-methods",
+			API: []spec.API{
+				{Path: "/api/resource", Method: "GET"},
+				{Path: "/api/resource", Method: "POST"},
+				{Path: "/api/resource", Method: "PUT"},
+				{Path: "/api/resource", Method: "PATCH"},
+				{Path: "/api/resource", Method: "DELETE"},
+				{Path: "/api/resource", Method: "HEAD"},
+				{Path: "/api/resource", Method: "OPTIONS"},
+			},
+		},
+	}
+
+	findings := validator.ValidateEndpoints(features)
+	if len(findings) != 0 {
+		t.Errorf("ValidateEndpoints() found %d findings, want 0", len(findings))
+		for _, f := range findings {
+			t.Logf("Finding: %s", f.Message)
+		}
+	}
+}
+
+func TestValidateEndpoints_UnsupportedMethod(t *testing.T) {
+	tmpDir := t.TempDir()
+	specPath := createTestOpenAPISpec(t, tmpDir)
+
+	validator, err := NewOpenAPIValidator(specPath)
+	if err != nil {
+		t.Fatalf("Failed to create validator: %v", err)
+	}
+
+	// Test unsupported HTTP method
+	features := []spec.Feature{
+		{
+			ID: "feat-unsupported",
+			API: []spec.API{
+				{Path: "/api/users", Method: "CONNECT"}, // Unsupported method
+			},
+		},
+	}
+
+	findings := validator.ValidateEndpoints(features)
+	if len(findings) == 0 {
+		t.Error("ValidateEndpoints() expected findings for unsupported method, got 0")
 	}
 }

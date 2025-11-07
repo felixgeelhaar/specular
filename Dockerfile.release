@@ -1,0 +1,41 @@
+# Multi-stage Dockerfile for specular (Specular) releases
+# Used by GoReleaser for Docker image distribution
+
+FROM alpine:3.19
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    ca-certificates \
+    git \
+    docker-cli \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1000 specular \
+    && adduser -D -u 1000 -G specular specular
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy binary from GoReleaser
+COPY specular /usr/local/bin/specular
+
+# Ensure binary is executable
+RUN chmod +x /usr/local/bin/specular
+
+# Switch to non-root user
+USER specular
+
+# Set entrypoint
+ENTRYPOINT ["specular"]
+
+# Default command shows help
+CMD ["--help"]
+
+# Labels (set by GoReleaser)
+LABEL org.opencontainers.image.title="specular"
+LABEL org.opencontainers.image.description="AI-Native Spec and Build Assistant with policy enforcement"
+LABEL org.opencontainers.image.url="https://github.com/felixgeelhaar/specular"
+LABEL org.opencontainers.image.documentation="https://github.com/felixgeelhaar/specular#readme"
+LABEL org.opencontainers.image.vendor="Felix Geelhaar"
+LABEL org.opencontainers.image.licenses="MIT"

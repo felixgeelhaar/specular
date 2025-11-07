@@ -1,0 +1,314 @@
+name: 'Specular - AI-Native Spec and Build Assistant'
+description: 'Spec-first, policy-enforced software development with AI assistance'
+author: 'Felix Geelhaar'
+
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  command:
+    description: 'Specular command to run (spec, plan, build, eval, drift)'
+    required: true
+
+  # Spec generation inputs
+  prd-file:
+    description: 'Path to Product Requirements Document (for spec command)'
+    required: false
+    default: 'PRD.md'
+
+  spec-file:
+    description: 'Path to spec file'
+    required: false
+    default: '.specular/spec.yaml'
+
+  # Plan generation inputs
+  plan-file:
+    description: 'Path to plan file'
+    required: false
+    default: 'plan.json'
+
+  # Policy inputs
+  policy-file:
+    description: 'Path to policy file'
+    required: false
+    default: '.specular/policy.yaml'
+
+  # Build inputs
+  dry-run:
+    description: 'Run build in dry-run mode (show what would be executed)'
+    required: false
+    default: 'false'
+
+  # Eval/Drift inputs
+  fail-on-drift:
+    description: 'Fail the workflow if drift is detected'
+    required: false
+    default: 'true'
+
+  report-file:
+    description: 'Path to SARIF report output'
+    required: false
+    default: 'drift.sarif'
+
+  # AI Provider configuration
+  anthropic-api-key:
+    description: 'Anthropic API key for Claude models'
+    required: false
+
+  openai-api-key:
+    description: 'OpenAI API key for GPT models'
+    required: false
+
+  gemini-api-key:
+    description: 'Google Gemini API key'
+    required: false
+
+  # Advanced options
+  project-root:
+    description: 'Project root directory'
+    required: false
+    default: '.'
+
+  checkpoint-resume:
+    description: 'Resume from previous checkpoint if available'
+    required: false
+    default: 'false'
+
+  verbose:
+    description: 'Enable verbose output'
+    required: false
+    default: 'false'
+
+  enable-cache:
+    description: 'Enable Docker image caching (speeds up subsequent runs)'
+    required: false
+    default: 'true'
+
+  cache-dir:
+    description: 'Directory for image cache'
+    required: false
+    default: '.specular/cache'
+
+outputs:
+  status:
+    description: 'Execution status (success, failed, drift-detected)'
+
+  report-path:
+    description: 'Path to generated SARIF report (if applicable)'
+
+  summary:
+    description: 'Execution summary'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check Docker availability
+      shell: bash
+      run: |
+        if ! command -v docker &> /dev/null; then
+          echo "::error::Docker is required but not installed"
+          exit 1
+        fi
+        docker --version
+
+    - name: Restore Docker Image Cache
+      if: inputs.enable-cache == 'true'
+      uses: actions/cache/restore@v3
+      id: docker-cache
+      with:
+        path: ${{ inputs.cache-dir }}
+        key: specular-docker-images-${{ runner.os }}-${{ hashFiles('**/plan.json', '.specular/spec.yaml') }}
+        restore-keys: |
+          specular-docker-images-${{ runner.os }}-
+
+    - name: Import Cached Docker Images
+      if: inputs.enable-cache == 'true' && steps.docker-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        if [ -d "${{ inputs.cache-dir }}" ]; then
+          echo "Importing cached Docker images..."
+          specular prewarm --import "${{ inputs.cache-dir }}" --verbose
+        fi
+
+    - name: Setup Specular
+      shell: bash
+      run: |
+        # Download or use cached Specular binary
+        if [ ! -f "$HOME/.specular/bin/specular" ]; then
+          echo "Downloading Specular..."
+          mkdir -p "$HOME/.specular/bin"
+
+          # Determine platform
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+
+          if [ "$ARCH" = "x86_64" ]; then
+            ARCH="amd64"
+          elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+            ARCH="arm64"
+          fi
+
+          # For now, build from source (future: download release)
+          cd ${{ github.action_path }}
+          make build
+          cp specular "$HOME/.specular/bin/"
+        fi
+
+        # Add to PATH
+        echo "$HOME/.specular/bin" >> $GITHUB_PATH
+
+    - name: Configure AI Providers
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+      run: |
+        if [ -n "$ANTHROPIC_API_KEY" ]; then
+          echo "ANTHROPIC_API_KEY configured"
+          echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> $GITHUB_ENV
+        fi
+
+        if [ -n "$OPENAI_API_KEY" ]; then
+          echo "OPENAI_API_KEY configured"
+          echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> $GITHUB_ENV
+        fi
+
+        if [ -n "$GEMINI_API_KEY" ]; then
+          echo "GEMINI_API_KEY configured"
+          echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> $GITHUB_ENV
+        fi
+
+    - name: Run Specular Command
+      shell: bash
+      id: specular
+      run: |
+        cd "${{ inputs.project-root }}"
+
+        # Build command based on inputs
+        CMD="specular ${{ inputs.command }}"
+
+        case "${{ inputs.command }}" in
+          spec)
+            CMD="$CMD generate --in ${{ inputs.prd-file }} --out ${{ inputs.spec-file }}"
+            ;;
+
+          plan)
+            CMD="$CMD generate --spec ${{ inputs.spec-file }} --policy ${{ inputs.policy-file }} --out ${{ inputs.plan-file }}"
+            ;;
+
+          build)
+            CMD="$CMD --plan ${{ inputs.plan-file }} --policy ${{ inputs.policy-file }}"
+            if [ "${{ inputs.dry-run }}" = "true" ]; then
+              CMD="$CMD --dry-run"
+            fi
+            if [ "${{ inputs.checkpoint-resume }}" = "true" ]; then
+              CMD="$CMD --resume"
+            fi
+            ;;
+
+          eval)
+            CMD="$CMD --spec ${{ inputs.spec-file }} --plan ${{ inputs.plan-file }} --policy ${{ inputs.policy-file }} --report ${{ inputs.report-file }}"
+            if [ "${{ inputs.fail-on-drift }}" = "true" ]; then
+              CMD="$CMD --fail-on-drift"
+            fi
+            if [ "${{ inputs.checkpoint-resume }}" = "true" ]; then
+              CMD="$CMD --resume"
+            fi
+            ;;
+
+          drift)
+            CMD="specular eval --spec ${{ inputs.spec-file }} --plan ${{ inputs.plan-file }} --report ${{ inputs.report-file }}"
+            if [ "${{ inputs.fail-on-drift }}" = "true" ]; then
+              CMD="$CMD --fail-on-drift"
+            fi
+            ;;
+        esac
+
+        if [ "${{ inputs.verbose }}" = "true" ]; then
+          CMD="$CMD --verbose"
+        fi
+
+        echo "Executing: $CMD"
+
+        # Execute command and capture status
+        if eval "$CMD"; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "::notice::Specular command completed successfully"
+        else
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "::error::Specular command failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+        fi
+
+        # Set outputs
+        if [ -f "${{ inputs.report-file }}" ]; then
+          echo "report-path=${{ inputs.report-file }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Export Docker Images to Cache
+      if: inputs.enable-cache == 'true' && success()
+      shell: bash
+      run: |
+        # Export commonly used images for next run
+        echo "Exporting Docker images to cache..."
+        mkdir -p "${{ inputs.cache-dir }}"
+
+        # Determine which images to export based on command
+        case "${{ inputs.command }}" in
+          build|spec|plan)
+            IMAGES="golang:1.22 node:20 alpine:latest"
+            ;;
+          *)
+            IMAGES="alpine:latest"
+            ;;
+        esac
+
+        # Export if images exist locally
+        for IMAGE in $IMAGES; do
+          if docker image inspect "$IMAGE" &>/dev/null; then
+            specular prewarm "$IMAGE" --export "${{ inputs.cache-dir }}" --verbose || true
+          fi
+        done
+
+    - name: Save Docker Image Cache
+      if: inputs.enable-cache == 'true' && success()
+      uses: actions/cache/save@v3
+      with:
+        path: ${{ inputs.cache-dir }}
+        key: specular-docker-images-${{ runner.os }}-${{ hashFiles('**/plan.json', '.specular/spec.yaml') }}
+
+    - name: Upload SARIF Report
+      if: inputs.command == 'eval' || inputs.command == 'drift'
+      uses: github/codeql-action/upload-sarif@v3
+      continue-on-error: true
+      with:
+        sarif_file: ${{ inputs.report-file }}
+        category: specular-drift-detection
+
+    - name: Summary
+      if: always()
+      shell: bash
+      run: |
+        echo "## Specular Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Command:** ${{ inputs.command }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Status:** ${{ steps.specular.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "${{ inputs.command }}" = "eval" ] || [ "${{ inputs.command }}" = "drift" ]; then
+          if [ -f "${{ inputs.report-file }}" ]; then
+            echo "**Report:** ${{ inputs.report-file }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Parse SARIF for summary
+            TOTAL=$(jq '.runs[0].results | length' "${{ inputs.report-file }}" 2>/dev/null || echo "0")
+            echo "**Total Findings:** $TOTAL" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi

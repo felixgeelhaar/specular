@@ -3,8 +3,8 @@ package drift
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/ai-dev/internal/exec"
-	"github.com/felixgeelhaar/ai-dev/internal/policy"
+	"github.com/felixgeelhaar/specular/internal/exec"
+	"github.com/felixgeelhaar/specular/internal/policy"
 )
 
 func TestDetectInfraDrift(t *testing.T) {

@@ -1,9 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"time"
 
-	"github.com/felixgeelhaar/ai-dev/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/prd"
+	"github.com/felixgeelhaar/specular/internal/provider"
+	"github.com/felixgeelhaar/specular/internal/router"
+	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/spf13/cobra"
 )
 
@@ -16,15 +22,79 @@ var specCmd = &cobra.Command{
 var specGenerateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generate spec from PRD markdown",
-	Long:  `Convert a Product Requirements Document (PRD) in markdown format into a structured specification.`,
+	Long:  `Convert a Product Requirements Document (PRD) in markdown format into a structured specification using AI.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		in, _ := cmd.Flags().GetString("in")
 		out, _ := cmd.Flags().GetString("out")
+		configPath, _ := cmd.Flags().GetString("config")
 
-		// TODO: Implement PRD parsing (requires AI integration)
-		fmt.Printf("Generating spec from PRD (in=%s, out=%s)\n", in, out)
-		fmt.Println("Note: PRD parsing requires AI integration (not yet implemented)")
-		fmt.Println("Use the example spec for now: cp .aidv/spec.yaml.example .aidv/spec.yaml")
+		fmt.Printf("Generating spec from PRD: %s\n", in)
+
+		// Read PRD file
+		prdContent, err := os.ReadFile(in)
+		if err != nil {
+			return fmt.Errorf("failed to read PRD file: %w", err)
+		}
+
+		// Load provider configuration
+		if configPath == "" {
+			configPath = ".specular/providers.yaml"
+		}
+
+		fmt.Println("Loading provider configuration...")
+		registry, err := provider.LoadRegistryFromConfig(configPath)
+		if err != nil {
+			return fmt.Errorf("failed to load providers: %w", err)
+		}
+
+		// Load provider config to get strategy settings
+		providerConfig, err := provider.LoadProvidersConfig(configPath)
+		if err != nil {
+			return fmt.Errorf("failed to load provider config: %w", err)
+		}
+
+		// Create router config from provider strategy
+		routerConfig := &router.RouterConfig{
+			BudgetUSD:    providerConfig.Strategy.Budget.MaxCostPerDay,
+			MaxLatencyMs: providerConfig.Strategy.Performance.MaxLatencyMs,
+			PreferCheap:  providerConfig.Strategy.Performance.PreferCheap,
+		}
+
+		// Set defaults if not specified
+		if routerConfig.BudgetUSD == 0 {
+			routerConfig.BudgetUSD = 20.0
+		}
+		if routerConfig.MaxLatencyMs == 0 {
+			routerConfig.MaxLatencyMs = 60000
+		}
+
+		// Create router with providers
+		r, err := router.NewRouterWithProviders(routerConfig, registry)
+		if err != nil {
+			return fmt.Errorf("failed to create router: %w", err)
+		}
+
+		// Create PRD parser (router handles provider access internally)
+		parser := prd.NewParser(r)
+
+		// Parse PRD to spec
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		defer cancel()
+
+		fmt.Println("Parsing PRD with AI (this may take 30-60 seconds)...")
+		productSpec, err := parser.ParsePRD(ctx, string(prdContent))
+		if err != nil {
+			return fmt.Errorf("failed to parse PRD: %w", err)
+		}
+
+		// Save spec
+		if err := spec.SaveSpec(productSpec, out); err != nil {
+			return fmt.Errorf("failed to save spec: %w", err)
+		}
+
+		fmt.Printf("✓ Generated spec with %d features\n", len(productSpec.Features))
+		fmt.Printf("✓ Saved to: %s\n", out)
+
 		return nil
 	},
 }
@@ -115,11 +185,12 @@ func init() {
 	specCmd.AddCommand(specLockCmd)
 
 	specGenerateCmd.Flags().StringP("in", "i", "PRD.md", "Input PRD file")
-	specGenerateCmd.Flags().StringP("out", "o", ".aidv/spec.yaml", "Output spec file")
+	specGenerateCmd.Flags().StringP("out", "o", ".specular/spec.yaml", "Output spec file")
+	specGenerateCmd.Flags().String("config", ".specular/providers.yaml", "Provider configuration file")
 
-	specValidateCmd.Flags().StringP("in", "i", ".aidv/spec.yaml", "Spec file to validate")
+	specValidateCmd.Flags().StringP("in", "i", ".specular/spec.yaml", "Spec file to validate")
 
-	specLockCmd.Flags().StringP("in", "i", ".aidv/spec.yaml", "Input spec file")
-	specLockCmd.Flags().StringP("out", "o", ".aidv/spec.lock.json", "Output SpecLock file")
+	specLockCmd.Flags().StringP("in", "i", ".specular/spec.yaml", "Input spec file")
+	specLockCmd.Flags().StringP("out", "o", ".specular/spec.lock.json", "Output SpecLock file")
 	specLockCmd.Flags().String("version", "1.0", "SpecLock version")
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/felixgeelhaar/ai-dev/internal/plan"
-	"github.com/felixgeelhaar/ai-dev/internal/policy"
+	"github.com/felixgeelhaar/specular/internal/plan"
+	"github.com/felixgeelhaar/specular/internal/policy"
 )
 
 // Executor manages task execution with policy enforcement
@@ -13,6 +13,8 @@ type Executor struct {
 	Policy      *policy.Policy
 	DryRun      bool
 	ManifestDir string
+	ImageCache  *ImageCache
+	Verbose     bool
 }
 
 // ExecutionResult contains results from executing a plan
@@ -167,16 +169,23 @@ func (e *Executor) executeTask(step Step) (*Result, error) {
 		return nil, fmt.Errorf("docker not available: %w", err)
 	}
 
-	// Check if image exists, pull if not
-	exists, err := ImageExists(step.Image)
-	if err != nil {
-		return nil, fmt.Errorf("check image exists: %w", err)
-	}
+	// Use cache if available, otherwise pull directly
+	if e.ImageCache != nil {
+		if err := e.ImageCache.EnsureImage(step.Image, e.Verbose); err != nil {
+			return nil, fmt.Errorf("ensure image: %w", err)
+		}
+	} else {
+		// Fallback to direct pull (backward compatibility)
+		exists, err := ImageExists(step.Image)
+		if err != nil {
+			return nil, fmt.Errorf("check image exists: %w", err)
+		}
 
-	if !exists {
-		fmt.Printf("  ⬇ Pulling image %s...\n", step.Image)
-		if err := PullImage(step.Image); err != nil {
-			return nil, fmt.Errorf("pull image: %w", err)
+		if !exists {
+			fmt.Printf("  ⬇ Pulling image %s...\n", step.Image)
+			if err := PullImage(step.Image); err != nil {
+				return nil, fmt.Errorf("pull image: %w", err)
+			}
 		}
 	}
 
