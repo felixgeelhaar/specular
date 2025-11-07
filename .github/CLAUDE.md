@@ -22,6 +22,7 @@ specular/
  ├─ cmd/                 # Cobra commands (interview, spec, plan, build, eval)
  ├─ internal/
  │   ├─ interview/       # Q&A engine (slot-filling, templates, validators)
+ │   ├─ tui/             # Terminal UI (bubbletea, huh forms, interactive workflows)
  │   ├─ spec/            # schema, canonicalizer, SpecLock, OpenAPI/test stubs
  │   ├─ plan/            # DAG generator (tickets, deps, estimates)
  │   ├─ drift/           # plan/spec/code drift detectors + SARIF
@@ -53,6 +54,16 @@ The system follows a linear pipeline with strict validation at each stage:
 
 ### interview/ - Guided Specification Generation
 Implements finite-state slot-filling to guide product managers from zero to best-practice spec. Uses critical slots first with adaptive follow-ups. Outputs schema-conformant `spec.yaml` and `interview.log.jsonl` for audit.
+
+**Modes:**
+- **CLI Mode**: Traditional command-line Q&A with text prompts
+- **TUI Mode** (--tui): Interactive terminal UI using bubbletea framework with:
+  - Form-based question display (huh library)
+  - Real-time validation with inline error messages
+  - Progress indicator showing X/Y questions and percentage
+  - Keyboard navigation (arrow keys, Enter, Ctrl+C)
+  - Catppuccin-themed interface
+  - Completion summary with product details
 
 ### spec/ - Specification Management
 - Schema: JSON Schema (draft 2020-12) for `ProductSpec`
