@@ -10,7 +10,7 @@ func GetAvailableModels() []Model {
 			Name:            "claude-sonnet-4-20250514",
 			Type:            ModelTypeAgentic,
 			ContextWindow:   200000,
-			CostPerMToken:   3.00,  // $3 per million tokens (input)
+			CostPerMToken:   3.00, // $3 per million tokens (input)
 			MaxLatencyMs:    5000,
 			CapabilityScore: 95,
 			Available:       true,
@@ -32,7 +32,7 @@ func GetAvailableModels() []Model {
 			Name:            "claude-3-5-haiku-20241022",
 			Type:            ModelTypeFast,
 			ContextWindow:   200000,
-			CostPerMToken:   0.80,  // $0.80 per million tokens
+			CostPerMToken:   0.80, // $0.80 per million tokens
 			MaxLatencyMs:    2000,
 			CapabilityScore: 75,
 			Available:       true,
@@ -45,7 +45,7 @@ func GetAvailableModels() []Model {
 			Name:            "gpt-4-turbo-2024-04-09",
 			Type:            ModelTypeLongContext,
 			ContextWindow:   128000,
-			CostPerMToken:   10.00,  // $10 per million tokens
+			CostPerMToken:   10.00, // $10 per million tokens
 			MaxLatencyMs:    6000,
 			CapabilityScore: 90,
 			Available:       true,
@@ -56,7 +56,7 @@ func GetAvailableModels() []Model {
 			Name:            "gpt-4o-2024-08-06",
 			Type:            ModelTypeCodegen,
 			ContextWindow:   128000,
-			CostPerMToken:   2.50,  // $2.50 per million tokens
+			CostPerMToken:   2.50, // $2.50 per million tokens
 			MaxLatencyMs:    4000,
 			CapabilityScore: 88,
 			Available:       true,
@@ -67,7 +67,7 @@ func GetAvailableModels() []Model {
 			Name:            "gpt-4o-mini-2024-07-18",
 			Type:            ModelTypeCheap,
 			ContextWindow:   128000,
-			CostPerMToken:   0.15,  // $0.15 per million tokens
+			CostPerMToken:   0.15, // $0.15 per million tokens
 			MaxLatencyMs:    2000,
 			CapabilityScore: 70,
 			Available:       true,
@@ -78,7 +78,7 @@ func GetAvailableModels() []Model {
 			Name:            "gpt-3.5-turbo-0125",
 			Type:            ModelTypeFast,
 			ContextWindow:   16385,
-			CostPerMToken:   0.50,  // $0.50 per million tokens
+			CostPerMToken:   0.50, // $0.50 per million tokens
 			MaxLatencyMs:    1500,
 			CapabilityScore: 65,
 			Available:       true,
@@ -88,35 +88,35 @@ func GetAvailableModels() []Model {
 		{
 			ID:              "llama3.2",
 			Provider:        ProviderLocal,
-			Name:            "llama3.2:latest",  // Ollama model name
+			Name:            "llama3.2:latest", // Ollama model name
 			Type:            ModelTypeFast,
 			ContextWindow:   8192,
-			CostPerMToken:   0.00,  // Free (local)
+			CostPerMToken:   0.00, // Free (local)
 			MaxLatencyMs:    3000,
 			CapabilityScore: 60,
-			Available:       false,  // Only available if ollama provider loaded
+			Available:       false, // Only available if ollama provider loaded
 		},
 		{
 			ID:              "codellama",
 			Provider:        ProviderLocal,
-			Name:            "codellama:latest",  // Ollama model name
+			Name:            "codellama:latest", // Ollama model name
 			Type:            ModelTypeCodegen,
 			ContextWindow:   16384,
-			CostPerMToken:   0.00,  // Free (local)
+			CostPerMToken:   0.00, // Free (local)
 			MaxLatencyMs:    4000,
 			CapabilityScore: 65,
-			Available:       false,  // Only available if ollama provider loaded
+			Available:       false, // Only available if ollama provider loaded
 		},
 		{
 			ID:              "llama3",
 			Provider:        ProviderLocal,
-			Name:            "llama3:latest",  // Ollama model name
+			Name:            "llama3:latest", // Ollama model name
 			Type:            ModelTypeAgentic,
 			ContextWindow:   8192,
-			CostPerMToken:   0.00,  // Free (local)
+			CostPerMToken:   0.00, // Free (local)
 			MaxLatencyMs:    4000,
 			CapabilityScore: 70,
-			Available:       false,  // Only available if ollama provider loaded
+			Available:       false, // Only available if ollama provider loaded
 		},
 	}
 }

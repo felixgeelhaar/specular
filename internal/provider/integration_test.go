@@ -46,9 +46,9 @@ func TestIntegration_OllamaProvider(t *testing.T) {
 			"path":        providerPath,
 			"trust_level": "community",
 			"capabilities": map[string]interface{}{
-				"streaming":        false,
-				"tools":            false,
-				"multi_turn":       true,
+				"streaming":          false,
+				"tools":              false,
+				"multi_turn":         true,
 				"max_context_tokens": 8192,
 			},
 		},

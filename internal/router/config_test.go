@@ -87,8 +87,8 @@ max_latency_ms: 60000
 			},
 		},
 		{
-			name: "invalid yaml",
-			configYAML: `invalid: [yaml: syntax`,
+			name:        "invalid yaml",
+			configYAML:  `invalid: [yaml: syntax`,
 			wantErr:     true,
 			errContains: "unmarshal config",
 		},

@@ -9,9 +9,9 @@ import (
 
 func TestToSARIF(t *testing.T) {
 	tests := []struct {
-		name           string
-		report         *Report
-		wantVersion    string
+		name            string
+		report          *Report
+		wantVersion     string
 		wantResultCount int
 	}{
 		{
@@ -21,7 +21,7 @@ func TestToSARIF(t *testing.T) {
 				CodeDrift:  []Finding{},
 				InfraDrift: []Finding{},
 			},
-			wantVersion:    "2.1.0",
+			wantVersion:     "2.1.0",
 			wantResultCount: 0,
 		},
 		{
@@ -38,7 +38,7 @@ func TestToSARIF(t *testing.T) {
 				CodeDrift:  []Finding{},
 				InfraDrift: []Finding{},
 			},
-			wantVersion:    "2.1.0",
+			wantVersion:     "2.1.0",
 			wantResultCount: 1,
 		},
 		{
@@ -55,7 +55,7 @@ func TestToSARIF(t *testing.T) {
 				},
 				InfraDrift: []Finding{},
 			},
-			wantVersion:    "2.1.0",
+			wantVersion:     "2.1.0",
 			wantResultCount: 1,
 		},
 		{
@@ -72,7 +72,7 @@ func TestToSARIF(t *testing.T) {
 					},
 				},
 			},
-			wantVersion:    "2.1.0",
+			wantVersion:     "2.1.0",
 			wantResultCount: 1,
 		},
 		{
@@ -109,7 +109,7 @@ func TestToSARIF(t *testing.T) {
 					},
 				},
 			},
-			wantVersion:    "2.1.0",
+			wantVersion:     "2.1.0",
 			wantResultCount: 4,
 		},
 		{
@@ -126,7 +126,7 @@ func TestToSARIF(t *testing.T) {
 				CodeDrift:  []Finding{},
 				InfraDrift: []Finding{},
 			},
-			wantVersion:    "2.1.0",
+			wantVersion:     "2.1.0",
 			wantResultCount: 1,
 		},
 	}

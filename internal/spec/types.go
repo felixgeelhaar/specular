@@ -48,13 +48,13 @@ type Milestone struct {
 
 // SpecLock represents the canonical, hashed specification snapshot
 type SpecLock struct {
-	Version  string                    `json:"version"`
-	Features map[string]LockedFeature  `json:"features"`
+	Version  string                   `json:"version"`
+	Features map[string]LockedFeature `json:"features"`
 }
 
 // LockedFeature represents a feature with its hash and generated artifacts
 type LockedFeature struct {
-	Hash        string   `json:"hash"`          // blake3(canonical feature JSON)
+	Hash        string   `json:"hash"` // blake3(canonical feature JSON)
 	OpenAPIPath string   `json:"openapi_path"`
 	TestPaths   []string `json:"test_paths"`
 }

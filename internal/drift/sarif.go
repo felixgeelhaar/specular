@@ -15,8 +15,8 @@ type SARIF struct {
 
 // SARIFRun represents a single run in a SARIF report
 type SARIFRun struct {
-	Tool    SARIFTool      `json:"tool"`
-	Results []SARIFResult  `json:"results"`
+	Tool    SARIFTool     `json:"tool"`
+	Results []SARIFResult `json:"results"`
 }
 
 // SARIFTool describes the tool that generated the report
@@ -34,10 +34,10 @@ type SARIFDriver struct {
 
 // SARIFResult represents a single finding
 type SARIFResult struct {
-	RuleID  string               `json:"ruleId"`
-	Level   string               `json:"level"` // "error", "warning", "note"
-	Message SARIFMessage         `json:"message"`
-	Locations []SARIFLocation    `json:"locations,omitempty"`
+	RuleID    string          `json:"ruleId"`
+	Level     string          `json:"level"` // "error", "warning", "note"
+	Message   SARIFMessage    `json:"message"`
+	Locations []SARIFLocation `json:"locations,omitempty"`
 }
 
 // SARIFMessage contains the finding message

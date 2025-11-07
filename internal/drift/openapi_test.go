@@ -138,10 +138,10 @@ func TestValidateEndpoints(t *testing.T) {
 	}
 
 	tests := []struct {
-		name          string
-		features      []spec.Feature
-		wantFindings  int
-		wantCodes     []string
+		name         string
+		features     []spec.Feature
+		wantFindings int
+		wantCodes    []string
 	}{
 		{
 			name: "all endpoints exist",
@@ -267,9 +267,9 @@ func TestGetEndpointSummary(t *testing.T) {
 	summary := validator.GetEndpointSummary()
 
 	expectedPaths := map[string][]string{
-		"/api/users":       {"GET", "POST"},
-		"/api/users/{id}":  {"GET", "PUT", "DELETE"},
-		"/api/products":    {"GET"},
+		"/api/users":      {"GET", "POST"},
+		"/api/users/{id}": {"GET", "PUT", "DELETE"},
+		"/api/products":   {"GET"},
 	}
 
 	for path, expectedMethods := range expectedPaths {
@@ -304,9 +304,9 @@ func TestGetEndpointSummary(t *testing.T) {
 
 func TestNormalizePath(t *testing.T) {
 	tests := []struct {
-		name  string
-		path  string
-		want  string
+		name string
+		path string
+		want string
 	}{
 		{
 			name: "simple path",
@@ -512,7 +512,7 @@ func TestFindPathWithParams(t *testing.T) {
 
 func TestValidateEndpoints_AllHTTPMethods(t *testing.T) {
 	tmpDir := t.TempDir()
-	
+
 	// Create OpenAPI spec with all HTTP methods
 	specContent := `
 openapi: 3.0.0

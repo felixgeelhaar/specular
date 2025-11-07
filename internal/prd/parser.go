@@ -32,12 +32,12 @@ func (p *Parser) ParsePRD(ctx context.Context, prdContent string) (*spec.Product
 	req := router.GenerateRequest{
 		Prompt:       userPrompt,
 		SystemPrompt: systemPrompt,
-		ModelHint:    "agentic",              // Use agentic model for complex reasoning
-		Complexity:   8,                      // High complexity task
-		Priority:     "P0",                   // Critical task
-		Temperature:  0.1,                    // Low temperature for consistent structured output
-		MaxTokens:    4000,                   // Allow space for full spec
-		ContextSize:  len(prdContent) / 4,    // Rough estimate of context tokens
+		ModelHint:    "agentic",           // Use agentic model for complex reasoning
+		Complexity:   8,                   // High complexity task
+		Priority:     "P0",                // Critical task
+		Temperature:  0.1,                 // Low temperature for consistent structured output
+		MaxTokens:    4000,                // Allow space for full spec
+		ContextSize:  len(prdContent) / 4, // Rough estimate of context tokens
 	}
 
 	// Generate the spec using AI (router handles model selection and provider lookup)

@@ -2,12 +2,12 @@ package policy
 
 // Policy represents the complete policy configuration
 type Policy struct {
-	Execution  ExecutionPolicy         `yaml:"execution"`
-	Linters    map[string]ToolConfig   `yaml:"linters"`
-	Formatters map[string]ToolConfig   `yaml:"formatters"`
-	Tests      TestPolicy              `yaml:"tests"`
-	Security   SecurityPolicy          `yaml:"security"`
-	Routing    RoutingPolicy           `yaml:"routing"`
+	Execution  ExecutionPolicy       `yaml:"execution"`
+	Linters    map[string]ToolConfig `yaml:"linters"`
+	Formatters map[string]ToolConfig `yaml:"formatters"`
+	Tests      TestPolicy            `yaml:"tests"`
+	Security   SecurityPolicy        `yaml:"security"`
+	Routing    RoutingPolicy         `yaml:"routing"`
 }
 
 // ExecutionPolicy defines execution constraints

@@ -172,7 +172,7 @@ func TestSavePlan(t *testing.T) {
 						Skill:        "go-backend",
 						ModelHint:    "codegen",
 						Priority:     "P0",
-						Estimate:   7,
+						Estimate:     7,
 					},
 					{
 						ID:           "task-002",
@@ -182,7 +182,7 @@ func TestSavePlan(t *testing.T) {
 						Skill:        "ui-react",
 						ModelHint:    "codegen",
 						Priority:     "P1",
-						Estimate:   5,
+						Estimate:     5,
 					},
 				},
 			},
@@ -207,7 +207,7 @@ func TestSavePlan(t *testing.T) {
 						Skill:        "testing",
 						ModelHint:    "fast",
 						Priority:     "P2",
-						Estimate:   3,
+						Estimate:     3,
 					},
 				},
 			},
@@ -263,7 +263,7 @@ func TestPlanRoundTrip(t *testing.T) {
 				Skill:        "go-backend",
 				ModelHint:    "codegen",
 				Priority:     "P0",
-				Estimate:   8,
+				Estimate:     8,
 			},
 			{
 				ID:           "task-002",
@@ -273,7 +273,7 @@ func TestPlanRoundTrip(t *testing.T) {
 				Skill:        "ui-react",
 				ModelHint:    "agentic",
 				Priority:     "P1",
-				Estimate:   6,
+				Estimate:     6,
 			},
 			{
 				ID:           "task-003",
@@ -283,7 +283,7 @@ func TestPlanRoundTrip(t *testing.T) {
 				Skill:        "infra",
 				ModelHint:    "fast",
 				Priority:     "P2",
-				Estimate:   4,
+				Estimate:     4,
 			},
 		},
 	}

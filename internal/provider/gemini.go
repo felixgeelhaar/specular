@@ -25,14 +25,14 @@ type GeminiProvider struct {
 
 // Gemini API request/response structures
 type geminiRequest struct {
-	Contents         []geminiContent        `json:"contents"`
-	GenerationConfig *geminiGenerationConfig `json:"generationConfig,omitempty"`
-	SystemInstruction *geminiContent        `json:"systemInstruction,omitempty"`
+	Contents          []geminiContent         `json:"contents"`
+	GenerationConfig  *geminiGenerationConfig `json:"generationConfig,omitempty"`
+	SystemInstruction *geminiContent          `json:"systemInstruction,omitempty"`
 }
 
 type geminiContent struct {
-	Role  string        `json:"role,omitempty"`
-	Parts []geminiPart  `json:"parts"`
+	Role  string       `json:"role,omitempty"`
+	Parts []geminiPart `json:"parts"`
 }
 
 type geminiPart struct {
@@ -47,10 +47,10 @@ type geminiGenerationConfig struct {
 }
 
 type geminiResponse struct {
-	Candidates     []geminiCandidate `json:"candidates"`
-	UsageMetadata  *geminiUsage      `json:"usageMetadata,omitempty"`
-	ModelVersion   string            `json:"modelVersion,omitempty"`
-	Error          *geminiError      `json:"error,omitempty"`
+	Candidates    []geminiCandidate `json:"candidates"`
+	UsageMetadata *geminiUsage      `json:"usageMetadata,omitempty"`
+	ModelVersion  string            `json:"modelVersion,omitempty"`
+	Error         *geminiError      `json:"error,omitempty"`
 }
 
 type geminiCandidate struct {

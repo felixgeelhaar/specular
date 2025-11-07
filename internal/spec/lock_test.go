@@ -480,7 +480,6 @@ func TestSpecLock_RoundTrip(t *testing.T) {
 	}
 }
 
-
 func TestSaveSpecLock_WriteError(t *testing.T) {
 	lock := &SpecLock{
 		Version: "1.0.0",

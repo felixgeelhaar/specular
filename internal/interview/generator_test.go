@@ -99,12 +99,12 @@ func TestGetResult(t *testing.T) {
 						Questions: []Question{{ID: "q1"}},
 						Current:   1, // Complete
 						Answers: map[string]Answer{
-							"product-name":   {Value: "TestTool"},
-							"tool-purpose":   {Value: "Test automation tool"},
-							"main-commands":  {Values: []string{"run", "test", "deploy"}},
-							"auth-required":  {Value: "no"},
-							"config-file":    {Value: "no"},
-							"observability":  {Values: []string{"logging", "metrics"}},
+							"product-name":     {Value: "TestTool"},
+							"tool-purpose":     {Value: "Test automation tool"},
+							"main-commands":    {Values: []string{"run", "test", "deploy"}},
+							"auth-required":    {Value: "no"},
+							"config-file":      {Value: "no"},
+							"observability":    {Values: []string{"logging", "metrics"}},
 							"success-criteria": {Values: []string{"Tests pass", "Coverage > 80%"}},
 						},
 					},
@@ -450,10 +450,10 @@ func TestBuildGoals(t *testing.T) {
 
 func TestBuildFeatures(t *testing.T) {
 	tests := []struct {
-		name            string
-		answers         map[string]Answer
-		minFeatureCount int
-		hasAuthFeature  bool
+		name             string
+		answers          map[string]Answer
+		minFeatureCount  int
+		hasAuthFeature   bool
 		hasConfigFeature bool
 	}{
 		{
@@ -463,8 +463,8 @@ func TestBuildFeatures(t *testing.T) {
 				"auth-required": {Value: "no"},
 				"config-file":   {Value: "no"},
 			},
-			minFeatureCount: 2,
-			hasAuthFeature:  false,
+			minFeatureCount:  2,
+			hasAuthFeature:   false,
 			hasConfigFeature: false,
 		},
 		{
@@ -475,8 +475,8 @@ func TestBuildFeatures(t *testing.T) {
 				"auth-type":     {Value: "JWT"},
 				"config-file":   {Value: "no"},
 			},
-			minFeatureCount: 2,
-			hasAuthFeature:  true,
+			minFeatureCount:  2,
+			hasAuthFeature:   true,
 			hasConfigFeature: false,
 		},
 		{
@@ -487,8 +487,8 @@ func TestBuildFeatures(t *testing.T) {
 				"config-file":   {Value: "yes"},
 				"config-format": {Value: "YAML"},
 			},
-			minFeatureCount: 3,
-			hasAuthFeature:  false,
+			minFeatureCount:  3,
+			hasAuthFeature:   false,
 			hasConfigFeature: true,
 		},
 		{

@@ -67,9 +67,9 @@ func buildDockerArgs(step Step) []string {
 
 	// Security constraints
 	args = append(args,
-		"--read-only",        // Read-only root filesystem
+		"--read-only",         // Read-only root filesystem
 		"--pids-limit", "256", // Limit number of processes
-		"--cap-drop", "ALL",   // Drop all capabilities
+		"--cap-drop", "ALL", // Drop all capabilities
 	)
 
 	// Working directory mount

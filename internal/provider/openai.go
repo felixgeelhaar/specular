@@ -25,12 +25,12 @@ type OpenAIProvider struct {
 
 // OpenAI API request/response structures
 type openAIRequest struct {
-	Model       string           `json:"model"`
-	Messages    []openAIMessage  `json:"messages"`
-	Temperature float64          `json:"temperature,omitempty"`
-	MaxTokens   int              `json:"max_tokens,omitempty"`
-	TopP        float64          `json:"top_p,omitempty"`
-	Stream      bool             `json:"stream,omitempty"`
+	Model       string          `json:"model"`
+	Messages    []openAIMessage `json:"messages"`
+	Temperature float64         `json:"temperature,omitempty"`
+	MaxTokens   int             `json:"max_tokens,omitempty"`
+	TopP        float64         `json:"top_p,omitempty"`
+	Stream      bool            `json:"stream,omitempty"`
 }
 
 type openAIMessage struct {
@@ -39,13 +39,13 @@ type openAIMessage struct {
 }
 
 type openAIResponse struct {
-	ID      string          `json:"id"`
-	Object  string          `json:"object"`
-	Created int64           `json:"created"`
-	Model   string          `json:"model"`
-	Choices []openAIChoice  `json:"choices"`
-	Usage   openAIUsage     `json:"usage"`
-	Error   *openAIError    `json:"error,omitempty"`
+	ID      string         `json:"id"`
+	Object  string         `json:"object"`
+	Created int64          `json:"created"`
+	Model   string         `json:"model"`
+	Choices []openAIChoice `json:"choices"`
+	Usage   openAIUsage    `json:"usage"`
+	Error   *openAIError   `json:"error,omitempty"`
 }
 
 type openAIChoice struct {
@@ -241,9 +241,9 @@ func (p *OpenAIProvider) readStream(resp *http.Response, chunkChan chan StreamCh
 		// Check for end marker
 		if data == "[DONE]" {
 			chunkChan <- StreamChunk{
-				Content: fullContent,
-				Delta:   "",
-				Done:    true,
+				Content:   fullContent,
+				Delta:     "",
+				Done:      true,
 				Timestamp: time.Now(),
 			}
 			return

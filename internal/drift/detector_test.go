@@ -9,12 +9,12 @@ import (
 
 func TestDetectPlanDrift(t *testing.T) {
 	tests := []struct {
-		name          string
-		lock          *spec.SpecLock
-		plan          *plan.Plan
-		wantFindings  int
-		wantErrors    int
-		wantWarnings  int
+		name         string
+		lock         *spec.SpecLock
+		plan         *plan.Plan
+		wantFindings int
+		wantErrors   int
+		wantWarnings int
 	}{
 		{
 			name: "no drift",

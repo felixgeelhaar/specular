@@ -412,7 +412,7 @@ func TestGeminiProvider_GetCapabilities(t *testing.T) {
 				Config: map[string]interface{}{
 					"api_key": "test-key",
 					"capabilities": map[string]interface{}{
-						"max_context_tokens":  float64(128000),
+						"max_context_tokens": float64(128000),
 						"cost_per_1k_tokens": float64(0.01),
 					},
 				},

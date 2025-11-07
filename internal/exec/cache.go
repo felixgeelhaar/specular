@@ -25,19 +25,19 @@ type ImageCache struct {
 
 // ImageState tracks the state of a cached image
 type ImageState struct {
-	Image      string    `json:"image"`
-	Digest     string    `json:"digest"`
-	CachedAt   time.Time `json:"cached_at"`
-	LastUsed   time.Time `json:"last_used"`
-	PullTime   int64     `json:"pull_time_ms"`
-	SizeBytes  int64     `json:"size_bytes"`
+	Image     string    `json:"image"`
+	Digest    string    `json:"digest"`
+	CachedAt  time.Time `json:"cached_at"`
+	LastUsed  time.Time `json:"last_used"`
+	PullTime  int64     `json:"pull_time_ms"`
+	SizeBytes int64     `json:"size_bytes"`
 }
 
 // CacheManifest stores metadata about cached images
 type CacheManifest struct {
-	Version string                  `json:"version"`
-	Images  map[string]*ImageState  `json:"images"`
-	UpdatedAt time.Time             `json:"updated_at"`
+	Version   string                 `json:"version"`
+	Images    map[string]*ImageState `json:"images"`
+	UpdatedAt time.Time              `json:"updated_at"`
 }
 
 // NewImageCache creates a new image cache manager
@@ -155,12 +155,12 @@ func (c *ImageCache) EnsureImage(image string, verbose bool) error {
 	// Update cache state
 	c.mu.Lock()
 	c.imageStates[image] = &ImageState{
-		Image:      image,
-		Digest:     digest,
-		CachedAt:   time.Now(),
-		LastUsed:   time.Now(),
-		PullTime:   pullDuration.Milliseconds(),
-		SizeBytes:  size,
+		Image:     image,
+		Digest:    digest,
+		CachedAt:  time.Now(),
+		LastUsed:  time.Now(),
+		PullTime:  pullDuration.Milliseconds(),
+		SizeBytes: size,
 	}
 	c.mu.Unlock()
 
@@ -412,11 +412,11 @@ func (c *ImageCache) GetStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total_images":   len(c.imageStates),
-		"total_size_mb":  float64(totalSize) / (1024 * 1024),
-		"oldest_cache":   oldestCache,
-		"newest_cache":   newestCache,
-		"cache_dir":      c.CacheDir,
+		"total_images":  len(c.imageStates),
+		"total_size_mb": float64(totalSize) / (1024 * 1024),
+		"oldest_cache":  oldestCache,
+		"newest_cache":  newestCache,
+		"cache_dir":     c.CacheDir,
 	}
 }
 

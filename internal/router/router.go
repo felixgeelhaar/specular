@@ -704,9 +704,9 @@ func (r *Router) generateWithFallback(ctx context.Context, req GenerateRequest, 
 
 		// Create result for this fallback model
 		fallbackResult := &RoutingResult{
-			Model:          model,
-			Reason:         fmt.Sprintf("Fallback after primary failure: %s", primaryResult.Model.ID),
-			EstimatedCost:  (float64(r.estimateTokens(routing)) / 1000000.0) * model.CostPerMToken,
+			Model:           model,
+			Reason:          fmt.Sprintf("Fallback after primary failure: %s", primaryResult.Model.ID),
+			EstimatedCost:   (float64(r.estimateTokens(routing)) / 1000000.0) * model.CostPerMToken,
 			EstimatedTokens: r.estimateTokens(routing),
 		}
 

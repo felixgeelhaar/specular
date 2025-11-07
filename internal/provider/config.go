@@ -10,16 +10,16 @@ import (
 
 // ProvidersConfig represents the complete providers.yaml configuration
 type ProvidersConfig struct {
-	Providers []ProviderConfig  `yaml:"providers"`
+	Providers []ProviderConfig `yaml:"providers"`
 	Strategy  StrategyConfig   `yaml:"strategy,omitempty"`
 }
 
 // StrategyConfig represents the provider selection strategy
 type StrategyConfig struct {
-	Preference  []string         `yaml:"preference,omitempty"`
-	Budget      BudgetConfig     `yaml:"budget,omitempty"`
+	Preference  []string          `yaml:"preference,omitempty"`
+	Budget      BudgetConfig      `yaml:"budget,omitempty"`
 	Performance PerformanceConfig `yaml:"performance,omitempty"`
-	Fallback    FallbackConfig   `yaml:"fallback,omitempty"`
+	Fallback    FallbackConfig    `yaml:"fallback,omitempty"`
 }
 
 // BudgetConfig represents budget constraints
@@ -36,10 +36,10 @@ type PerformanceConfig struct {
 
 // FallbackConfig represents fallback behavior
 type FallbackConfig struct {
-	Enabled        bool   `yaml:"enabled,omitempty"`
-	MaxRetries     int    `yaml:"max_retries,omitempty"`
-	RetryDelayMs   int    `yaml:"retry_delay_ms,omitempty"`
-	FallbackModel  string `yaml:"fallback_model,omitempty"`
+	Enabled       bool   `yaml:"enabled,omitempty"`
+	MaxRetries    int    `yaml:"max_retries,omitempty"`
+	RetryDelayMs  int    `yaml:"retry_delay_ms,omitempty"`
+	FallbackModel string `yaml:"fallback_model,omitempty"`
 }
 
 // LoadProvidersConfig loads provider configuration from a YAML file

@@ -311,11 +311,11 @@ func TestCurrentQuestion_InterviewCompleted(t *testing.T) {
 
 func TestValidateAnswer(t *testing.T) {
 	tests := []struct {
-		name      string
-		question  Question
-		answer    Answer
-		wantErr   bool
-		errMsg    string
+		name     string
+		question Question
+		answer   Answer
+		wantErr  bool
+		errMsg   string
 	}{
 		{
 			name: "required question with empty answer",

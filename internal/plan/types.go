@@ -11,8 +11,8 @@ type Task struct {
 	FeatureID    string   `json:"feature_id"`
 	ExpectedHash string   `json:"expected_hash"` // Links to SpecLock feature hash
 	DependsOn    []string `json:"depends_on"`
-	Skill        string   `json:"skill"`       // go-backend, ui-react, infra, etc.
-	Priority     string   `json:"priority"`    // P0, P1, P2
-	ModelHint    string   `json:"model_hint"`  // long-context, agentic, codegen, etc.
-	Estimate     int      `json:"estimate"`    // Estimated complexity/time
+	Skill        string   `json:"skill"`      // go-backend, ui-react, infra, etc.
+	Priority     string   `json:"priority"`   // P0, P1, P2
+	ModelHint    string   `json:"model_hint"` // long-context, agentic, codegen, etc.
+	Estimate     int      `json:"estimate"`   // Estimated complexity/time
 }

@@ -19,14 +19,14 @@ type Executor struct {
 
 // ExecutionResult contains results from executing a plan
 type ExecutionResult struct {
-	TotalTasks    int
-	SuccessTasks  int
-	FailedTasks   int
-	SkippedTasks  int
-	TaskResults   map[string]*Result
-	Manifests     []*RunManifest
-	StartTime     time.Time
-	EndTime       time.Time
+	TotalTasks   int
+	SuccessTasks int
+	FailedTasks  int
+	SkippedTasks int
+	TaskResults  map[string]*Result
+	Manifests    []*RunManifest
+	StartTime    time.Time
+	EndTime      time.Time
 }
 
 // Execute runs all tasks in a plan with policy enforcement

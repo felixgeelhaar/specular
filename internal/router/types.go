@@ -28,15 +28,15 @@ const (
 
 // Model represents an AI model configuration
 type Model struct {
-	ID              string        `json:"id"`
-	Provider        Provider      `json:"provider"`
-	Name            string        `json:"name"`
-	Type            ModelType     `json:"type"`
-	ContextWindow   int           `json:"context_window"`    // Tokens
-	CostPerMToken   float64       `json:"cost_per_mtoken"`   // USD per million tokens
-	MaxLatencyMs    int           `json:"max_latency_ms"`    // Expected max latency
-	CapabilityScore float64       `json:"capability_score"`  // 0-100 capability rating
-	Available       bool          `json:"available"`         // Whether model is accessible
+	ID              string    `json:"id"`
+	Provider        Provider  `json:"provider"`
+	Name            string    `json:"name"`
+	Type            ModelType `json:"type"`
+	ContextWindow   int       `json:"context_window"`   // Tokens
+	CostPerMToken   float64   `json:"cost_per_mtoken"`  // USD per million tokens
+	MaxLatencyMs    int       `json:"max_latency_ms"`   // Expected max latency
+	CapabilityScore float64   `json:"capability_score"` // 0-100 capability rating
+	Available       bool      `json:"available"`        // Whether model is accessible
 }
 
 // ProviderConfig represents provider-specific configuration
@@ -50,46 +50,46 @@ type ProviderConfig struct {
 
 // RouterConfig represents the router configuration
 type RouterConfig struct {
-	Providers        []ProviderConfig `json:"providers" yaml:"providers"`
-	BudgetUSD        float64          `json:"budget_usd" yaml:"budget_usd"`
-	MaxLatencyMs     int              `json:"max_latency_ms" yaml:"max_latency_ms"`
-	PreferCheap      bool             `json:"prefer_cheap" yaml:"prefer_cheap"`           // Prefer cheaper models when possible
-	FallbackModel    string           `json:"fallback_model" yaml:"fallback_model"`       // Model to use if preferred unavailable
-	EnableFallback   bool             `json:"enable_fallback" yaml:"enable_fallback"`     // Enable fallback to alternative providers
-	MaxRetries       int              `json:"max_retries" yaml:"max_retries"`             // Maximum retry attempts (0 = no retries)
-	RetryBackoffMs   int              `json:"retry_backoff_ms" yaml:"retry_backoff_ms"`   // Initial backoff delay in milliseconds
-	RetryMaxBackoffMs int             `json:"retry_max_backoff_ms" yaml:"retry_max_backoff_ms"` // Maximum backoff delay
-	EnableContextValidation bool      `json:"enable_context_validation" yaml:"enable_context_validation"` // Validate context fits in model window
-	AutoTruncate     bool             `json:"auto_truncate" yaml:"auto_truncate"`         // Automatically truncate oversized contexts
-	TruncationStrategy string         `json:"truncation_strategy" yaml:"truncation_strategy"` // Strategy: oldest, prompt, context, proportional
+	Providers               []ProviderConfig `json:"providers" yaml:"providers"`
+	BudgetUSD               float64          `json:"budget_usd" yaml:"budget_usd"`
+	MaxLatencyMs            int              `json:"max_latency_ms" yaml:"max_latency_ms"`
+	PreferCheap             bool             `json:"prefer_cheap" yaml:"prefer_cheap"`                           // Prefer cheaper models when possible
+	FallbackModel           string           `json:"fallback_model" yaml:"fallback_model"`                       // Model to use if preferred unavailable
+	EnableFallback          bool             `json:"enable_fallback" yaml:"enable_fallback"`                     // Enable fallback to alternative providers
+	MaxRetries              int              `json:"max_retries" yaml:"max_retries"`                             // Maximum retry attempts (0 = no retries)
+	RetryBackoffMs          int              `json:"retry_backoff_ms" yaml:"retry_backoff_ms"`                   // Initial backoff delay in milliseconds
+	RetryMaxBackoffMs       int              `json:"retry_max_backoff_ms" yaml:"retry_max_backoff_ms"`           // Maximum backoff delay
+	EnableContextValidation bool             `json:"enable_context_validation" yaml:"enable_context_validation"` // Validate context fits in model window
+	AutoTruncate            bool             `json:"auto_truncate" yaml:"auto_truncate"`                         // Automatically truncate oversized contexts
+	TruncationStrategy      string           `json:"truncation_strategy" yaml:"truncation_strategy"`             // Strategy: oldest, prompt, context, proportional
 }
 
 // RoutingRequest represents a request for model selection
 type RoutingRequest struct {
-	ModelHint  string  // Hint from plan generator (codegen, long-context, agentic)
-	Complexity int     // Task complexity (1-10)
-	Priority   string  // Task priority (P0, P1, P2)
+	ModelHint   string // Hint from plan generator (codegen, long-context, agentic)
+	Complexity  int    // Task complexity (1-10)
+	Priority    string // Task priority (P0, P1, P2)
 	ContextSize int    // Estimated context size in tokens
 }
 
 // RoutingResult represents the router's model selection
 type RoutingResult struct {
-	Model          *Model
-	Reason         string  // Explanation for selection
-	EstimatedCost  float64 // Estimated cost in USD
-	EstimatedTokens int    // Estimated token usage
+	Model           *Model
+	Reason          string  // Explanation for selection
+	EstimatedCost   float64 // Estimated cost in USD
+	EstimatedTokens int     // Estimated token usage
 }
 
 // Usage represents AI model usage tracking
 type Usage struct {
-	Model        string    `json:"model"`
-	Provider     Provider  `json:"provider"`
-	Tokens       int       `json:"tokens"`
-	CostUSD      float64   `json:"cost_usd"`
-	LatencyMs    int       `json:"latency_ms"`
-	Timestamp    time.Time `json:"timestamp"`
-	TaskID       string    `json:"task_id,omitempty"`
-	Success      bool      `json:"success"`
+	Model     string    `json:"model"`
+	Provider  Provider  `json:"provider"`
+	Tokens    int       `json:"tokens"`
+	CostUSD   float64   `json:"cost_usd"`
+	LatencyMs int       `json:"latency_ms"`
+	Timestamp time.Time `json:"timestamp"`
+	TaskID    string    `json:"task_id,omitempty"`
+	Success   bool      `json:"success"`
 }
 
 // Budget tracks spending against limits
@@ -109,17 +109,17 @@ type GenerateRequest struct {
 	SystemPrompt string `json:"system_prompt,omitempty"`
 
 	// Model selection hints
-	ModelHint  string `json:"model_hint,omitempty"`  // codegen, agentic, fast, cheap, long-context
-	Complexity int    `json:"complexity,omitempty"`  // 1-10 scale
-	Priority   string `json:"priority,omitempty"`    // P0, P1, P2
+	ModelHint  string `json:"model_hint,omitempty"` // codegen, agentic, fast, cheap, long-context
+	Complexity int    `json:"complexity,omitempty"` // 1-10 scale
+	Priority   string `json:"priority,omitempty"`   // P0, P1, P2
 
 	// Generation parameters
-	MaxTokens    int                 `json:"max_tokens,omitempty"`
-	Temperature  float64             `json:"temperature,omitempty"`
-	TopP         float64             `json:"top_p,omitempty"`
-	Tools        []provider.Tool     `json:"tools,omitempty"`
-	Context      []provider.Message  `json:"context,omitempty"`
-	ContextSize  int                 `json:"context_size,omitempty"` // Estimated context in tokens
+	MaxTokens   int                `json:"max_tokens,omitempty"`
+	Temperature float64            `json:"temperature,omitempty"`
+	TopP        float64            `json:"top_p,omitempty"`
+	Tools       []provider.Tool    `json:"tools,omitempty"`
+	Context     []provider.Message `json:"context,omitempty"`
+	ContextSize int                `json:"context_size,omitempty"` // Estimated context in tokens
 
 	// Metadata
 	TaskID string `json:"task_id,omitempty"`
@@ -140,8 +140,8 @@ type GenerateResponse struct {
 	OutputTokens int `json:"output_tokens,omitempty"`
 
 	// Cost and performance
-	CostUSD  float64       `json:"cost_usd"`
-	Latency  time.Duration `json:"latency"`
+	CostUSD float64       `json:"cost_usd"`
+	Latency time.Duration `json:"latency"`
 
 	// Completion information
 	FinishReason    string              `json:"finish_reason"`

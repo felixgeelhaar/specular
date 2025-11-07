@@ -41,8 +41,8 @@ type LintResult struct {
 
 // SecurityResult represents security scan results
 type SecurityResult struct {
-	Passed       bool
-	Secrets      int
+	Passed          bool
+	Secrets         int
 	Vulnerabilities int
-	Output       string
+	Output          string
 }

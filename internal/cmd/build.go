@@ -20,13 +20,13 @@ var buildCmd = &cobra.Command{
 All execution passes through guardrail checks including Docker-only enforcement,
 linting, testing, and security scanning.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		planFile, _ := cmd.Flags().GetString("plan")
-		policyFile, _ := cmd.Flags().GetString("policy")
+		planFile := cmd.Flags().Lookup("plan").Value.String()
+		policyFile := cmd.Flags().Lookup("policy").Value.String()
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
-		manifestDir, _ := cmd.Flags().GetString("manifest-dir")
+		manifestDir := cmd.Flags().Lookup("manifest-dir").Value.String()
 		resume, _ := cmd.Flags().GetBool("resume")
-		checkpointDir, _ := cmd.Flags().GetString("checkpoint-dir")
-		checkpointID, _ := cmd.Flags().GetString("checkpoint-id")
+		checkpointDir := cmd.Flags().Lookup("checkpoint-dir").Value.String()
+		checkpointID := cmd.Flags().Lookup("checkpoint-id").Value.String()
 
 		// Load plan
 		p, err := plan.LoadPlan(planFile)

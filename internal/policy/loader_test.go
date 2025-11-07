@@ -137,9 +137,9 @@ tests:
 			},
 		},
 		{
-			name: "empty file",
+			name:          "empty file",
 			policyContent: ``,
-			wantErr: false,
+			wantErr:       false,
 			validatePolicy: func(t *testing.T, p *Policy) {
 				// Should load with zero values
 				if p == nil {

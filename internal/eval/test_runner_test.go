@@ -212,15 +212,15 @@ func TestRunLinter(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	tests := []struct {
-		name       string
-		linterCmd  string
-		wantErr    bool
+		name        string
+		linterCmd   string
+		wantErr     bool
 		errContains string
 	}{
 		{
-			name:      "empty command",
-			linterCmd: "",
-			wantErr:   true,
+			name:        "empty command",
+			linterCmd:   "",
+			wantErr:     true,
 			errContains: "empty linter command",
 		},
 		{

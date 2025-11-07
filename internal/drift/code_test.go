@@ -24,12 +24,12 @@ func TestDetectCodeDrift(t *testing.T) {
 	}
 
 	tests := []struct {
-		name          string
-		spec          *spec.ProductSpec
-		lock          *spec.SpecLock
-		opts          CodeDriftOptions
-		wantFindings  int
-		wantCodes     []string
+		name         string
+		spec         *spec.ProductSpec
+		lock         *spec.SpecLock
+		opts         CodeDriftOptions
+		wantFindings int
+		wantCodes    []string
 	}{
 		{
 			name: "no drift - all files present",

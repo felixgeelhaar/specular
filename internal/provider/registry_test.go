@@ -172,10 +172,10 @@ func TestRegistry_Remove(t *testing.T) {
 		errContains string
 	}{
 		{
-			name:       "remove non-existent provider",
-			setupName:  "",
-			removeName: "non-existent",
-			wantErr:    true,
+			name:        "remove non-existent provider",
+			setupName:   "",
+			removeName:  "non-existent",
+			wantErr:     true,
 			errContains: "not found",
 		},
 	}
@@ -279,7 +279,6 @@ func TestRegistry_Register(t *testing.T) {
 	}
 }
 
-
 // mockProvider is a minimal mock implementation for testing
 type mockProvider struct{}
 
@@ -354,7 +353,6 @@ func TestRegistry_CloseAll(t *testing.T) {
 		}
 	})
 }
-
 
 // mockProviderWithCloseError is a mock provider that fails to close
 type mockProviderWithCloseError struct {

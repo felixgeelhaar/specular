@@ -70,7 +70,7 @@ func (m *Manager) Save(state *State) error {
 	state.UpdatedAt = time.Now()
 
 	// Create checkpoint directory if it doesn't exist
-	if err := os.MkdirAll(m.checkpointDir, 0755); err != nil {
+	if err := os.MkdirAll(m.checkpointDir, 0o750); err != nil {
 		return fmt.Errorf("failed to create checkpoint directory: %w", err)
 	}
 
@@ -81,7 +81,7 @@ func (m *Manager) Save(state *State) error {
 		return fmt.Errorf("failed to marshal checkpoint state: %w", err)
 	}
 
-	if err := os.WriteFile(checkpointPath, data, 0644); err != nil {
+	if err := os.WriteFile(checkpointPath, data, 0o600); err != nil {
 		return fmt.Errorf("failed to write checkpoint file: %w", err)
 	}
 
@@ -101,8 +101,8 @@ func (m *Manager) Load(operationID string) (*State, error) {
 	}
 
 	var state State
-	if err := json.Unmarshal(data, &state); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal checkpoint state: %w", err)
+	if unmarshalErr := json.Unmarshal(data, &state); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to unmarshal checkpoint state: %w", unmarshalErr)
 	}
 
 	return &state, nil
@@ -183,8 +183,8 @@ func (s *State) UpdateTask(taskID, status string, err error) {
 // GetPendingTasks returns all tasks that haven't been completed
 func (s *State) GetPendingTasks() []string {
 	var pending []string
-	for id, task := range s.Tasks {
-		if task.Status == "pending" || task.Status == "running" {
+	for id := range s.Tasks {
+		if s.Tasks[id].Status == "pending" || s.Tasks[id].Status == "running" {
 			pending = append(pending, id)
 		}
 	}
@@ -194,8 +194,8 @@ func (s *State) GetPendingTasks() []string {
 // GetCompletedTasks returns all successfully completed tasks
 func (s *State) GetCompletedTasks() []string {
 	var completed []string
-	for id, task := range s.Tasks {
-		if task.Status == "completed" {
+	for id := range s.Tasks {
+		if s.Tasks[id].Status == "completed" {
 			completed = append(completed, id)
 		}
 	}
@@ -205,8 +205,8 @@ func (s *State) GetCompletedTasks() []string {
 // GetFailedTasks returns all failed tasks
 func (s *State) GetFailedTasks() []string {
 	var failed []string
-	for id, task := range s.Tasks {
-		if task.Status == "failed" {
+	for id := range s.Tasks {
+		if s.Tasks[id].Status == "failed" {
 			failed = append(failed, id)
 		}
 	}
@@ -215,8 +215,8 @@ func (s *State) GetFailedTasks() []string {
 
 // IsComplete returns true if all tasks are completed or skipped
 func (s *State) IsComplete() bool {
-	for _, task := range s.Tasks {
-		if task.Status != "completed" && task.Status != "skipped" {
+	for id := range s.Tasks {
+		if s.Tasks[id].Status != "completed" && s.Tasks[id].Status != "skipped" {
 			return false
 		}
 	}
@@ -230,8 +230,8 @@ func (s *State) Progress() float64 {
 	}
 
 	completed := 0
-	for _, task := range s.Tasks {
-		if task.Status == "completed" || task.Status == "skipped" {
+	for id := range s.Tasks {
+		if s.Tasks[id].Status == "completed" || s.Tasks[id].Status == "skipped" {
 			completed++
 		}
 	}

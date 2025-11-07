@@ -11,8 +11,8 @@ func TestTokenCounter_EstimateTokens(t *testing.T) {
 	counter := NewTokenCounter()
 
 	tests := []struct {
-		name     string
-		text     string
+		name      string
+		text      string
 		minTokens int
 		maxTokens int
 	}{
@@ -56,8 +56,8 @@ func TestTokenCounter_EstimateRequestTokens(t *testing.T) {
 	counter := NewTokenCounter()
 
 	tests := []struct {
-		name     string
-		req      *GenerateRequest
+		name      string
+		req       *GenerateRequest
 		minTokens int
 	}{
 		{
@@ -188,11 +188,11 @@ func TestContextTruncator_TruncateRequest(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		strategy       TruncationStrategy
-		req            *GenerateRequest
-		wantTruncated  bool
-		wantErr        bool
+		name          string
+		strategy      TruncationStrategy
+		req           *GenerateRequest
+		wantTruncated bool
+		wantErr       bool
 	}{
 		{
 			name:     "no truncation needed",

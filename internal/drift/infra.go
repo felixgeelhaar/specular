@@ -10,9 +10,9 @@ import (
 
 // InfraDriftOptions configures infrastructure drift detection
 type InfraDriftOptions struct {
-	Policy       *policy.Policy      // Policy to validate against
+	Policy       *policy.Policy     // Policy to validate against
 	RunManifests []exec.RunManifest // Actual execution manifests (if available)
-	TaskImages   map[string]string   // Task ID to Docker image mapping (for validation)
+	TaskImages   map[string]string  // Task ID to Docker image mapping (for validation)
 }
 
 // DetectInfraDrift checks for infrastructure configuration drift

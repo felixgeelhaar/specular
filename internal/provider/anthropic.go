@@ -25,10 +25,10 @@ type AnthropicProvider struct {
 
 // Anthropic API request/response structures
 type anthropicRequest struct {
-	Model      string              `json:"model"`
-	Messages   []anthropicMessage  `json:"messages"`
-	System     string              `json:"system,omitempty"`
-	MaxTokens  int                 `json:"max_tokens"`
+	Model       string             `json:"model"`
+	Messages    []anthropicMessage `json:"messages"`
+	System      string             `json:"system,omitempty"`
+	MaxTokens   int                `json:"max_tokens"`
 	Temperature float64            `json:"temperature,omitempty"`
 	TopP        float64            `json:"top_p,omitempty"`
 	Stream      bool               `json:"stream,omitempty"`

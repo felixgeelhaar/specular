@@ -9,9 +9,9 @@ import (
 
 func TestNewRouter(t *testing.T) {
 	tests := []struct {
-		name    string
-		config  *RouterConfig
-		wantErr bool
+		name     string
+		config   *RouterConfig
+		wantErr  bool
 		validate func(*testing.T, *Router)
 	}{
 		{
@@ -803,4 +803,3 @@ func TestSelectModel_ErrorCases(t *testing.T) {
 		})
 	}
 }
-

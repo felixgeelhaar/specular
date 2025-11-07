@@ -53,9 +53,9 @@ func TestGetInfo(t *testing.T) {
 
 func TestInfoString(t *testing.T) {
 	tests := []struct {
-		name   string
-		info   Info
-		want   []string // Substrings that should be present
+		name string
+		info Info
+		want []string // Substrings that should be present
 	}{
 		{
 			name: "full version info",

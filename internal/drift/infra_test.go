@@ -15,8 +15,8 @@ func TestDetectInfraDrift(t *testing.T) {
 		wantCodes    []string
 	}{
 		{
-			name: "no policy or plan",
-			opts: InfraDriftOptions{},
+			name:         "no policy or plan",
+			opts:         InfraDriftOptions{},
 			wantFindings: 0,
 			wantCodes:    []string{},
 		},

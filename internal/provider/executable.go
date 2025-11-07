@@ -64,12 +64,12 @@ func NewExecutableProvider(path string, config *ProviderConfig) (*ExecutableProv
 
 	// Get capabilities (or use defaults)
 	capabilities := &ProviderCapabilities{
-		SupportsStreaming:    false, // Most executables don't support streaming
-		SupportsTools:        false,
-		SupportsMultiTurn:    false,
-		SupportsVision:       false,
-		MaxContextTokens:     4096, // Conservative default
-		CostPer1KTokens:      0.0,  // Assume free for executable providers
+		SupportsStreaming: false, // Most executables don't support streaming
+		SupportsTools:     false,
+		SupportsMultiTurn: false,
+		SupportsVision:    false,
+		MaxContextTokens:  4096, // Conservative default
+		CostPer1KTokens:   0.0,  // Assume free for executable providers
 	}
 
 	// Override capabilities from config if provided

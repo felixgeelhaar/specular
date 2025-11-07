@@ -16,88 +16,88 @@ func TestIsRetryableError(t *testing.T) {
 	})
 
 	tests := []struct {
-		name    string
-		err     error
+		name          string
+		err           error
 		wantRetryable bool
 	}{
 		{
-			name:    "nil error",
-			err:     nil,
+			name:          "nil error",
+			err:           nil,
 			wantRetryable: false,
 		},
 		{
-			name:    "timeout error",
-			err:     errors.New("request timeout"),
+			name:          "timeout error",
+			err:           errors.New("request timeout"),
 			wantRetryable: true,
 		},
 		{
-			name:    "network error",
-			err:     errors.New("network connection failed"),
+			name:          "network error",
+			err:           errors.New("network connection failed"),
 			wantRetryable: true,
 		},
 		{
-			name:    "connection refused",
-			err:     errors.New("connection refused"),
+			name:          "connection refused",
+			err:           errors.New("connection refused"),
 			wantRetryable: true,
 		},
 		{
-			name:    "rate limit error",
-			err:     errors.New("rate limit exceeded"),
+			name:          "rate limit error",
+			err:           errors.New("rate limit exceeded"),
 			wantRetryable: true,
 		},
 		{
-			name:    "http 429 error",
-			err:     errors.New("HTTP 429 Too Many Requests"),
+			name:          "http 429 error",
+			err:           errors.New("HTTP 429 Too Many Requests"),
 			wantRetryable: true,
 		},
 		{
-			name:    "http 503 error",
-			err:     errors.New("HTTP 503 Service Unavailable"),
+			name:          "http 503 error",
+			err:           errors.New("HTTP 503 Service Unavailable"),
 			wantRetryable: true,
 		},
 		{
-			name:    "service unavailable",
-			err:     errors.New("service unavailable"),
+			name:          "service unavailable",
+			err:           errors.New("service unavailable"),
 			wantRetryable: true,
 		},
 		{
-			name:    "temporary failure",
-			err:     errors.New("temporary failure in name resolution"),
+			name:          "temporary failure",
+			err:           errors.New("temporary failure in name resolution"),
 			wantRetryable: true,
 		},
 		{
-			name:    "auth error 401",
-			err:     errors.New("HTTP 401 Unauthorized"),
+			name:          "auth error 401",
+			err:           errors.New("HTTP 401 Unauthorized"),
 			wantRetryable: false,
 		},
 		{
-			name:    "auth error 403",
-			err:     errors.New("HTTP 403 Forbidden"),
+			name:          "auth error 403",
+			err:           errors.New("HTTP 403 Forbidden"),
 			wantRetryable: false,
 		},
 		{
-			name:    "invalid api key",
-			err:     errors.New("invalid API key provided"),
+			name:          "invalid api key",
+			err:           errors.New("invalid API key provided"),
 			wantRetryable: false,
 		},
 		{
-			name:    "context error",
-			err:     errors.New("context deadline exceeded"),
+			name:          "context error",
+			err:           errors.New("context deadline exceeded"),
 			wantRetryable: false,
 		},
 		{
-			name:    "unauthorized",
-			err:     errors.New("unauthorized access"),
+			name:          "unauthorized",
+			err:           errors.New("unauthorized access"),
 			wantRetryable: false,
 		},
 		{
-			name:    "forbidden",
-			err:     errors.New("forbidden resource"),
+			name:          "forbidden",
+			err:           errors.New("forbidden resource"),
 			wantRetryable: false,
 		},
 		{
-			name:    "unknown error",
-			err:     errors.New("something went wrong"),
+			name:          "unknown error",
+			err:           errors.New("something went wrong"),
 			wantRetryable: false,
 		},
 	}
@@ -174,9 +174,9 @@ func TestConfigDefaults(t *testing.T) {
 
 func TestRetryConfiguration(t *testing.T) {
 	tests := []struct {
-		name           string
-		maxRetries     int
-		wantAttempts   int
+		name         string
+		maxRetries   int
+		wantAttempts int
 	}{
 		{
 			name:         "no retries",
