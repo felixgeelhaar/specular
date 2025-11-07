@@ -3,6 +3,7 @@ package progress
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +12,20 @@ import (
 )
 
 func TestNewIndicator(t *testing.T) {
+	// Save and clear CI environment variables to test non-CI behavior
+	origCI := os.Getenv("CI")
+	origGHA := os.Getenv("GITHUB_ACTIONS")
+	os.Unsetenv("CI")
+	os.Unsetenv("GITHUB_ACTIONS")
+	defer func() {
+		if origCI != "" {
+			os.Setenv("CI", origCI)
+		}
+		if origGHA != "" {
+			os.Setenv("GITHUB_ACTIONS", origGHA)
+		}
+	}()
+
 	buf := &bytes.Buffer{}
 	ind := NewIndicator(Config{
 		Writer:      buf,
