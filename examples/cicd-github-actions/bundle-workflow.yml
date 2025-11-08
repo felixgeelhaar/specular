@@ -1,0 +1,361 @@
+name: Bundle Workflow
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      governance_level:
+        description: 'Governance level'
+        required: true
+        type: choice
+        options:
+          - L1
+          - L2
+          - L3
+          - L4
+
+env:
+  BUNDLE_FILE: release-${{ github.sha }}.sbundle.tgz
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Build and verify bundle
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      bundle-file: ${{ steps.build.outputs.bundle-file }}
+      governance-level: ${{ steps.config.outputs.governance-level }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for proper versioning
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Install Specular CLI
+        run: |
+          # Install from release or build from source
+          go install github.com/yourusername/specular@latest
+          # Or download release binary:
+          # curl -L https://github.com/yourusername/specular/releases/latest/download/specular-linux-amd64 -o /usr/local/bin/specular
+          # chmod +x /usr/local/bin/specular
+
+      - name: Configure governance level
+        id: config
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "governance-level=${{ inputs.governance_level }}" >> $GITHUB_OUTPUT
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "governance-level=L3" >> $GITHUB_OUTPUT
+            echo "environment=production" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "governance-level=L2" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "governance-level=L1" >> $GITHUB_OUTPUT
+            echo "environment=development" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate spec lock file
+        run: |
+          specular spec lock \
+            --in .specular/spec.yaml \
+            --out .specular/spec.lock.json
+
+      - name: Build bundle
+        id: build
+        env:
+          GOVERNANCE_LEVEL: ${{ steps.config.outputs.governance-level }}
+        run: |
+          BUNDLE_ARGS="--governance-level $GOVERNANCE_LEVEL"
+
+          # Add approval requirements based on governance level
+          if [[ "$GOVERNANCE_LEVEL" == "L2" ]]; then
+            BUNDLE_ARGS="$BUNDLE_ARGS --require-approval pm"
+          elif [[ "$GOVERNANCE_LEVEL" == "L3" ]] || [[ "$GOVERNANCE_LEVEL" == "L4" ]]; then
+            BUNDLE_ARGS="$BUNDLE_ARGS --require-approval pm --require-approval security"
+          fi
+
+          # Add attestation for production
+          if [[ "$GOVERNANCE_LEVEL" == "L4" ]] || [[ "${{ steps.config.outputs.environment }}" == "production" ]]; then
+            BUNDLE_ARGS="$BUNDLE_ARGS --attest"
+          fi
+
+          # Build the bundle
+          specular bundle build $BUNDLE_ARGS --output ${{ env.BUNDLE_FILE }}
+
+          echo "bundle-file=${{ env.BUNDLE_FILE }}" >> $GITHUB_OUTPUT
+
+      - name: Run security scan
+        run: |
+          # Scan bundle contents for vulnerabilities
+          # This is a placeholder - use your security scanning tools
+          echo "Running security scan..."
+          # trivy fs --severity HIGH,CRITICAL .
+          # snyk test
+
+      - name: Verify bundle integrity
+        run: |
+          specular bundle verify ${{ env.BUNDLE_FILE }}
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ github.sha }}
+          path: ${{ env.BUNDLE_FILE }}
+          retention-days: 30
+
+  # Approve bundle (for non-production)
+  approve-dev:
+    needs: build
+    if: needs.build.outputs.governance-level == 'L1'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip approval
+        run: echo "L1 governance - no approval required"
+
+  # Request PM approval
+  approve-pm:
+    needs: build
+    if: needs.build.outputs.governance-level != 'L1'
+    runs-on: ubuntu-latest
+    environment:
+      name: pm-approval
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-${{ github.sha }}
+
+      - name: Install Specular CLI
+        run: |
+          go install github.com/yourusername/specular@latest
+
+      - name: Configure SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.BUNDLE_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/bundle_key
+          chmod 600 ~/.ssh/bundle_key
+
+      - name: PM Approval
+        env:
+          PM_EMAIL: ${{ secrets.PM_EMAIL }}
+        run: |
+          specular bundle approve ${{ needs.build.outputs.bundle-file }} \
+            --role pm \
+            --user "$PM_EMAIL" \
+            --key ~/.ssh/bundle_key \
+            --comment "Automated PM approval via GitHub Actions"
+
+      - name: Upload approved bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-pm-approved-${{ github.sha }}
+          path: ${{ needs.build.outputs.bundle-file }}
+
+  # Request security approval (for L3/L4)
+  approve-security:
+    needs: [build, approve-pm]
+    if: needs.build.outputs.governance-level == 'L3' || needs.build.outputs.governance-level == 'L4'
+    runs-on: ubuntu-latest
+    environment:
+      name: security-approval
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-pm-approved-${{ github.sha }}
+
+      - name: Install Specular CLI
+        run: |
+          go install github.com/yourusername/specular@latest
+
+      - name: Configure GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.BUNDLE_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.BUNDLE_GPG_PASSPHRASE }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --import --batch --yes
+          echo "allow-preset-passphrase" >> ~/.gnupg/gpg-agent.conf
+          gpg-connect-agent reloadagent /bye
+
+      - name: Security Approval
+        env:
+          SECURITY_EMAIL: ${{ secrets.SECURITY_EMAIL }}
+        run: |
+          specular bundle approve ${{ needs.build.outputs.bundle-file }} \
+            --role security \
+            --user "$SECURITY_EMAIL" \
+            --gpg \
+            --comment "Security review completed - approved via GitHub Actions"
+
+      - name: Upload fully approved bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-approved-${{ github.sha }}
+          path: ${{ needs.build.outputs.bundle-file }}
+
+  # Publish to registry
+  publish:
+    needs: [build, approve-dev, approve-pm, approve-security]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (needs.approve-dev.result == 'success' || needs.approve-dev.result == 'skipped') &&
+      (needs.approve-pm.result == 'success' || needs.approve-pm.result == 'skipped') &&
+      (needs.approve-security.result == 'success' || needs.approve-security.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download approved bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-approved-${{ github.sha }}
+        continue-on-error: true
+
+      - name: Download bundle (fallback)
+        if: failure()
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-${{ github.sha }}
+
+      - name: Install Specular CLI
+        run: |
+          go install github.com/yourusername/specular@latest
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image tags
+        id: meta
+        run: |
+          TAGS="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION"
+            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging"
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev"
+          fi
+
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
+      - name: Push bundle to registry
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          for TAG in ${TAGS//,/ }; do
+            echo "Pushing to $TAG"
+            specular bundle push ${{ needs.build.outputs.bundle-file }} "$TAG"
+          done
+
+      - name: Create release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          cat > release-notes.md <<EOF
+          # Release ${{ github.ref_name }}
+
+          ## Bundle Information
+          - **SHA**: ${{ github.sha }}
+          - **Governance Level**: ${{ needs.build.outputs.governance-level }}
+          - **Registry**: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+          ## Approvals
+          - PM: ✓
+          - Security: ✓
+
+          ## Verification
+          \`\`\`bash
+          specular bundle pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          specular bundle verify ${{ needs.build.outputs.bundle-file }}
+          \`\`\`
+          EOF
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release-notes.md
+          files: ${{ needs.build.outputs.bundle-file }}
+          draft: false
+          prerelease: false
+
+  # Deploy to environment
+  deploy:
+    needs: [build, publish]
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.build.outputs.environment || 'development' }}
+
+    steps:
+      - name: Download bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-approved-${{ github.sha }}
+        continue-on-error: true
+
+      - name: Install Specular CLI
+        run: |
+          go install github.com/yourusername/specular@latest
+
+      - name: Deploy bundle
+        run: |
+          # Apply bundle to environment
+          specular bundle apply ${{ needs.build.outputs.bundle-file }}
+
+          echo "Deployed to ${{ needs.build.outputs.environment }}"
+
+      - name: Verify deployment
+        run: |
+          # Add deployment verification steps
+          echo "Verifying deployment..."
+          # Run smoke tests, health checks, etc.
+
+      - name: Notify deployment
+        if: always()
+        run: |
+          # Send deployment notification
+          # curl -X POST ... (Slack, Teams, email, etc.)
+          echo "Deployment notification sent"
