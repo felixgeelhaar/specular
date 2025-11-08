@@ -13,39 +13,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// generateTestSSHKey generates an ed25519 SSH key pair for testing
-func generateTestSSHKey(t *testing.T) (string, string) {
-	t.Helper()
-
-	// Generate ed25519 key pair
-	_, priv, err := ed25519.GenerateKey(rand.Reader)
-	require.NoError(t, err)
-
-	// Create SSH private key
-	sshPrivateKey, err := ssh.NewSignerFromKey(priv)
-	require.NoError(t, err)
-
-	// Marshal public key
-	publicKeySSH := ssh.MarshalAuthorizedKey(sshPrivateKey.PublicKey())
-
-	// Write keys to temporary files
-	tempDir := t.TempDir()
-
-	privPath := filepath.Join(tempDir, "id_ed25519")
-	pubPath := filepath.Join(tempDir, "id_ed25519.pub")
-
-	// For testing, we'll use a simplified key format
-	// Real SSH keys would be in OpenSSH format
-	require.NoError(t, os.WriteFile(pubPath, publicKeySSH, 0644))
-
-	// Store the actual private key for SSH signing
-	// Note: This is a simplified format for testing
-	keyBytes := ssh.Marshal(sshPrivateKey.PublicKey())
-	require.NoError(t, os.WriteFile(privPath, append(keyBytes, priv...), 0600))
-
-	return privPath, pubPath
-}
-
 func TestSigner_SignApproval_SSH(t *testing.T) {
 	// Skip if we can't generate SSH keys (might happen in some CI environments)
 	if testing.Short() {
@@ -68,7 +35,7 @@ func TestSigner_SignApproval_SSH(t *testing.T) {
 
 	// Create test bundle
 	bundlePath := filepath.Join(tempDir, "test.sbundle.tgz")
-	require.NoError(t, os.WriteFile(bundlePath, []byte("test bundle content"), 0644))
+	require.NoError(t, os.WriteFile(bundlePath, []byte("test bundle content"), 0600))
 
 	digest, err := ComputeBundleDigest(bundlePath)
 	require.NoError(t, err)
@@ -115,7 +82,7 @@ func TestComputeBundleDigest(t *testing.T) {
 	// Create test bundle
 	bundlePath := filepath.Join(tempDir, "test.sbundle.tgz")
 	testContent := []byte("test bundle content for digest")
-	require.NoError(t, os.WriteFile(bundlePath, testContent, 0644))
+	require.NoError(t, os.WriteFile(bundlePath, testContent, 0600))
 
 	// Compute digest
 	digest, err := ComputeBundleDigest(bundlePath)
@@ -130,7 +97,7 @@ func TestComputeBundleDigest(t *testing.T) {
 
 	// Verify different content produces different digest
 	bundlePath2 := filepath.Join(tempDir, "test2.sbundle.tgz")
-	require.NoError(t, os.WriteFile(bundlePath2, []byte("different content"), 0644))
+	require.NoError(t, os.WriteFile(bundlePath2, []byte("different content"), 0600))
 
 	digest3, err := ComputeBundleDigest(bundlePath2)
 	require.NoError(t, err)
@@ -334,12 +301,10 @@ func TestVerifyAllApprovals(t *testing.T) {
 				if tt.errMsg != "" {
 					assert.Contains(t, err.Error(), tt.errMsg)
 				}
-			} else {
+			} else if err != nil && !assert.Contains(t, err.Error(), "signature verification") {
 				// Note: This will fail signature verification, but we're testing the logic
 				// In a real scenario, we'd need valid signatures
-				if err != nil && !assert.Contains(t, err.Error(), "signature verification") {
-					t.Errorf("unexpected error: %v", err)
-				}
+				t.Errorf("unexpected error: %v", err)
 			}
 		})
 	}

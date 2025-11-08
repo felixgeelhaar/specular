@@ -407,79 +407,119 @@ func (b *Builder) checksumFile(filePath, bundlePath string) (*FileEntry, error) 
 
 // createTarball creates the final .sbundle.tgz archive.
 func (b *Builder) createTarball(outputPath string) error {
+	// Create tar writer with proper cleanup
+	tarWriter, cleanup, err := b.createTarWriter(outputPath)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+
+	// Write all bundle contents
+	return b.writeBundleContents(tarWriter)
+}
+
+// createTarWriter creates a tar writer with gzip compression
+func (b *Builder) createTarWriter(outputPath string) (*tar.Writer, func(), error) {
+	var err error
+
 	// Create output file
 	outFile, err := os.Create(outputPath)
 	if err != nil {
-		return fmt.Errorf("failed to create output file: %w", err)
+		return nil, nil, fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer func() {
-		if closeErr := outFile.Close(); closeErr != nil && err == nil {
-			err = fmt.Errorf("failed to close output file: %w", closeErr)
-		}
-	}()
 
 	// Create gzip writer
 	gzWriter := gzip.NewWriter(outFile)
-	defer func() {
-		if closeErr := gzWriter.Close(); closeErr != nil && err == nil {
-			err = fmt.Errorf("failed to close gzip writer: %w", closeErr)
-		}
-	}()
 
 	// Create tar writer
 	tarWriter := tar.NewWriter(gzWriter)
-	defer func() {
+
+	cleanup := func() {
 		if closeErr := tarWriter.Close(); closeErr != nil && err == nil {
 			err = fmt.Errorf("failed to close tar writer: %w", closeErr)
 		}
-	}()
+		if closeErr := gzWriter.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close gzip writer: %w", closeErr)
+		}
+		if closeErr := outFile.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close output file: %w", closeErr)
+		}
+	}
 
+	return tarWriter, cleanup, nil
+}
+
+// writeBundleContents writes all bundle files to the tar archive
+func (b *Builder) writeBundleContents(tarWriter *tar.Writer) error {
 	// Write manifest
-	if writeErr := b.writeManifestToTar(tarWriter); writeErr != nil {
-		return fmt.Errorf("failed to write manifest: %w", writeErr)
+	if err := b.writeManifestToTar(tarWriter); err != nil {
+		return fmt.Errorf("failed to write manifest: %w", err)
 	}
 
-	// Write spec file
-	if b.opts.SpecPath != "" {
-		if writeErr := b.writeFileToTar(tarWriter, b.opts.SpecPath, "spec.yaml"); writeErr != nil {
-			return fmt.Errorf("failed to write spec: %w", writeErr)
-		}
-	}
-
-	// Write lock file
-	if b.opts.LockPath != "" {
-		if writeErr := b.writeFileToTar(tarWriter, b.opts.LockPath, "spec.lock.json"); writeErr != nil {
-			return fmt.Errorf("failed to write lock: %w", writeErr)
-		}
-	}
-
-	// Write routing file
-	if b.opts.RoutingPath != "" {
-		if writeErr := b.writeFileToTar(tarWriter, b.opts.RoutingPath, "routing.yaml"); writeErr != nil {
-			return fmt.Errorf("failed to write routing: %w", writeErr)
-		}
+	// Write specification files
+	if err := b.writeSpecificationFiles(tarWriter); err != nil {
+		return err
 	}
 
 	// Write policy files
-	for i, policyPath := range b.opts.PolicyPaths {
-		bundlePath := fmt.Sprintf("policies/policy_%d.yaml", i)
-		if writeErr := b.writeFileToTar(tarWriter, policyPath, bundlePath); writeErr != nil {
-			return fmt.Errorf("failed to write policy: %w", writeErr)
-		}
+	if err := b.writePolicyFiles(tarWriter); err != nil {
+		return err
 	}
 
 	// Write additional files
-	for path, data := range b.bundle.AdditionalFiles {
-		if writeErr := b.writeBytesToTar(tarWriter, data, path); writeErr != nil {
-			return fmt.Errorf("failed to write additional file %s: %w", path, writeErr)
-		}
+	if err := b.writeAdditionalFiles(tarWriter); err != nil {
+		return err
 	}
 
 	// Write checksums file
-	if writeErr := b.writeChecksumsToTar(tarWriter); writeErr != nil {
-		return fmt.Errorf("failed to write checksums: %w", writeErr)
+	if err := b.writeChecksumsToTar(tarWriter); err != nil {
+		return fmt.Errorf("failed to write checksums: %w", err)
 	}
 
+	return nil
+}
+
+// writeSpecificationFiles writes spec, lock, and routing files to the tar archive
+func (b *Builder) writeSpecificationFiles(tarWriter *tar.Writer) error {
+	specFiles := []struct {
+		path       string
+		bundlePath string
+		name       string
+	}{
+		{b.opts.SpecPath, "spec.yaml", "spec"},
+		{b.opts.LockPath, "spec.lock.json", "lock"},
+		{b.opts.RoutingPath, "routing.yaml", "routing"},
+	}
+
+	for _, file := range specFiles {
+		if file.path != "" {
+			if err := b.writeFileToTar(tarWriter, file.path, file.bundlePath); err != nil {
+				return fmt.Errorf("failed to write %s: %w", file.name, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// writePolicyFiles writes all policy files to the tar archive
+func (b *Builder) writePolicyFiles(tarWriter *tar.Writer) error {
+	for i, policyPath := range b.opts.PolicyPaths {
+		bundlePath := fmt.Sprintf("policies/policy_%d.yaml", i)
+		if err := b.writeFileToTar(tarWriter, policyPath, bundlePath); err != nil {
+			return fmt.Errorf("failed to write policy: %w", err)
+		}
+	}
+	return nil
+}
+
+// writeAdditionalFiles writes all additional files to the tar archive
+func (b *Builder) writeAdditionalFiles(tarWriter *tar.Writer) error {
+	for path, data := range b.bundle.AdditionalFiles {
+		if err := b.writeBytesToTar(tarWriter, data, path); err != nil {
+			return fmt.Errorf("failed to write additional file %s: %w", path, err)
+		}
+	}
 	return nil
 }
 
@@ -497,12 +537,12 @@ func (b *Builder) writeManifestToTar(tw *tar.Writer) error {
 		ModTime: time.Now(),
 	}
 
-	if err := tw.WriteHeader(header); err != nil {
-		return fmt.Errorf("failed to write header: %w", err)
+	if writeHeaderErr := tw.WriteHeader(header); writeHeaderErr != nil {
+		return fmt.Errorf("failed to write header: %w", writeHeaderErr)
 	}
 
-	if _, err := tw.Write(manifestData); err != nil {
-		return fmt.Errorf("failed to write data: %w", err)
+	if _, writeErr := tw.Write(manifestData); writeErr != nil {
+		return fmt.Errorf("failed to write data: %w", writeErr)
 	}
 
 	return nil
@@ -514,7 +554,7 @@ func (b *Builder) writeFileToTar(tw *tar.Writer, sourcePath, bundlePath string) 
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	info, err := file.Stat()
 	if err != nil {
@@ -528,12 +568,12 @@ func (b *Builder) writeFileToTar(tw *tar.Writer, sourcePath, bundlePath string) 
 		ModTime: info.ModTime(),
 	}
 
-	if err := tw.WriteHeader(header); err != nil {
-		return fmt.Errorf("failed to write header: %w", err)
+	if writeHeaderErr := tw.WriteHeader(header); writeHeaderErr != nil {
+		return fmt.Errorf("failed to write header: %w", writeHeaderErr)
 	}
 
-	if _, err := io.Copy(tw, file); err != nil {
-		return fmt.Errorf("failed to write data: %w", err)
+	if _, copyErr := io.Copy(tw, file); copyErr != nil {
+		return fmt.Errorf("failed to write data: %w", copyErr)
 	}
 
 	return nil

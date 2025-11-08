@@ -11,8 +11,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/sigstore/cosign/v2/pkg/oci"
-	"github.com/sigstore/cosign/v2/pkg/oci/static"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
@@ -77,10 +75,10 @@ func (g *AttestationGenerator) GenerateAttestation(ctx context.Context, bundlePa
 
 	// Create in-toto statement envelope
 	statement := map[string]interface{}{
-		"_type":          "https://in-toto.io/Statement/v1",
-		"subject":        []AttestationSubject{subject},
-		"predicateType":  predicateType,
-		"predicate":      predicate,
+		"_type":         "https://in-toto.io/Statement/v1",
+		"subject":       []AttestationSubject{subject},
+		"predicateType": predicateType,
+		"predicate":     predicate,
 	}
 
 	// Marshal statement to JSON
@@ -93,13 +91,14 @@ func (g *AttestationGenerator) GenerateAttestation(ctx context.Context, bundlePa
 	var attestSig AttestationSignature
 	var rekorEntry *RekorEntry
 
-	if g.opts.UseKeyless {
+	switch {
+	case g.opts.UseKeyless:
 		// Use Sigstore keyless signing
 		attestSig, rekorEntry, err = g.signKeyless(ctx, statementJSON)
 		if err != nil {
 			return nil, fmt.Errorf("keyless signing failed: %w", err)
 		}
-	} else if g.opts.KeyPath != "" {
+	case g.opts.KeyPath != "":
 		// Use key-based signing
 		attestSig, err = g.signWithKey(ctx, statementJSON)
 		if err != nil {
@@ -113,7 +112,7 @@ func (g *AttestationGenerator) GenerateAttestation(ctx context.Context, bundlePa
 				return nil, fmt.Errorf("failed to upload to Rekor: %w", err)
 			}
 		}
-	} else {
+	default:
 		return nil, fmt.Errorf("either keyless signing or key path must be provided")
 	}
 
@@ -362,9 +361,4 @@ func (v *AttestationVerifier) verifyRekorEntry(ctx context.Context, attestation 
 	// This requires fetching the entry and verifying inclusion proof
 
 	return fmt.Errorf("Rekor entry verification not yet implemented")
-}
-
-// Helper function to create OCI signature for Sigstore compatibility
-func createOCISignature(payload []byte, sig []byte) (oci.Signature, error) {
-	return static.NewSignature(payload, base64.StdEncoding.EncodeToString(sig))
 }

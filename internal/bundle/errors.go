@@ -119,11 +119,11 @@ func ErrInvalidSignature(context, details string, err error) *BundleError {
 // ErrAttestationFailed creates an error for attestation failures with suggestions.
 func ErrAttestationFailed(reason string, err error) *BundleError {
 	return &BundleError{
-		Operation: "verify",
-		Message:   fmt.Sprintf("attestation verification failed: %s", reason),
+		Operation:  "verify",
+		Message:    fmt.Sprintf("attestation verification failed: %s", reason),
 		Suggestion: "Check that:\n  • The attestation was signed with a valid key\n  • The bundle hasn't been modified since attestation\n  • Rekor transparency log is accessible (if using Sigstore)",
-		Details:   reason,
-		Cause:     err,
+		Details:    reason,
+		Cause:      err,
 	}
 }
 

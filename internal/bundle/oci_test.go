@@ -57,7 +57,7 @@ non_functional:
 acceptance: []
 milestones: []
 `
-	require.NoError(t, os.WriteFile(specPath, []byte(specContent), 0644))
+	require.NoError(t, os.WriteFile(specPath, []byte(specContent), 0600))
 
 	// Create test lock file
 	lockPath := filepath.Join(tempDir, "spec.lock.json")
@@ -67,7 +67,7 @@ milestones: []
   "locked_at": "2024-01-01T00:00:00Z"
 }
 `
-	require.NoError(t, os.WriteFile(lockPath, []byte(lockContent), 0644))
+	require.NoError(t, os.WriteFile(lockPath, []byte(lockContent), 0600))
 
 	// Create test routing config
 	routingPath := filepath.Join(tempDir, "routing.yaml")
@@ -75,7 +75,7 @@ milestones: []
 fallback_models:
   - gpt-3.5-turbo
 `
-	require.NoError(t, os.WriteFile(routingPath, []byte(routingContent), 0644))
+	require.NoError(t, os.WriteFile(routingPath, []byte(routingContent), 0600))
 
 	// Build bundle
 	opts := BundleOptions{

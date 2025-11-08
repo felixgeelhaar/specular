@@ -1,8 +1,6 @@
 package bundle
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -10,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -44,25 +41,25 @@ func (v *Validator) Verify(bundlePath string) (*ValidationResult, error) {
 		PolicyCompliant:  true,
 	}
 
-	// Extract bundle to temporary directory
-	tempDir, err := v.extractBundle(bundlePath)
-	if err != nil {
+	// Extract bundle to temporary directory using shared function
+	tempDir, extractErr := extractBundle(bundlePath)
+	if extractErr != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
 			Code:    ErrCodeCorruptedBundle,
-			Message: fmt.Sprintf("failed to extract bundle: %v", err),
+			Message: fmt.Sprintf("failed to extract bundle: %v", extractErr),
 		})
 		return result, nil
 	}
-	defer os.RemoveAll(tempDir)
+	defer cleanupOnError(tempDir)
 
 	// Load and validate manifest
-	if err := v.loadManifest(tempDir); err != nil {
+	if loadManifestErr := v.loadManifest(tempDir); loadManifestErr != nil {
 		result.Valid = false
 		result.ChecksumValid = false
 
 		// Provide user-friendly error message
-		bundleErr := ErrInvalidManifest("manifest file is missing or unreadable", err)
+		bundleErr := ErrInvalidManifest("manifest file is missing or unreadable", loadManifestErr)
 		result.Errors = append(result.Errors, ValidationError{
 			Code:    ErrCodeInvalidManifest,
 			Message: bundleErr.Error(),
@@ -72,14 +69,14 @@ func (v *Validator) Verify(bundlePath string) (*ValidationResult, error) {
 	}
 
 	// Validate manifest structure
-	if err := v.bundle.Manifest.Validate(); err != nil {
+	if validateErr := v.bundle.Manifest.Validate(); validateErr != nil {
 		result.Valid = false
-		if verr, ok := err.(*ValidationError); ok {
+		if verr, ok := validateErr.(*ValidationError); ok {
 			result.Errors = append(result.Errors, *verr)
 		} else {
 			result.Errors = append(result.Errors, ValidationError{
 				Code:    ErrCodeInvalidManifest,
-				Message: err.Error(),
+				Message: validateErr.Error(),
 			})
 		}
 	}
@@ -92,12 +89,12 @@ func (v *Validator) Verify(bundlePath string) (*ValidationResult, error) {
 
 	// Verify approvals if required
 	if v.opts.RequireApprovals {
-		if err := v.loadApprovals(tempDir); err != nil {
+		if loadApprovalsErr := v.loadApprovals(tempDir); loadApprovalsErr != nil {
 			result.Valid = false
 			result.ApprovalsValid = false
 			result.Errors = append(result.Errors, ValidationError{
 				Code:    ErrCodeMissingApproval,
-				Message: fmt.Sprintf("failed to load approvals: %v", err),
+				Message: fmt.Sprintf("failed to load approvals: %v", loadApprovalsErr),
 			})
 		} else if !v.verifyApprovals(result) {
 			result.Valid = false
@@ -107,12 +104,12 @@ func (v *Validator) Verify(bundlePath string) (*ValidationResult, error) {
 
 	// Verify attestation if required
 	if v.opts.RequireAttestation {
-		if err := v.loadAttestation(tempDir); err != nil {
+		if loadAttestationErr := v.loadAttestation(tempDir); loadAttestationErr != nil {
 			result.Valid = false
 			result.AttestationValid = false
 			result.Errors = append(result.Errors, ValidationError{
 				Code:    ErrCodeAttestationFailed,
-				Message: fmt.Sprintf("failed to load attestation: %v", err),
+				Message: fmt.Sprintf("failed to load attestation: %v", loadAttestationErr),
 			})
 		} else if !v.verifyAttestation(result) {
 			result.Valid = false
@@ -128,98 +125,17 @@ func (v *Validator) Verify(bundlePath string) (*ValidationResult, error) {
 	return result, nil
 }
 
-// extractBundle extracts a .sbundle.tgz file to a temporary directory.
-func (v *Validator) extractBundle(bundlePath string) (string, error) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "bundle-*")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp directory: %w", err)
-	}
-
-	// Open bundle file
-	file, err := os.Open(bundlePath)
-	if err != nil {
-		os.RemoveAll(tempDir)
-		return "", fmt.Errorf("failed to open bundle: %w", err)
-	}
-	defer file.Close()
-
-	// Create gzip reader
-	gzReader, err := gzip.NewReader(file)
-	if err != nil {
-		os.RemoveAll(tempDir)
-		return "", fmt.Errorf("failed to create gzip reader: %w", err)
-	}
-	defer gzReader.Close()
-
-	// Create tar reader
-	tarReader := tar.NewReader(gzReader)
-
-	// Extract all files
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			os.RemoveAll(tempDir)
-			return "", fmt.Errorf("failed to read tar: %w", err)
-		}
-
-		// Construct target path
-		targetPath := filepath.Join(tempDir, header.Name)
-
-		// Ensure target path is within temp directory (prevent path traversal)
-		if !strings.HasPrefix(filepath.Clean(targetPath), filepath.Clean(tempDir)) {
-			os.RemoveAll(tempDir)
-			return "", fmt.Errorf("invalid file path in bundle: %s", header.Name)
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
-				os.RemoveAll(tempDir)
-				return "", fmt.Errorf("failed to create directory: %w", err)
-			}
-
-		case tar.TypeReg:
-			// Create parent directory
-			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-				os.RemoveAll(tempDir)
-				return "", fmt.Errorf("failed to create parent directory: %w", err)
-			}
-
-			// Create file
-			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, os.FileMode(header.Mode))
-			if err != nil {
-				os.RemoveAll(tempDir)
-				return "", fmt.Errorf("failed to create file: %w", err)
-			}
-
-			// Copy data
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				outFile.Close()
-				os.RemoveAll(tempDir)
-				return "", fmt.Errorf("failed to write file: %w", err)
-			}
-			outFile.Close()
-		}
-	}
-
-	return tempDir, nil
-}
-
 // loadManifest loads the manifest from the extracted bundle.
 func (v *Validator) loadManifest(tempDir string) error {
 	manifestPath := filepath.Join(tempDir, ManifestFileName)
-	data, err := os.ReadFile(manifestPath)
-	if err != nil {
-		return fmt.Errorf("failed to read manifest: %w", err)
+	data, readErr := os.ReadFile(manifestPath)
+	if readErr != nil {
+		return fmt.Errorf("failed to read manifest: %w", readErr)
 	}
 
 	var manifest Manifest
-	if err := yaml.Unmarshal(data, &manifest); err != nil {
-		return fmt.Errorf("failed to parse manifest: %w", err)
+	if unmarshalErr := yaml.Unmarshal(data, &manifest); unmarshalErr != nil {
+		return fmt.Errorf("failed to parse manifest: %w", unmarshalErr)
 	}
 
 	v.bundle.Manifest = &manifest
@@ -279,15 +195,19 @@ func (v *Validator) verifyChecksums(tempDir string, result *ValidationResult) bo
 
 // calculateFileChecksum calculates the SHA-256 checksum of a file.
 func (v *Validator) calculateFileChecksum(filePath string) (string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", err
+	file, openErr := os.Open(filePath)
+	if openErr != nil {
+		return "", openErr
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close file %s: %v\n", filePath, closeErr)
+		}
+	}()
 
 	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
+	if _, copyErr := io.Copy(hash, file); copyErr != nil {
+		return "", copyErr
 	}
 
 	return hex.EncodeToString(hash.Sum(nil)), nil
@@ -298,14 +218,14 @@ func (v *Validator) loadApprovals(tempDir string) error {
 	approvalsDir := filepath.Join(tempDir, "approvals")
 
 	// Check if approvals directory exists
-	if _, err := os.Stat(approvalsDir); os.IsNotExist(err) {
+	if _, statErr := os.Stat(approvalsDir); os.IsNotExist(statErr) {
 		return fmt.Errorf("approvals directory not found")
 	}
 
 	// Read all approval files
-	entries, err := os.ReadDir(approvalsDir)
-	if err != nil {
-		return fmt.Errorf("failed to read approvals directory: %w", err)
+	entries, readDirErr := os.ReadDir(approvalsDir)
+	if readDirErr != nil {
+		return fmt.Errorf("failed to read approvals directory: %w", readDirErr)
 	}
 
 	approvals := []*Approval{}
@@ -315,14 +235,14 @@ func (v *Validator) loadApprovals(tempDir string) error {
 		}
 
 		approvalPath := filepath.Join(approvalsDir, entry.Name())
-		data, err := os.ReadFile(approvalPath)
-		if err != nil {
-			return fmt.Errorf("failed to read approval file %s: %w", entry.Name(), err)
+		data, readErr := os.ReadFile(approvalPath)
+		if readErr != nil {
+			return fmt.Errorf("failed to read approval file %s: %w", entry.Name(), readErr)
 		}
 
 		var approval Approval
-		if err := yaml.Unmarshal(data, &approval); err != nil {
-			return fmt.Errorf("failed to parse approval file %s: %w", entry.Name(), err)
+		if unmarshalErr := yaml.Unmarshal(data, &approval); unmarshalErr != nil {
+			return fmt.Errorf("failed to parse approval file %s: %w", entry.Name(), unmarshalErr)
 		}
 
 		approvals = append(approvals, &approval)
@@ -369,27 +289,27 @@ func (v *Validator) verifyApprovals(result *ValidationResult) bool {
 
 	for _, approval := range v.bundle.Approvals {
 		// Validate approval structure
-		if err := approval.Validate(); err != nil {
+		if validateErr := approval.Validate(); validateErr != nil {
 			allValid = false
-			if verr, ok := err.(*ValidationError); ok {
+			if verr, ok := validateErr.(*ValidationError); ok {
 				result.Errors = append(result.Errors, *verr)
 			} else {
 				result.Errors = append(result.Errors, ValidationError{
 					Code:    ErrCodeInvalidSignature,
-					Message: err.Error(),
+					Message: validateErr.Error(),
 				})
 			}
 			continue
 		}
 
 		// Verify approval signature
-		if err := verifier.VerifyApproval(approval); err != nil {
+		if verifyErr := verifier.VerifyApproval(approval); verifyErr != nil {
 			allValid = false
 			result.Errors = append(result.Errors, ValidationError{
-				Code:    ErrCodeInvalidSignature,
+				Code: ErrCodeInvalidSignature,
 				Message: fmt.Sprintf("signature verification failed for role %s (%s): %v",
-					approval.Role, approval.User, err),
-				Field:   "approvals",
+					approval.Role, approval.User, verifyErr),
+				Field: "approvals",
 				Details: map[string]interface{}{
 					"role": approval.Role,
 					"user": approval.User,
@@ -427,18 +347,18 @@ func (v *Validator) loadAttestation(tempDir string) error {
 	attestationPath := filepath.Join(tempDir, "attestations", "attestation.yaml")
 
 	// Check if attestation file exists
-	if _, err := os.Stat(attestationPath); os.IsNotExist(err) {
+	if _, statErr := os.Stat(attestationPath); os.IsNotExist(statErr) {
 		return fmt.Errorf("attestation file not found")
 	}
 
-	data, err := os.ReadFile(attestationPath)
-	if err != nil {
-		return fmt.Errorf("failed to read attestation: %w", err)
+	data, readErr := os.ReadFile(attestationPath)
+	if readErr != nil {
+		return fmt.Errorf("failed to read attestation: %w", readErr)
 	}
 
 	var attestation Attestation
-	if err := yaml.Unmarshal(data, &attestation); err != nil {
-		return fmt.Errorf("failed to parse attestation: %w", err)
+	if unmarshalErr := yaml.Unmarshal(data, &attestation); unmarshalErr != nil {
+		return fmt.Errorf("failed to parse attestation: %w", unmarshalErr)
 	}
 
 	v.bundle.Attestation = &attestation

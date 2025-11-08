@@ -15,9 +15,11 @@ import (
 )
 
 const (
-	// OCI media types for Specular bundles
-	BundleLayerMediaType      = "application/vnd.specular.bundle.layer.v1.tar+gzip"
-	BundleConfigMediaType     = "application/vnd.specular.bundle.config.v1+json"
+	// BundleLayerMediaType is the OCI media type for Specular bundle layers
+	BundleLayerMediaType = "application/vnd.specular.bundle.layer.v1.tar+gzip"
+	// BundleConfigMediaType is the OCI media type for Specular bundle configuration
+	BundleConfigMediaType = "application/vnd.specular.bundle.config.v1+json"
+	// BundleManifestArtifactType is the OCI artifact type for Specular bundles
 	BundleManifestArtifactType = "application/vnd.specular.bundle.v1"
 )
 
@@ -65,36 +67,37 @@ func NewOCIPusher(opts OCIOptions) *OCIPusher {
 // Push uploads a bundle to an OCI registry
 func (p *OCIPusher) Push(bundlePath string) error {
 	// Parse the reference
-	ref, err := name.ParseReference(p.opts.Reference)
-	if err != nil {
-		return WrapRegistryError(err, p.opts.Reference, "push")
+	ref, parseErr := name.ParseReference(p.opts.Reference)
+	if parseErr != nil {
+		return WrapRegistryError(parseErr, p.opts.Reference, "push")
 	}
 
 	// Get bundle info for metadata
-	info, err := GetBundleInfo(bundlePath)
-	if err != nil {
-		return fmt.Errorf("failed to get bundle info: %w", err)
+	info, infoErr := GetBundleInfo(bundlePath)
+	if infoErr != nil {
+		return fmt.Errorf("failed to get bundle info: %w", infoErr)
 	}
 
 	// Create layer from bundle tarball
-	layer, err := tarball.LayerFromFile(bundlePath, tarball.WithMediaType(BundleLayerMediaType))
-	if err != nil {
-		return fmt.Errorf("failed to create layer from bundle: %w", err)
+	layer, layerErr := tarball.LayerFromFile(bundlePath, tarball.WithMediaType(BundleLayerMediaType))
+	if layerErr != nil {
+		return fmt.Errorf("failed to create layer from bundle: %w", layerErr)
 	}
 
 	// Start with empty image
 	img := empty.Image
 
 	// Add the bundle layer
-	img, err = mutate.AppendLayers(img, layer)
-	if err != nil {
-		return fmt.Errorf("failed to append layer: %w", err)
+	var appendErr error
+	img, appendErr = mutate.AppendLayers(img, layer)
+	if appendErr != nil {
+		return fmt.Errorf("failed to append layer: %w", appendErr)
 	}
 
 	// Get the current config to preserve DiffIDs
-	currentConfig, err := img.ConfigFile()
-	if err != nil {
-		return fmt.Errorf("failed to get config: %w", err)
+	currentConfig, configErr := img.ConfigFile()
+	if configErr != nil {
+		return fmt.Errorf("failed to get config: %w", configErr)
 	}
 
 	// Update config with bundle metadata while preserving DiffIDs
@@ -113,15 +116,21 @@ func (p *OCIPusher) Push(bundlePath string) error {
 		RootFS: currentConfig.RootFS, // Preserve the DiffIDs from appended layers
 	}
 
-	img, err = mutate.ConfigFile(img, configFile)
-	if err != nil {
-		return fmt.Errorf("failed to set config: %w", err)
+	var mutateErr error
+	img, mutateErr = mutate.ConfigFile(img, configFile)
+	if mutateErr != nil {
+		return fmt.Errorf("failed to set config: %w", mutateErr)
 	}
 
 	// Set artifact type annotation
-	img = mutate.Annotations(img, map[string]string{
+	annotated := mutate.Annotations(img, map[string]string{
 		"org.opencontainers.image.artifactType": BundleManifestArtifactType,
-	}).(v1.Image)
+	})
+	var ok bool
+	img, ok = annotated.(v1.Image)
+	if !ok {
+		return fmt.Errorf("failed to assert annotated image to v1.Image")
+	}
 
 	// Configure remote options
 	remoteOpts := []remote.Option{
@@ -135,14 +144,14 @@ func (p *OCIPusher) Push(bundlePath string) error {
 	}
 
 	// Push the image
-	if err := remote.Write(ref, img, remoteOpts...); err != nil {
-		return WrapRegistryError(err, p.opts.Reference, "push")
+	if writeErr := remote.Write(ref, img, remoteOpts...); writeErr != nil {
+		return WrapRegistryError(writeErr, p.opts.Reference, "push")
 	}
 
 	// Get the digest
-	digest, err := img.Digest()
-	if err != nil {
-		return fmt.Errorf("failed to get digest: %w", err)
+	digest, digestErr := img.Digest()
+	if digestErr != nil {
+		return fmt.Errorf("failed to get digest: %w", digestErr)
 	}
 
 	fmt.Printf("✓ Pushed bundle to %s\n", ref.String())
@@ -170,13 +179,44 @@ func NewOCIPuller(opts OCIOptions) *OCIPuller {
 
 // Pull downloads a bundle from an OCI registry
 func (p *OCIPuller) Pull(outputPath string) error {
-	// Parse the reference
-	ref, err := name.ParseReference(p.opts.Reference)
+	// Parse reference and fetch image
+	ref, img, err := p.fetchBundleImage()
 	if err != nil {
-		return WrapRegistryError(err, p.opts.Reference, "pull")
+		return err
 	}
 
-	// Configure remote options
+	// Validate manifest
+	err = p.validateBundleManifest(img)
+	if err != nil {
+		return err
+	}
+
+	// Extract and save bundle
+	err = p.extractBundleToFile(img, outputPath)
+	if err != nil {
+		return err
+	}
+
+	// Get and display digest
+	digest, digestErr := img.Digest()
+	if digestErr != nil {
+		return fmt.Errorf("failed to get digest: %w", digestErr)
+	}
+
+	fmt.Printf("✓ Pulled bundle from %s\n", ref.String())
+	fmt.Printf("  Digest: %s\n", digest.String())
+	fmt.Printf("  Saved to: %s\n", outputPath)
+
+	return nil
+}
+
+// fetchBundleImage fetches the bundle image from the registry
+func (p *OCIPuller) fetchBundleImage() (name.Reference, v1.Image, error) {
+	ref, parseErr := name.ParseReference(p.opts.Reference)
+	if parseErr != nil {
+		return nil, nil, WrapRegistryError(parseErr, p.opts.Reference, "pull")
+	}
+
 	remoteOpts := []remote.Option{
 		remote.WithAuthFromKeychain(p.opts.Keychain),
 		remote.WithUserAgent(p.opts.UserAgent),
@@ -186,39 +226,65 @@ func (p *OCIPuller) Pull(outputPath string) error {
 		remoteOpts = append(remoteOpts, remote.WithTransport(remote.DefaultTransport))
 	}
 
-	// Pull the image
-	img, err := remote.Image(ref, remoteOpts...)
-	if err != nil {
-		return WrapRegistryError(err, p.opts.Reference, "pull")
+	img, imgErr := remote.Image(ref, remoteOpts...)
+	if imgErr != nil {
+		return nil, nil, WrapRegistryError(imgErr, p.opts.Reference, "pull")
 	}
 
-	// Verify it's a bundle artifact
-	manifest, err := img.Manifest()
-	if err != nil {
-		return fmt.Errorf("failed to get manifest: %w", err)
+	return ref, img, nil
+}
+
+// validateBundleManifest validates that the image is a valid Specular bundle
+func (p *OCIPuller) validateBundleManifest(img v1.Image) error {
+	manifest, manifestErr := img.Manifest()
+	if manifestErr != nil {
+		return fmt.Errorf("failed to get manifest: %w", manifestErr)
 	}
 
 	// Check artifact type annotation
-	if manifest.Annotations != nil {
-		if artifactType, ok := manifest.Annotations["org.opencontainers.image.artifactType"]; ok {
-			if artifactType != BundleManifestArtifactType {
-				return &RegistryError{
-					Type:    ErrTypeInvalidBundle,
-					Message: fmt.Sprintf("Not a Specular bundle: %s", p.opts.Reference),
-					Suggestion: fmt.Sprintf(`The artifact has type %q but expected %q.
+	if err := p.validateArtifactType(manifest); err != nil {
+		return err
+	}
+
+	// Check layer structure
+	if err := p.validateLayerStructure(manifest); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateArtifactType checks if the artifact type matches Specular bundle
+func (p *OCIPuller) validateArtifactType(manifest *v1.Manifest) error {
+	if manifest.Annotations == nil {
+		return nil
+	}
+
+	artifactType, ok := manifest.Annotations["org.opencontainers.image.artifactType"]
+	if !ok {
+		return nil
+	}
+
+	if artifactType != BundleManifestArtifactType {
+		return &RegistryError{
+			Type:    ErrTypeInvalidBundle,
+			Message: fmt.Sprintf("Not a Specular bundle: %s", p.opts.Reference),
+			Suggestion: fmt.Sprintf(`The artifact has type %q but expected %q.
 
 This appears to be a regular container image, not a Specular bundle.
 
 To create a bundle:
   specular bundle build my-bundle.sbundle.tgz
   specular bundle push my-bundle.sbundle.tgz %s`, artifactType, BundleManifestArtifactType, p.opts.Reference),
-					Reference: p.opts.Reference,
-				}
-			}
+			Reference: p.opts.Reference,
 		}
 	}
 
-	// Check media type of layers
+	return nil
+}
+
+// validateLayerStructure validates the layer count and media type
+func (p *OCIPuller) validateLayerStructure(manifest *v1.Manifest) error {
 	if len(manifest.Layers) != 1 {
 		return &RegistryError{
 			Type:    ErrTypeInvalidBundle,
@@ -242,47 +308,45 @@ This artifact may be a regular OCI artifact or container image.`,
 		}
 	}
 
-	// Get the layers
-	layers, err := img.Layers()
-	if err != nil {
-		return fmt.Errorf("failed to get layers: %w", err)
+	return nil
+}
+
+// extractBundleToFile extracts the bundle layer to an output file
+func (p *OCIPuller) extractBundleToFile(img v1.Image, outputPath string) error {
+	layers, layersErr := img.Layers()
+	if layersErr != nil {
+		return fmt.Errorf("failed to get layers: %w", layersErr)
 	}
 
 	if len(layers) == 0 {
 		return fmt.Errorf("no layers found in image")
 	}
 
-	// Extract the first layer (the bundle tarball)
 	layer := layers[0]
 
-	// Get layer contents
-	layerReader, err := layer.Compressed()
-	if err != nil {
-		return fmt.Errorf("failed to get layer contents: %w", err)
+	layerReader, readerErr := layer.Compressed()
+	if readerErr != nil {
+		return fmt.Errorf("failed to get layer contents: %w", readerErr)
 	}
-	defer layerReader.Close()
+	defer func() {
+		if closeErr := layerReader.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close layer reader: %v\n", closeErr)
+		}
+	}()
 
-	// Write to output file
-	outputFile, err := os.Create(outputPath)
-	if err != nil {
-		return fmt.Errorf("failed to create output file: %w", err)
+	outputFile, createErr := os.Create(outputPath)
+	if createErr != nil {
+		return fmt.Errorf("failed to create output file: %w", createErr)
 	}
-	defer outputFile.Close()
+	defer func() {
+		if closeErr := outputFile.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close output file: %v\n", closeErr)
+		}
+	}()
 
-	// Copy layer contents to output file
-	if _, err := outputFile.ReadFrom(layerReader); err != nil {
-		return fmt.Errorf("failed to write bundle: %w", err)
+	if _, copyErr := outputFile.ReadFrom(layerReader); copyErr != nil {
+		return fmt.Errorf("failed to write bundle: %w", copyErr)
 	}
-
-	// Get the digest
-	digest, err := img.Digest()
-	if err != nil {
-		return fmt.Errorf("failed to get digest: %w", err)
-	}
-
-	fmt.Printf("✓ Pulled bundle from %s\n", ref.String())
-	fmt.Printf("  Digest: %s\n", digest.String())
-	fmt.Printf("  Saved to: %s\n", outputPath)
 
 	return nil
 }
@@ -294,9 +358,9 @@ func GetRemoteBundleInfo(ref string, opts OCIOptions) (*BundleInfo, error) {
 	}
 
 	// Parse reference
-	parsedRef, err := name.ParseReference(ref)
-	if err != nil {
-		return nil, WrapRegistryError(err, ref, "info")
+	parsedRef, parseErr := name.ParseReference(ref)
+	if parseErr != nil {
+		return nil, WrapRegistryError(parseErr, ref, "info")
 	}
 
 	// Configure remote options
@@ -305,15 +369,15 @@ func GetRemoteBundleInfo(ref string, opts OCIOptions) (*BundleInfo, error) {
 	}
 
 	// Get image
-	img, err := remote.Image(parsedRef, remoteOpts...)
-	if err != nil {
-		return nil, WrapRegistryError(err, ref, "info")
+	img, imgErr := remote.Image(parsedRef, remoteOpts...)
+	if imgErr != nil {
+		return nil, WrapRegistryError(imgErr, ref, "info")
 	}
 
 	// Get config
-	configFile, err := img.ConfigFile()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config: %w", err)
+	configFile, configErr := img.ConfigFile()
+	if configErr != nil {
+		return nil, fmt.Errorf("failed to get config: %w", configErr)
 	}
 
 	// Extract bundle metadata from labels
@@ -326,9 +390,9 @@ func GetRemoteBundleInfo(ref string, opts OCIOptions) (*BundleInfo, error) {
 	}
 
 	// Get digest
-	digest, err := img.Digest()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get digest: %w", err)
+	digest, digestErr := img.Digest()
+	if digestErr != nil {
+		return nil, fmt.Errorf("failed to get digest: %w", digestErr)
 	}
 	info.IntegrityDigest = digest.String()
 

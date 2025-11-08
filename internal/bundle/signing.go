@@ -135,20 +135,31 @@ func (s *Signer) signWithGPG(approval *Approval, digest string, keyPath string) 
 	message := formatSignMessage(approval, digest)
 
 	// Create a temporary file for the message
-	tmpFile, err := os.CreateTemp("", "specular-sign-*.txt")
-	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
+	tmpFile, createErr := os.CreateTemp("", "specular-sign-*.txt")
+	if createErr != nil {
+		return fmt.Errorf("failed to create temp file: %w", createErr)
 	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
+	defer func() {
+		if rmErr := os.Remove(tmpFile.Name()); rmErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to remove temp file: %v\n", rmErr)
+		}
+	}()
+	defer func() {
+		if closeErr := tmpFile.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close temp file: %v\n", closeErr)
+		}
+	}()
 
-	if _, err := tmpFile.Write([]byte(message)); err != nil {
-		return fmt.Errorf("failed to write message: %w", err)
+	if _, writeErr := tmpFile.WriteString(message); writeErr != nil {
+		return fmt.Errorf("failed to write message: %w", writeErr)
 	}
-	tmpFile.Close()
+	if closeErr := tmpFile.Close(); closeErr != nil {
+		return fmt.Errorf("failed to close temp file before signing: %w", closeErr)
+	}
 
 	// Sign with GPG
 	var stdout, stderr bytes.Buffer
+	// #nosec G204 - tmpFile.Name() is from os.CreateTemp, not user input
 	cmd := exec.Command("gpg", "--detach-sign", "--armor", "--output", "-", tmpFile.Name())
 	if keyPath != "" {
 		cmd.Args = append(cmd.Args[:2], "--local-user", keyPath)
@@ -157,8 +168,8 @@ func (s *Signer) signWithGPG(approval *Approval, digest string, keyPath string) 
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("gpg signing failed: %w (stderr: %s)", err, stderr.String())
+	if runErr := cmd.Run(); runErr != nil {
+		return fmt.Errorf("gpg signing failed: %w (stderr: %s)", runErr, stderr.String())
 	}
 
 	approval.Signature = stdout.String()
@@ -171,8 +182,8 @@ func (s *Signer) signWithGPG(approval *Approval, digest string, keyPath string) 
 
 	var pubKeyOut bytes.Buffer
 	pubKeyCmd.Stdout = &pubKeyOut
-	if err := pubKeyCmd.Run(); err != nil {
-		return fmt.Errorf("failed to export public key: %w", err)
+	if pubKeyErr := pubKeyCmd.Run(); pubKeyErr != nil {
+		return fmt.Errorf("failed to export public key: %w", pubKeyErr)
 	}
 
 	approval.PublicKey = pubKeyOut.String()
@@ -202,47 +213,94 @@ func (v *Verifier) VerifyApproval(approval *Approval) error {
 		return fmt.Errorf("approval validation failed: %w", err)
 	}
 
-	// Check if expired
+	// Perform policy checks
+	if err := v.validateApprovalPolicy(approval); err != nil {
+		return err
+	}
+
+	// Verify cryptographic signature
+	if err := v.verifyCryptographicSignature(approval); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateApprovalPolicy validates approval against policy requirements
+func (v *Verifier) validateApprovalPolicy(approval *Approval) error {
+	// Check expiry
+	if err := v.checkExpiry(approval); err != nil {
+		return err
+	}
+
+	// Check comment requirement
+	if err := v.checkCommentRequirement(approval); err != nil {
+		return err
+	}
+
+	// Check role allowlist
+	if err := v.checkRoleAllowed(approval); err != nil {
+		return err
+	}
+
+	// Check key trust
+	if err := v.checkKeyTrusted(approval); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// checkExpiry validates that the approval hasn't expired
+func (v *Verifier) checkExpiry(approval *Approval) error {
 	if v.options.MaxAge > 0 && approval.IsExpired(v.options.MaxAge) {
 		return fmt.Errorf("approval expired (max age: %s, signed: %s)",
 			v.options.MaxAge, approval.SignedAt.Format(time.RFC3339))
 	}
+	return nil
+}
 
-	// Check if comment is required
+// checkCommentRequirement validates that a comment is present if required
+func (v *Verifier) checkCommentRequirement(approval *Approval) error {
 	if v.options.RequireComment && approval.Comment == "" {
 		return fmt.Errorf("approval comment is required but missing")
 	}
+	return nil
+}
 
-	// Check if role is allowed
-	if len(v.options.AllowedRoles) > 0 {
-		roleAllowed := false
-		for _, allowedRole := range v.options.AllowedRoles {
-			if approval.Role == allowedRole {
-				roleAllowed = true
-				break
-			}
-		}
-		if !roleAllowed {
-			return fmt.Errorf("approval role %q is not in allowed roles: %v",
-				approval.Role, v.options.AllowedRoles)
+// checkRoleAllowed validates that the approval role is in the allowlist
+func (v *Verifier) checkRoleAllowed(approval *Approval) error {
+	if len(v.options.AllowedRoles) == 0 {
+		return nil
+	}
+
+	for _, allowedRole := range v.options.AllowedRoles {
+		if approval.Role == allowedRole {
+			return nil
 		}
 	}
 
-	// Check if key is trusted (if trust list provided)
-	if len(v.options.TrustedKeys) > 0 {
-		keyTrusted := false
-		for _, trustedKey := range v.options.TrustedKeys {
-			if approval.PublicKey == trustedKey || approval.PublicKeyFingerprint == trustedKey {
-				keyTrusted = true
-				break
-			}
-		}
-		if !keyTrusted {
-			return fmt.Errorf("approval public key is not in trusted keys list")
+	return fmt.Errorf("approval role %q is not in allowed roles: %v",
+		approval.Role, v.options.AllowedRoles)
+}
+
+// checkKeyTrusted validates that the approval key is in the trust list
+func (v *Verifier) checkKeyTrusted(approval *Approval) error {
+	if len(v.options.TrustedKeys) == 0 {
+		return nil
+	}
+
+	for _, trustedKey := range v.options.TrustedKeys {
+		if approval.PublicKey == trustedKey || approval.PublicKeyFingerprint == trustedKey {
+			return nil
 		}
 	}
 
-	// Verify signature based on type
+	return fmt.Errorf("approval public key is not in trusted keys list")
+}
+
+// verifyCryptographicSignature verifies the signature based on its type
+func (v *Verifier) verifyCryptographicSignature(approval *Approval) error {
 	switch approval.SignatureType {
 	case SignatureTypeSSH:
 		if err := v.verifySSHSignature(approval); err != nil {
@@ -262,15 +320,15 @@ func (v *Verifier) VerifyApproval(approval *Approval) error {
 // verifySSHSignature verifies an SSH signature.
 func (v *Verifier) verifySSHSignature(approval *Approval) error {
 	// Parse public key
-	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(approval.PublicKey))
-	if err != nil {
-		return fmt.Errorf("failed to parse public key: %w", err)
+	publicKey, _, _, _, parseErr := ssh.ParseAuthorizedKey([]byte(approval.PublicKey))
+	if parseErr != nil {
+		return fmt.Errorf("failed to parse public key: %w", parseErr)
 	}
 
 	// Decode signature
-	signatureBytes, err := base64.StdEncoding.DecodeString(approval.Signature)
-	if err != nil {
-		return fmt.Errorf("failed to decode signature: %w", err)
+	signatureBytes, decodeErr := base64.StdEncoding.DecodeString(approval.Signature)
+	if decodeErr != nil {
+		return fmt.Errorf("failed to decode signature: %w", decodeErr)
 	}
 
 	// Reconstruct the message
@@ -283,8 +341,8 @@ func (v *Verifier) verifySSHSignature(approval *Approval) error {
 	}
 
 	// Verify signature
-	if err := publicKey.Verify([]byte(message), sig); err != nil {
-		return fmt.Errorf("signature verification failed: %w", err)
+	if verifyErr := publicKey.Verify([]byte(message), sig); verifyErr != nil {
+		return fmt.Errorf("signature verification failed: %w", verifyErr)
 	}
 
 	return nil
@@ -295,44 +353,65 @@ func (v *Verifier) verifyGPGSignature(approval *Approval) error {
 	// Import public key to temporary keyring
 	keyImportCmd := exec.Command("gpg", "--import", "--no-default-keyring", "--keyring", "trustedkeys.gpg")
 	keyImportCmd.Stdin = strings.NewReader(approval.PublicKey)
-	if err := keyImportCmd.Run(); err != nil {
-		return fmt.Errorf("failed to import public key: %w", err)
+	if importErr := keyImportCmd.Run(); importErr != nil {
+		return fmt.Errorf("failed to import public key: %w", importErr)
 	}
 
 	// Create temporary files for message and signature
-	msgFile, err := os.CreateTemp("", "specular-verify-msg-*.txt")
-	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
+	msgFile, msgCreateErr := os.CreateTemp("", "specular-verify-msg-*.txt")
+	if msgCreateErr != nil {
+		return fmt.Errorf("failed to create temp file: %w", msgCreateErr)
 	}
-	defer os.Remove(msgFile.Name())
-	defer msgFile.Close()
+	defer func() {
+		if rmErr := os.Remove(msgFile.Name()); rmErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to remove temp file: %v\n", rmErr)
+		}
+	}()
+	defer func() {
+		if closeErr := msgFile.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close temp file: %v\n", closeErr)
+		}
+	}()
 
-	sigFile, err := os.CreateTemp("", "specular-verify-sig-*.asc")
-	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
+	sigFile, sigCreateErr := os.CreateTemp("", "specular-verify-sig-*.asc")
+	if sigCreateErr != nil {
+		return fmt.Errorf("failed to create temp file: %w", sigCreateErr)
 	}
-	defer os.Remove(sigFile.Name())
-	defer sigFile.Close()
+	defer func() {
+		if rmErr := os.Remove(sigFile.Name()); rmErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to remove temp file: %v\n", rmErr)
+		}
+	}()
+	defer func() {
+		if closeErr := sigFile.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close temp file: %v\n", closeErr)
+		}
+	}()
 
 	// Write message and signature
 	message := formatSignMessage(approval, v.options.BundleDigest)
-	if _, err := msgFile.Write([]byte(message)); err != nil {
-		return fmt.Errorf("failed to write message: %w", err)
+	if _, msgWriteErr := msgFile.WriteString(message); msgWriteErr != nil {
+		return fmt.Errorf("failed to write message: %w", msgWriteErr)
 	}
-	msgFile.Close()
+	if msgCloseErr := msgFile.Close(); msgCloseErr != nil {
+		return fmt.Errorf("failed to close message file: %w", msgCloseErr)
+	}
 
-	if _, err := sigFile.Write([]byte(approval.Signature)); err != nil {
-		return fmt.Errorf("failed to write signature: %w", err)
+	if _, sigWriteErr := sigFile.WriteString(approval.Signature); sigWriteErr != nil {
+		return fmt.Errorf("failed to write signature: %w", sigWriteErr)
 	}
-	sigFile.Close()
+	if sigCloseErr := sigFile.Close(); sigCloseErr != nil {
+		return fmt.Errorf("failed to close signature file: %w", sigCloseErr)
+	}
 
 	// Verify signature
 	var stderr bytes.Buffer
+	// #nosec G204 - sigFile.Name() and msgFile.Name() are from os.CreateTemp, not user input
 	verifyCmd := exec.Command("gpg", "--verify", sigFile.Name(), msgFile.Name())
 	verifyCmd.Stderr = &stderr
 
-	if err := verifyCmd.Run(); err != nil {
-		return fmt.Errorf("signature verification failed: %w (stderr: %s)", err, stderr.String())
+	if verifyErr := verifyCmd.Run(); verifyErr != nil {
+		return fmt.Errorf("signature verification failed: %w (stderr: %s)", verifyErr, stderr.String())
 	}
 
 	return nil
@@ -374,7 +453,7 @@ func detectDefaultKey(sigType SignatureType) (string, error) {
 		}
 
 		for _, candidate := range candidates {
-			if _, err := os.Stat(candidate); err == nil {
+			if _, statErr := os.Stat(candidate); statErr == nil {
 				return candidate, nil
 			}
 		}

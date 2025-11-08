@@ -27,7 +27,7 @@ non_functional:
 acceptance: []
 milestones: []
 `
-	require.NoError(t, os.WriteFile(specPath, []byte(specContent), 0644))
+	require.NoError(t, os.WriteFile(specPath, []byte(specContent), 0600))
 
 	lockPath := filepath.Join(tempDir, "spec.lock.json")
 	lockContent := `{
@@ -36,14 +36,14 @@ milestones: []
   "locked_at": "2024-01-01T00:00:00Z"
 }
 `
-	require.NoError(t, os.WriteFile(lockPath, []byte(lockContent), 0644))
+	require.NoError(t, os.WriteFile(lockPath, []byte(lockContent), 0600))
 
 	routingPath := filepath.Join(tempDir, "routing.yaml")
 	routingContent := `default_model: gpt-4
 fallback_models:
   - gpt-3.5-turbo
 `
-	require.NoError(t, os.WriteFile(routingPath, []byte(routingContent), 0644))
+	require.NoError(t, os.WriteFile(routingPath, []byte(routingContent), 0600))
 
 	// Build bundle
 	opts := BundleOptions{
@@ -100,13 +100,13 @@ func TestBundleWithPolicies(t *testing.T) {
 
 	// Create test files
 	specPath := filepath.Join(tempDir, "spec.yaml")
-	require.NoError(t, os.WriteFile(specPath, []byte("product: policy-test\ngoals: []\nfeatures: []\nnon_functional:\n  performance: []\n  security: []\n  scalability: []\nacceptance: []\nmilestones: []\n"), 0644))
+	require.NoError(t, os.WriteFile(specPath, []byte("product: policy-test\ngoals: []\nfeatures: []\nnon_functional:\n  performance: []\n  security: []\n  scalability: []\nacceptance: []\nmilestones: []\n"), 0600))
 
 	lockPath := filepath.Join(tempDir, "spec.lock.json")
-	require.NoError(t, os.WriteFile(lockPath, []byte(`{"version": "1.0.0"}`), 0644))
+	require.NoError(t, os.WriteFile(lockPath, []byte(`{"version": "1.0.0"}`), 0600))
 
 	routingPath := filepath.Join(tempDir, "routing.yaml")
-	require.NoError(t, os.WriteFile(routingPath, []byte("default_model: gpt-4\n"), 0644))
+	require.NoError(t, os.WriteFile(routingPath, []byte("default_model: gpt-4\n"), 0600))
 
 	// Create policy file
 	policyPath := filepath.Join(tempDir, "policy.yaml")
@@ -116,7 +116,7 @@ rules:
   - allow: docker.io/library/*
   - allow: ghcr.io/myorg/*
 `
-	require.NoError(t, os.WriteFile(policyPath, []byte(policyContent), 0644))
+	require.NoError(t, os.WriteFile(policyPath, []byte(policyContent), 0600))
 
 	// Build bundle with policy
 	opts := BundleOptions{
@@ -145,13 +145,13 @@ func TestBundleWithApprovals(t *testing.T) {
 
 	// Create test files
 	specPath := filepath.Join(tempDir, "spec.yaml")
-	require.NoError(t, os.WriteFile(specPath, []byte("product: approval-test\ngoals: []\nfeatures: []\nnon_functional:\n  performance: []\n  security: []\n  scalability: []\nacceptance: []\nmilestones: []\n"), 0644))
+	require.NoError(t, os.WriteFile(specPath, []byte("product: approval-test\ngoals: []\nfeatures: []\nnon_functional:\n  performance: []\n  security: []\n  scalability: []\nacceptance: []\nmilestones: []\n"), 0600))
 
 	lockPath := filepath.Join(tempDir, "spec.lock.json")
-	require.NoError(t, os.WriteFile(lockPath, []byte(`{"version": "1.0.0"}`), 0644))
+	require.NoError(t, os.WriteFile(lockPath, []byte(`{"version": "1.0.0"}`), 0600))
 
 	routingPath := filepath.Join(tempDir, "routing.yaml")
-	require.NoError(t, os.WriteFile(routingPath, []byte("default_model: gpt-4\n"), 0644))
+	require.NoError(t, os.WriteFile(routingPath, []byte("default_model: gpt-4\n"), 0600))
 
 	// Build bundle with required approvals
 	opts := BundleOptions{
@@ -191,13 +191,13 @@ func TestBundleChecksumValidation(t *testing.T) {
 
 	// Create test files
 	specPath := filepath.Join(tempDir, "spec.yaml")
-	require.NoError(t, os.WriteFile(specPath, []byte("product: checksum-test\ngoals: []\nfeatures: []\nnon_functional:\n  performance: []\n  security: []\n  scalability: []\nacceptance: []\nmilestones: []\n"), 0644))
+	require.NoError(t, os.WriteFile(specPath, []byte("product: checksum-test\ngoals: []\nfeatures: []\nnon_functional:\n  performance: []\n  security: []\n  scalability: []\nacceptance: []\nmilestones: []\n"), 0600))
 
 	lockPath := filepath.Join(tempDir, "spec.lock.json")
-	require.NoError(t, os.WriteFile(lockPath, []byte(`{"version": "1.0.0"}`), 0644))
+	require.NoError(t, os.WriteFile(lockPath, []byte(`{"version": "1.0.0"}`), 0600))
 
 	routingPath := filepath.Join(tempDir, "routing.yaml")
-	require.NoError(t, os.WriteFile(routingPath, []byte("default_model: gpt-4\n"), 0644))
+	require.NoError(t, os.WriteFile(routingPath, []byte("default_model: gpt-4\n"), 0600))
 
 	// Build bundle
 	opts := BundleOptions{

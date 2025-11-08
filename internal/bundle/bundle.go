@@ -341,22 +341,22 @@ func (w *ValidationWarning) Error() string {
 
 // Error codes for bundle validation
 const (
-	ErrCodeChecksumMismatch     = "CHECKSUM_MISMATCH"
-	ErrCodeMissingFile          = "MISSING_FILE"
-	ErrCodeInvalidManifest      = "INVALID_MANIFEST"
-	ErrCodeMissingApproval      = "MISSING_APPROVAL"
-	ErrCodeInvalidSignature     = "INVALID_SIGNATURE"
-	ErrCodeAttestationFailed    = "ATTESTATION_FAILED"
-	ErrCodePolicyViolation      = "POLICY_VIOLATION"
-	ErrCodeUnsupportedSchema    = "UNSUPPORTED_SCHEMA"
-	ErrCodeCorruptedBundle      = "CORRUPTED_BUNDLE"
+	ErrCodeChecksumMismatch  = "CHECKSUM_MISMATCH"
+	ErrCodeMissingFile       = "MISSING_FILE"
+	ErrCodeInvalidManifest   = "INVALID_MANIFEST"
+	ErrCodeMissingApproval   = "MISSING_APPROVAL"
+	ErrCodeInvalidSignature  = "INVALID_SIGNATURE"
+	ErrCodeAttestationFailed = "ATTESTATION_FAILED"
+	ErrCodePolicyViolation   = "POLICY_VIOLATION"
+	ErrCodeUnsupportedSchema = "UNSUPPORTED_SCHEMA"
+	ErrCodeCorruptedBundle   = "CORRUPTED_BUNDLE"
 )
 
 // Warning codes for bundle validation
 const (
-	WarnCodeOptionalFileMissing   = "OPTIONAL_FILE_MISSING"
-	WarnCodeExpiringSoon          = "EXPIRING_SOON"
-	WarnCodeDeprecatedFeature     = "DEPRECATED_FEATURE"
-	WarnCodeNoAttestation         = "NO_ATTESTATION"
-	WarnCodePartialApprovals      = "PARTIAL_APPROVALS"
+	WarnCodeOptionalFileMissing = "OPTIONAL_FILE_MISSING"
+	WarnCodeExpiringSoon        = "EXPIRING_SOON"
+	WarnCodeDeprecatedFeature   = "DEPRECATED_FEATURE"
+	WarnCodeNoAttestation       = "NO_ATTESTATION"
+	WarnCodePartialApprovals    = "PARTIAL_APPROVALS"
 )

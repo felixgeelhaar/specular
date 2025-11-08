@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -15,95 +14,34 @@ import (
 // AddAttestationToBundle adds an attestation to an existing bundle.
 // This re-packs the bundle with the attestation included.
 func AddAttestationToBundle(bundlePath string, attestation *Attestation) error {
-	// Create temporary directory for extraction
-	tempDir, err := os.MkdirTemp("", "bundle-attest-*")
-	if err != nil {
-		return fmt.Errorf("failed to create temp directory: %w", err)
+	// Extract bundle using security-hardened extraction with decompression bomb protection
+	tempDir, extractErr := extractBundle(bundlePath)
+	if extractErr != nil {
+		return fmt.Errorf("failed to extract bundle: %w", extractErr)
 	}
-	defer os.RemoveAll(tempDir)
+	defer cleanupOnError(tempDir)
 
-	// Extract existing bundle
-	if err := extractBundleToDir(bundlePath, tempDir); err != nil {
-		return fmt.Errorf("failed to extract bundle: %w", err)
-	}
-
-	// Create attestations directory
+	// Create attestations directory with secure permissions
 	attestDir := filepath.Join(tempDir, "attestations")
-	if err := os.MkdirAll(attestDir, 0755); err != nil {
-		return fmt.Errorf("failed to create attestations directory: %w", err)
+	if mkdirErr := os.MkdirAll(attestDir, 0750); mkdirErr != nil {
+		return fmt.Errorf("failed to create attestations directory: %w", mkdirErr)
 	}
 
 	// Marshal attestation to YAML
-	attestYAML, err := yaml.Marshal(attestation)
-	if err != nil {
-		return fmt.Errorf("failed to marshal attestation: %w", err)
+	attestYAML, marshalErr := yaml.Marshal(attestation)
+	if marshalErr != nil {
+		return fmt.Errorf("failed to marshal attestation: %w", marshalErr)
 	}
 
-	// Write attestation file
+	// Write attestation file with secure permissions (0600)
 	attestPath := filepath.Join(attestDir, "attestation.yaml")
-	if err := os.WriteFile(attestPath, attestYAML, 0644); err != nil {
-		return fmt.Errorf("failed to write attestation: %w", err)
+	if writeErr := os.WriteFile(attestPath, attestYAML, 0600); writeErr != nil {
+		return fmt.Errorf("failed to write attestation: %w", writeErr)
 	}
 
 	// Re-create bundle with attestation
-	if err := repackBundle(tempDir, bundlePath); err != nil {
-		return fmt.Errorf("failed to repack bundle: %w", err)
-	}
-
-	return nil
-}
-
-// extractBundleToDir extracts a bundle to a directory.
-func extractBundleToDir(bundlePath, targetDir string) error {
-	file, err := os.Open(bundlePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	gzReader, err := gzip.NewReader(file)
-	if err != nil {
-		return err
-	}
-	defer gzReader.Close()
-
-	tarReader := tar.NewReader(gzReader)
-
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		targetPath := filepath.Join(targetDir, header.Name)
-
-		// Ensure target path is within temp directory
-		if !strings.HasPrefix(filepath.Clean(targetPath), filepath.Clean(targetDir)) {
-			return fmt.Errorf("invalid file path in bundle: %s", header.Name)
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
-				return err
-			}
-		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-				return err
-			}
-			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, os.FileMode(header.Mode))
-			if err != nil {
-				return err
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				outFile.Close()
-				return err
-			}
-			outFile.Close()
-		}
+	if repackErr := repackBundle(tempDir, bundlePath); repackErr != nil {
+		return fmt.Errorf("failed to repack bundle: %w", repackErr)
 	}
 
 	return nil
@@ -116,26 +54,39 @@ func repackBundle(sourceDir, bundlePath string) error {
 	if err != nil {
 		return err
 	}
-	defer outFile.Close()
+	defer func() {
+		if closeErr := outFile.Close(); closeErr != nil {
+			// Log but don't override primary error
+			fmt.Fprintf(os.Stderr, "warning: failed to close output file: %v\n", closeErr)
+		}
+	}()
 
 	// Create gzip writer
 	gzWriter := gzip.NewWriter(outFile)
-	defer gzWriter.Close()
+	defer func() {
+		if closeErr := gzWriter.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close gzip writer: %v\n", closeErr)
+		}
+	}()
 
 	// Create tar writer
 	tarWriter := tar.NewWriter(gzWriter)
-	defer tarWriter.Close()
+	defer func() {
+		if closeErr := tarWriter.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close tar writer: %v\n", closeErr)
+		}
+	}()
 
 	// Walk directory and add all files
-	err = filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	walkErr := filepath.Walk(sourceDir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
 		}
 
 		// Get relative path
-		relPath, err := filepath.Rel(sourceDir, path)
-		if err != nil {
-			return err
+		relPath, relErr := filepath.Rel(sourceDir, path)
+		if relErr != nil {
+			return relErr
 		}
 
 		// Skip root directory
@@ -144,32 +95,36 @@ func repackBundle(sourceDir, bundlePath string) error {
 		}
 
 		// Create tar header
-		header, err := tar.FileInfoHeader(info, "")
-		if err != nil {
-			return err
+		header, headerErr := tar.FileInfoHeader(info, "")
+		if headerErr != nil {
+			return headerErr
 		}
 		header.Name = relPath
 
 		// Write header
-		if err := tarWriter.WriteHeader(header); err != nil {
-			return err
+		if writeHeaderErr := tarWriter.WriteHeader(header); writeHeaderErr != nil {
+			return writeHeaderErr
 		}
 
 		// Write file content if regular file
 		if info.Mode().IsRegular() {
-			file, err := os.Open(path)
-			if err != nil {
-				return err
+			fileHandle, openErr := os.Open(path)
+			if openErr != nil {
+				return openErr
 			}
-			defer file.Close()
+			defer func() {
+				if closeErr := fileHandle.Close(); closeErr != nil {
+					fmt.Fprintf(os.Stderr, "warning: failed to close file %s: %v\n", path, closeErr)
+				}
+			}()
 
-			if _, err := io.Copy(tarWriter, file); err != nil {
-				return err
+			if _, copyErr := io.Copy(tarWriter, fileHandle); copyErr != nil {
+				return copyErr
 			}
 		}
 
 		return nil
 	})
 
-	return err
+	return walkErr
 }

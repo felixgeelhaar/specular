@@ -14,13 +14,20 @@ import (
 type RegistryErrorType string
 
 const (
+	// ErrTypeAuthentication indicates registry authentication failures
 	ErrTypeAuthentication RegistryErrorType = "AUTHENTICATION"
-	ErrTypeNotFound       RegistryErrorType = "NOT_FOUND"
-	ErrTypeNetwork        RegistryErrorType = "NETWORK"
-	ErrTypePermission     RegistryErrorType = "PERMISSION"
-	ErrTypeInvalidRef     RegistryErrorType = "INVALID_REFERENCE"
-	ErrTypeInvalidBundle  RegistryErrorType = "INVALID_BUNDLE"
-	ErrTypeUnknown        RegistryErrorType = "UNKNOWN"
+	// ErrTypeNotFound indicates the resource was not found in the registry
+	ErrTypeNotFound RegistryErrorType = "NOT_FOUND"
+	// ErrTypeNetwork indicates network connectivity issues
+	ErrTypeNetwork RegistryErrorType = "NETWORK"
+	// ErrTypePermission indicates insufficient permissions for the operation
+	ErrTypePermission RegistryErrorType = "PERMISSION"
+	// ErrTypeInvalidRef indicates an invalid registry reference format
+	ErrTypeInvalidRef RegistryErrorType = "INVALID_REFERENCE"
+	// ErrTypeInvalidBundle indicates the artifact is not a valid Specular bundle
+	ErrTypeInvalidBundle RegistryErrorType = "INVALID_BUNDLE"
+	// ErrTypeUnknown indicates an unclassified registry error
+	ErrTypeUnknown RegistryErrorType = "UNKNOWN"
 )
 
 // RegistryError wraps registry errors with context and suggestions

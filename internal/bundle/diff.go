@@ -7,13 +7,13 @@ import (
 
 // DiffResult represents the differences between two bundles.
 type DiffResult struct {
-	FilesAdded     []FileEntry
-	FilesRemoved   []FileEntry
-	FilesModified  []FileChange
-	ApprovalsAdded []*Approval
-	ApprovalsRemoved []*Approval
-	AttestationChanged bool
-	MetadataChanged bool
+	FilesAdded              []FileEntry
+	FilesRemoved            []FileEntry
+	FilesModified           []FileChange
+	ApprovalsAdded          []*Approval
+	ApprovalsRemoved        []*Approval
+	AttestationChanged      bool
+	MetadataChanged         bool
 	ManifestMetadataChanges map[string]string
 }
 
@@ -35,11 +35,11 @@ func DiffBundles(bundleA, bundleB *Bundle) (*DiffResult, error) {
 	}
 
 	result := &DiffResult{
-		FilesAdded:   []FileEntry{},
-		FilesRemoved: []FileEntry{},
-		FilesModified: []FileChange{},
-		ApprovalsAdded: []*Approval{},
-		ApprovalsRemoved: []*Approval{},
+		FilesAdded:              []FileEntry{},
+		FilesRemoved:            []FileEntry{},
+		FilesModified:           []FileChange{},
+		ApprovalsAdded:          []*Approval{},
+		ApprovalsRemoved:        []*Approval{},
 		ManifestMetadataChanges: make(map[string]string),
 	}
 
