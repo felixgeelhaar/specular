@@ -91,7 +91,13 @@ func (p *OCIPusher) Push(bundlePath string) error {
 		return fmt.Errorf("failed to append layer: %w", err)
 	}
 
-	// Set custom config with bundle metadata
+	// Get the current config to preserve DiffIDs
+	currentConfig, err := img.ConfigFile()
+	if err != nil {
+		return fmt.Errorf("failed to get config: %w", err)
+	}
+
+	// Update config with bundle metadata while preserving DiffIDs
 	configFile := &v1.ConfigFile{
 		Architecture: p.opts.Platform.Architecture,
 		OS:           p.opts.Platform.OS,
@@ -104,10 +110,7 @@ func (p *OCIPusher) Push(bundlePath string) error {
 				"dev.specular.bundle.governance-level": info.GovernanceLevel,
 			},
 		},
-		RootFS: v1.RootFS{
-			Type:    "layers",
-			DiffIDs: []v1.Hash{},
-		},
+		RootFS: currentConfig.RootFS, // Preserve the DiffIDs from appended layers
 	}
 
 	img, err = mutate.ConfigFile(img, configFile)
