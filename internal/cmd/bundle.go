@@ -330,6 +330,50 @@ Examples:
 	RunE: runBundleApprovalStatus,
 }
 
+// Bundle diff command flags
+var (
+	diffJSON  bool
+	diffQuiet bool
+)
+
+var bundleDiffCmd = &cobra.Command{
+	Use:   "diff <bundle-a> <bundle-b>",
+	Short: "Compare two governance bundles",
+	Long: `Compare two governance bundles and show their differences.
+
+This command loads two bundles and compares:
+- Files: Shows files added, removed, or modified (with checksum changes)
+- Approvals: Shows approval changes (added or removed)
+- Attestations: Indicates if attestation has changed
+- Metadata: Shows changes to bundle metadata (version, name, governance level)
+
+Use this command to:
+- Review changes between bundle versions
+- Verify what changed before applying an update
+- Audit differences for compliance purposes
+- Track bundle evolution over time
+
+Exit codes:
+  0 - Bundles are identical or differences displayed successfully
+  1 - Error occurred during comparison
+  2 - Differences found (when using --quiet)
+
+Examples:
+  # Compare two bundle versions
+  specular bundle diff v1.0.0.sbundle.tgz v1.1.0.sbundle.tgz
+
+  # Compare with JSON output for scripting
+  specular bundle diff old.sbundle.tgz new.sbundle.tgz --json
+
+  # Quiet mode - only exit code (0=identical, 2=different)
+  specular bundle diff bundle-a.sbundle.tgz bundle-b.sbundle.tgz --quiet
+  if [ $? -eq 2 ]; then
+    echo "Bundles differ"
+  fi`,
+	Args: cobra.ExactArgs(2),
+	RunE: runBundleDiff,
+}
+
 func runBundleBuild(cmd *cobra.Command, args []string) error {
 	defaults := ux.NewPathDefaults()
 
@@ -927,6 +971,137 @@ func runBundleApprovalStatus(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func runBundleDiff(cmd *cobra.Command, args []string) error {
+	bundlePathA := args[0]
+	bundlePathB := args[1]
+
+	// Check both bundles exist
+	if _, err := os.Stat(bundlePathA); os.IsNotExist(err) {
+		return ux.FormatError(err, fmt.Sprintf("bundle A not found: %s", bundlePathA))
+	}
+	if _, err := os.Stat(bundlePathB); os.IsNotExist(err) {
+		return ux.FormatError(err, fmt.Sprintf("bundle B not found: %s", bundlePathB))
+	}
+
+	if !diffQuiet {
+		fmt.Printf("Comparing bundles:\n")
+		fmt.Printf("  A: %s\n", bundlePathA)
+		fmt.Printf("  B: %s\n\n", bundlePathB)
+	}
+
+	// Load both bundles
+	if !diffQuiet {
+		fmt.Println("Loading bundles...")
+	}
+
+	bundleA, err := bundle.LoadBundle(bundlePathA)
+	if err != nil {
+		return ux.FormatError(err, "loading bundle A")
+	}
+
+	bundleB, err := bundle.LoadBundle(bundlePathB)
+	if err != nil {
+		return ux.FormatError(err, "loading bundle B")
+	}
+
+	// Perform diff
+	diffResult, err := bundle.DiffBundles(bundleA, bundleB)
+	if err != nil {
+		return ux.FormatError(err, "comparing bundles")
+	}
+
+	// Handle quiet mode
+	if diffQuiet {
+		if diffResult.HasChanges() {
+			os.Exit(2) // Exit code 2 indicates differences found
+		}
+		return nil // Exit code 0 indicates identical bundles
+	}
+
+	// Handle JSON output
+	if diffJSON {
+		output, err := json.MarshalIndent(diffResult, "", "  ")
+		if err != nil {
+			return ux.FormatError(err, "marshaling diff result")
+		}
+		fmt.Println(string(output))
+		return nil
+	}
+
+	// Human-readable output
+	if !diffResult.HasChanges() {
+		fmt.Println("✓ No differences found - bundles are identical")
+		return nil
+	}
+
+	fmt.Println("Differences found:")
+	fmt.Println()
+
+	// Show file changes
+	if len(diffResult.FilesAdded) > 0 {
+		fmt.Printf("Files Added (%d):\n", len(diffResult.FilesAdded))
+		for _, file := range diffResult.FilesAdded {
+			fmt.Printf("  + %s (checksum: %s)\n", file.Path, file.Checksum[:16]+"...")
+		}
+		fmt.Println()
+	}
+
+	if len(diffResult.FilesRemoved) > 0 {
+		fmt.Printf("Files Removed (%d):\n", len(diffResult.FilesRemoved))
+		for _, file := range diffResult.FilesRemoved {
+			fmt.Printf("  - %s (checksum: %s)\n", file.Path, file.Checksum[:16]+"...")
+		}
+		fmt.Println()
+	}
+
+	if len(diffResult.FilesModified) > 0 {
+		fmt.Printf("Files Modified (%d):\n", len(diffResult.FilesModified))
+		for _, file := range diffResult.FilesModified {
+			fmt.Printf("  M %s\n", file.Path)
+			fmt.Printf("    Old: %s\n", file.OldChecksum[:16]+"...")
+			fmt.Printf("    New: %s\n", file.NewChecksum[:16]+"...")
+		}
+		fmt.Println()
+	}
+
+	// Show approval changes
+	if len(diffResult.ApprovalsAdded) > 0 {
+		fmt.Printf("Approvals Added (%d):\n", len(diffResult.ApprovalsAdded))
+		for _, approval := range diffResult.ApprovalsAdded {
+			fmt.Printf("  + Role: %s, User: %s\n", approval.Role, approval.User)
+		}
+		fmt.Println()
+	}
+
+	if len(diffResult.ApprovalsRemoved) > 0 {
+		fmt.Printf("Approvals Removed (%d):\n", len(diffResult.ApprovalsRemoved))
+		for _, approval := range diffResult.ApprovalsRemoved {
+			fmt.Printf("  - Role: %s, User: %s\n", approval.Role, approval.User)
+		}
+		fmt.Println()
+	}
+
+	// Show attestation changes
+	if diffResult.AttestationChanged {
+		fmt.Println("Attestation: CHANGED")
+		fmt.Println()
+	}
+
+	// Show metadata changes
+	if diffResult.MetadataChanged {
+		fmt.Println("Metadata Changes:")
+		for key, change := range diffResult.ManifestMetadataChanges {
+			fmt.Printf("  %s: %s\n", key, change)
+		}
+		fmt.Println()
+	}
+
+	// Summary
+	fmt.Printf("Summary: %s\n", diffResult.Summary())
+
+	return nil
+}
+
 func formatValidationStatus(valid bool) string {
 	if valid {
 		return "✓ PASS"
@@ -989,6 +1164,10 @@ func init() {
 	bundleApprovalStatusCmd.Flags().BoolVar(&statusJSON, "json", false, "Output status as JSON")
 	bundleApprovalStatusCmd.MarkFlagRequired("approvals")
 
+	// Bundle diff flags
+	bundleDiffCmd.Flags().BoolVar(&diffJSON, "json", false, "Output diff as JSON")
+	bundleDiffCmd.Flags().BoolVarP(&diffQuiet, "quiet", "q", false, "Quiet mode - only exit code (0=identical, 2=different)")
+
 	// Register subcommands
 	bundleCmd.AddCommand(bundleBuildCmd)
 	bundleCmd.AddCommand(bundleVerifyCmd)
@@ -997,6 +1176,7 @@ func init() {
 	bundleCmd.AddCommand(bundlePullCmd)
 	bundleCmd.AddCommand(bundleApproveCmd)
 	bundleCmd.AddCommand(bundleApprovalStatusCmd)
+	bundleCmd.AddCommand(bundleDiffCmd)
 
 	// Register bundle command with root
 	rootCmd.AddCommand(bundleCmd)
