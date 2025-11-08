@@ -3,6 +3,7 @@ package bundle
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -458,15 +459,35 @@ func (v *Validator) verifyAttestation(result *ValidationResult) bool {
 		return false
 	}
 
-	// TODO: Implement cryptographic attestation verification
-	// This will require integration with Sigstore/cosign for signature verification
-	// For now, just validate the structure
+	// Perform cryptographic verification using AttestationVerifier
+	verifyOpts := AttestationVerificationOptions{
+		VerifySignature:   true,
+		RequireRekorEntry: false, // Rekor not yet fully implemented
+		VerifyTimestamp:   true,
+		MaxAge:            0, // No age restriction by default
+	}
 
-	result.Warnings = append(result.Warnings, ValidationWarning{
-		Code:    "ATTESTATION_NOT_VERIFIED",
-		Message: "attestation structure is valid but cryptographic verification is not yet implemented",
-		Field:   "attestation",
-	})
+	verifier := NewAttestationVerifier(verifyOpts)
+
+	// Verify attestation against bundle
+	ctx := context.Background()
+	if err := verifier.VerifyAttestation(ctx, v.bundle.Attestation, v.bundlePath); err != nil {
+		result.Errors = append(result.Errors, ValidationError{
+			Code:    ErrCodeAttestationFailed,
+			Message: fmt.Sprintf("attestation verification failed: %v", err),
+			Field:   "attestation",
+		})
+		return false
+	}
+
+	// Add informational warning about Rekor if entry exists but verification is disabled
+	if v.bundle.Attestation.HasRekorEntry() && !verifyOpts.RequireRekorEntry {
+		result.Warnings = append(result.Warnings, ValidationWarning{
+			Code:    "REKOR_NOT_VERIFIED",
+			Message: "attestation includes Rekor entry but Rekor verification is not yet fully implemented",
+			Field:   "attestation.rekor_entry",
+		})
+	}
 
 	return true
 }
