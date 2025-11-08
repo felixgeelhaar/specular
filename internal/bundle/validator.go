@@ -16,8 +16,9 @@ import (
 
 // Validator verifies bundle integrity, checksums, and signatures.
 type Validator struct {
-	opts   VerifyOptions
-	bundle *Bundle
+	opts       VerifyOptions
+	bundle     *Bundle
+	bundlePath string
 }
 
 // NewValidator creates a new bundle validator with the given options.
@@ -30,6 +31,8 @@ func NewValidator(opts VerifyOptions) *Validator {
 
 // Verify validates a bundle and returns the validation result.
 func (v *Validator) Verify(bundlePath string) (*ValidationResult, error) {
+	// Store bundle path for signature verification
+	v.bundlePath = bundlePath
 	result := &ValidationResult{
 		Valid:            true,
 		Errors:           []ValidationError{},
@@ -338,11 +341,29 @@ func (v *Validator) verifyApprovals(result *ValidationResult) bool {
 		return true
 	}
 
+	// Compute bundle digest for signature verification
+	bundleDigest, err := ComputeBundleDigest(v.bundlePath)
+	if err != nil {
+		result.Errors = append(result.Errors, ValidationError{
+			Code:    ErrCodeChecksumMismatch,
+			Message: fmt.Sprintf("failed to compute bundle digest: %v", err),
+		})
+		return false
+	}
+
+	// Create verifier for signature validation
+	verifier := NewVerifier(ApprovalVerificationOptions{
+		BundleDigest: bundleDigest,
+	})
+
 	// Check each required role has an approval
 	approvedRoles := make(map[string]bool)
+	allValid := true
+
 	for _, approval := range v.bundle.Approvals {
 		// Validate approval structure
 		if err := approval.Validate(); err != nil {
+			allValid = false
 			if verr, ok := err.(*ValidationError); ok {
 				result.Errors = append(result.Errors, *verr)
 			} else {
@@ -351,20 +372,35 @@ func (v *Validator) verifyApprovals(result *ValidationResult) bool {
 					Message: err.Error(),
 				})
 			}
-			return false
+			continue
+		}
+
+		// Verify approval signature
+		if err := verifier.VerifyApproval(approval); err != nil {
+			allValid = false
+			result.Errors = append(result.Errors, ValidationError{
+				Code:    ErrCodeInvalidSignature,
+				Message: fmt.Sprintf("signature verification failed for role %s (%s): %v",
+					approval.Role, approval.User, err),
+				Field:   "approvals",
+				Details: map[string]interface{}{
+					"role": approval.Role,
+					"user": approval.User,
+				},
+			})
+			continue
 		}
 
 		approvedRoles[approval.Role] = true
 	}
 
 	// Check all required roles are approved
-	allValid := true
 	for _, role := range requiredRoles {
 		if !approvedRoles[role] {
 			allValid = false
 			result.Errors = append(result.Errors, ValidationError{
 				Code:    ErrCodeMissingApproval,
-				Message: fmt.Sprintf("missing approval for role: %s", role),
+				Message: fmt.Sprintf("missing valid approval for role: %s", role),
 				Field:   "approvals",
 				Details: map[string]interface{}{
 					"role": role,
