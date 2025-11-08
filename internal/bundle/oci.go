@@ -67,7 +67,7 @@ func (p *OCIPusher) Push(bundlePath string) error {
 	// Parse the reference
 	ref, err := name.ParseReference(p.opts.Reference)
 	if err != nil {
-		return fmt.Errorf("invalid reference %q: %w", p.opts.Reference, err)
+		return WrapRegistryError(err, p.opts.Reference, "push")
 	}
 
 	// Get bundle info for metadata
@@ -133,7 +133,7 @@ func (p *OCIPusher) Push(bundlePath string) error {
 
 	// Push the image
 	if err := remote.Write(ref, img, remoteOpts...); err != nil {
-		return fmt.Errorf("failed to push bundle: %w", err)
+		return WrapRegistryError(err, p.opts.Reference, "push")
 	}
 
 	// Get the digest
@@ -170,7 +170,7 @@ func (p *OCIPuller) Pull(outputPath string) error {
 	// Parse the reference
 	ref, err := name.ParseReference(p.opts.Reference)
 	if err != nil {
-		return fmt.Errorf("invalid reference %q: %w", p.opts.Reference, err)
+		return WrapRegistryError(err, p.opts.Reference, "pull")
 	}
 
 	// Configure remote options
@@ -186,7 +186,7 @@ func (p *OCIPuller) Pull(outputPath string) error {
 	// Pull the image
 	img, err := remote.Image(ref, remoteOpts...)
 	if err != nil {
-		return fmt.Errorf("failed to pull image: %w", err)
+		return WrapRegistryError(err, p.opts.Reference, "pull")
 	}
 
 	// Verify it's a bundle artifact
@@ -199,21 +199,44 @@ func (p *OCIPuller) Pull(outputPath string) error {
 	if manifest.Annotations != nil {
 		if artifactType, ok := manifest.Annotations["org.opencontainers.image.artifactType"]; ok {
 			if artifactType != BundleManifestArtifactType {
-				return fmt.Errorf("invalid artifact type: expected %s, got %s",
-					BundleManifestArtifactType, artifactType)
+				return &RegistryError{
+					Type:    ErrTypeInvalidBundle,
+					Message: fmt.Sprintf("Not a Specular bundle: %s", p.opts.Reference),
+					Suggestion: fmt.Sprintf(`The artifact has type %q but expected %q.
+
+This appears to be a regular container image, not a Specular bundle.
+
+To create a bundle:
+  specular bundle build my-bundle.sbundle.tgz
+  specular bundle push my-bundle.sbundle.tgz %s`, artifactType, BundleManifestArtifactType, p.opts.Reference),
+					Reference: p.opts.Reference,
+				}
 			}
 		}
 	}
 
 	// Check media type of layers
 	if len(manifest.Layers) != 1 {
-		return fmt.Errorf("invalid bundle: expected 1 layer, got %d", len(manifest.Layers))
+		return &RegistryError{
+			Type:    ErrTypeInvalidBundle,
+			Message: fmt.Sprintf("Invalid bundle structure: expected 1 layer, got %d", len(manifest.Layers)),
+			Suggestion: `Specular bundles must contain exactly one layer (the bundle tarball).
+
+This artifact may have been created incorrectly or corrupted.`,
+			Reference: p.opts.Reference,
+		}
 	}
 
 	bundleLayer := manifest.Layers[0]
 	if bundleLayer.MediaType != types.MediaType(BundleLayerMediaType) {
-		return fmt.Errorf("invalid layer media type: expected %s, got %s",
-			BundleLayerMediaType, bundleLayer.MediaType)
+		return &RegistryError{
+			Type:    ErrTypeInvalidBundle,
+			Message: fmt.Sprintf("Invalid layer media type: expected %s, got %s", BundleLayerMediaType, bundleLayer.MediaType),
+			Suggestion: `The layer media type doesn't match Specular bundle format.
+
+This artifact may be a regular OCI artifact or container image.`,
+			Reference: p.opts.Reference,
+		}
 	}
 
 	// Get the layers
@@ -270,7 +293,7 @@ func GetRemoteBundleInfo(ref string, opts OCIOptions) (*BundleInfo, error) {
 	// Parse reference
 	parsedRef, err := name.ParseReference(ref)
 	if err != nil {
-		return nil, fmt.Errorf("invalid reference %q: %w", ref, err)
+		return nil, WrapRegistryError(err, ref, "info")
 	}
 
 	// Configure remote options
@@ -281,7 +304,7 @@ func GetRemoteBundleInfo(ref string, opts OCIOptions) (*BundleInfo, error) {
 	// Get image
 	img, err := remote.Image(parsedRef, remoteOpts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get image: %w", err)
+		return nil, WrapRegistryError(err, ref, "info")
 	}
 
 	// Get config
