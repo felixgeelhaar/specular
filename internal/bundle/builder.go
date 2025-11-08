@@ -34,9 +34,8 @@ const (
 
 // Builder creates governance bundles from project files.
 type Builder struct {
-	opts    BundleOptions
-	bundle  *Bundle
-	tempDir string
+	opts   BundleOptions
+	bundle *Bundle
 }
 
 // NewBuilder creates a new bundle builder with the given options.
@@ -128,8 +127,8 @@ func (b *Builder) loadSpec() error {
 	}
 
 	var productSpec spec.ProductSpec
-	if err := yaml.Unmarshal(data, &productSpec); err != nil {
-		return fmt.Errorf("failed to parse spec file: %w", err)
+	if unmarshalErr := yaml.Unmarshal(data, &productSpec); unmarshalErr != nil {
+		return fmt.Errorf("failed to parse spec file: %w", unmarshalErr)
 	}
 
 	b.bundle.Spec = &productSpec
@@ -144,8 +143,8 @@ func (b *Builder) loadSpecLock() error {
 	}
 
 	var specLock spec.SpecLock
-	if err := json.Unmarshal(data, &specLock); err != nil {
-		return fmt.Errorf("failed to parse spec lock file: %w", err)
+	if unmarshalErr := json.Unmarshal(data, &specLock); unmarshalErr != nil {
+		return fmt.Errorf("failed to parse spec lock file: %w", unmarshalErr)
 	}
 
 	b.bundle.SpecLock = &specLock
@@ -160,8 +159,8 @@ func (b *Builder) loadRouting() error {
 	}
 
 	var routerConfig router.Router
-	if err := yaml.Unmarshal(data, &routerConfig); err != nil {
-		return fmt.Errorf("failed to parse routing file: %w", err)
+	if unmarshalErr := yaml.Unmarshal(data, &routerConfig); unmarshalErr != nil {
+		return fmt.Errorf("failed to parse routing file: %w", unmarshalErr)
 	}
 
 	b.bundle.Routing = &routerConfig
@@ -179,8 +178,8 @@ func (b *Builder) loadPolicies() error {
 		}
 
 		var pol policy.Policy
-		if err := yaml.Unmarshal(data, &pol); err != nil {
-			return fmt.Errorf("failed to parse policy file %s: %w", policyPath, err)
+		if unmarshalErr := yaml.Unmarshal(data, &pol); unmarshalErr != nil {
+			return fmt.Errorf("failed to parse policy file %s: %w", policyPath, unmarshalErr)
 		}
 
 		policies = append(policies, &pol)
@@ -199,12 +198,12 @@ func (b *Builder) loadAdditionalFiles() error {
 		}
 
 		if info.IsDir() {
-			if err := b.loadDirectory(includePath); err != nil {
-				return fmt.Errorf("failed to load directory %s: %w", includePath, err)
+			if loadErr := b.loadDirectory(includePath); loadErr != nil {
+				return fmt.Errorf("failed to load directory %s: %w", includePath, loadErr)
 			}
 		} else {
-			if err := b.loadFile(includePath); err != nil {
-				return fmt.Errorf("failed to load file %s: %w", includePath, err)
+			if loadErr := b.loadFile(includePath); loadErr != nil {
+				return fmt.Errorf("failed to load file %s: %w", includePath, loadErr)
 			}
 		}
 	}
@@ -360,7 +359,11 @@ func (b *Builder) checksumFile(filePath, bundlePath string) (*FileEntry, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = fmt.Errorf("failed to close file %s: %w", filePath, closeErr)
+		}
+	}()
 
 	info, err := file.Stat()
 	if err != nil {
@@ -368,8 +371,8 @@ func (b *Builder) checksumFile(filePath, bundlePath string) (*FileEntry, error) 
 	}
 
 	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return nil, fmt.Errorf("failed to hash file %s: %w", filePath, err)
+	if _, copyErr := io.Copy(hash, file); copyErr != nil {
+		return nil, fmt.Errorf("failed to hash file %s: %w", filePath, copyErr)
 	}
 
 	checksum := hex.EncodeToString(hash.Sum(nil))
@@ -389,60 +392,72 @@ func (b *Builder) createTarball(outputPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer outFile.Close()
+	defer func() {
+		if closeErr := outFile.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close output file: %w", closeErr)
+		}
+	}()
 
 	// Create gzip writer
 	gzWriter := gzip.NewWriter(outFile)
-	defer gzWriter.Close()
+	defer func() {
+		if closeErr := gzWriter.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close gzip writer: %w", closeErr)
+		}
+	}()
 
 	// Create tar writer
 	tarWriter := tar.NewWriter(gzWriter)
-	defer tarWriter.Close()
+	defer func() {
+		if closeErr := tarWriter.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close tar writer: %w", closeErr)
+		}
+	}()
 
 	// Write manifest
-	if err := b.writeManifestToTar(tarWriter); err != nil {
-		return fmt.Errorf("failed to write manifest: %w", err)
+	if writeErr := b.writeManifestToTar(tarWriter); writeErr != nil {
+		return fmt.Errorf("failed to write manifest: %w", writeErr)
 	}
 
 	// Write spec file
 	if b.opts.SpecPath != "" {
-		if err := b.writeFileToTar(tarWriter, b.opts.SpecPath, "spec.yaml"); err != nil {
-			return fmt.Errorf("failed to write spec: %w", err)
+		if writeErr := b.writeFileToTar(tarWriter, b.opts.SpecPath, "spec.yaml"); writeErr != nil {
+			return fmt.Errorf("failed to write spec: %w", writeErr)
 		}
 	}
 
 	// Write lock file
 	if b.opts.LockPath != "" {
-		if err := b.writeFileToTar(tarWriter, b.opts.LockPath, "spec.lock.json"); err != nil {
-			return fmt.Errorf("failed to write lock: %w", err)
+		if writeErr := b.writeFileToTar(tarWriter, b.opts.LockPath, "spec.lock.json"); writeErr != nil {
+			return fmt.Errorf("failed to write lock: %w", writeErr)
 		}
 	}
 
 	// Write routing file
 	if b.opts.RoutingPath != "" {
-		if err := b.writeFileToTar(tarWriter, b.opts.RoutingPath, "routing.yaml"); err != nil {
-			return fmt.Errorf("failed to write routing: %w", err)
+		if writeErr := b.writeFileToTar(tarWriter, b.opts.RoutingPath, "routing.yaml"); writeErr != nil {
+			return fmt.Errorf("failed to write routing: %w", writeErr)
 		}
 	}
 
 	// Write policy files
 	for i, policyPath := range b.opts.PolicyPaths {
 		bundlePath := fmt.Sprintf("policies/policy_%d.yaml", i)
-		if err := b.writeFileToTar(tarWriter, policyPath, bundlePath); err != nil {
-			return fmt.Errorf("failed to write policy: %w", err)
+		if writeErr := b.writeFileToTar(tarWriter, policyPath, bundlePath); writeErr != nil {
+			return fmt.Errorf("failed to write policy: %w", writeErr)
 		}
 	}
 
 	// Write additional files
 	for path, data := range b.bundle.AdditionalFiles {
-		if err := b.writeBytesToTar(tarWriter, data, path); err != nil {
-			return fmt.Errorf("failed to write additional file %s: %w", path, err)
+		if writeErr := b.writeBytesToTar(tarWriter, data, path); writeErr != nil {
+			return fmt.Errorf("failed to write additional file %s: %w", path, writeErr)
 		}
 	}
 
 	// Write checksums file
-	if err := b.writeChecksumsToTar(tarWriter); err != nil {
-		return fmt.Errorf("failed to write checksums: %w", err)
+	if writeErr := b.writeChecksumsToTar(tarWriter); writeErr != nil {
+		return fmt.Errorf("failed to write checksums: %w", writeErr)
 	}
 
 	return nil
