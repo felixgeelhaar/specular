@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -401,6 +402,49 @@ func runBundleBuild(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("\n✓ Bundle created successfully: %s (%.2f MB)\n", output, float64(info.Size())/(1024*1024))
 
+	// Generate attestation if requested
+	if buildAttest && buildAttestFmt != "" {
+		fmt.Printf("\nGenerating %s attestation...\n", buildAttestFmt)
+
+		// Determine attestation format
+		var format bundle.AttestationFormat
+		switch buildAttestFmt {
+		case "sigstore":
+			format = bundle.AttestationFormatSigstore
+		case "in-toto":
+			format = bundle.AttestationFormatInToto
+		case "slsa":
+			format = bundle.AttestationFormatSLSA
+		default:
+			return fmt.Errorf("unsupported attestation format: %s (supported: sigstore, in-toto, slsa)", buildAttestFmt)
+		}
+
+		// Create attestation generator
+		attestOpts := bundle.AttestationOptions{
+			Format:             format,
+			UseKeyless:         false, // For now, require key-based signing
+			IncludeRekorEntry:  false, // Rekor not yet implemented
+		}
+
+		generator := bundle.NewAttestationGenerator(attestOpts)
+
+		// Generate attestation
+		ctx := context.Background()
+		attestation, err := generator.GenerateAttestation(ctx, output)
+		if err != nil {
+			fmt.Printf("⚠ Warning: Failed to generate attestation: %v\n", err)
+			fmt.Println("Continuing without attestation...")
+		} else {
+			// Save attestation to bundle
+			if err := bundle.AddAttestationToBundle(output, attestation); err != nil {
+				fmt.Printf("⚠ Warning: Failed to add attestation to bundle: %v\n", err)
+				fmt.Println("Continuing without attestation...")
+			} else {
+				fmt.Printf("✓ Attestation generated and added to bundle\n")
+			}
+		}
+	}
+
 	// Get bundle info
 	bundleInfo, err := bundle.GetBundleInfo(output)
 	if err == nil {
@@ -414,6 +458,9 @@ func runBundleBuild(cmd *cobra.Command, args []string) error {
 		}
 		if bundleInfo.IntegrityDigest != "" {
 			fmt.Printf("  Digest:  %s\n", bundleInfo.IntegrityDigest)
+		}
+		if buildAttest {
+			fmt.Printf("  Attestation: %s\n", buildAttestFmt)
 		}
 	}
 
