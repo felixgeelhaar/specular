@@ -1,6 +1,9 @@
 package bundle
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Approval represents a team member's approval signature on a bundle.
 // Approvals provide multi-stakeholder sign-off for governance bundles,
@@ -177,4 +180,9 @@ func (a *Approval) MatchesFingerprint(fingerprint string) bool {
 		return false
 	}
 	return a.PublicKeyFingerprint == fingerprint
+}
+
+// ToJSON marshals the approval to pretty-printed JSON.
+func (a *Approval) ToJSON() ([]byte, error) {
+	return json.MarshalIndent(a, "", "  ")
 }

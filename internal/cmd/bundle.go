@@ -132,6 +132,16 @@ var (
 	pullOutput    string
 )
 
+// Bundle approve command flags
+var (
+	approveRole      string
+	approveUser      string
+	approveComment   string
+	approveSigType   string
+	approveKeyPath   string
+	approveOutput    string
+)
+
 var bundleApplyCmd = &cobra.Command{
 	Use:   "apply <bundle>",
 	Short: "Apply a governance bundle to a project",
@@ -220,6 +230,55 @@ Examples:
   specular bundle pull --insecure localhost:5000/bundle:test`,
 	Args: cobra.RangeArgs(1, 2),
 	RunE: runBundlePull,
+}
+
+var bundleApproveCmd = &cobra.Command{
+	Use:   "approve <bundle>",
+	Short: "Sign a bundle approval with SSH/GPG key",
+	Long: `Create a cryptographic approval signature for a governance bundle.
+
+Approvals represent stakeholder sign-off for governance decisions. Each approval
+includes:
+- Role (e.g., pm, lead, security, legal)
+- User identifier (email or username)
+- Timestamp
+- Cryptographic signature (SSH or GPG)
+- Optional comment
+
+The signature proves that a specific individual in a specific role approved the
+bundle at a specific time.
+
+Supported signature types:
+- SSH (default) - Uses SSH keys (~/.ssh/id_ed25519, id_rsa, etc.)
+- GPG - Uses GPG keys from gpg keyring
+
+Examples:
+  # Approve as product manager with default SSH key
+  specular bundle approve bundle.sbundle.tgz \
+    --role pm \
+    --user alice@example.com \
+    --comment "Approved for Q1 release"
+
+  # Approve with specific SSH key
+  specular bundle approve bundle.sbundle.tgz \
+    --role security \
+    --user bob@example.com \
+    --key-path ~/.ssh/work_id_ed25519
+
+  # Approve with GPG key
+  specular bundle approve bundle.sbundle.tgz \
+    --role lead \
+    --user charlie@example.com \
+    --signature-type gpg \
+    --key-path F3A29C8B
+
+  # Save approval to specific file
+  specular bundle approve bundle.sbundle.tgz \
+    --role pm \
+    --user alice@example.com \
+    --output approvals/pm-alice.json`,
+	Args: cobra.ExactArgs(1),
+	RunE: runBundleApprove,
 }
 
 func runBundleBuild(cmd *cobra.Command, args []string) error {
@@ -513,6 +572,99 @@ func runBundlePull(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func runBundleApprove(cmd *cobra.Command, args []string) error {
+	bundlePath := args[0]
+
+	// Check bundle exists
+	if _, err := os.Stat(bundlePath); os.IsNotExist(err) {
+		return ux.FormatError(err, "bundle not found")
+	}
+
+	// Validate required flags
+	if approveRole == "" {
+		return fmt.Errorf("--role is required (e.g., pm, lead, security, legal)")
+	}
+	if approveUser == "" {
+		return fmt.Errorf("--user is required (e.g., your email or username)")
+	}
+
+	// Compute bundle digest
+	fmt.Println("Computing bundle digest...")
+	digest, err := bundle.ComputeBundleDigest(bundlePath)
+	if err != nil {
+		return ux.FormatError(err, "computing bundle digest")
+	}
+
+	fmt.Printf("Bundle digest: %s\n\n", digest)
+
+	// Parse signature type
+	sigType := bundle.SignatureType(approveSigType)
+	if sigType == "" {
+		sigType = bundle.SignatureTypeSSH // Default to SSH
+	}
+
+	// Create approval request
+	req := bundle.ApprovalRequest{
+		BundleDigest:  digest,
+		Role:          approveRole,
+		User:          approveUser,
+		Comment:       approveComment,
+		SignatureType: sigType,
+		KeyPath:       approveKeyPath,
+	}
+
+	// Create signer
+	signer := bundle.NewSigner(sigType, approveKeyPath)
+
+	// Sign approval
+	fmt.Printf("Creating %s signature...\n", sigType)
+	approval, err := signer.SignApproval(req)
+	if err != nil {
+		return ux.FormatError(err, "signing approval")
+	}
+
+	fmt.Println("✓ Approval signed successfully")
+	fmt.Println()
+
+	// Display approval details
+	fmt.Println("Approval Details:")
+	fmt.Printf("  Role:      %s\n", approval.Role)
+	fmt.Printf("  User:      %s\n", approval.User)
+	fmt.Printf("  Signed At: %s\n", approval.SignedAt.Format("2006-01-02 15:04:05"))
+	fmt.Printf("  Signature: %s\n", sigType)
+	if approval.PublicKeyFingerprint != "" {
+		fmt.Printf("  Key:       %s\n", approval.PublicKeyFingerprint)
+	}
+	if approval.Comment != "" {
+		fmt.Printf("  Comment:   %s\n", approval.Comment)
+	}
+
+	// Determine output path
+	output := approveOutput
+	if output == "" {
+		// Generate default output filename
+		bundleBase := filepath.Base(bundlePath)
+		bundleBase = strings.TrimSuffix(bundleBase, ".sbundle.tgz")
+		bundleBase = strings.TrimSuffix(bundleBase, ".tgz")
+		output = fmt.Sprintf("%s-%s-%s-approval.json", bundleBase, approveRole, approval.SignedAt.Format("20060102-150405"))
+	}
+
+	// Write approval to file
+	approvalJSON, err := approval.ToJSON()
+	if err != nil {
+		return ux.FormatError(err, "marshaling approval")
+	}
+
+	if err := os.WriteFile(output, approvalJSON, 0644); err != nil {
+		return ux.FormatError(err, "writing approval file")
+	}
+
+	fmt.Println()
+	fmt.Printf("✓ Approval saved to: %s\n", output)
+
+	return nil
+}
+
 func formatValidationStatus(valid bool) string {
 	if valid {
 		return "✓ PASS"
@@ -559,12 +711,23 @@ func init() {
 	bundlePullCmd.Flags().StringVarP(&pullOutput, "output", "o", "", "Output bundle path (default: derived from reference)")
 	bundlePullCmd.Flags().StringVar(&pullUserAgent, "user-agent", "", "Custom user agent for registry requests")
 
+	// Bundle approve flags
+	bundleApproveCmd.Flags().StringVarP(&approveRole, "role", "r", "", "Approval role (e.g., pm, lead, security, legal) - REQUIRED")
+	bundleApproveCmd.Flags().StringVarP(&approveUser, "user", "u", "", "Approver identifier (email or username) - REQUIRED")
+	bundleApproveCmd.Flags().StringVarP(&approveComment, "comment", "c", "", "Approval comment")
+	bundleApproveCmd.Flags().StringVar(&approveSigType, "signature-type", "ssh", "Signature type (ssh, gpg)")
+	bundleApproveCmd.Flags().StringVarP(&approveKeyPath, "key-path", "k", "", "Path to private key (default: auto-detect)")
+	bundleApproveCmd.Flags().StringVarP(&approveOutput, "output", "o", "", "Output approval file path (default: auto-generated)")
+	bundleApproveCmd.MarkFlagRequired("role")
+	bundleApproveCmd.MarkFlagRequired("user")
+
 	// Register subcommands
 	bundleCmd.AddCommand(bundleBuildCmd)
 	bundleCmd.AddCommand(bundleVerifyCmd)
 	bundleCmd.AddCommand(bundleApplyCmd)
 	bundleCmd.AddCommand(bundlePushCmd)
 	bundleCmd.AddCommand(bundlePullCmd)
+	bundleCmd.AddCommand(bundleApproveCmd)
 
 	// Register bundle command with root
 	rootCmd.AddCommand(bundleCmd)
