@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -142,6 +143,13 @@ var (
 	approveOutput    string
 )
 
+// Bundle approval-status command flags
+var (
+	statusApprovals     []string
+	statusRequiredRoles []string
+	statusJSON          bool
+)
+
 var bundleApplyCmd = &cobra.Command{
 	Use:   "apply <bundle>",
 	Short: "Apply a governance bundle to a project",
@@ -279,6 +287,46 @@ Examples:
     --output approvals/pm-alice.json`,
 	Args: cobra.ExactArgs(1),
 	RunE: runBundleApprove,
+}
+
+var bundleApprovalStatusCmd = &cobra.Command{
+	Use:   "approval-status <bundle>",
+	Short: "Show approval progress for a bundle",
+	Long: `Display approval status and verify signatures for a governance bundle.
+
+This command:
+1. Computes the bundle digest
+2. Loads approval files from the specified paths
+3. Verifies each approval signature against the bundle digest
+4. Shows which roles have approved and which are missing
+5. Displays approval details (who, when, signature status)
+
+Use this command to:
+- Check if a bundle has all required approvals before applying
+- Verify approval signatures are valid
+- Audit who approved a bundle and when
+- Track approval progress during governance workflows
+
+Examples:
+  # Check approval status with approval files
+  specular bundle approval-status bundle.sbundle.tgz \
+    --approvals pm-approval.json,lead-approval.json
+
+  # Check status and require specific roles
+  specular bundle approval-status bundle.sbundle.tgz \
+    --approvals *.json \
+    --required-roles pm,lead,security
+
+  # Output status as JSON for scripting
+  specular bundle approval-status bundle.sbundle.tgz \
+    --approvals approvals/*.json \
+    --json
+
+  # Check status from approval directory
+  specular bundle approval-status bundle.sbundle.tgz \
+    --approvals approvals/pm-*.json,approvals/lead-*.json`,
+	Args: cobra.ExactArgs(1),
+	RunE: runBundleApprovalStatus,
 }
 
 func runBundleBuild(cmd *cobra.Command, args []string) error {
@@ -665,6 +713,173 @@ func runBundleApprove(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func runBundleApprovalStatus(cmd *cobra.Command, args []string) error {
+	bundlePath := args[0]
+
+	// Check bundle exists
+	if _, err := os.Stat(bundlePath); os.IsNotExist(err) {
+		return ux.FormatError(err, "bundle not found")
+	}
+
+	// Check approval files provided
+	if len(statusApprovals) == 0 {
+		return fmt.Errorf("at least one approval file is required (use --approvals)")
+	}
+
+	// Compute bundle digest
+	fmt.Println("Computing bundle digest...")
+	digest, err := bundle.ComputeBundleDigest(bundlePath)
+	if err != nil {
+		return ux.FormatError(err, "computing bundle digest")
+	}
+
+	fmt.Printf("Bundle digest: %s\n\n", digest)
+
+	// Load approval files
+	fmt.Println("Loading approval files...")
+	var approvals []*bundle.Approval
+	for _, approvalPath := range statusApprovals {
+		data, err := os.ReadFile(approvalPath)
+		if err != nil {
+			fmt.Printf("⚠ Warning: Failed to read %s: %v\n", approvalPath, err)
+			continue
+		}
+
+		var approval bundle.Approval
+		if err := json.Unmarshal(data, &approval); err != nil {
+			fmt.Printf("⚠ Warning: Failed to parse %s: %v\n", approvalPath, err)
+			continue
+		}
+
+		approvals = append(approvals, &approval)
+	}
+
+	if len(approvals) == 0 {
+		return fmt.Errorf("no valid approval files found")
+	}
+
+	fmt.Printf("Loaded %d approval(s)\n\n", len(approvals))
+
+	// Verify each approval
+	fmt.Println("Verifying approval signatures...")
+	verifiedRoles := make(map[string]*bundle.Approval)
+	var verificationErrors []string
+
+	for _, approval := range approvals {
+		// Create verifier
+		verifier := bundle.NewVerifier(bundle.ApprovalVerificationOptions{
+			BundleDigest: digest,
+		})
+
+		// Verify signature
+		if err := verifier.VerifyApproval(approval); err != nil {
+			verificationErrors = append(verificationErrors,
+				fmt.Sprintf("Role %s (%s): ✗ INVALID - %v", approval.Role, approval.User, err))
+		} else {
+			fmt.Printf("✓ Role %s (%s): Valid signature\n", approval.Role, approval.User)
+			verifiedRoles[approval.Role] = approval
+		}
+	}
+
+	// Show verification errors if any
+	if len(verificationErrors) > 0 {
+		fmt.Println()
+		fmt.Println("Verification Errors:")
+		for _, errMsg := range verificationErrors {
+			fmt.Printf("  %s\n", errMsg)
+		}
+	}
+
+	fmt.Println()
+
+	// Check required roles if specified
+	if len(statusRequiredRoles) > 0 {
+		fmt.Println("Checking required roles...")
+		var missingRoles []string
+		for _, requiredRole := range statusRequiredRoles {
+			if _, exists := verifiedRoles[requiredRole]; !exists {
+				missingRoles = append(missingRoles, requiredRole)
+				fmt.Printf("✗ %s: Missing or invalid approval\n", requiredRole)
+			} else {
+				fmt.Printf("✓ %s: Approved\n", requiredRole)
+			}
+		}
+
+		fmt.Println()
+
+		if len(missingRoles) > 0 {
+			fmt.Printf("⚠ Bundle is missing %d required approval(s): %s\n",
+				len(missingRoles), strings.Join(missingRoles, ", "))
+			fmt.Println()
+			return fmt.Errorf("bundle requires approvals from: %s", strings.Join(missingRoles, ", "))
+		}
+
+		fmt.Println("✓ All required roles have approved")
+	}
+
+	// Display approval summary
+	if !statusJSON {
+		fmt.Println()
+		fmt.Println("Approval Summary:")
+		fmt.Printf("  Total approvals: %d\n", len(verifiedRoles))
+		fmt.Printf("  Valid signatures: %d\n", len(verifiedRoles))
+		fmt.Printf("  Invalid signatures: %d\n", len(verificationErrors))
+
+		if len(verifiedRoles) > 0 {
+			fmt.Println()
+			fmt.Println("Approved by:")
+			for role, approval := range verifiedRoles {
+				fmt.Printf("  - %s: %s (signed %s)\n",
+					role,
+					approval.User,
+					approval.SignedAt.Format("2006-01-02 15:04:05"))
+				if approval.Comment != "" {
+					fmt.Printf("    Comment: %s\n", approval.Comment)
+				}
+			}
+		}
+	} else {
+		// Output as JSON
+		type ApprovalStatus struct {
+			BundleDigest     string                        `json:"bundle_digest"`
+			TotalApprovals   int                           `json:"total_approvals"`
+			ValidApprovals   int                           `json:"valid_approvals"`
+			InvalidApprovals int                           `json:"invalid_approvals"`
+			VerifiedRoles    map[string]*bundle.Approval   `json:"verified_roles"`
+			MissingRoles     []string                      `json:"missing_roles,omitempty"`
+			Errors           []string                      `json:"errors,omitempty"`
+		}
+
+		missingRoles := []string{}
+		if len(statusRequiredRoles) > 0 {
+			for _, requiredRole := range statusRequiredRoles {
+				if _, exists := verifiedRoles[requiredRole]; !exists {
+					missingRoles = append(missingRoles, requiredRole)
+				}
+			}
+		}
+
+		status := ApprovalStatus{
+			BundleDigest:     digest,
+			TotalApprovals:   len(approvals),
+			ValidApprovals:   len(verifiedRoles),
+			InvalidApprovals: len(verificationErrors),
+			VerifiedRoles:    verifiedRoles,
+			MissingRoles:     missingRoles,
+			Errors:           verificationErrors,
+		}
+
+		output, err := json.MarshalIndent(status, "", "  ")
+		if err != nil {
+			return ux.FormatError(err, "marshaling status")
+		}
+
+		fmt.Println(string(output))
+	}
+
+	return nil
+}
+
 func formatValidationStatus(valid bool) string {
 	if valid {
 		return "✓ PASS"
@@ -721,6 +936,12 @@ func init() {
 	bundleApproveCmd.MarkFlagRequired("role")
 	bundleApproveCmd.MarkFlagRequired("user")
 
+	// Bundle approval-status flags
+	bundleApprovalStatusCmd.Flags().StringSliceVarP(&statusApprovals, "approvals", "a", nil, "Approval file paths (comma-separated) - REQUIRED")
+	bundleApprovalStatusCmd.Flags().StringSliceVarP(&statusRequiredRoles, "required-roles", "r", nil, "Required roles (comma-separated)")
+	bundleApprovalStatusCmd.Flags().BoolVar(&statusJSON, "json", false, "Output status as JSON")
+	bundleApprovalStatusCmd.MarkFlagRequired("approvals")
+
 	// Register subcommands
 	bundleCmd.AddCommand(bundleBuildCmd)
 	bundleCmd.AddCommand(bundleVerifyCmd)
@@ -728,6 +949,7 @@ func init() {
 	bundleCmd.AddCommand(bundlePushCmd)
 	bundleCmd.AddCommand(bundlePullCmd)
 	bundleCmd.AddCommand(bundleApproveCmd)
+	bundleCmd.AddCommand(bundleApprovalStatusCmd)
 
 	// Register bundle command with root
 	rootCmd.AddCommand(bundleCmd)
