@@ -120,7 +120,8 @@ func (e *ExecutableProvider) Generate(ctx context.Context, req *GenerateRequest)
 	// Write request to stdin
 	go func() {
 		defer stdin.Close()
-		stdin.Write(requestJSON)
+		// Best effort write, command will fail if stdin not written
+		_, _ = stdin.Write(requestJSON)
 	}()
 
 	// Execute and capture output
@@ -219,7 +220,8 @@ func (e *ExecutableProvider) Stream(ctx context.Context, req *GenerateRequest) (
 		}
 
 		// Wait for command to finish
-		cmd.Wait()
+		// Best effort cleanup in goroutine
+		_ = cmd.Wait()
 	}()
 
 	return chunkChan, nil
@@ -243,15 +245,14 @@ func (e *ExecutableProvider) IsAvailable() bool {
 
 // Health performs a health check by calling the provider with a simple request
 func (e *ExecutableProvider) Health(ctx context.Context) error {
-	// Build health check command
+	// Build health check command with timeout
 	cmdArgs := append(e.args, "health")
-	cmd := exec.CommandContext(ctx, e.path, cmdArgs...)
 
 	// Set a timeout for health check
 	healthCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	cmd = exec.CommandContext(healthCtx, e.path, cmdArgs...)
+	cmd := exec.CommandContext(healthCtx, e.path, cmdArgs...)
 
 	// Run health check
 	if err := cmd.Run(); err != nil {

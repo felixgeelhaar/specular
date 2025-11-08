@@ -220,7 +220,7 @@ func handleStream() error {
 			Timestamp: time.Now(),
 		}
 		encoder := json.NewEncoder(os.Stdout)
-		encoder.Encode(chunk)
+		_ = encoder.Encode(chunk) // Best effort to send error chunk, ignore encoding errors
 		return err
 	}
 

@@ -118,7 +118,7 @@ func TestGeminiProvider_Generate(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -214,7 +214,7 @@ func TestGeminiProvider_Generate_WithContext(t *testing.T) {
 			UsageMetadata: &geminiUsage{TotalTokenCount: 30},
 		}
 
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -270,7 +270,7 @@ func TestGeminiProvider_Generate_ModelOverride(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -327,7 +327,7 @@ func TestGeminiProvider_Stream(t *testing.T) {
 		}
 
 		for _, chunk := range chunks {
-			w.Write([]byte("data: " + chunk + "\n\n"))
+			_, _ = w.Write([]byte("data: " + chunk + "\n\n"))
 			flusher.Flush()
 			time.Sleep(10 * time.Millisecond)
 		}
@@ -516,7 +516,7 @@ func TestGeminiProvider_Generate_APIError(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -571,7 +571,7 @@ func TestGeminiProvider_Health(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -603,7 +603,7 @@ func TestGeminiProvider_Health_Error(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 

@@ -345,7 +345,7 @@ func TestIntegration_OpenAIProvider(t *testing.T) {
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	}))
 	defer server.Close()
@@ -475,7 +475,7 @@ func TestIntegration_AnthropicProvider(t *testing.T) {
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	}))
 	defer server.Close()
@@ -594,7 +594,7 @@ func TestIntegration_MultiProviderRegistry(t *testing.T) {
 			},
 			Usage: openAIUsage{TotalTokens: 10},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer openaiServer.Close()
 
@@ -606,7 +606,7 @@ func TestIntegration_MultiProviderRegistry(t *testing.T) {
 			},
 			Usage: anthropicUsage{InputTokens: 5, OutputTokens: 5},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer anthropicServer.Close()
 

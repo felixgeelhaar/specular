@@ -308,7 +308,7 @@ func handleStream() error {
 				ErrorMsg:  fmt.Sprintf("failed to parse ollama response: %v", err),
 				Timestamp: time.Now(),
 			}
-			encoder.Encode(chunk)
+			_ = encoder.Encode(chunk) // Best effort to send error chunk, ignore encoding errors
 			return err
 		}
 

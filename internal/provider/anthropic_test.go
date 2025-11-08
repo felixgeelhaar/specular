@@ -117,7 +117,7 @@ func TestAnthropicProvider_Generate(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -176,7 +176,7 @@ func TestAnthropicProvider_Generate_WithSystemPrompt(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Parse request
 		var req anthropicRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		// Verify system prompt is separate field
 		if req.System != "You are helpful." {
@@ -193,7 +193,7 @@ func TestAnthropicProvider_Generate_WithSystemPrompt(t *testing.T) {
 				OutputTokens: 2,
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -258,7 +258,7 @@ func TestAnthropicProvider_Generate_Error(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(tt.response)
+				_ = json.NewEncoder(w).Encode(tt.response)
 			}))
 			defer server.Close()
 
@@ -290,7 +290,7 @@ func TestAnthropicProvider_Stream(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify streaming is requested
 		var req anthropicRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		if !req.Stream {
 			t.Error("stream not requested")
 		}
@@ -300,8 +300,8 @@ func TestAnthropicProvider_Stream(t *testing.T) {
 		flusher := w.(http.Flusher)
 
 		// Message start event
-		w.Write([]byte("event: message_start\n"))
-		w.Write([]byte("data: {\"type\":\"message_start\"}\n\n"))
+		_, _ = w.Write([]byte("event: message_start\n"))
+		_, _ = w.Write([]byte("data: {\"type\":\"message_start\"}\n\n"))
 		flusher.Flush()
 
 		// Content block delta 1
@@ -313,8 +313,8 @@ func TestAnthropicProvider_Stream(t *testing.T) {
 			},
 		}
 		data, _ := json.Marshal(delta1)
-		w.Write([]byte("event: content_block_delta\n"))
-		w.Write([]byte("data: " + string(data) + "\n\n"))
+		_, _ = w.Write([]byte("event: content_block_delta\n"))
+		_, _ = w.Write([]byte("data: " + string(data) + "\n\n"))
 		flusher.Flush()
 
 		// Content block delta 2
@@ -326,8 +326,8 @@ func TestAnthropicProvider_Stream(t *testing.T) {
 			},
 		}
 		data, _ = json.Marshal(delta2)
-		w.Write([]byte("event: content_block_delta\n"))
-		w.Write([]byte("data: " + string(data) + "\n\n"))
+		_, _ = w.Write([]byte("event: content_block_delta\n"))
+		_, _ = w.Write([]byte("data: " + string(data) + "\n\n"))
 		flusher.Flush()
 
 		// Content block delta 3
@@ -339,13 +339,13 @@ func TestAnthropicProvider_Stream(t *testing.T) {
 			},
 		}
 		data, _ = json.Marshal(delta3)
-		w.Write([]byte("event: content_block_delta\n"))
-		w.Write([]byte("data: " + string(data) + "\n\n"))
+		_, _ = w.Write([]byte("event: content_block_delta\n"))
+		_, _ = w.Write([]byte("data: " + string(data) + "\n\n"))
 		flusher.Flush()
 
 		// Message stop event
-		w.Write([]byte("event: message_stop\n"))
-		w.Write([]byte("data: {\"type\":\"message_stop\"}\n\n"))
+		_, _ = w.Write([]byte("event: message_stop\n"))
+		_, _ = w.Write([]byte("data: {\"type\":\"message_stop\"}\n\n"))
 		flusher.Flush()
 	}))
 	defer server.Close()
@@ -493,7 +493,7 @@ func TestAnthropicProvider_Health(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/messages" {
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(anthropicResponse{
+			_ = json.NewEncoder(w).Encode(anthropicResponse{
 				Content: []anthropicContent{
 					{Type: "text", Text: "pong"},
 				},
@@ -525,7 +525,7 @@ func TestAnthropicProvider_Health_Error(t *testing.T) {
 	// Mock failed health check
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(anthropicResponse{
+		_ = json.NewEncoder(w).Encode(anthropicResponse{
 			Error: &anthropicError{
 				Type:    "authentication_error",
 				Message: "Invalid API key",

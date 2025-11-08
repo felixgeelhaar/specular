@@ -116,7 +116,7 @@ func TestOpenAIProvider_Generate(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -175,7 +175,7 @@ func TestOpenAIProvider_Generate_WithSystemPrompt(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Parse request
 		var req openAIRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		// Verify system message
 		if len(req.Messages) < 2 {
@@ -196,7 +196,7 @@ func TestOpenAIProvider_Generate_WithSystemPrompt(t *testing.T) {
 			},
 			Usage: openAIUsage{TotalTokens: 10},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -261,7 +261,7 @@ func TestOpenAIProvider_Generate_Error(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(tt.response)
+				_ = json.NewEncoder(w).Encode(tt.response)
 			}))
 			defer server.Close()
 
@@ -293,7 +293,7 @@ func TestOpenAIProvider_Stream(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify streaming is requested
 		var req openAIRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		if !req.Stream {
 			t.Error("stream not requested")
 		}
@@ -309,7 +309,7 @@ func TestOpenAIProvider_Stream(t *testing.T) {
 			},
 		}
 		data, _ := json.Marshal(chunk1)
-		w.Write([]byte("data: " + string(data) + "\n\n"))
+		_, _ = w.Write([]byte("data: " + string(data) + "\n\n"))
 		flusher.Flush()
 
 		// Chunk 2
@@ -319,7 +319,7 @@ func TestOpenAIProvider_Stream(t *testing.T) {
 			},
 		}
 		data, _ = json.Marshal(chunk2)
-		w.Write([]byte("data: " + string(data) + "\n\n"))
+		_, _ = w.Write([]byte("data: " + string(data) + "\n\n"))
 		flusher.Flush()
 
 		// Chunk 3
@@ -329,11 +329,11 @@ func TestOpenAIProvider_Stream(t *testing.T) {
 			},
 		}
 		data, _ = json.Marshal(chunk3)
-		w.Write([]byte("data: " + string(data) + "\n\n"))
+		_, _ = w.Write([]byte("data: " + string(data) + "\n\n"))
 		flusher.Flush()
 
 		// Done marker
-		w.Write([]byte("data: [DONE]\n\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
 		flusher.Flush()
 	}))
 	defer server.Close()
@@ -478,7 +478,7 @@ func TestOpenAIProvider_Health(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/models" {
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"data": []map[string]string{
 					{"id": "gpt-4o-mini"},
 				},
