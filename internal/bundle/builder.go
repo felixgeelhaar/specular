@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/policy"
@@ -275,52 +276,71 @@ func (b *Builder) createManifest() error {
 	return nil
 }
 
-// calculateChecksums calculates SHA-256 checksums for all files in the bundle.
+// calculateChecksums calculates SHA-256 checksums for all files in the bundle using parallel processing.
 func (b *Builder) calculateChecksums() error {
-	fileEntries := []FileEntry{}
+	// Define checksum task structure
+	type checksumTask struct {
+		filePath   string
+		bundlePath string
+	}
 
-	// Checksum spec file
+	// Collect all physical files to checksum
+	tasks := []checksumTask{}
+
 	if b.opts.SpecPath != "" {
-		entry, err := b.checksumFile(b.opts.SpecPath, "spec.yaml")
-		if err != nil {
-			return err
-		}
-		fileEntries = append(fileEntries, *entry)
-		b.bundle.Checksums["spec.yaml"] = entry.Checksum
+		tasks = append(tasks, checksumTask{b.opts.SpecPath, "spec.yaml"})
 	}
 
-	// Checksum lock file
 	if b.opts.LockPath != "" {
-		entry, err := b.checksumFile(b.opts.LockPath, "spec.lock.json")
-		if err != nil {
-			return err
-		}
-		fileEntries = append(fileEntries, *entry)
-		b.bundle.Checksums["spec.lock.json"] = entry.Checksum
+		tasks = append(tasks, checksumTask{b.opts.LockPath, "spec.lock.json"})
 	}
 
-	// Checksum routing file
 	if b.opts.RoutingPath != "" {
-		entry, err := b.checksumFile(b.opts.RoutingPath, "routing.yaml")
-		if err != nil {
-			return err
-		}
-		fileEntries = append(fileEntries, *entry)
-		b.bundle.Checksums["routing.yaml"] = entry.Checksum
+		tasks = append(tasks, checksumTask{b.opts.RoutingPath, "routing.yaml"})
 	}
 
-	// Checksum policy files
 	for i, policyPath := range b.opts.PolicyPaths {
 		bundlePath := fmt.Sprintf("policies/policy_%d.yaml", i)
-		entry, err := b.checksumFile(policyPath, bundlePath)
-		if err != nil {
-			return err
-		}
-		fileEntries = append(fileEntries, *entry)
-		b.bundle.Checksums[bundlePath] = entry.Checksum
+		tasks = append(tasks, checksumTask{policyPath, bundlePath})
 	}
 
-	// Checksum additional files
+	// Process physical files in parallel
+	fileEntries := make([]FileEntry, 0, len(tasks)+len(b.bundle.AdditionalFiles))
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(tasks))
+
+	for _, task := range tasks {
+		wg.Add(1)
+		go func(t checksumTask) {
+			defer wg.Done()
+
+			entry, err := b.checksumFile(t.filePath, t.bundlePath)
+			if err != nil {
+				select {
+				case errChan <- err:
+				default:
+				}
+				return
+			}
+
+			mu.Lock()
+			fileEntries = append(fileEntries, *entry)
+			b.bundle.Checksums[t.bundlePath] = entry.Checksum
+			mu.Unlock()
+		}(task)
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+	close(errChan)
+
+	// Check for errors
+	if err := <-errChan; err != nil {
+		return err
+	}
+
+	// Checksum additional files (already in memory, no I/O needed)
 	for path, data := range b.bundle.AdditionalFiles {
 		checksum := sha256.Sum256(data)
 		checksumHex := hex.EncodeToString(checksum[:])
