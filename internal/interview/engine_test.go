@@ -92,7 +92,7 @@ func TestEngineValidation(t *testing.T) {
 		t.Fatalf("NewEngine() failed: %v", err)
 	}
 
-	engine.Start()
+	_ = engine.Start()
 
 	tests := []struct {
 		name    string
@@ -158,19 +158,19 @@ func TestSkipLogic(t *testing.T) {
 		t.Fatalf("NewEngine() failed: %v", err)
 	}
 
-	engine.Start()
+	_ = engine.Start()
 
 	// Navigate to auth-required question
 	for i := 0; i < 4; i++ {
 		q, _ := engine.CurrentQuestion()
-		engine.Answer(Answer{Value: "test"})
+		_, _ = engine.Answer(Answer{Value: "test"})
 		if q.ID == "auth-required" {
 			break
 		}
 	}
 
 	// Answer "no" to auth-required
-	engine.Answer(Answer{Value: "no"})
+	_, _ = engine.Answer(Answer{Value: "no"})
 
 	// Check that auth-type question is skipped
 	q, _ := engine.CurrentQuestion()
@@ -225,7 +225,7 @@ func TestNextQuestion_InterviewComplete(t *testing.T) {
 		t.Fatalf("NewEngine() failed: %v", err)
 	}
 
-	engine.Start()
+	_ = engine.Start()
 
 	// Set current to last question index
 	engine.session.Current = len(engine.session.Questions) - 1
@@ -248,7 +248,7 @@ func TestAnswer_InterviewCompleted(t *testing.T) {
 		t.Fatalf("NewEngine() failed: %v", err)
 	}
 
-	engine.Start()
+	_ = engine.Start()
 
 	// Set current to beyond last question to simulate completed interview
 	engine.session.Current = len(engine.session.Questions)
@@ -269,7 +269,7 @@ func TestAnswer_NonStrictMode(t *testing.T) {
 		t.Fatalf("NewEngine() failed: %v", err)
 	}
 
-	engine.Start()
+	_ = engine.Start()
 
 	// Answer with invalid value (should warn but continue in non-strict mode)
 	q, err := engine.Answer(Answer{Value: ""}) // Empty answer for required question
@@ -291,7 +291,7 @@ func TestCurrentQuestion_InterviewCompleted(t *testing.T) {
 		t.Fatalf("NewEngine() failed: %v", err)
 	}
 
-	engine.Start()
+	_ = engine.Start()
 
 	// Set current to beyond last question
 	engine.session.Current = len(engine.session.Questions)

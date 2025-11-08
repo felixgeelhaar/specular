@@ -155,7 +155,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create .specular directory
-	if err := os.MkdirAll(specDir, 0755); err != nil {
+	if err := os.MkdirAll(specDir, 0750); err != nil {
 		return ux.FormatError(err, "creating .specular directory")
 	}
 
@@ -338,28 +338,28 @@ func previewChanges(config *InitConfig) error {
 func generateConfigFiles(config *InitConfig) error {
 	// Generate router.yaml
 	routerContent := generateRouterYAML(config)
-	if err := os.WriteFile(filepath.Join(config.SpecDir, "router.yaml"), []byte(routerContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(config.SpecDir, "router.yaml"), []byte(routerContent), 0600); err != nil {
 		return err
 	}
 	fmt.Println("✓ Created router.yaml")
 
 	// Generate policy.yaml
 	policyContent := generatePolicyYAML(config)
-	if err := os.WriteFile(filepath.Join(config.SpecDir, "policy.yaml"), []byte(policyContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(config.SpecDir, "policy.yaml"), []byte(policyContent), 0600); err != nil {
 		return err
 	}
 	fmt.Println("✓ Created policy.yaml")
 
 	// Generate spec.yaml template
 	specContent := generateSpecYAML(config)
-	if err := os.WriteFile(filepath.Join(config.SpecDir, "spec.yaml"), []byte(specContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(config.SpecDir, "spec.yaml"), []byte(specContent), 0600); err != nil {
 		return err
 	}
 	fmt.Println("✓ Created spec.yaml")
 
 	// Generate settings.json
 	settingsContent := generateSettingsJSON(config)
-	if err := os.WriteFile(filepath.Join(config.SpecDir, "settings.json"), []byte(settingsContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(config.SpecDir, "settings.json"), []byte(settingsContent), 0600); err != nil {
 		return err
 	}
 	fmt.Println("✓ Created settings.json")
@@ -961,7 +961,7 @@ func enableProvider(routerPath string, providerName string) error {
 	contentStr = contentStr[:absoluteIndex] + "enabled: true " + contentStr[absoluteIndex+len(enabledPattern):]
 
 	// Write back
-	if err := os.WriteFile(routerPath, []byte(contentStr), 0644); err != nil {
+	if err := os.WriteFile(routerPath, []byte(contentStr), 0600); err != nil {
 		return fmt.Errorf("failed to update router.yaml: %w", err)
 	}
 

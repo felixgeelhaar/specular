@@ -794,7 +794,7 @@ func runBundleApprove(cmd *cobra.Command, args []string) error {
 		return ux.FormatError(err, "marshaling approval")
 	}
 
-	if err := os.WriteFile(output, approvalJSON, 0644); err != nil {
+	if err := os.WriteFile(output, approvalJSON, 0600); err != nil {
 		return ux.FormatError(err, "writing approval file")
 	}
 

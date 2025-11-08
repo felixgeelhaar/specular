@@ -1012,5 +1012,5 @@ func saveBenchmarkResults(filename string, results BenchmarkResults) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filename, data, 0644)
+	return os.WriteFile(filename, data, 0600)
 }
