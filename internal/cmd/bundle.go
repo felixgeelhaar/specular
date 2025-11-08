@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 
 	"github.com/felixgeelhaar/specular/internal/bundle"
 	"github.com/felixgeelhaar/specular/internal/ux"
@@ -117,6 +118,20 @@ var (
 	applyExclude   []string
 )
 
+// Bundle push command flags
+var (
+	pushInsecure  bool
+	pushPlatform  string
+	pushUserAgent string
+)
+
+// Bundle pull command flags
+var (
+	pullInsecure  bool
+	pullUserAgent string
+	pullOutput    string
+)
+
 var bundleApplyCmd = &cobra.Command{
 	Use:   "apply <bundle>",
 	Short: "Apply a governance bundle to a project",
@@ -145,6 +160,66 @@ Examples:
   specular bundle apply --yes bundle.sbundle.tgz`,
 	Args: cobra.ExactArgs(1),
 	RunE: runBundleApply,
+}
+
+var bundlePushCmd = &cobra.Command{
+	Use:   "push <bundle> <registry-ref>",
+	Short: "Push a governance bundle to an OCI registry",
+	Long: `Upload a governance bundle to an OCI-compatible container registry.
+
+Supported registries:
+- GitHub Container Registry (ghcr.io)
+- Docker Hub (docker.io)
+- Google Container Registry (gcr.io)
+- Any OCI-compatible registry
+
+Authentication uses Docker credentials from:
+- Docker config file (~/.docker/config.json)
+- Credential helpers (docker-credential-*)
+- Environment variables (DOCKER_USERNAME, DOCKER_PASSWORD)
+
+Examples:
+  # Push to GitHub Container Registry
+  specular bundle push my-app-v1.0.0.sbundle.tgz ghcr.io/org/my-app:v1.0.0
+
+  # Push to Docker Hub
+  specular bundle push bundle.sbundle.tgz docker.io/username/bundle:latest
+
+  # Push to private registry
+  specular bundle push bundle.sbundle.tgz registry.company.com/team/bundle:v1.0.0
+
+  # Push to insecure registry (http)
+  specular bundle push --insecure bundle.sbundle.tgz localhost:5000/bundle:test`,
+	Args: cobra.ExactArgs(2),
+	RunE: runBundlePush,
+}
+
+var bundlePullCmd = &cobra.Command{
+	Use:   "pull <registry-ref> [output]",
+	Short: "Pull a governance bundle from an OCI registry",
+	Long: `Download a governance bundle from an OCI-compatible container registry.
+
+The bundle is saved as a .sbundle.tgz file that can be verified and applied.
+
+Authentication uses Docker credentials from:
+- Docker config file (~/.docker/config.json)
+- Credential helpers (docker-credential-*)
+- Environment variables (DOCKER_USERNAME, DOCKER_PASSWORD)
+
+Examples:
+  # Pull from GitHub Container Registry
+  specular bundle pull ghcr.io/org/my-app:v1.0.0
+
+  # Pull with custom output path
+  specular bundle pull ghcr.io/org/my-app:v1.0.0 my-app-v1.0.0.sbundle.tgz
+
+  # Pull from Docker Hub
+  specular bundle pull docker.io/username/bundle:latest
+
+  # Pull from insecure registry (http)
+  specular bundle pull --insecure localhost:5000/bundle:test`,
+	Args: cobra.RangeArgs(1, 2),
+	RunE: runBundlePull,
 }
 
 func runBundleBuild(cmd *cobra.Command, args []string) error {
@@ -355,6 +430,89 @@ func runBundleApply(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func runBundlePush(cmd *cobra.Command, args []string) error {
+	bundlePath := args[0]
+	registryRef := args[1]
+
+	// Check bundle exists
+	if _, err := os.Stat(bundlePath); os.IsNotExist(err) {
+		return ux.FormatError(err, "bundle not found")
+	}
+
+	fmt.Printf("Pushing bundle to: %s\n", registryRef)
+	fmt.Println()
+
+	// Create OCI pusher options
+	opts := bundle.OCIOptions{
+		Reference: registryRef,
+		Insecure:  pushInsecure,
+		UserAgent: pushUserAgent,
+	}
+
+	// Parse platform if specified
+	if pushPlatform != "" {
+		// Simple platform parsing (e.g., "linux/amd64")
+		parts := strings.SplitN(pushPlatform, "/", 2)
+		if len(parts) == 2 {
+			opts.Platform = &v1.Platform{
+				OS:           parts[0],
+				Architecture: parts[1],
+			}
+		}
+	}
+
+	pusher := bundle.NewOCIPusher(opts)
+
+	// Push bundle
+	if err := pusher.Push(bundlePath); err != nil {
+		return ux.FormatError(err, "pushing bundle")
+	}
+
+	return nil
+}
+
+func runBundlePull(cmd *cobra.Command, args []string) error {
+	registryRef := args[0]
+
+	// Determine output path
+	output := pullOutput
+	if len(args) > 1 {
+		output = args[1]
+	}
+	if output == "" {
+		// Generate default output name from reference
+		// Extract the last part of the reference for filename
+		refParts := strings.Split(registryRef, "/")
+		lastPart := refParts[len(refParts)-1]
+
+		// Remove tag/digest from name
+		name := strings.Split(lastPart, ":")[0]
+		name = strings.Split(name, "@")[0]
+
+		output = fmt.Sprintf("%s.sbundle.tgz", name)
+	}
+
+	fmt.Printf("Pulling bundle from: %s\n", registryRef)
+	fmt.Printf("Output: %s\n", output)
+	fmt.Println()
+
+	// Create OCI puller
+	opts := bundle.OCIOptions{
+		Reference: registryRef,
+		Insecure:  pullInsecure,
+		UserAgent: pullUserAgent,
+	}
+
+	puller := bundle.NewOCIPuller(opts)
+
+	// Pull bundle
+	if err := puller.Pull(output); err != nil {
+		return ux.FormatError(err, "pulling bundle")
+	}
+
+	return nil
+}
+
 func formatValidationStatus(valid bool) string {
 	if valid {
 		return "✓ PASS"
@@ -391,10 +549,22 @@ func init() {
 	bundleApplyCmd.Flags().BoolVarP(&applyYes, "yes", "y", false, "Auto-confirm all prompts")
 	bundleApplyCmd.Flags().StringSliceVar(&applyExclude, "exclude", nil, "Exclude patterns (e.g., '*.log')")
 
+	// Bundle push flags
+	bundlePushCmd.Flags().BoolVar(&pushInsecure, "insecure", false, "Allow insecure registry connections (http)")
+	bundlePushCmd.Flags().StringVar(&pushPlatform, "platform", "", "Target platform (e.g., linux/amd64, linux/arm64)")
+	bundlePushCmd.Flags().StringVar(&pushUserAgent, "user-agent", "", "Custom user agent for registry requests")
+
+	// Bundle pull flags
+	bundlePullCmd.Flags().BoolVar(&pullInsecure, "insecure", false, "Allow insecure registry connections (http)")
+	bundlePullCmd.Flags().StringVarP(&pullOutput, "output", "o", "", "Output bundle path (default: derived from reference)")
+	bundlePullCmd.Flags().StringVar(&pullUserAgent, "user-agent", "", "Custom user agent for registry requests")
+
 	// Register subcommands
 	bundleCmd.AddCommand(bundleBuildCmd)
 	bundleCmd.AddCommand(bundleVerifyCmd)
 	bundleCmd.AddCommand(bundleApplyCmd)
+	bundleCmd.AddCommand(bundlePushCmd)
+	bundleCmd.AddCommand(bundlePullCmd)
 
 	// Register bundle command with root
 	rootCmd.AddCommand(bundleCmd)
