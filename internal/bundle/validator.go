@@ -60,9 +60,12 @@ func (v *Validator) Verify(bundlePath string) (*ValidationResult, error) {
 	if err := v.loadManifest(tempDir); err != nil {
 		result.Valid = false
 		result.ChecksumValid = false
+
+		// Provide user-friendly error message
+		bundleErr := ErrInvalidManifest("manifest file is missing or unreadable", err)
 		result.Errors = append(result.Errors, ValidationError{
 			Code:    ErrCodeInvalidManifest,
-			Message: fmt.Sprintf("failed to load manifest: %v", err),
+			Message: bundleErr.Error(),
 			Field:   "manifest",
 		})
 		return result, nil
@@ -256,9 +259,12 @@ func (v *Validator) verifyChecksums(tempDir string, result *ValidationResult) bo
 		// Verify checksum matches
 		if checksum != fileEntry.Checksum {
 			allValid = false
+
+			// Use improved error message with actionable suggestion
+			bundleErr := ErrChecksumMismatch(fileEntry.Path, fileEntry.Checksum, checksum)
 			result.Errors = append(result.Errors, ValidationError{
 				Code:    ErrCodeChecksumMismatch,
-				Message: fmt.Sprintf("checksum mismatch for %s", fileEntry.Path),
+				Message: bundleErr.Error(),
 				Field:   fileEntry.Path,
 				Details: map[string]interface{}{
 					"expected": fileEntry.Checksum,
@@ -399,9 +405,12 @@ func (v *Validator) verifyApprovals(result *ValidationResult) bool {
 	for _, role := range requiredRoles {
 		if !approvedRoles[role] {
 			allValid = false
+
+			// Use improved error message with actionable suggestion
+			bundleErr := ErrMissingApproval(role)
 			result.Errors = append(result.Errors, ValidationError{
 				Code:    ErrCodeMissingApproval,
-				Message: fmt.Sprintf("missing valid approval for role: %s", role),
+				Message: bundleErr.Error(),
 				Field:   "approvals",
 				Details: map[string]interface{}{
 					"role": role,
