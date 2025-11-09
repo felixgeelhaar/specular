@@ -230,7 +230,8 @@ func runTUIInterview(preset string, strict bool, out string) error {
 	}
 
 	// Save result
-	if err := tui.SaveResult(result, out); err != nil {
+	err = tui.SaveResult(result, out)
+	if err != nil {
 		return ux.FormatError(err, "saving interview result")
 	}
 

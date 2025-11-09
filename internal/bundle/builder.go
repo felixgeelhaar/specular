@@ -554,7 +554,7 @@ func (b *Builder) writeFileToTar(tw *tar.Writer, sourcePath, bundlePath string) 
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() //nolint:errcheck
 
 	info, err := file.Stat()
 	if err != nil {

@@ -11,28 +11,28 @@ type ErrorCode string
 // Error categories
 const (
 	// Spec errors (SPEC-001 to SPEC-099)
-	ErrCodeSpecNotFound      ErrorCode = "SPEC-001"
-	ErrCodeSpecInvalid       ErrorCode = "SPEC-002"
-	ErrCodeSpecUnmarshal     ErrorCode = "SPEC-003"
-	ErrCodeSpecMarshal       ErrorCode = "SPEC-004"
-	ErrCodeSpecLockNotFound  ErrorCode = "SPEC-005"
-	ErrCodeSpecLockInvalid   ErrorCode = "SPEC-006"
-	ErrCodeSpecHashMismatch  ErrorCode = "SPEC-007"
+	ErrCodeSpecNotFound     ErrorCode = "SPEC-001"
+	ErrCodeSpecInvalid      ErrorCode = "SPEC-002"
+	ErrCodeSpecUnmarshal    ErrorCode = "SPEC-003"
+	ErrCodeSpecMarshal      ErrorCode = "SPEC-004"
+	ErrCodeSpecLockNotFound ErrorCode = "SPEC-005"
+	ErrCodeSpecLockInvalid  ErrorCode = "SPEC-006"
+	ErrCodeSpecHashMismatch ErrorCode = "SPEC-007"
 
 	// Policy errors (POLICY-001 to POLICY-099)
-	ErrCodePolicyNotFound     ErrorCode = "POLICY-001"
-	ErrCodePolicyInvalid      ErrorCode = "POLICY-002"
-	ErrCodePolicyViolation    ErrorCode = "POLICY-003"
-	ErrCodePolicyToolMissing  ErrorCode = "POLICY-004"
-	ErrCodePolicyImageDenied  ErrorCode = "POLICY-005"
+	ErrCodePolicyNotFound      ErrorCode = "POLICY-001"
+	ErrCodePolicyInvalid       ErrorCode = "POLICY-002"
+	ErrCodePolicyViolation     ErrorCode = "POLICY-003"
+	ErrCodePolicyToolMissing   ErrorCode = "POLICY-004"
+	ErrCodePolicyImageDenied   ErrorCode = "POLICY-005"
 	ErrCodePolicyNetworkDenied ErrorCode = "POLICY-006"
 
 	// Plan errors (PLAN-001 to PLAN-099)
-	ErrCodePlanNotFound     ErrorCode = "PLAN-001"
-	ErrCodePlanInvalid      ErrorCode = "PLAN-002"
+	ErrCodePlanNotFound      ErrorCode = "PLAN-001"
+	ErrCodePlanInvalid       ErrorCode = "PLAN-002"
 	ErrCodePlanDriftDetected ErrorCode = "PLAN-003"
-	ErrCodePlanTaskMissing  ErrorCode = "PLAN-004"
-	ErrCodePlanCyclicDep    ErrorCode = "PLAN-005"
+	ErrCodePlanTaskMissing   ErrorCode = "PLAN-004"
+	ErrCodePlanCyclicDep     ErrorCode = "PLAN-005"
 
 	// Interview errors (INTERVIEW-001 to INTERVIEW-099)
 	ErrCodeInterviewPresetUnknown    ErrorCode = "INTERVIEW-001"
@@ -43,12 +43,12 @@ const (
 	ErrCodeInterviewAnswerInvalid    ErrorCode = "INTERVIEW-006"
 
 	// Provider errors (PROVIDER-001 to PROVIDER-099)
-	ErrCodeProviderNotFound     ErrorCode = "PROVIDER-001"
-	ErrCodeProviderConfig       ErrorCode = "PROVIDER-002"
-	ErrCodeProviderAuth         ErrorCode = "PROVIDER-003"
-	ErrCodeProviderAPI          ErrorCode = "PROVIDER-004"
-	ErrCodeProviderRateLimit    ErrorCode = "PROVIDER-005"
-	ErrCodeProviderTimeout      ErrorCode = "PROVIDER-006"
+	ErrCodeProviderNotFound      ErrorCode = "PROVIDER-001"
+	ErrCodeProviderConfig        ErrorCode = "PROVIDER-002"
+	ErrCodeProviderAuth          ErrorCode = "PROVIDER-003"
+	ErrCodeProviderAPI           ErrorCode = "PROVIDER-004"
+	ErrCodeProviderRateLimit     ErrorCode = "PROVIDER-005"
+	ErrCodeProviderTimeout       ErrorCode = "PROVIDER-006"
 	ErrCodeProviderModelNotFound ErrorCode = "PROVIDER-007"
 
 	// Execution errors (EXEC-001 to EXEC-099)
@@ -64,12 +64,12 @@ const (
 	ErrCodeDriftInfraPolicy  ErrorCode = "DRIFT-003"
 
 	// File I/O errors (IO-001 to IO-099)
-	ErrCodeFileNotFound      ErrorCode = "IO-001"
-	ErrCodeFileReadFailed    ErrorCode = "IO-002"
-	ErrCodeFileWriteFailed   ErrorCode = "IO-003"
-	ErrCodeDirectoryFailed   ErrorCode = "IO-004"
-	ErrCodeFileUnmarshal     ErrorCode = "IO-005"
-	ErrCodeFileMarshal       ErrorCode = "IO-006"
+	ErrCodeFileNotFound    ErrorCode = "IO-001"
+	ErrCodeFileReadFailed  ErrorCode = "IO-002"
+	ErrCodeFileWriteFailed ErrorCode = "IO-003"
+	ErrCodeDirectoryFailed ErrorCode = "IO-004"
+	ErrCodeFileUnmarshal   ErrorCode = "IO-005"
+	ErrCodeFileMarshal     ErrorCode = "IO-006"
 )
 
 // SpecularError represents an enhanced error with code, suggestions, and documentation

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -23,18 +22,6 @@ type InterviewModel struct {
 	err       error
 	width     int
 	height    int
-}
-
-// keyMap defines the keyboard shortcuts
-type keyMap struct {
-	Quit key.Binding
-}
-
-var keys = keyMap{
-	Quit: key.NewBinding(
-		key.WithKeys("ctrl+c"),
-		key.WithHelp("ctrl+c", "quit"),
-	),
 }
 
 // NewInterviewModel creates a new interview TUI model
@@ -90,89 +77,9 @@ func (m *InterviewModel) createQuestionForm() error {
 	prevAnswer, hasPrev := session.Answers[q.ID]
 
 	// Create form field based on question type
-	var field huh.Field
-
-	switch q.Type {
-	case interview.QuestionTypeText:
-		// Single-line text input
-		defaultVal := ""
-		if hasPrev {
-			defaultVal = prevAnswer.Value
-		}
-
-		field = huh.NewInput().
-			Key(q.ID).
-			Title(q.Text).
-			Description(q.Description).
-			Value(&defaultVal).
-			Validate(func(s string) error {
-				if q.Required && strings.TrimSpace(s) == "" {
-					return fmt.Errorf("this field is required")
-				}
-				return nil
-			})
-
-	case interview.QuestionTypeMulti:
-		// Multi-line text input
-		defaultVal := ""
-		if hasPrev && len(prevAnswer.Values) > 0 {
-			defaultVal = strings.Join(prevAnswer.Values, "\n")
-		}
-
-		field = huh.NewText().
-			Key(q.ID).
-			Title(q.Text).
-			Description(q.Description).
-			Value(&defaultVal).
-			Validate(func(s string) error {
-				if q.Required && strings.TrimSpace(s) == "" {
-					return fmt.Errorf("this field is required")
-				}
-				return nil
-			})
-
-	case interview.QuestionTypeYesNo:
-		// Yes/No confirmation
-		defaultVal := false
-		if hasPrev {
-			defaultVal = strings.ToLower(prevAnswer.Value) == "yes"
-		}
-
-		field = huh.NewConfirm().
-			Key(q.ID).
-			Title(q.Text).
-			Description(q.Description).
-			Value(&defaultVal).
-			Affirmative("Yes").
-			Negative("No")
-
-	case interview.QuestionTypeChoice, interview.QuestionTypePriority:
-		// Single choice from list
-		var options []huh.Option[string]
-		for _, choice := range q.Choices {
-			options = append(options, huh.NewOption(choice, choice))
-		}
-
-		defaultVal := ""
-		if hasPrev {
-			defaultVal = prevAnswer.Value
-		}
-
-		field = huh.NewSelect[string]().
-			Key(q.ID).
-			Title(q.Text).
-			Description(q.Description).
-			Options(options...).
-			Value(&defaultVal).
-			Validate(func(s string) error {
-				if q.Required && s == "" {
-					return fmt.Errorf("please select an option")
-				}
-				return nil
-			})
-
-	default:
-		return fmt.Errorf("unsupported question type: %s", q.Type)
+	field, err := m.createQuestionField(q, prevAnswer, hasPrev)
+	if err != nil {
+		return err
 	}
 
 	// Create form with single question
@@ -183,6 +90,104 @@ func (m *InterviewModel) createQuestionForm() error {
 	)
 
 	return nil
+}
+
+// createQuestionField creates the appropriate form field for a question
+func (m *InterviewModel) createQuestionField(q *interview.Question, prevAnswer interview.Answer, hasPrev bool) (huh.Field, error) {
+	switch q.Type {
+	case interview.QuestionTypeText:
+		return m.createTextInputField(q, prevAnswer, hasPrev), nil
+	case interview.QuestionTypeMulti:
+		return m.createMultiInputField(q, prevAnswer, hasPrev), nil
+	case interview.QuestionTypeYesNo:
+		return m.createYesNoField(q, prevAnswer, hasPrev), nil
+	case interview.QuestionTypeChoice, interview.QuestionTypePriority:
+		return m.createChoiceField(q, prevAnswer, hasPrev), nil
+	default:
+		return nil, fmt.Errorf("unsupported question type: %s", q.Type)
+	}
+}
+
+// createTextInputField creates a single-line text input field
+func (m *InterviewModel) createTextInputField(q *interview.Question, prevAnswer interview.Answer, hasPrev bool) huh.Field {
+	defaultVal := ""
+	if hasPrev {
+		defaultVal = prevAnswer.Value
+	}
+
+	return huh.NewInput().
+		Key(q.ID).
+		Title(q.Text).
+		Description(q.Description).
+		Value(&defaultVal).
+		Validate(func(s string) error {
+			if q.Required && strings.TrimSpace(s) == "" {
+				return fmt.Errorf("this field is required")
+			}
+			return nil
+		})
+}
+
+// createMultiInputField creates a multi-line text input field
+func (m *InterviewModel) createMultiInputField(q *interview.Question, prevAnswer interview.Answer, hasPrev bool) huh.Field {
+	defaultVal := ""
+	if hasPrev && len(prevAnswer.Values) > 0 {
+		defaultVal = strings.Join(prevAnswer.Values, "\n")
+	}
+
+	return huh.NewText().
+		Key(q.ID).
+		Title(q.Text).
+		Description(q.Description).
+		Value(&defaultVal).
+		Validate(func(s string) error {
+			if q.Required && strings.TrimSpace(s) == "" {
+				return fmt.Errorf("this field is required")
+			}
+			return nil
+		})
+}
+
+// createYesNoField creates a yes/no confirmation field
+func (m *InterviewModel) createYesNoField(q *interview.Question, prevAnswer interview.Answer, hasPrev bool) huh.Field {
+	defaultVal := false
+	if hasPrev {
+		defaultVal = strings.EqualFold(prevAnswer.Value, "yes")
+	}
+
+	return huh.NewConfirm().
+		Key(q.ID).
+		Title(q.Text).
+		Description(q.Description).
+		Value(&defaultVal).
+		Affirmative("Yes").
+		Negative("No")
+}
+
+// createChoiceField creates a single choice selection field
+func (m *InterviewModel) createChoiceField(q *interview.Question, prevAnswer interview.Answer, hasPrev bool) huh.Field {
+	var options []huh.Option[string]
+	for _, choice := range q.Choices {
+		options = append(options, huh.NewOption(choice, choice))
+	}
+
+	defaultVal := ""
+	if hasPrev {
+		defaultVal = prevAnswer.Value
+	}
+
+	return huh.NewSelect[string]().
+		Key(q.ID).
+		Title(q.Text).
+		Description(q.Description).
+		Options(options...).
+		Value(&defaultVal).
+		Validate(func(s string) error {
+			if q.Required && s == "" {
+				return fmt.Errorf("please select an option")
+			}
+			return nil
+		})
 }
 
 // formatProgress returns a formatted progress string
@@ -216,8 +221,7 @@ func (m *InterviewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c":
+		if msg.String() == "ctrl+c" {
 			m.quitting = true
 			return m, tea.Quit
 		}

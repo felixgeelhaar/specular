@@ -231,9 +231,7 @@ func (e *Engine) buildNonFunctional() spec.NonFunctional {
 	// Availability requirements
 	observability := e.getAnswerList("observability")
 	if len(observability) > 0 {
-		for _, feature := range observability {
-			nf.Availability = append(nf.Availability, feature)
-		}
+		nf.Availability = append(nf.Availability, observability...)
 	} else {
 		nf.Availability = append(nf.Availability, "Structured logging")
 		nf.Availability = append(nf.Availability, "Health check endpoints")

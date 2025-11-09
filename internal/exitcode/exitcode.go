@@ -53,48 +53,80 @@ func DetermineExitCode(err error) int {
 
 	errMsg := strings.ToLower(err.Error())
 
-	// Policy violations
-	if strings.Contains(errMsg, "policy") && strings.Contains(errMsg, "violation") {
-		return PolicyViolation
+	// Check each error category
+	if code, matched := checkPolicyViolation(errMsg); matched {
+		return code
 	}
-	if strings.Contains(errMsg, "not allowed by policy") {
-		return PolicyViolation
+	if code, matched := checkDriftDetection(errMsg); matched {
+		return code
 	}
-
-	// Drift detection
-	if strings.Contains(errMsg, "drift detected") {
-		return DriftDetected
+	if code, matched := checkAuthError(errMsg); matched {
+		return code
 	}
-	if strings.Contains(errMsg, "hash mismatch") {
-		return DriftDetected
+	if code, matched := checkNetworkError(errMsg); matched {
+		return code
 	}
-
-	// Authentication errors
-	if strings.Contains(errMsg, "authentication") || strings.Contains(errMsg, "unauthorized") {
-		return AuthError
-	}
-	if strings.Contains(errMsg, "api key") || strings.Contains(errMsg, "token") {
-		return AuthError
-	}
-
-	// Network errors
-	if strings.Contains(errMsg, "network") || strings.Contains(errMsg, "connection") {
-		return NetworkError
-	}
-	if strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "unreachable") {
-		return NetworkError
-	}
-
-	// Usage errors
-	if strings.Contains(errMsg, "invalid flag") || strings.Contains(errMsg, "unknown command") {
-		return UsageError
-	}
-	if strings.Contains(errMsg, "required flag") || strings.Contains(errMsg, "missing argument") {
-		return UsageError
+	if code, matched := checkUsageError(errMsg); matched {
+		return code
 	}
 
 	// Default to general error
 	return GeneralError
+}
+
+// checkPolicyViolation checks if the error is a policy violation
+func checkPolicyViolation(errMsg string) (int, bool) {
+	if strings.Contains(errMsg, "policy") && strings.Contains(errMsg, "violation") {
+		return PolicyViolation, true
+	}
+	if strings.Contains(errMsg, "not allowed by policy") {
+		return PolicyViolation, true
+	}
+	return 0, false
+}
+
+// checkDriftDetection checks if the error is drift detection
+func checkDriftDetection(errMsg string) (int, bool) {
+	if strings.Contains(errMsg, "drift detected") {
+		return DriftDetected, true
+	}
+	if strings.Contains(errMsg, "hash mismatch") {
+		return DriftDetected, true
+	}
+	return 0, false
+}
+
+// checkAuthError checks if the error is an authentication error
+func checkAuthError(errMsg string) (int, bool) {
+	if strings.Contains(errMsg, "authentication") || strings.Contains(errMsg, "unauthorized") {
+		return AuthError, true
+	}
+	if strings.Contains(errMsg, "api key") || strings.Contains(errMsg, "token") {
+		return AuthError, true
+	}
+	return 0, false
+}
+
+// checkNetworkError checks if the error is a network error
+func checkNetworkError(errMsg string) (int, bool) {
+	if strings.Contains(errMsg, "network") || strings.Contains(errMsg, "connection") {
+		return NetworkError, true
+	}
+	if strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "unreachable") {
+		return NetworkError, true
+	}
+	return 0, false
+}
+
+// checkUsageError checks if the error is a usage error
+func checkUsageError(errMsg string) (int, bool) {
+	if strings.Contains(errMsg, "invalid flag") || strings.Contains(errMsg, "unknown command") {
+		return UsageError, true
+	}
+	if strings.Contains(errMsg, "required flag") || strings.Contains(errMsg, "missing argument") {
+		return UsageError, true
+	}
+	return 0, false
 }
 
 // GetExitCodeDescription returns a human-readable description of an exit code

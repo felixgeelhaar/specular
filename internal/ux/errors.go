@@ -43,99 +43,155 @@ func EnhanceError(err error) error {
 
 	errMsg := err.Error()
 
-	// File not found errors
-	if strings.Contains(errMsg, "no such file or directory") {
-		if strings.Contains(errMsg, "spec.yaml") {
-			return NewErrorWithSuggestion(err,
-				"Create a spec by running 'specular interview' or 'specular spec generate --in PRD.md'")
-		}
-		if strings.Contains(errMsg, "spec.lock.json") {
-			return NewErrorWithSuggestion(err,
-				"Generate a SpecLock by running 'specular spec lock'")
-		}
-		if strings.Contains(errMsg, "plan.json") {
-			return NewErrorWithSuggestion(err,
-				"Generate a plan by running 'specular plan'")
-		}
-		if strings.Contains(errMsg, "policy.yaml") {
-			return NewErrorWithSuggestion(err,
-				"Use default policy or copy example: cp .specular/examples/policy.yaml .specular/policy.yaml")
-		}
-		if strings.Contains(errMsg, "providers.yaml") {
-			return NewErrorWithSuggestion(err,
-				"Configure providers by running 'specular init' or check .specular/examples/providers.yaml")
-		}
+	// Try each error category
+	if enhanced := enhanceFileNotFoundError(err, errMsg); enhanced != nil {
+		return enhanced
+	}
+	if enhanced := enhanceDockerError(err, errMsg); enhanced != nil {
+		return enhanced
+	}
+	if enhanced := enhancePermissionError(err, errMsg); enhanced != nil {
+		return enhanced
+	}
+	if enhanced := enhanceProviderError(err, errMsg); enhanced != nil {
+		return enhanced
+	}
+	if enhanced := enhancePolicyError(err, errMsg); enhanced != nil {
+		return enhanced
+	}
+	if enhanced := enhanceValidationError(err, errMsg); enhanced != nil {
+		return enhanced
+	}
+	if enhanced := enhanceNetworkError(err, errMsg); enhanced != nil {
+		return enhanced
+	}
+	if enhanced := enhanceAPIKeyError(err, errMsg); enhanced != nil {
+		return enhanced
+	}
+	if enhanced := enhanceGenericError(err, errMsg); enhanced != nil {
+		return enhanced
 	}
 
-	// Docker errors
+	return err
+}
+
+// enhanceFileNotFoundError adds suggestions for file not found errors
+func enhanceFileNotFoundError(err error, errMsg string) error {
+	if !strings.Contains(errMsg, "no such file or directory") {
+		return nil
+	}
+
+	if strings.Contains(errMsg, "spec.yaml") {
+		return NewErrorWithSuggestion(err,
+			"Create a spec by running 'specular interview' or 'specular spec generate --in PRD.md'")
+	}
+	if strings.Contains(errMsg, "spec.lock.json") {
+		return NewErrorWithSuggestion(err,
+			"Generate a SpecLock by running 'specular spec lock'")
+	}
+	if strings.Contains(errMsg, "plan.json") {
+		return NewErrorWithSuggestion(err,
+			"Generate a plan by running 'specular plan'")
+	}
+	if strings.Contains(errMsg, "policy.yaml") {
+		return NewErrorWithSuggestion(err,
+			"Use default policy or copy example: cp .specular/examples/policy.yaml .specular/policy.yaml")
+	}
+	if strings.Contains(errMsg, "providers.yaml") {
+		return NewErrorWithSuggestion(err,
+			"Configure providers by running 'specular init' or check .specular/examples/providers.yaml")
+	}
+
+	return nil
+}
+
+// enhanceDockerError adds suggestions for Docker-related errors
+func enhanceDockerError(err error, errMsg string) error {
 	if strings.Contains(errMsg, "docker") && strings.Contains(errMsg, "daemon") {
 		return NewErrorWithSuggestion(err,
 			"Start Docker Desktop or Docker daemon, then try again")
 	}
-
 	if strings.Contains(errMsg, "Cannot connect to the Docker daemon") {
 		return NewErrorWithSuggestion(err,
 			"Docker is not running. Start Docker and run 'docker ps' to verify")
 	}
+	return nil
+}
 
-	// Permission errors
-	if strings.Contains(errMsg, "permission denied") {
-		if strings.Contains(errMsg, "/var/run/docker.sock") {
-			return NewErrorWithSuggestion(err,
-				"Add your user to the docker group: sudo usermod -aG docker $USER (then logout/login)")
-		}
-		return NewErrorWithSuggestion(err,
-			"Check file permissions and ensure you have access to the required files/directories")
+// enhancePermissionError adds suggestions for permission errors
+func enhancePermissionError(err error, errMsg string) error {
+	if !strings.Contains(errMsg, "permission denied") {
+		return nil
 	}
 
-	// Provider errors
+	if strings.Contains(errMsg, "/var/run/docker.sock") {
+		return NewErrorWithSuggestion(err,
+			"Add your user to the docker group: sudo usermod -aG docker $USER (then logout/login)")
+	}
+	return NewErrorWithSuggestion(err,
+		"Check file permissions and ensure you have access to the required files/directories")
+}
+
+// enhanceProviderError adds suggestions for provider configuration errors
+func enhanceProviderError(err error, errMsg string) error {
 	if strings.Contains(errMsg, "no providers available") {
 		return NewErrorWithSuggestion(err,
 			"Configure at least one AI provider by running 'specular init' and selecting your providers")
 	}
-
 	if strings.Contains(errMsg, "provider") && (strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "not configured")) {
 		return NewErrorWithSuggestion(err,
 			"Check your provider configuration in .specular/router.yaml or run 'specular init' to configure providers")
 	}
+	return nil
+}
 
-	// Policy violations
+// enhancePolicyError adds suggestions for policy violation errors
+func enhancePolicyError(err error, errMsg string) error {
 	if strings.Contains(errMsg, "policy violation") || strings.Contains(errMsg, "docker_only") {
 		return NewErrorWithSuggestion(err,
 			"Policy requires Docker-only execution. Ensure Docker is running and tasks use allowed images")
 	}
+	return nil
+}
 
-	// Validation errors
+// enhanceValidationError adds suggestions for validation errors
+func enhanceValidationError(err error, errMsg string) error {
 	if strings.Contains(errMsg, "validation failed") {
 		return NewErrorWithSuggestion(err,
 			"Fix the validation errors above, then run 'specular spec validate' to verify")
 	}
-
-	// Drift detected
 	if strings.Contains(errMsg, "drift detected") {
 		return NewErrorWithSuggestion(err,
 			"Review drift with 'specular build drift' and update spec or code to align")
 	}
+	return nil
+}
 
-	// Network errors
+// enhanceNetworkError adds suggestions for network errors
+func enhanceNetworkError(err error, errMsg string) error {
 	if strings.Contains(errMsg, "connection refused") || strings.Contains(errMsg, "no route to host") {
 		return NewErrorWithSuggestion(err,
 			"Check your network connection and firewall settings")
 	}
+	return nil
+}
 
-	// API key errors
+// enhanceAPIKeyError adds suggestions for API key errors
+func enhanceAPIKeyError(err error, errMsg string) error {
 	if strings.Contains(errMsg, "API key") || strings.Contains(errMsg, "authentication") {
 		return NewErrorWithSuggestion(err,
 			"Set your API key environment variable (e.g., OPENAI_API_KEY, ANTHROPIC_API_KEY)")
 	}
+	return nil
+}
 
-	// Generic suggestion based on error type
+// enhanceGenericError adds generic suggestions for unmatched errors
+func enhanceGenericError(err error, errMsg string) error {
 	if strings.Contains(errMsg, "failed to") {
 		return NewErrorWithSuggestion(err,
 			fmt.Sprintf("Next steps: %s", SuggestNextSteps()))
 	}
-
-	return err
+	return nil
 }
 
 // FormatError provides consistent error formatting with context

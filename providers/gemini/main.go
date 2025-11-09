@@ -135,9 +135,10 @@ func handleGenerate() error {
 	if _, err := exec.LookPath("gemini"); err != nil {
 		// Use gcloud if gemini not found
 		cliCommand = "gcloud"
-		args = append(args, "ai", "generative-models", "generate-content")
-		args = append(args, fmt.Sprintf("--model=%s", model))
-		args = append(args, fmt.Sprintf("--prompt=%s", fullPrompt))
+		args = append(args, "ai", "generative-models", "generate-content",
+			fmt.Sprintf("--model=%s", model),
+			fmt.Sprintf("--prompt=%s", fullPrompt))
+
 	} else {
 		// Use standalone gemini CLI
 		args = append(args, "--model", model)

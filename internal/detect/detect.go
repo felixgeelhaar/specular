@@ -219,7 +219,8 @@ func detectOpenAI() ProviderInfo {
 		info.Type = "cli"
 
 		cmd := exec.Command(path, "--version")
-		output, err := cmd.Output()
+		var output []byte
+		output, err = cmd.Output()
 		if err == nil {
 			info.Version = strings.TrimSpace(string(output))
 		}
@@ -249,7 +250,8 @@ func detectGemini() ProviderInfo {
 		info.Type = "cli"
 
 		cmd := exec.Command(path, "--version")
-		output, err := cmd.Output()
+		var output []byte
+		output, err = cmd.Output()
 		if err == nil {
 			info.Version = strings.TrimSpace(string(output))
 		}
@@ -286,16 +288,16 @@ func detectLanguagesAndFrameworks() ([]string, []string) {
 
 	// Language detection based on common files
 	fileChecks := map[string]string{
-		"package.json":    "javascript",
-		"go.mod":          "go",
+		"package.json":     "javascript",
+		"go.mod":           "go",
 		"requirements.txt": "python",
-		"Pipfile":         "python",
-		"pyproject.toml":  "python",
-		"Cargo.toml":      "rust",
-		"pom.xml":         "java",
-		"build.gradle":    "java",
-		"Gemfile":         "ruby",
-		"composer.json":   "php",
+		"Pipfile":          "python",
+		"pyproject.toml":   "python",
+		"Cargo.toml":       "rust",
+		"pom.xml":          "java",
+		"build.gradle":     "java",
+		"Gemfile":          "ruby",
+		"composer.json":    "php",
 	}
 
 	for file, lang := range fileChecks {

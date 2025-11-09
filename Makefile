@@ -1,4 +1,4 @@
-.PHONY: build test clean install lint fmt help
+.PHONY: build test test-e2e clean install lint fmt help
 
 # Build the binary
 build:
@@ -16,6 +16,17 @@ test:
 test-coverage: test
 	go tool cover -html=coverage.txt -o coverage.html
 	@echo "Coverage report generated at coverage.html"
+
+# Run end-to-end tests
+test-e2e: build
+	@echo "Running E2E tests..."
+	@if [ -d "test/e2e" ]; then \
+		go test -v -timeout 30m ./test/e2e/...; \
+	else \
+		echo "E2E tests not yet implemented (test/e2e directory not found)"; \
+		echo "See docs/E2E_TEST_PLAN.md for implementation plan"; \
+		exit 0; \
+	fi
 
 # Clean build artifacts
 clean:
@@ -49,6 +60,7 @@ help:
 	@echo "  install        - Install specular to GOPATH/bin"
 	@echo "  test           - Run all tests with race detection"
 	@echo "  test-coverage  - Run tests and generate HTML coverage report"
+	@echo "  test-e2e       - Run end-to-end tests"
 	@echo "  clean          - Remove build artifacts"
 	@echo "  lint           - Run golangci-lint"
 	@echo "  fmt            - Format all Go code"

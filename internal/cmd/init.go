@@ -247,7 +247,7 @@ func determineProviderStrategy(ctx *detect.Context) string {
 	}
 
 	// Auto-detect based on context
-	if ctx.Providers == nil || len(ctx.Providers) == 0 {
+	if len(ctx.Providers) == 0 {
 		return "manual"
 	}
 
@@ -306,7 +306,7 @@ func confirmInitialization(config *InitConfig) bool {
 	fmt.Print("Proceed with initialization? [Y/n]: ")
 
 	reader := bufio.NewReader(os.Stdin)
-	response, _ := reader.ReadString('\n')
+	response, _ := reader.ReadString('\n') //nolint:errcheck // Interactive prompt, empty response on error is acceptable
 	response = strings.TrimSpace(strings.ToLower(response))
 
 	return response == "" || response == "y" || response == "yes"
@@ -822,7 +822,7 @@ func formatJSONArray(ctx *detect.Context, field string) string {
 
 	quoted := make([]string, len(items))
 	for i, item := range items {
-		quoted[i] = fmt.Sprintf(`"%s"`, item)
+		quoted[i] = fmt.Sprintf("%q", item)
 	}
 
 	return "[" + strings.Join(quoted, ", ") + "]"
@@ -836,7 +836,7 @@ func getCI(ctx *detect.Context) string {
 }
 
 func runSmartProviderSetup(specDir string, ctx *detect.Context) error {
-	if ctx.Providers == nil || len(ctx.Providers) == 0 {
+	if len(ctx.Providers) == 0 {
 		return fmt.Errorf("no providers detected")
 	}
 
@@ -870,7 +870,7 @@ func runSmartProviderSetup(specDir string, ctx *detect.Context) error {
 		fmt.Println()
 		fmt.Print("Use recommended providers? [Y/n]: ")
 
-		response, _ := reader.ReadString('\n')
+		response, _ := reader.ReadString('\n') //nolint:errcheck // Interactive prompt, empty response on error is acceptable
 		response = strings.TrimSpace(strings.ToLower(response))
 
 		if response == "" || response == "y" || response == "yes" {
@@ -899,7 +899,7 @@ func runProviderSetup(specDir string) error {
 	fmt.Println("  5. skip")
 	fmt.Print("\nChoice [1-5]: ")
 
-	choice, _ := reader.ReadString('\n')
+	choice, _ := reader.ReadString('\n') //nolint:errcheck // Interactive prompt, empty response on error is acceptable
 	choice = strings.TrimSpace(choice)
 
 	routerPath := filepath.Join(specDir, "router.yaml")

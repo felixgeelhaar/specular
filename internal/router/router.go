@@ -462,7 +462,7 @@ func (r *Router) Generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 		TaskID:    req.TaskID,
 		Success:   provResp.Error == "",
 	}
-	r.RecordUsage(usage)
+	_ = r.RecordUsage(usage) // Best effort usage recording
 
 	// Build response
 	return &GenerateResponse{
@@ -563,7 +563,7 @@ func (r *Router) Stream(ctx context.Context, req GenerateRequest) (<-chan Stream
 				TaskID:    req.TaskID,
 				Success:   true,
 			}
-			r.RecordUsage(usage)
+			_ = r.RecordUsage(usage) // Best effort usage recording
 		}
 	}()
 
@@ -727,7 +727,7 @@ func (r *Router) generateWithFallback(ctx context.Context, req GenerateRequest, 
 				TaskID:    req.TaskID,
 				Success:   true,
 			}
-			r.RecordUsage(usage)
+			_ = r.RecordUsage(usage) // Best effort usage recording
 
 			return &GenerateResponse{
 				Content:         provResp.Content,
@@ -938,7 +938,7 @@ func (r *Router) streamWithFallback(ctx context.Context, req GenerateRequest, pr
 						TaskID:    req.TaskID,
 						Success:   true,
 					}
-					r.RecordUsage(usage)
+					_ = r.RecordUsage(usage) // Best effort usage recording
 				}
 			}()
 

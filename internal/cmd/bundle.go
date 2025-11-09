@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/bundle"
 	"github.com/felixgeelhaar/specular/internal/ux"
@@ -26,17 +26,17 @@ routing configuration, and approvals into a portable, verifiable archive.`,
 
 // Bundle build command flags
 var (
-	buildOutput      string
-	buildSpec        string
-	buildLock        string
-	buildRouting     string
-	buildPolicies    []string
-	buildInclude     []string
-	buildApprovals   []string
-	buildAttest      bool
-	buildAttestFmt   string
-	buildMetadata    []string
-	buildGovLevel    string
+	buildOutput    string
+	buildSpec      string
+	buildLock      string
+	buildRouting   string
+	buildPolicies  []string
+	buildInclude   []string
+	buildApprovals []string
+	buildAttest    bool
+	buildAttestFmt string
+	buildMetadata  []string
+	buildGovLevel  string
 )
 
 var bundleBuildCmd = &cobra.Command{
@@ -75,12 +75,12 @@ Examples:
 
 // Bundle verify command flags
 var (
-	verifyStrict       bool
-	verifyApprovals    bool
-	verifyAttestation  bool
-	verifyPolicy       string
-	verifyTrustedKeys  []string
-	verifyOffline      bool
+	verifyStrict      bool
+	verifyApprovals   bool
+	verifyAttestation bool
+	verifyPolicy      string
+	verifyTrustedKeys []string
+	verifyOffline     bool
 )
 
 var bundleVerifyCmd = &cobra.Command{
@@ -136,12 +136,12 @@ var (
 
 // Bundle approve command flags
 var (
-	approveRole      string
-	approveUser      string
-	approveComment   string
-	approveSigType   string
-	approveKeyPath   string
-	approveOutput    string
+	approveRole    string
+	approveUser    string
+	approveComment string
+	approveSigType string
+	approveKeyPath string
+	approveOutput  string
 )
 
 // Bundle approval-status command flags
@@ -465,9 +465,9 @@ func runBundleBuild(cmd *cobra.Command, args []string) error {
 
 		// Create attestation generator
 		attestOpts := bundle.AttestationOptions{
-			Format:             format,
-			UseKeyless:         false, // For now, require key-based signing
-			IncludeRekorEntry:  false, // Rekor not yet implemented
+			Format:            format,
+			UseKeyless:        false, // For now, require key-based signing
+			IncludeRekorEntry: false, // Rekor not yet implemented
 		}
 
 		generator := bundle.NewAttestationGenerator(attestOpts)
@@ -932,13 +932,13 @@ func runBundleApprovalStatus(cmd *cobra.Command, args []string) error {
 	} else {
 		// Output as JSON
 		type ApprovalStatus struct {
-			BundleDigest     string                        `json:"bundle_digest"`
-			TotalApprovals   int                           `json:"total_approvals"`
-			ValidApprovals   int                           `json:"valid_approvals"`
-			InvalidApprovals int                           `json:"invalid_approvals"`
-			VerifiedRoles    map[string]*bundle.Approval   `json:"verified_roles"`
-			MissingRoles     []string                      `json:"missing_roles,omitempty"`
-			Errors           []string                      `json:"errors,omitempty"`
+			BundleDigest     string                      `json:"bundle_digest"`
+			TotalApprovals   int                         `json:"total_approvals"`
+			ValidApprovals   int                         `json:"valid_approvals"`
+			InvalidApprovals int                         `json:"invalid_approvals"`
+			VerifiedRoles    map[string]*bundle.Approval `json:"verified_roles"`
+			MissingRoles     []string                    `json:"missing_roles,omitempty"`
+			Errors           []string                    `json:"errors,omitempty"`
 		}
 
 		missingRoles := []string{}
@@ -1155,14 +1155,14 @@ func init() {
 	bundleApproveCmd.Flags().StringVar(&approveSigType, "signature-type", "ssh", "Signature type (ssh, gpg)")
 	bundleApproveCmd.Flags().StringVarP(&approveKeyPath, "key-path", "k", "", "Path to private key (default: auto-detect)")
 	bundleApproveCmd.Flags().StringVarP(&approveOutput, "output", "o", "", "Output approval file path (default: auto-generated)")
-	bundleApproveCmd.MarkFlagRequired("role")
-	bundleApproveCmd.MarkFlagRequired("user")
+	_ = bundleApproveCmd.MarkFlagRequired("role") //nolint:errcheck // Flag exists, error would be programming error
+	_ = bundleApproveCmd.MarkFlagRequired("user") //nolint:errcheck // Flag exists, error would be programming error
 
 	// Bundle approval-status flags
 	bundleApprovalStatusCmd.Flags().StringSliceVarP(&statusApprovals, "approvals", "a", nil, "Approval file paths (comma-separated) - REQUIRED")
 	bundleApprovalStatusCmd.Flags().StringSliceVarP(&statusRequiredRoles, "required-roles", "r", nil, "Required roles (comma-separated)")
 	bundleApprovalStatusCmd.Flags().BoolVar(&statusJSON, "json", false, "Output status as JSON")
-	bundleApprovalStatusCmd.MarkFlagRequired("approvals")
+	_ = bundleApprovalStatusCmd.MarkFlagRequired("approvals") //nolint:errcheck // Flag exists, error would be programming error
 
 	// Bundle diff flags
 	bundleDiffCmd.Flags().BoolVar(&diffJSON, "json", false, "Output diff as JSON")

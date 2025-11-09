@@ -64,7 +64,7 @@ func (e *Extractor) Apply(bundlePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to extract bundle: %w", err)
 	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	defer func() { _ = os.RemoveAll(tempDir) }() //nolint:errcheck
 
 	// Apply files to target directory
 	if e.opts.DryRun {
@@ -85,18 +85,18 @@ func (e *Extractor) extractBundle(bundlePath string) (string, error) {
 	// Open bundle file
 	file, err := os.Open(bundlePath)
 	if err != nil {
-		_ = os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) //nolint:errcheck
 		return "", fmt.Errorf("failed to open bundle: %w", err)
 	}
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() //nolint:errcheck
 
 	// Create gzip reader
 	gzReader, err := gzip.NewReader(file)
 	if err != nil {
-		_ = os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) //nolint:errcheck
 		return "", fmt.Errorf("failed to create gzip reader: %w", err)
 	}
-	defer func() { _ = gzReader.Close() }()
+	defer func() { _ = gzReader.Close() }() //nolint:errcheck
 
 	// Create tar reader
 	tarReader := tar.NewReader(gzReader)
@@ -108,7 +108,7 @@ func (e *Extractor) extractBundle(bundlePath string) (string, error) {
 			break
 		}
 		if readErr != nil {
-			_ = os.RemoveAll(tempDir)
+			_ = os.RemoveAll(tempDir) //nolint:errcheck
 			return "", fmt.Errorf("failed to read tar: %w", readErr)
 		}
 
@@ -118,28 +118,28 @@ func (e *Extractor) extractBundle(bundlePath string) (string, error) {
 
 		// Ensure target path is within temp directory (prevent path traversal)
 		if !strings.HasPrefix(filepath.Clean(targetPath), filepath.Clean(tempDir)) {
-			_ = os.RemoveAll(tempDir)
+			_ = os.RemoveAll(tempDir) //nolint:errcheck
 			return "", fmt.Errorf("invalid file path in bundle: %s", header.Name)
 		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if err := os.MkdirAll(targetPath, safeFileMode(header.Mode)); err != nil {
-				_ = os.RemoveAll(tempDir)
+				_ = os.RemoveAll(tempDir) //nolint:errcheck
 				return "", fmt.Errorf("failed to create directory: %w", err)
 			}
 
 		case tar.TypeReg:
 			// Create parent directory
 			if err := os.MkdirAll(filepath.Dir(targetPath), 0750); err != nil {
-				_ = os.RemoveAll(tempDir)
+				_ = os.RemoveAll(tempDir) //nolint:errcheck
 				return "", fmt.Errorf("failed to create parent directory: %w", err)
 			}
 
 			// Create file
 			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, safeFileMode(header.Mode))
 			if err != nil {
-				_ = os.RemoveAll(tempDir)
+				_ = os.RemoveAll(tempDir) //nolint:errcheck
 				return "", fmt.Errorf("failed to create file: %w", err)
 			}
 
@@ -147,11 +147,11 @@ func (e *Extractor) extractBundle(bundlePath string) (string, error) {
 			// #nosec G110 - Decompression bomb risk accepted for trusted, verified bundles
 			// Bundles are validated and verified before extraction, ensuring they come from trusted sources
 			if _, err := io.Copy(outFile, tarReader); err != nil {
-				_ = outFile.Close()
-				_ = os.RemoveAll(tempDir)
+				_ = outFile.Close()       //nolint:errcheck
+				_ = os.RemoveAll(tempDir) //nolint:errcheck
 				return "", fmt.Errorf("failed to write file: %w", err)
 			}
-			_ = outFile.Close()
+			_ = outFile.Close() //nolint:errcheck
 		}
 	}
 
@@ -306,14 +306,14 @@ func (e *Extractor) applyPolicyFiles(tempDir, targetDir string) error {
 func (e *Extractor) applyAdditionalFiles(tempDir, targetDir string) error {
 	// Skip manifest, checksums, and standard files
 	skipFiles := map[string]bool{
-		"manifest.yaml":    true,
-		"checksums.txt":    true,
-		"spec.yaml":        true,
-		"spec.lock.json":   true,
-		"routing.yaml":     true,
-		"policies":         true,
-		"approvals":        true,
-		"attestations":     true,
+		"manifest.yaml":  true,
+		"checksums.txt":  true,
+		"spec.yaml":      true,
+		"spec.lock.json": true,
+		"routing.yaml":   true,
+		"policies":       true,
+		"approvals":      true,
+		"attestations":   true,
 	}
 
 	return filepath.Walk(tempDir, func(path string, info os.FileInfo, err error) error {
@@ -343,7 +343,8 @@ func (e *Extractor) applyAdditionalFiles(tempDir, targetDir string) error {
 
 		// Check exclude patterns
 		for _, pattern := range e.opts.Exclude {
-			matched, _ := filepath.Match(pattern, relPath) // Error intentionally ignored - pattern validity checked at startup
+			//nolint:errcheck // Pattern validity checked at startup
+			matched, _ := filepath.Match(pattern, relPath)
 			if matched {
 				if info.IsDir() {
 					return filepath.SkipDir
@@ -393,7 +394,7 @@ func (e *Extractor) copyFile(sourcePath, targetPath, displayName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open source file %s: %w", displayName, err)
 	}
-	defer func() { _ = sourceFile.Close() }()
+	defer func() { _ = sourceFile.Close() }() //nolint:errcheck
 
 	// Get source file info for permissions
 	sourceInfo, err := sourceFile.Stat()
@@ -406,7 +407,7 @@ func (e *Extractor) copyFile(sourcePath, targetPath, displayName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create target file %s: %w", displayName, err)
 	}
-	defer func() { _ = targetFile.Close() }()
+	defer func() { _ = targetFile.Close() }() //nolint:errcheck
 
 	// Copy data
 	if _, copyErr := io.Copy(targetFile, sourceFile); copyErr != nil {
@@ -482,14 +483,14 @@ func (e *Extractor) showPolicyChanges(tempDir string) error {
 func (e *Extractor) showAdditionalFileChanges(tempDir string) error {
 	// Similar to applyAdditionalFiles but just shows changes
 	skipFiles := map[string]bool{
-		"manifest.yaml":    true,
-		"checksums.txt":    true,
-		"spec.yaml":        true,
-		"spec.lock.json":   true,
-		"routing.yaml":     true,
-		"policies":         true,
-		"approvals":        true,
-		"attestations":     true,
+		"manifest.yaml":  true,
+		"checksums.txt":  true,
+		"spec.yaml":      true,
+		"spec.lock.json": true,
+		"routing.yaml":   true,
+		"policies":       true,
+		"approvals":      true,
+		"attestations":   true,
 	}
 
 	return filepath.Walk(tempDir, func(path string, info os.FileInfo, err error) error {
@@ -541,7 +542,7 @@ func GetBundleInfo(bundlePath string) (*BundleInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bundle: %w", err)
 	}
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() //nolint:errcheck
 
 	// Get file size
 	fileInfo, err := file.Stat()
@@ -554,7 +555,7 @@ func GetBundleInfo(bundlePath string) (*BundleInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 	}
-	defer func() { _ = gzReader.Close() }()
+	defer func() { _ = gzReader.Close() }() //nolint:errcheck
 
 	// Create tar reader
 	tarReader := tar.NewReader(gzReader)

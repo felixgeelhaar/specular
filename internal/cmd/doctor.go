@@ -37,18 +37,18 @@ Examples:
 
 // DoctorReport represents the complete health check report
 type DoctorReport struct {
-	Docker     *DoctorCheck           `json:"docker"`
-	Podman     *DoctorCheck           `json:"podman,omitempty"`
-	Providers  map[string]*DoctorCheck `json:"providers"`
-	Spec       *DoctorCheck           `json:"spec"`
-	Lock       *DoctorCheck           `json:"lock"`
-	Policy     *DoctorCheck           `json:"policy"`
-	Router     *DoctorCheck           `json:"router"`
-	Git        *DoctorCheck           `json:"git"`
-	Issues     []string               `json:"issues"`
-	Warnings   []string               `json:"warnings"`
-	NextSteps  []string               `json:"next_steps"`
-	Healthy    bool                   `json:"healthy"`
+	Docker    *DoctorCheck            `json:"docker"`
+	Podman    *DoctorCheck            `json:"podman,omitempty"`
+	Providers map[string]*DoctorCheck `json:"providers"`
+	Spec      *DoctorCheck            `json:"spec"`
+	Lock      *DoctorCheck            `json:"lock"`
+	Policy    *DoctorCheck            `json:"policy"`
+	Router    *DoctorCheck            `json:"router"`
+	Git       *DoctorCheck            `json:"git"`
+	Issues    []string                `json:"issues"`
+	Warnings  []string                `json:"warnings"`
+	NextSteps []string                `json:"next_steps"`
+	Healthy   bool                    `json:"healthy"`
 }
 
 // DoctorCheck represents a single health check result
@@ -339,13 +339,28 @@ func outputJSON(report *DoctorReport) error {
 }
 
 func outputText(report *DoctorReport) error {
+	printHeader()
+	printContainerRuntime(report)
+	printAIProviders(report)
+	printProjectStructure(report)
+	printGitRepository(report)
+	printIssues(report)
+	printWarnings(report)
+	printNextSteps(report)
+	return printOverallHealth(report)
+}
+
+// printHeader prints the diagnostics header
+func printHeader() {
 	fmt.Println()
 	fmt.Println("╔══════════════════════════════════════════════════════════════╗")
 	fmt.Println("║                    System Diagnostics                        ║")
 	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
 	fmt.Println()
+}
 
-	// Container runtime
+// printContainerRuntime prints container runtime checks
+func printContainerRuntime(report *DoctorReport) {
 	fmt.Println("Container Runtime:")
 	if report.Docker != nil {
 		printCheck(report.Docker)
@@ -354,8 +369,10 @@ func outputText(report *DoctorReport) error {
 		printCheck(report.Podman)
 	}
 	fmt.Println()
+}
 
-	// AI Providers
+// printAIProviders prints AI provider checks
+func printAIProviders(report *DoctorReport) {
 	fmt.Println("AI Providers:")
 	for _, name := range []string{"ollama", "anthropic", "openai", "gemini", "claude"} {
 		if check, ok := report.Providers[name]; ok {
@@ -363,8 +380,10 @@ func outputText(report *DoctorReport) error {
 		}
 	}
 	fmt.Println()
+}
 
-	// Project Structure
+// printProjectStructure prints project structure checks
+func printProjectStructure(report *DoctorReport) {
 	fmt.Println("Project Structure:")
 	if report.Spec != nil {
 		printCheck(report.Spec)
@@ -379,15 +398,19 @@ func outputText(report *DoctorReport) error {
 		printCheck(report.Router)
 	}
 	fmt.Println()
+}
 
-	// Git
+// printGitRepository prints git repository check
+func printGitRepository(report *DoctorReport) {
 	if report.Git != nil {
 		fmt.Println("Git Repository:")
 		printCheck(report.Git)
 		fmt.Println()
 	}
+}
 
-	// Issues
+// printIssues prints issues if any exist
+func printIssues(report *DoctorReport) {
 	if len(report.Issues) > 0 {
 		fmt.Println("❌ Issues:")
 		for _, issue := range report.Issues {
@@ -395,8 +418,10 @@ func outputText(report *DoctorReport) error {
 		}
 		fmt.Println()
 	}
+}
 
-	// Warnings
+// printWarnings prints warnings if any exist
+func printWarnings(report *DoctorReport) {
 	if len(report.Warnings) > 0 {
 		fmt.Println("⚠️  Warnings:")
 		for _, warning := range report.Warnings {
@@ -404,8 +429,10 @@ func outputText(report *DoctorReport) error {
 		}
 		fmt.Println()
 	}
+}
 
-	// Next Steps
+// printNextSteps prints next steps if any exist
+func printNextSteps(report *DoctorReport) {
 	if len(report.NextSteps) > 0 {
 		fmt.Println("📋 Next Steps:")
 		for i, step := range report.NextSteps {
@@ -413,19 +440,20 @@ func outputText(report *DoctorReport) error {
 		}
 		fmt.Println()
 	}
+}
 
-	// Overall Health
+// printOverallHealth prints overall health status and returns error if unhealthy
+func printOverallHealth(report *DoctorReport) error {
 	if report.Healthy {
 		fmt.Println("✅ System is healthy and ready to use!")
-	} else {
-		fmt.Println("❌ System has issues that need attention")
-		if len(report.Issues) == 0 {
-			fmt.Println("   (Warnings present but system is functional)")
-		}
-		return fmt.Errorf("system health check failed")
+		return nil
 	}
 
-	return nil
+	fmt.Println("❌ System has issues that need attention")
+	if len(report.Issues) == 0 {
+		fmt.Println("   (Warnings present but system is functional)")
+	}
+	return fmt.Errorf("system health check failed")
 }
 
 func printCheck(check *DoctorCheck) {

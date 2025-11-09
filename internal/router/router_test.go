@@ -290,7 +290,7 @@ func TestBudgetManagement(t *testing.T) {
 	}
 
 	// Record usage that consumes budget
-	router.RecordUsage(Usage{
+	_ = router.RecordUsage(Usage{
 		Model:     result1.Model.ID,
 		Provider:  result1.Model.Provider,
 		Tokens:    10000,
@@ -308,7 +308,7 @@ func TestBudgetManagement(t *testing.T) {
 	}
 
 	// Consume more budget
-	router.RecordUsage(Usage{
+	_ = router.RecordUsage(Usage{
 		Model:     result1.Model.ID,
 		Provider:  result1.Model.Provider,
 		Tokens:    10000,
@@ -450,7 +450,7 @@ func TestUsageStats(t *testing.T) {
 	router.SetModelsAvailable(true) // Enable models for testing
 
 	// Record some usage
-	router.RecordUsage(Usage{
+	_ = router.RecordUsage(Usage{
 		Model:     "claude-sonnet-4",
 		Provider:  ProviderAnthropic,
 		Tokens:    5000,
@@ -461,7 +461,7 @@ func TestUsageStats(t *testing.T) {
 		Success:   true,
 	})
 
-	router.RecordUsage(Usage{
+	_ = router.RecordUsage(Usage{
 		Model:     "gpt-4o",
 		Provider:  ProviderOpenAI,
 		Tokens:    3000,
@@ -599,7 +599,7 @@ func TestGetBudget(t *testing.T) {
 	}
 
 	// Record some usage
-	router.RecordUsage(Usage{
+	_ = router.RecordUsage(Usage{
 		Model:     "claude-sonnet-4",
 		Provider:  ProviderAnthropic,
 		Tokens:    10000,
