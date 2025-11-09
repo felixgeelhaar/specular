@@ -124,32 +124,32 @@ func (e *Extractor) extractBundle(bundlePath string) (string, error) {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, safeFileMode(header.Mode)); err != nil {
+			if mkdirErr := os.MkdirAll(targetPath, safeFileMode(header.Mode)); mkdirErr != nil {
 				_ = os.RemoveAll(tempDir) //nolint:errcheck
-				return "", fmt.Errorf("failed to create directory: %w", err)
+				return "", fmt.Errorf("failed to create directory: %w", mkdirErr)
 			}
 
 		case tar.TypeReg:
 			// Create parent directory
-			if err := os.MkdirAll(filepath.Dir(targetPath), 0750); err != nil {
+			if parentDirErr := os.MkdirAll(filepath.Dir(targetPath), 0750); parentDirErr != nil {
 				_ = os.RemoveAll(tempDir) //nolint:errcheck
-				return "", fmt.Errorf("failed to create parent directory: %w", err)
+				return "", fmt.Errorf("failed to create parent directory: %w", parentDirErr)
 			}
 
 			// Create file
-			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, safeFileMode(header.Mode))
-			if err != nil {
+			outFile, fileErr := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, safeFileMode(header.Mode))
+			if fileErr != nil {
 				_ = os.RemoveAll(tempDir) //nolint:errcheck
-				return "", fmt.Errorf("failed to create file: %w", err)
+				return "", fmt.Errorf("failed to create file: %w", fileErr)
 			}
 
 			// Copy data
 			// #nosec G110 - Decompression bomb risk accepted for trusted, verified bundles
 			// Bundles are validated and verified before extraction, ensuring they come from trusted sources
-			if _, err := io.Copy(outFile, tarReader); err != nil {
+			if _, copyErr := io.Copy(outFile, tarReader); copyErr != nil {
 				_ = outFile.Close()       //nolint:errcheck
 				_ = os.RemoveAll(tempDir) //nolint:errcheck
-				return "", fmt.Errorf("failed to write file: %w", err)
+				return "", fmt.Errorf("failed to write file: %w", copyErr)
 			}
 			_ = outFile.Close() //nolint:errcheck
 		}

@@ -374,16 +374,14 @@ Examples:
 	RunE: runBundleDiff,
 }
 
-func runBundleBuild(cmd *cobra.Command, args []string) error {
-	defaults := ux.NewPathDefaults()
-
+// determineOutputPathAndDefaults applies default paths if not explicitly set
+func determineOutputPathAndDefaults(cmd *cobra.Command, args []string, defaults *ux.PathDefaults) string {
 	// Determine output path
 	output := buildOutput
 	if len(args) > 0 {
 		output = args[0]
 	}
 	if output == "" {
-		// Generate default output name
 		output = "bundle.sbundle.tgz"
 	}
 
@@ -398,14 +396,95 @@ func runBundleBuild(cmd *cobra.Command, args []string) error {
 		buildRouting = filepath.Join(defaults.SpecularDir, "routing.yaml")
 	}
 
-	// Parse metadata
+	return output
+}
+
+// parseMetadataFlags converts metadata flags (key=value format) to a map
+func parseMetadataFlags(metadataFlags []string) map[string]string {
 	metadata := make(map[string]string)
-	for _, m := range buildMetadata {
+	for _, m := range metadataFlags {
 		parts := strings.SplitN(m, "=", 2)
 		if len(parts) == 2 {
 			metadata[parts[0]] = parts[1]
 		}
 	}
+	return metadata
+}
+
+// generateBundleAttestation generates and adds attestation to the bundle
+func generateBundleAttestation(output, attestFmt string) error {
+	fmt.Printf("\nGenerating %s attestation...\n", attestFmt)
+
+	// Determine attestation format
+	var format bundle.AttestationFormat
+	switch attestFmt {
+	case "sigstore":
+		format = bundle.AttestationFormatSigstore
+	case "in-toto":
+		format = bundle.AttestationFormatInToto
+	case "slsa":
+		format = bundle.AttestationFormatSLSA
+	default:
+		return fmt.Errorf("unsupported attestation format: %s (supported: sigstore, in-toto, slsa)", attestFmt)
+	}
+
+	// Create attestation generator
+	attestOpts := bundle.AttestationOptions{
+		Format:            format,
+		UseKeyless:        false, // For now, require key-based signing
+		IncludeRekorEntry: false, // Rekor not yet implemented
+	}
+
+	generator := bundle.NewAttestationGenerator(attestOpts)
+
+	// Generate attestation
+	ctx := context.Background()
+	attestation, attestErr := generator.GenerateAttestation(ctx, output)
+	if attestErr != nil {
+		fmt.Printf("⚠ Warning: Failed to generate attestation: %v\n", attestErr)
+		fmt.Println("Continuing without attestation...")
+		return nil // Non-fatal
+	}
+
+	// Save attestation to bundle
+	if addErr := bundle.AddAttestationToBundle(output, attestation); addErr != nil {
+		fmt.Printf("⚠ Warning: Failed to add attestation to bundle: %v\n", addErr)
+		fmt.Println("Continuing without attestation...")
+		return nil // Non-fatal
+	}
+
+	fmt.Printf("✓ Attestation generated and added to bundle\n")
+	return nil
+}
+
+// displayBundleDetails shows bundle information and metadata
+func displayBundleDetails(output, attestFmt string, includeAttest bool) {
+	bundleInfo, err := bundle.GetBundleInfo(output)
+	if err != nil {
+		return // Silently skip if bundle info unavailable
+	}
+
+	fmt.Printf("\nBundle Details:\n")
+	fmt.Printf("  ID:      %s\n", bundleInfo.ID)
+	fmt.Printf("  Version: %s\n", bundleInfo.Version)
+	fmt.Printf("  Schema:  %s\n", bundleInfo.Schema)
+	fmt.Printf("  Created: %s\n", bundleInfo.Created.Format("2006-01-02 15:04:05"))
+
+	if bundleInfo.GovernanceLevel != "" {
+		fmt.Printf("  Governance Level: %s\n", bundleInfo.GovernanceLevel)
+	}
+	if bundleInfo.IntegrityDigest != "" {
+		fmt.Printf("  Digest:  %s\n", bundleInfo.IntegrityDigest)
+	}
+	if includeAttest {
+		fmt.Printf("  Attestation: %s\n", attestFmt)
+	}
+}
+
+func runBundleBuild(cmd *cobra.Command, args []string) error {
+	defaults := ux.NewPathDefaults()
+	output := determineOutputPathAndDefaults(cmd, args, defaults)
+	metadata := parseMetadataFlags(buildMetadata)
 
 	// Parse approvals
 	var approvals []string
@@ -434,8 +513,8 @@ func runBundleBuild(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build bundle
-	if err := builder.Build(output); err != nil {
-		return ux.FormatError(err, "building bundle")
+	if buildErr := builder.Build(output); buildErr != nil {
+		return ux.FormatError(buildErr, "building bundle")
 	}
 
 	// Get file info
@@ -448,65 +527,13 @@ func runBundleBuild(cmd *cobra.Command, args []string) error {
 
 	// Generate attestation if requested
 	if buildAttest && buildAttestFmt != "" {
-		fmt.Printf("\nGenerating %s attestation...\n", buildAttestFmt)
-
-		// Determine attestation format
-		var format bundle.AttestationFormat
-		switch buildAttestFmt {
-		case "sigstore":
-			format = bundle.AttestationFormatSigstore
-		case "in-toto":
-			format = bundle.AttestationFormatInToto
-		case "slsa":
-			format = bundle.AttestationFormatSLSA
-		default:
-			return fmt.Errorf("unsupported attestation format: %s (supported: sigstore, in-toto, slsa)", buildAttestFmt)
-		}
-
-		// Create attestation generator
-		attestOpts := bundle.AttestationOptions{
-			Format:            format,
-			UseKeyless:        false, // For now, require key-based signing
-			IncludeRekorEntry: false, // Rekor not yet implemented
-		}
-
-		generator := bundle.NewAttestationGenerator(attestOpts)
-
-		// Generate attestation
-		ctx := context.Background()
-		attestation, err := generator.GenerateAttestation(ctx, output)
-		if err != nil {
-			fmt.Printf("⚠ Warning: Failed to generate attestation: %v\n", err)
-			fmt.Println("Continuing without attestation...")
-		} else {
-			// Save attestation to bundle
-			if err := bundle.AddAttestationToBundle(output, attestation); err != nil {
-				fmt.Printf("⚠ Warning: Failed to add attestation to bundle: %v\n", err)
-				fmt.Println("Continuing without attestation...")
-			} else {
-				fmt.Printf("✓ Attestation generated and added to bundle\n")
-			}
+		if err := generateBundleAttestation(output, buildAttestFmt); err != nil {
+			return err
 		}
 	}
 
-	// Get bundle info
-	bundleInfo, err := bundle.GetBundleInfo(output)
-	if err == nil {
-		fmt.Printf("\nBundle Details:\n")
-		fmt.Printf("  ID:      %s\n", bundleInfo.ID)
-		fmt.Printf("  Version: %s\n", bundleInfo.Version)
-		fmt.Printf("  Schema:  %s\n", bundleInfo.Schema)
-		fmt.Printf("  Created: %s\n", bundleInfo.Created.Format("2006-01-02 15:04:05"))
-		if bundleInfo.GovernanceLevel != "" {
-			fmt.Printf("  Governance Level: %s\n", bundleInfo.GovernanceLevel)
-		}
-		if bundleInfo.IntegrityDigest != "" {
-			fmt.Printf("  Digest:  %s\n", bundleInfo.IntegrityDigest)
-		}
-		if buildAttest {
-			fmt.Printf("  Attestation: %s\n", buildAttestFmt)
-		}
-	}
+	// Display bundle details
+	displayBundleDetails(output, buildAttestFmt, buildAttest)
 
 	return nil
 }
@@ -804,32 +831,16 @@ func runBundleApprove(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runBundleApprovalStatus(cmd *cobra.Command, args []string) error {
-	bundlePath := args[0]
-
-	// Check bundle exists
-	if _, err := os.Stat(bundlePath); os.IsNotExist(err) {
-		return ux.FormatError(err, "bundle not found")
+// loadApprovalFiles loads and parses approval files from disk
+func loadApprovalFiles(approvalPaths []string) ([]*bundle.Approval, error) {
+	if len(approvalPaths) == 0 {
+		return nil, fmt.Errorf("at least one approval file is required")
 	}
 
-	// Check approval files provided
-	if len(statusApprovals) == 0 {
-		return fmt.Errorf("at least one approval file is required (use --approvals)")
-	}
-
-	// Compute bundle digest
-	fmt.Println("Computing bundle digest...")
-	digest, err := bundle.ComputeBundleDigest(bundlePath)
-	if err != nil {
-		return ux.FormatError(err, "computing bundle digest")
-	}
-
-	fmt.Printf("Bundle digest: %s\n\n", digest)
-
-	// Load approval files
 	fmt.Println("Loading approval files...")
 	var approvals []*bundle.Approval
-	for _, approvalPath := range statusApprovals {
+
+	for _, approvalPath := range approvalPaths {
 		data, err := os.ReadFile(approvalPath)
 		if err != nil {
 			fmt.Printf("⚠ Warning: Failed to read %s: %v\n", approvalPath, err)
@@ -846,23 +857,24 @@ func runBundleApprovalStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(approvals) == 0 {
-		return fmt.Errorf("no valid approval files found")
+		return nil, fmt.Errorf("no valid approval files found")
 	}
 
 	fmt.Printf("Loaded %d approval(s)\n\n", len(approvals))
+	return approvals, nil
+}
 
-	// Verify each approval
+// verifyApprovalSignatures verifies all approval signatures and returns verified roles and errors
+func verifyApprovalSignatures(approvals []*bundle.Approval, digest string) (map[string]*bundle.Approval, []string) {
 	fmt.Println("Verifying approval signatures...")
 	verifiedRoles := make(map[string]*bundle.Approval)
 	var verificationErrors []string
 
 	for _, approval := range approvals {
-		// Create verifier
 		verifier := bundle.NewVerifier(bundle.ApprovalVerificationOptions{
 			BundleDigest: digest,
 		})
 
-		// Verify signature
 		if err := verifier.VerifyApproval(approval); err != nil {
 			verificationErrors = append(verificationErrors,
 				fmt.Sprintf("Role %s (%s): ✗ INVALID - %v", approval.Role, approval.User, err))
@@ -872,7 +884,6 @@ func runBundleApprovalStatus(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Show verification errors if any
 	if len(verificationErrors) > 0 {
 		fmt.Println()
 		fmt.Println("Verification Errors:")
@@ -882,126 +893,243 @@ func runBundleApprovalStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println()
+	return verifiedRoles, verificationErrors
+}
 
-	// Check required roles if specified
-	if len(statusRequiredRoles) > 0 {
-		fmt.Println("Checking required roles...")
-		var missingRoles []string
-		for _, requiredRole := range statusRequiredRoles {
+// checkRequiredRoles validates that all required roles have approved
+func checkRequiredRoles(requiredRoles []string, verifiedRoles map[string]*bundle.Approval) error {
+	if len(requiredRoles) == 0 {
+		return nil
+	}
+
+	fmt.Println("Checking required roles...")
+	var missingRoles []string
+
+	for _, requiredRole := range requiredRoles {
+		if _, exists := verifiedRoles[requiredRole]; !exists {
+			missingRoles = append(missingRoles, requiredRole)
+			fmt.Printf("✗ %s: Missing or invalid approval\n", requiredRole)
+		} else {
+			fmt.Printf("✓ %s: Approved\n", requiredRole)
+		}
+	}
+
+	fmt.Println()
+
+	if len(missingRoles) > 0 {
+		fmt.Printf("⚠ Bundle is missing %d required approval(s): %s\n",
+			len(missingRoles), strings.Join(missingRoles, ", "))
+		fmt.Println()
+		return fmt.Errorf("bundle requires approvals from: %s", strings.Join(missingRoles, ", "))
+	}
+
+	fmt.Println("✓ All required roles have approved")
+	return nil
+}
+
+// displayApprovalSummaryText displays human-readable approval summary
+func displayApprovalSummaryText(verifiedRoles map[string]*bundle.Approval, verificationErrors []string) {
+	fmt.Println()
+	fmt.Println("Approval Summary:")
+	fmt.Printf("  Total approvals: %d\n", len(verifiedRoles))
+	fmt.Printf("  Valid signatures: %d\n", len(verifiedRoles))
+	fmt.Printf("  Invalid signatures: %d\n", len(verificationErrors))
+
+	if len(verifiedRoles) > 0 {
+		fmt.Println()
+		fmt.Println("Approved by:")
+		for role, approval := range verifiedRoles {
+			fmt.Printf("  - %s: %s (signed %s)\n",
+				role,
+				approval.User,
+				approval.SignedAt.Format("2006-01-02 15:04:05"))
+			if approval.Comment != "" {
+				fmt.Printf("    Comment: %s\n", approval.Comment)
+			}
+		}
+	}
+}
+
+// outputApprovalStatusJSON outputs approval status as JSON
+func outputApprovalStatusJSON(digest string, approvals []*bundle.Approval, verifiedRoles map[string]*bundle.Approval, verificationErrors []string, requiredRoles []string) error {
+	type ApprovalStatus struct {
+		BundleDigest     string                      `json:"bundle_digest"`
+		TotalApprovals   int                         `json:"total_approvals"`
+		ValidApprovals   int                         `json:"valid_approvals"`
+		InvalidApprovals int                         `json:"invalid_approvals"`
+		VerifiedRoles    map[string]*bundle.Approval `json:"verified_roles"`
+		MissingRoles     []string                    `json:"missing_roles,omitempty"`
+		Errors           []string                    `json:"errors,omitempty"`
+	}
+
+	missingRoles := []string{}
+	if len(requiredRoles) > 0 {
+		for _, requiredRole := range requiredRoles {
 			if _, exists := verifiedRoles[requiredRole]; !exists {
 				missingRoles = append(missingRoles, requiredRole)
-				fmt.Printf("✗ %s: Missing or invalid approval\n", requiredRole)
-			} else {
-				fmt.Printf("✓ %s: Approved\n", requiredRole)
 			}
 		}
-
-		fmt.Println()
-
-		if len(missingRoles) > 0 {
-			fmt.Printf("⚠ Bundle is missing %d required approval(s): %s\n",
-				len(missingRoles), strings.Join(missingRoles, ", "))
-			fmt.Println()
-			return fmt.Errorf("bundle requires approvals from: %s", strings.Join(missingRoles, ", "))
-		}
-
-		fmt.Println("✓ All required roles have approved")
 	}
 
-	// Display approval summary
-	if !statusJSON {
-		fmt.Println()
-		fmt.Println("Approval Summary:")
-		fmt.Printf("  Total approvals: %d\n", len(verifiedRoles))
-		fmt.Printf("  Valid signatures: %d\n", len(verifiedRoles))
-		fmt.Printf("  Invalid signatures: %d\n", len(verificationErrors))
-
-		if len(verifiedRoles) > 0 {
-			fmt.Println()
-			fmt.Println("Approved by:")
-			for role, approval := range verifiedRoles {
-				fmt.Printf("  - %s: %s (signed %s)\n",
-					role,
-					approval.User,
-					approval.SignedAt.Format("2006-01-02 15:04:05"))
-				if approval.Comment != "" {
-					fmt.Printf("    Comment: %s\n", approval.Comment)
-				}
-			}
-		}
-	} else {
-		// Output as JSON
-		type ApprovalStatus struct {
-			BundleDigest     string                      `json:"bundle_digest"`
-			TotalApprovals   int                         `json:"total_approvals"`
-			ValidApprovals   int                         `json:"valid_approvals"`
-			InvalidApprovals int                         `json:"invalid_approvals"`
-			VerifiedRoles    map[string]*bundle.Approval `json:"verified_roles"`
-			MissingRoles     []string                    `json:"missing_roles,omitempty"`
-			Errors           []string                    `json:"errors,omitempty"`
-		}
-
-		missingRoles := []string{}
-		if len(statusRequiredRoles) > 0 {
-			for _, requiredRole := range statusRequiredRoles {
-				if _, exists := verifiedRoles[requiredRole]; !exists {
-					missingRoles = append(missingRoles, requiredRole)
-				}
-			}
-		}
-
-		status := ApprovalStatus{
-			BundleDigest:     digest,
-			TotalApprovals:   len(approvals),
-			ValidApprovals:   len(verifiedRoles),
-			InvalidApprovals: len(verificationErrors),
-			VerifiedRoles:    verifiedRoles,
-			MissingRoles:     missingRoles,
-			Errors:           verificationErrors,
-		}
-
-		output, err := json.MarshalIndent(status, "", "  ")
-		if err != nil {
-			return ux.FormatError(err, "marshaling status")
-		}
-
-		fmt.Println(string(output))
+	status := ApprovalStatus{
+		BundleDigest:     digest,
+		TotalApprovals:   len(approvals),
+		ValidApprovals:   len(verifiedRoles),
+		InvalidApprovals: len(verificationErrors),
+		VerifiedRoles:    verifiedRoles,
+		MissingRoles:     missingRoles,
+		Errors:           verificationErrors,
 	}
 
+	output, err := json.MarshalIndent(status, "", "  ")
+	if err != nil {
+		return ux.FormatError(err, "marshaling status")
+	}
+
+	fmt.Println(string(output))
 	return nil
+}
+
+func runBundleApprovalStatus(cmd *cobra.Command, args []string) error {
+	bundlePath := args[0]
+
+	// Check bundle exists
+	if _, err := os.Stat(bundlePath); os.IsNotExist(err) {
+		return ux.FormatError(err, "bundle not found")
+	}
+
+	// Compute bundle digest
+	fmt.Println("Computing bundle digest...")
+	digest, err := bundle.ComputeBundleDigest(bundlePath)
+	if err != nil {
+		return ux.FormatError(err, "computing bundle digest")
+	}
+	fmt.Printf("Bundle digest: %s\n\n", digest)
+
+	// Load approval files
+	approvals, err := loadApprovalFiles(statusApprovals)
+	if err != nil {
+		return err
+	}
+
+	// Verify signatures
+	verifiedRoles, verificationErrors := verifyApprovalSignatures(approvals, digest)
+
+	// Check required roles
+	if err := checkRequiredRoles(statusRequiredRoles, verifiedRoles); err != nil {
+		return err
+	}
+
+	// Display results
+	if statusJSON {
+		return outputApprovalStatusJSON(digest, approvals, verifiedRoles, verificationErrors, statusRequiredRoles)
+	}
+	displayApprovalSummaryText(verifiedRoles, verificationErrors)
+	return nil
+}
+
+// loadBundlesForDiff loads and validates two bundles for comparison
+func loadBundlesForDiff(bundlePathA, bundlePathB string, quiet bool) (*bundle.Bundle, *bundle.Bundle, error) {
+	// Check both bundles exist
+	if _, err := os.Stat(bundlePathA); os.IsNotExist(err) {
+		return nil, nil, ux.FormatError(err, fmt.Sprintf("bundle A not found: %s", bundlePathA))
+	}
+	if _, err := os.Stat(bundlePathB); os.IsNotExist(err) {
+		return nil, nil, ux.FormatError(err, fmt.Sprintf("bundle B not found: %s", bundlePathB))
+	}
+
+	if !quiet {
+		fmt.Printf("Comparing bundles:\n")
+		fmt.Printf("  A: %s\n", bundlePathA)
+		fmt.Printf("  B: %s\n\n", bundlePathB)
+		fmt.Println("Loading bundles...")
+	}
+
+	bundleA, err := bundle.LoadBundle(bundlePathA)
+	if err != nil {
+		return nil, nil, ux.FormatError(err, "loading bundle A")
+	}
+
+	bundleB, err := bundle.LoadBundle(bundlePathB)
+	if err != nil {
+		return nil, nil, ux.FormatError(err, "loading bundle B")
+	}
+
+	return bundleA, bundleB, nil
+}
+
+// displayFileDiffChanges shows file additions, removals, and modifications
+func displayFileDiffChanges(diffResult *bundle.DiffResult) {
+	if len(diffResult.FilesAdded) > 0 {
+		fmt.Printf("Files Added (%d):\n", len(diffResult.FilesAdded))
+		for _, file := range diffResult.FilesAdded {
+			fmt.Printf("  + %s (checksum: %s)\n", file.Path, file.Checksum[:16]+"...")
+		}
+		fmt.Println()
+	}
+
+	if len(diffResult.FilesRemoved) > 0 {
+		fmt.Printf("Files Removed (%d):\n", len(diffResult.FilesRemoved))
+		for _, file := range diffResult.FilesRemoved {
+			fmt.Printf("  - %s (checksum: %s)\n", file.Path, file.Checksum[:16]+"...")
+		}
+		fmt.Println()
+	}
+
+	if len(diffResult.FilesModified) > 0 {
+		fmt.Printf("Files Modified (%d):\n", len(diffResult.FilesModified))
+		for _, file := range diffResult.FilesModified {
+			fmt.Printf("  M %s\n", file.Path)
+			fmt.Printf("    Old: %s\n", file.OldChecksum[:16]+"...")
+			fmt.Printf("    New: %s\n", file.NewChecksum[:16]+"...")
+		}
+		fmt.Println()
+	}
+}
+
+// displayApprovalDiffChanges shows approval additions and removals
+func displayApprovalDiffChanges(diffResult *bundle.DiffResult) {
+	if len(diffResult.ApprovalsAdded) > 0 {
+		fmt.Printf("Approvals Added (%d):\n", len(diffResult.ApprovalsAdded))
+		for _, approval := range diffResult.ApprovalsAdded {
+			fmt.Printf("  + Role: %s, User: %s\n", approval.Role, approval.User)
+		}
+		fmt.Println()
+	}
+
+	if len(diffResult.ApprovalsRemoved) > 0 {
+		fmt.Printf("Approvals Removed (%d):\n", len(diffResult.ApprovalsRemoved))
+		for _, approval := range diffResult.ApprovalsRemoved {
+			fmt.Printf("  - Role: %s, User: %s\n", approval.Role, approval.User)
+		}
+		fmt.Println()
+	}
+}
+
+// displayOtherDiffChanges shows attestation and metadata changes
+func displayOtherDiffChanges(diffResult *bundle.DiffResult) {
+	if diffResult.AttestationChanged {
+		fmt.Println("Attestation: CHANGED")
+		fmt.Println()
+	}
+
+	if diffResult.MetadataChanged {
+		fmt.Println("Metadata Changes:")
+		for key, change := range diffResult.ManifestMetadataChanges {
+			fmt.Printf("  %s: %s\n", key, change)
+		}
+		fmt.Println()
+	}
 }
 
 func runBundleDiff(cmd *cobra.Command, args []string) error {
 	bundlePathA := args[0]
 	bundlePathB := args[1]
 
-	// Check both bundles exist
-	if _, err := os.Stat(bundlePathA); os.IsNotExist(err) {
-		return ux.FormatError(err, fmt.Sprintf("bundle A not found: %s", bundlePathA))
-	}
-	if _, err := os.Stat(bundlePathB); os.IsNotExist(err) {
-		return ux.FormatError(err, fmt.Sprintf("bundle B not found: %s", bundlePathB))
-	}
-
-	if !diffQuiet {
-		fmt.Printf("Comparing bundles:\n")
-		fmt.Printf("  A: %s\n", bundlePathA)
-		fmt.Printf("  B: %s\n\n", bundlePathB)
-	}
-
 	// Load both bundles
-	if !diffQuiet {
-		fmt.Println("Loading bundles...")
-	}
-
-	bundleA, err := bundle.LoadBundle(bundlePathA)
+	bundleA, bundleB, err := loadBundlesForDiff(bundlePathA, bundlePathB, diffQuiet)
 	if err != nil {
-		return ux.FormatError(err, "loading bundle A")
-	}
-
-	bundleB, err := bundle.LoadBundle(bundlePathB)
-	if err != nil {
-		return ux.FormatError(err, "loading bundle B")
+		return err
 	}
 
 	// Perform diff
@@ -1037,64 +1165,10 @@ func runBundleDiff(cmd *cobra.Command, args []string) error {
 	fmt.Println("Differences found:")
 	fmt.Println()
 
-	// Show file changes
-	if len(diffResult.FilesAdded) > 0 {
-		fmt.Printf("Files Added (%d):\n", len(diffResult.FilesAdded))
-		for _, file := range diffResult.FilesAdded {
-			fmt.Printf("  + %s (checksum: %s)\n", file.Path, file.Checksum[:16]+"...")
-		}
-		fmt.Println()
-	}
-
-	if len(diffResult.FilesRemoved) > 0 {
-		fmt.Printf("Files Removed (%d):\n", len(diffResult.FilesRemoved))
-		for _, file := range diffResult.FilesRemoved {
-			fmt.Printf("  - %s (checksum: %s)\n", file.Path, file.Checksum[:16]+"...")
-		}
-		fmt.Println()
-	}
-
-	if len(diffResult.FilesModified) > 0 {
-		fmt.Printf("Files Modified (%d):\n", len(diffResult.FilesModified))
-		for _, file := range diffResult.FilesModified {
-			fmt.Printf("  M %s\n", file.Path)
-			fmt.Printf("    Old: %s\n", file.OldChecksum[:16]+"...")
-			fmt.Printf("    New: %s\n", file.NewChecksum[:16]+"...")
-		}
-		fmt.Println()
-	}
-
-	// Show approval changes
-	if len(diffResult.ApprovalsAdded) > 0 {
-		fmt.Printf("Approvals Added (%d):\n", len(diffResult.ApprovalsAdded))
-		for _, approval := range diffResult.ApprovalsAdded {
-			fmt.Printf("  + Role: %s, User: %s\n", approval.Role, approval.User)
-		}
-		fmt.Println()
-	}
-
-	if len(diffResult.ApprovalsRemoved) > 0 {
-		fmt.Printf("Approvals Removed (%d):\n", len(diffResult.ApprovalsRemoved))
-		for _, approval := range diffResult.ApprovalsRemoved {
-			fmt.Printf("  - Role: %s, User: %s\n", approval.Role, approval.User)
-		}
-		fmt.Println()
-	}
-
-	// Show attestation changes
-	if diffResult.AttestationChanged {
-		fmt.Println("Attestation: CHANGED")
-		fmt.Println()
-	}
-
-	// Show metadata changes
-	if diffResult.MetadataChanged {
-		fmt.Println("Metadata Changes:")
-		for key, change := range diffResult.ManifestMetadataChanges {
-			fmt.Printf("  %s: %s\n", key, change)
-		}
-		fmt.Println()
-	}
+	// Show all changes
+	displayFileDiffChanges(diffResult)
+	displayApprovalDiffChanges(diffResult)
+	displayOtherDiffChanges(diffResult)
 
 	// Summary
 	fmt.Printf("Summary: %s\n", diffResult.Summary())

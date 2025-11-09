@@ -83,83 +83,68 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 }
 
-func runInit(cmd *cobra.Command, args []string) error {
-	// Determine target directory
+// setupTargetDirectory resolves and validates the target directory
+func setupTargetDirectory(args []string) (string, string, error) {
 	targetDir := "."
 	if len(args) > 0 {
 		targetDir = args[0]
 	}
 
-	// Create absolute path
 	absDir, err := filepath.Abs(targetDir)
 	if err != nil {
-		return ux.FormatError(err, "resolving directory path")
+		return "", "", ux.FormatError(err, "resolving directory path")
 	}
 
 	specDir := filepath.Join(absDir, ".specular")
 
 	// Check if .specular directory already exists
 	if _, err := os.Stat(specDir); err == nil && !initForce {
-		return fmt.Errorf(".specular directory already exists at %s\nUse --force to overwrite existing files", specDir)
+		return "", "", fmt.Errorf(".specular directory already exists at %s\nUse --force to overwrite existing files", specDir)
 	}
 
-	fmt.Println()
-	fmt.Println("╔══════════════════════════════════════════════════════════════╗")
-	fmt.Println("║           Specular Project Initialization                    ║")
-	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
-	fmt.Println()
+	return absDir, specDir, nil
+}
 
-	// Context detection
-	var ctx *detect.Context
-	if !initNoDetect {
-		fmt.Println("🔍 Detecting project context...")
-		ctx, err = detect.DetectAll()
-		if err != nil {
-			fmt.Printf("⚠  Context detection failed: %v\n", err)
-			fmt.Println("   Continuing with manual configuration...")
-			ctx = &detect.Context{}
-		} else {
-			printDetectionSummary(ctx)
-		}
-	} else {
-		ctx = &detect.Context{}
+// detectProjectContext performs context detection or returns empty context
+func detectProjectContext() *detect.Context {
+	if initNoDetect {
 		fmt.Println("ℹ  Skipping context detection (--no-detect)")
+		return &detect.Context{}
 	}
 
-	// Determine provider strategy
-	providerStrategy := determineProviderStrategy(ctx)
+	fmt.Println("🔍 Detecting project context...")
+	ctx, err := detect.DetectAll()
+	if err != nil {
+		fmt.Printf("⚠  Context detection failed: %v\n", err)
+		fmt.Println("   Continuing with manual configuration...")
+		return &detect.Context{}
+	}
 
-	// Generate configuration
-	config := &InitConfig{
+	printDetectionSummary(ctx)
+	return ctx
+}
+
+// buildInitConfig creates the initialization configuration
+func buildInitConfig(absDir, specDir string, ctx *detect.Context) *InitConfig {
+	return &InitConfig{
 		TargetDir:        absDir,
 		SpecDir:          specDir,
 		Context:          ctx,
 		Template:         initTemplate,
-		ProviderStrategy: providerStrategy,
+		ProviderStrategy: determineProviderStrategy(ctx),
 		Governance:       initGovernance,
 		MCPEnabled:       determineMCPEnabled(ctx),
 		Timestamp:        time.Now(),
 	}
+}
 
-	// Preview changes
-	if initDryRun {
-		return previewChanges(config)
-	}
-
-	// Confirm before writing (unless --yes)
-	if !initYes && !initForce {
-		if !confirmInitialization(config) {
-			fmt.Println("\nInitialization cancelled.")
-			return nil
-		}
-	}
-
+// executeInit performs the actual initialization steps
+func executeInit(config *InitConfig) error {
 	// Create .specular directory
-	if err := os.MkdirAll(specDir, 0750); err != nil {
+	if err := os.MkdirAll(config.SpecDir, 0750); err != nil {
 		return ux.FormatError(err, "creating .specular directory")
 	}
-
-	fmt.Printf("\n✓ Created .specular directory at %s\n", specDir)
+	fmt.Printf("\n✓ Created .specular directory at %s\n", config.SpecDir)
 
 	// Generate and write configuration files
 	if err := generateConfigFiles(config); err != nil {
@@ -168,10 +153,51 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Interactive provider setup (if not using --yes)
 	if initProviderSetup && !initYes && initProviders == "" {
-		if err := runSmartProviderSetup(specDir, ctx); err != nil {
+		if err := runSmartProviderSetup(config.SpecDir, config.Context); err != nil {
 			fmt.Printf("⚠  Provider setup skipped: %v\n", err)
 			fmt.Println("   You can manually edit .specular/router.yaml to configure providers")
 		}
+	}
+
+	return nil
+}
+
+func runInit(cmd *cobra.Command, args []string) error {
+	// Setup target directory
+	absDir, specDir, err := setupTargetDirectory(args)
+	if err != nil {
+		return err
+	}
+
+	// Display header
+	fmt.Println()
+	fmt.Println("╔══════════════════════════════════════════════════════════════╗")
+	fmt.Println("║           Specular Project Initialization                    ║")
+	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
+	fmt.Println()
+
+	// Detect project context
+	ctx := detectProjectContext()
+
+	// Build configuration
+	config := buildInitConfig(absDir, specDir, ctx)
+
+	// Preview changes in dry-run mode
+	if initDryRun {
+		return previewChanges(config)
+	}
+
+	// Confirm before writing (unless --yes or --force)
+	if !initYes && !initForce {
+		if !confirmInitialization(config) {
+			fmt.Println("\nInitialization cancelled.")
+			return nil
+		}
+	}
+
+	// Execute initialization
+	if err := executeInit(config); err != nil {
+		return err
 	}
 
 	// Print success message and next steps
@@ -234,28 +260,23 @@ func printDetectionSummary(ctx *detect.Context) {
 	fmt.Println()
 }
 
-func determineProviderStrategy(ctx *detect.Context) string {
-	// Explicit flags take precedence
+// checkExplicitProviderFlags returns strategy if explicit flags are set
+func checkExplicitProviderFlags() (string, bool) {
 	if initLocal {
-		return "local"
+		return "local", true
 	}
 	if initCloud {
-		return "cloud"
+		return "cloud", true
 	}
 	if initProviders != "" {
-		return "explicit"
+		return "explicit", true
 	}
+	return "", false
+}
 
-	// Auto-detect based on context
-	if len(ctx.Providers) == 0 {
-		return "manual"
-	}
-
-	// Check what's available
-	hasLocal := false
-	hasCloud := false
-
-	for name, info := range ctx.Providers {
+// analyzeProviderAvailability determines what types of providers are available
+func analyzeProviderAvailability(providers map[string]detect.ProviderInfo) (hasLocal, hasCloud bool) {
+	for name, info := range providers {
 		if !info.Available {
 			continue
 		}
@@ -266,6 +287,22 @@ func determineProviderStrategy(ctx *detect.Context) string {
 			hasCloud = true
 		}
 	}
+	return hasLocal, hasCloud
+}
+
+func determineProviderStrategy(ctx *detect.Context) string {
+	// Explicit flags take precedence
+	if strategy, found := checkExplicitProviderFlags(); found {
+		return strategy
+	}
+
+	// Auto-detect based on context
+	if len(ctx.Providers) == 0 {
+		return "manual"
+	}
+
+	// Check what's available
+	hasLocal, hasCloud := analyzeProviderAvailability(ctx.Providers)
 
 	if hasLocal && !hasCloud {
 		return "local"
