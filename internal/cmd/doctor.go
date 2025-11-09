@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -103,12 +102,8 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	// Determine overall health
 	report.Healthy = len(report.Issues) == 0
 
-	// Output report
-	if cmdCtx.Format == "json" {
-		return outputJSON(report)
-	}
-
-	return outputText(report)
+	// Output report using formatter
+	return outputReport(cmdCtx, report)
 }
 
 func checkContainerRuntime(ctx *detect.Context, report *DoctorReport) {
@@ -360,10 +355,20 @@ func generateNextSteps(report *DoctorReport) {
 	}
 }
 
-func outputJSON(report *DoctorReport) error {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(report)
+func outputReport(cmdCtx *CommandContext, report *DoctorReport) error {
+	// For JSON and YAML, use the formatter
+	if cmdCtx.Format == "json" || cmdCtx.Format == "yaml" {
+		formatter, err := ux.NewFormatter(cmdCtx.Format, &ux.FormatterOptions{
+			NoColor: cmdCtx.NoColor,
+		})
+		if err != nil {
+			return err
+		}
+		return formatter.Format(report)
+	}
+
+	// For text format, use custom formatted output
+	return outputText(report)
 }
 
 func outputText(report *DoctorReport) error {
