@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/spf13/cobra"
 
@@ -150,45 +151,66 @@ func checkContainerRuntime(ctx *detect.Context, report *DoctorReport) {
 }
 
 func checkProviders(ctx *detect.Context, report *DoctorReport) {
+	// Use concurrent checks for better performance
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 	foundProvider := false
 
 	for name, info := range ctx.Providers {
-		check := &DoctorCheck{
-			Name: name,
-		}
+		wg.Add(1)
 
-		if info.Available {
-			foundProvider = true
-			status := "ok"
-			message := fmt.Sprintf("%s is available (%s)", name, info.Type)
+		// Launch goroutine for each provider check
+		go func(providerName string, providerInfo detect.ProviderInfo) {
+			defer wg.Done()
 
-			if info.EnvVar != "" {
-				check.Details = map[string]interface{}{
-					"type":    info.Type,
-					"env_var": info.EnvVar,
-					"env_set": info.EnvSet,
-				}
-
-				if info.Version != "" {
-					check.Details["version"] = info.Version
-				}
-
-				if !info.EnvSet {
-					status = "warning"
-					message = fmt.Sprintf("%s available but %s not set", name, info.EnvVar)
-					report.Warnings = append(report.Warnings, fmt.Sprintf("%s requires %s environment variable", name, info.EnvVar))
-				}
+			check := &DoctorCheck{
+				Name: providerName,
 			}
 
-			check.Status = status
-			check.Message = message
-		} else {
-			check.Status = "missing"
-			check.Message = fmt.Sprintf("%s is not available", name)
-		}
+			if providerInfo.Available {
+				mu.Lock()
+				foundProvider = true
+				mu.Unlock()
 
-		report.Providers[name] = check
+				status := "ok"
+				message := fmt.Sprintf("%s is available (%s)", providerName, providerInfo.Type)
+
+				if providerInfo.EnvVar != "" {
+					check.Details = map[string]interface{}{
+						"type":    providerInfo.Type,
+						"env_var": providerInfo.EnvVar,
+						"env_set": providerInfo.EnvSet,
+					}
+
+					if providerInfo.Version != "" {
+						check.Details["version"] = providerInfo.Version
+					}
+
+					if !providerInfo.EnvSet {
+						status = "warning"
+						message = fmt.Sprintf("%s available but %s not set", providerName, providerInfo.EnvVar)
+
+						mu.Lock()
+						report.Warnings = append(report.Warnings, fmt.Sprintf("%s requires %s environment variable", providerName, providerInfo.EnvVar))
+						mu.Unlock()
+					}
+				}
+
+				check.Status = status
+				check.Message = message
+			} else {
+				check.Status = "missing"
+				check.Message = fmt.Sprintf("%s is not available", providerName)
+			}
+
+			mu.Lock()
+			report.Providers[providerName] = check
+			mu.Unlock()
+		}(name, info)
 	}
+
+	// Wait for all provider checks to complete
+	wg.Wait()
 
 	if !foundProvider {
 		report.Issues = append(report.Issues, "No AI providers detected")
