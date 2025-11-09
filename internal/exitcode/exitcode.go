@@ -27,6 +27,9 @@ const (
 
 	// NetworkError indicates a network connectivity issue
 	NetworkError = 6
+
+	// Interrupted indicates the operation was cancelled by user (Ctrl+C)
+	Interrupted = 130
 )
 
 // Exit terminates the program with the given exit code
