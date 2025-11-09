@@ -72,17 +72,3 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&specularHome, "home", specularHome, "Override .specular directory location")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", logLevel, "Log level (debug, info, warn, error)")
 }
-
-// GetGlobalFlags returns the current global flag values
-func GetGlobalFlags() map[string]interface{} {
-	return map[string]interface{}{
-		"verbose":  verbose,
-		"quiet":    quiet,
-		"format":   format,
-		"noColor":  noColor,
-		"explain":  explain,
-		"trace":    trace,
-		"home":     specularHome,
-		"logLevel": logLevel,
-	}
-}

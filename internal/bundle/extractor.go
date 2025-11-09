@@ -3,7 +3,6 @@ package bundle
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -11,10 +10,6 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-
-	"github.com/felixgeelhaar/specular/internal/policy"
-	"github.com/felixgeelhaar/specular/internal/router"
-	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
 // Extractor unpacks and applies bundles to projects.
@@ -604,85 +599,4 @@ func GetBundleInfo(bundlePath string) (*BundleInfo, error) {
 	}
 
 	return info, nil
-}
-
-// Helper functions for loading specific bundle components
-
-// LoadSpec loads the spec from an extracted bundle.
-func LoadSpec(bundleDir string) (*spec.ProductSpec, error) {
-	specPath := filepath.Join(bundleDir, "spec.yaml")
-	data, err := os.ReadFile(specPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read spec: %w", err)
-	}
-
-	var productSpec spec.ProductSpec
-	if unmarshalErr := yaml.Unmarshal(data, &productSpec); unmarshalErr != nil {
-		return nil, fmt.Errorf("failed to parse spec: %w", unmarshalErr)
-	}
-
-	return &productSpec, nil
-}
-
-// LoadSpecLock loads the spec lock from an extracted bundle.
-func LoadSpecLock(bundleDir string) (*spec.SpecLock, error) {
-	lockPath := filepath.Join(bundleDir, "spec.lock.json")
-	data, err := os.ReadFile(lockPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read lock: %w", err)
-	}
-
-	var specLock spec.SpecLock
-	if unmarshalErr := json.Unmarshal(data, &specLock); unmarshalErr != nil {
-		return nil, fmt.Errorf("failed to parse lock: %w", unmarshalErr)
-	}
-
-	return &specLock, nil
-}
-
-// LoadRouting loads the routing config from an extracted bundle.
-func LoadRouting(bundleDir string) (*router.Router, error) {
-	routingPath := filepath.Join(bundleDir, "routing.yaml")
-	data, err := os.ReadFile(routingPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read routing: %w", err)
-	}
-
-	var routerConfig router.Router
-	if unmarshalErr := yaml.Unmarshal(data, &routerConfig); unmarshalErr != nil {
-		return nil, fmt.Errorf("failed to parse routing: %w", unmarshalErr)
-	}
-
-	return &routerConfig, nil
-}
-
-// LoadPolicies loads all policies from an extracted bundle.
-func LoadPolicies(bundleDir string) ([]*policy.Policy, error) {
-	policiesDir := filepath.Join(bundleDir, "policies")
-	entries, err := os.ReadDir(policiesDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read policies directory: %w", err)
-	}
-
-	policies := []*policy.Policy{}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		policyPath := filepath.Join(policiesDir, entry.Name())
-		data, readErr := os.ReadFile(policyPath)
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to read policy %s: %w", entry.Name(), readErr)
-		}
-
-		var pol policy.Policy
-		if unmarshalErr := yaml.Unmarshal(data, &pol); unmarshalErr != nil {
-			return nil, fmt.Errorf("failed to parse policy %s: %w", entry.Name(), unmarshalErr)
-		}
-
-		policies = append(policies, &pol)
-	}
-
-	return policies, nil
 }

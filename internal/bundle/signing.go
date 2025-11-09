@@ -2,10 +2,7 @@ package bundle
 
 import (
 	"bytes"
-	"crypto"
-	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
@@ -509,19 +506,4 @@ func VerifyAllApprovals(approvals []*Approval, opts ApprovalVerificationOptions)
 	}
 
 	return nil
-}
-
-// SignerFromPrivateKey creates a crypto.Signer from various private key types.
-// This is useful for testing and advanced signing scenarios.
-func SignerFromPrivateKey(privateKey interface{}) (crypto.Signer, error) {
-	switch key := privateKey.(type) {
-	case *rsa.PrivateKey:
-		return key, nil
-	case ed25519.PrivateKey:
-		return key, nil
-	case crypto.Signer:
-		return key, nil
-	default:
-		return nil, fmt.Errorf("unsupported private key type: %T", privateKey)
-	}
 }
