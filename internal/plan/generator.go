@@ -56,11 +56,11 @@ func (g *DefaultPlanGenerator) Generate(ctx context.Context, s *spec.ProductSpec
 
 		task := Task{
 			ID:           fmt.Sprintf("task-%03d", i+1),
-			FeatureID:    feature.ID,
+			FeatureID:    feature.ID.String(),
 			ExpectedHash: lockedFeature.Hash,
 			DependsOn:    g.determineDependencies(feature, s.Features, i),
 			Skill:        g.determineSkill(feature),
-			Priority:     feature.Priority,
+			Priority:     feature.Priority.String(),
 			ModelHint:    g.determineModelHint(feature),
 		}
 

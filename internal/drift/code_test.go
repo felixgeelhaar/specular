@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/domain"
 )
 
 func TestDetectCodeDrift(t *testing.T) {
@@ -43,8 +44,8 @@ func TestDetectCodeDrift(t *testing.T) {
 				},
 			},
 			lock: &spec.SpecLock{
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {
 						TestPaths: []string{"feature_test.go"},
 					},
 				},
@@ -66,8 +67,8 @@ func TestDetectCodeDrift(t *testing.T) {
 				},
 			},
 			lock: &spec.SpecLock{
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {
 						TestPaths: []string{"missing_test.go"},
 					},
 				},
@@ -90,8 +91,8 @@ func TestDetectCodeDrift(t *testing.T) {
 				},
 			},
 			lock: &spec.SpecLock{
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {},
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {},
 				},
 			},
 			opts: CodeDriftOptions{
@@ -112,8 +113,8 @@ func TestDetectCodeDrift(t *testing.T) {
 				},
 			},
 			lock: &spec.SpecLock{
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {},
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {},
 				},
 			},
 			opts: CodeDriftOptions{
@@ -134,8 +135,8 @@ func TestDetectCodeDrift(t *testing.T) {
 				},
 			},
 			lock: &spec.SpecLock{
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {},
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {},
 				},
 			},
 			opts: CodeDriftOptions{
@@ -198,8 +199,8 @@ func TestCheckFileHashes(t *testing.T) {
 				},
 			},
 			lock: &spec.SpecLock{
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {
 						TestPaths: []string{"test.go"},
 					},
 				},
@@ -217,8 +218,8 @@ func TestCheckFileHashes(t *testing.T) {
 				},
 			},
 			lock: &spec.SpecLock{
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {
 						TestPaths: []string{"missing.go"},
 					},
 				},
@@ -240,8 +241,8 @@ func TestCheckFileHashes(t *testing.T) {
 				},
 			},
 			lock: &spec.SpecLock{
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {},
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {},
 				},
 			},
 			opts: CodeDriftOptions{
@@ -260,8 +261,8 @@ func TestCheckFileHashes(t *testing.T) {
 				},
 			},
 			lock: &spec.SpecLock{
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {},
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {},
 				},
 			},
 			opts: CodeDriftOptions{

@@ -3,6 +3,8 @@ package spec
 import (
 	"strings"
 	"testing"
+
+	"github.com/felixgeelhaar/specular/internal/domain"
 )
 
 func TestFeature_Validate(t *testing.T) {
@@ -266,7 +268,7 @@ func TestProductSpec_Validate(t *testing.T) {
 			{
 				ID:         "milestone-1",
 				Name:       "Milestone 1",
-				FeatureIDs: []string{"feature-1"},
+				FeatureIDs:  []domain.FeatureID{domain.FeatureID("feature-1")},
 			},
 		},
 	}
@@ -395,7 +397,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "Milestone 1",
-				FeatureIDs: []string{"feature-1", "feature-2"},
+				FeatureIDs: []domain.FeatureID{domain.FeatureID("feature-1"), domain.FeatureID("feature-2")},
 			},
 			wantErr: false,
 		},
@@ -404,7 +406,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:          "milestone-1",
 				Name:        "Milestone 1",
-				FeatureIDs:  []string{"feature-1"},
+				FeatureIDs:  []domain.FeatureID{domain.FeatureID("feature-1")},
 				TargetDate:  "2024-12-31",
 				Description: "Q4 milestone",
 			},
@@ -415,7 +417,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "",
 				Name:       "Milestone",
-				FeatureIDs: []string{"feature-1"},
+				FeatureIDs:  []domain.FeatureID{domain.FeatureID("feature-1")},
 			},
 			wantErr: true,
 			errMsg:  "ID cannot be empty",
@@ -425,7 +427,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "",
-				FeatureIDs: []string{"feature-1"},
+				FeatureIDs:  []domain.FeatureID{domain.FeatureID("feature-1")},
 			},
 			wantErr: true,
 			errMsg:  "name cannot be empty",
@@ -435,7 +437,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "Milestone",
-				FeatureIDs: []string{},
+				FeatureIDs:  []domain.FeatureID{},
 			},
 			wantErr: true,
 			errMsg:  "at least one feature",
@@ -445,7 +447,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "Milestone",
-				FeatureIDs: []string{"Feature-1"},
+				FeatureIDs:  []domain.FeatureID{domain.FeatureID("Feature-1")},
 			},
 			wantErr: true,
 			errMsg:  "feature ID at index 0 is invalid",

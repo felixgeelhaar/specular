@@ -1,5 +1,7 @@
 package spec
 
+import "github.com/felixgeelhaar/specular/internal/domain"
+
 // ProductSpec represents the complete product specification
 type ProductSpec struct {
 	Product       string        `json:"product"`
@@ -12,13 +14,13 @@ type ProductSpec struct {
 
 // Feature represents a single feature in the product spec
 type Feature struct {
-	ID       string   `json:"id"`
-	Title    string   `json:"title"`
-	Desc     string   `json:"desc"`
-	Priority string   `json:"priority"` // P0, P1, P2
-	API      []API    `json:"api,omitempty"`
-	Success  []string `json:"success"`
-	Trace    []string `json:"trace"`
+	ID       domain.FeatureID `json:"id"`
+	Title    string           `json:"title"`
+	Desc     string           `json:"desc"`
+	Priority domain.Priority  `json:"priority"` // P0, P1, P2
+	API      []API            `json:"api,omitempty"`
+	Success  []string         `json:"success"`
+	Trace    []string         `json:"trace"`
 }
 
 // API represents an API endpoint definition
@@ -39,17 +41,17 @@ type NonFunctional struct {
 
 // Milestone represents a development milestone
 type Milestone struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	FeatureIDs  []string `json:"feature_ids"`
-	TargetDate  string   `json:"target_date,omitempty"`
-	Description string   `json:"description,omitempty"`
+	ID          string             `json:"id"`
+	Name        string             `json:"name"`
+	FeatureIDs  []domain.FeatureID `json:"feature_ids"`
+	TargetDate  string             `json:"target_date,omitempty"`
+	Description string             `json:"description,omitempty"`
 }
 
 // SpecLock represents the canonical, hashed specification snapshot
 type SpecLock struct {
-	Version  string                   `json:"version"`
-	Features map[string]LockedFeature `json:"features"`
+	Version  string                            `json:"version"`
+	Features map[domain.FeatureID]LockedFeature `json:"features"`
 }
 
 // LockedFeature represents a feature with its hash and generated artifacts

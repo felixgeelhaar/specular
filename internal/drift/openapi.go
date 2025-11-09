@@ -64,7 +64,7 @@ func (v *OpenAPIValidator) ValidateEndpoints(features []spec.Feature) []Finding 
 			if pathItem == nil {
 				findings = append(findings, Finding{
 					Code:      "MISSING_API_PATH",
-					FeatureID: feature.ID,
+					FeatureID: feature.ID.String(),
 					Message:   fmt.Sprintf("API path not found in OpenAPI spec: %s %s", method, path),
 					Severity:  "error",
 					Location:  fmt.Sprintf("%s:%s", v.path, path),
@@ -76,7 +76,7 @@ func (v *OpenAPIValidator) ValidateEndpoints(features []spec.Feature) []Finding 
 			if !v.hasMethod(pathItem, method) {
 				findings = append(findings, Finding{
 					Code:      "MISSING_API_METHOD",
-					FeatureID: feature.ID,
+					FeatureID: feature.ID.String(),
 					Message:   fmt.Sprintf("API method not found in OpenAPI spec: %s %s", method, path),
 					Severity:  "error",
 					Location:  fmt.Sprintf("%s:%s", v.path, path),

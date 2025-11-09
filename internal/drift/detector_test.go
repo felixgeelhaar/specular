@@ -5,6 +5,7 @@ import (
 
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/domain"
 )
 
 func TestDetectPlanDrift(t *testing.T) {
@@ -20,8 +21,8 @@ func TestDetectPlanDrift(t *testing.T) {
 			name: "no drift",
 			lock: &spec.SpecLock{
 				Version: "1.0",
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {
 						Hash:        "abc123",
 						OpenAPIPath: ".specular/openapi/feat-001.yaml",
 						TestPaths:   []string{".specular/tests/feat-001_test.go"},
@@ -48,8 +49,8 @@ func TestDetectPlanDrift(t *testing.T) {
 			name: "hash mismatch",
 			lock: &spec.SpecLock{
 				Version: "1.0",
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {
 						Hash:        "abc123",
 						OpenAPIPath: ".specular/openapi/feat-001.yaml",
 						TestPaths:   []string{".specular/tests/feat-001_test.go"},
@@ -76,7 +77,7 @@ func TestDetectPlanDrift(t *testing.T) {
 			name: "unknown feature",
 			lock: &spec.SpecLock{
 				Version:  "1.0",
-				Features: map[string]spec.LockedFeature{},
+				Features: map[domain.FeatureID]spec.LockedFeature{},
 			},
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
@@ -98,13 +99,13 @@ func TestDetectPlanDrift(t *testing.T) {
 			name: "missing task",
 			lock: &spec.SpecLock{
 				Version: "1.0",
-				Features: map[string]spec.LockedFeature{
-					"feat-001": {
+				Features: map[domain.FeatureID]spec.LockedFeature{
+					domain.FeatureID("feat-001"): {
 						Hash:        "abc123",
 						OpenAPIPath: ".specular/openapi/feat-001.yaml",
 						TestPaths:   []string{".specular/tests/feat-001_test.go"},
 					},
-					"feat-002": {
+					domain.FeatureID("feat-002"): {
 						Hash:        "def456",
 						OpenAPIPath: ".specular/openapi/feat-002.yaml",
 						TestPaths:   []string{".specular/tests/feat-002_test.go"},

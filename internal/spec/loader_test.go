@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/felixgeelhaar/specular/internal/domain"
 )
 
 func TestLoadSpec(t *testing.T) {
@@ -213,7 +215,7 @@ func TestSaveSpec(t *testing.T) {
 						Name:        "MVP",
 						TargetDate:  "4 weeks",
 						Description: "Core features",
-						FeatureIDs:  []string{"feat-001"},
+						FeatureIDs:  []domain.FeatureID{domain.FeatureID("feat-001")},
 					},
 				},
 			},

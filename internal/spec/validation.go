@@ -3,14 +3,12 @@ package spec
 import (
 	"fmt"
 	"strings"
-
-	"github.com/felixgeelhaar/specular/internal/domain"
 )
 
 // Validate checks if the Feature is valid according to domain rules
 func (f *Feature) Validate() error {
 	// Validate ID using domain FeatureID value object
-	if _, err := domain.NewFeatureID(f.ID); err != nil {
+	if err := f.ID.Validate(); err != nil {
 		return fmt.Errorf("invalid feature ID: %w", err)
 	}
 
@@ -25,7 +23,7 @@ func (f *Feature) Validate() error {
 	}
 
 	// Validate Priority using domain Priority value object
-	if _, err := domain.NewPriority(f.Priority); err != nil {
+	if err := f.Priority.Validate(); err != nil {
 		return fmt.Errorf("invalid feature priority: %w", err)
 	}
 
@@ -168,7 +166,7 @@ func (m *Milestone) Validate() error {
 
 	// Validate each feature ID
 	for i, featureID := range m.FeatureIDs {
-		if _, err := domain.NewFeatureID(featureID); err != nil {
+		if err := featureID.Validate(); err != nil {
 			return fmt.Errorf("feature ID at index %d is invalid: %w", i, err)
 		}
 	}

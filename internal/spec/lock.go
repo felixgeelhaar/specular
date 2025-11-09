@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/felixgeelhaar/specular/internal/domain"
 )
 
 // GenerateSpecLock creates a SpecLock from a ProductSpec
 func GenerateSpecLock(spec ProductSpec, version string) (*SpecLock, error) {
 	lock := &SpecLock{
 		Version:  version,
-		Features: make(map[string]LockedFeature),
+		Features: make(map[domain.FeatureID]LockedFeature),
 	}
 
 	for _, feature := range spec.Features {
