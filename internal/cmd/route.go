@@ -223,6 +223,12 @@ func init() {
 }
 
 func runRouteShow(cmd *cobra.Command, args []string) error {
+	// Extract command context
+	cmdCtx, err := NewCommandContext(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create command context: %w", err)
+	}
+
 	// Load router configuration
 	defaults := ux.NewPathDefaults()
 	routerPath := defaults.RouterFile()
@@ -241,7 +247,7 @@ func runRouteShow(cmd *cobra.Command, args []string) error {
 	// Get all models
 	models := router.GetAvailableModels()
 
-	if format == "json" {
+	if cmdCtx.Format == "json" {
 		return outputRouteShowJSON(config, models, r)
 	}
 
@@ -249,6 +255,12 @@ func runRouteShow(cmd *cobra.Command, args []string) error {
 }
 
 func runRouteTest(cmd *cobra.Command, args []string) error {
+	// Extract command context
+	cmdCtx, err := NewCommandContext(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create command context: %w", err)
+	}
+
 	// Load router configuration
 	defaults := ux.NewPathDefaults()
 	routerPath := defaults.RouterFile()
@@ -281,7 +293,7 @@ func runRouteTest(cmd *cobra.Command, args []string) error {
 		return ux.FormatError(err, "selecting model")
 	}
 
-	if format == "json" {
+	if cmdCtx.Format == "json" {
 		return outputRouteTestJSON(req, result)
 	}
 
@@ -289,6 +301,12 @@ func runRouteTest(cmd *cobra.Command, args []string) error {
 }
 
 func runRouteExplain(cmd *cobra.Command, args []string) error {
+	// Extract command context
+	cmdCtx, err := NewCommandContext(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create command context: %w", err)
+	}
+
 	// Load router configuration
 	defaults := ux.NewPathDefaults()
 	routerPath := defaults.RouterFile()
@@ -321,7 +339,7 @@ func runRouteExplain(cmd *cobra.Command, args []string) error {
 		return ux.FormatError(err, "selecting model")
 	}
 
-	if format == "json" {
+	if cmdCtx.Format == "json" {
 		return outputRouteExplainJSON(req, result, config)
 	}
 
@@ -662,6 +680,12 @@ func explainLatencyFactor(modelLatency, maxLatency int) string {
 
 // runRouteOptimize analyzes historical routing decisions and provides optimization recommendations
 func runRouteOptimize(cmd *cobra.Command, args []string) error {
+	// Extract command context
+	cmdCtx, err := NewCommandContext(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create command context: %w", err)
+	}
+
 	// Load router configuration
 	defaults := ux.NewPathDefaults()
 	routerPath := defaults.RouterFile()
@@ -686,7 +710,7 @@ func runRouteOptimize(cmd *cobra.Command, args []string) error {
 	// Analyze historical data (simulated for v1.2.0 - framework for future)
 	analysis := analyzeRoutingHistory(period, config, *budget)
 
-	if format == "json" {
+	if cmdCtx.Format == "json" {
 		return outputOptimizeJSON(analysis, routeOptimizeDryRun)
 	}
 
@@ -695,6 +719,12 @@ func runRouteOptimize(cmd *cobra.Command, args []string) error {
 
 // runRouteBench benchmarks multiple models and compares performance
 func runRouteBench(cmd *cobra.Command, args []string) error {
+	// Extract command context
+	cmdCtx, err := NewCommandContext(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create command context: %w", err)
+	}
+
 	// Load router configuration
 	defaults := ux.NewPathDefaults()
 	routerPath := defaults.RouterFile()
@@ -737,7 +767,7 @@ func runRouteBench(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Benchmark results saved to: %s\n", routeBenchOutput)
 	}
 
-	if format == "json" {
+	if cmdCtx.Format == "json" {
 		return outputBenchJSON(results)
 	}
 

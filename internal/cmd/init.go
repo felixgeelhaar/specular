@@ -163,6 +163,13 @@ func executeInit(config *InitConfig) error {
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
+	// Extract command context (for consistency with other commands)
+	// Currently not used, but establishes pattern for future use
+	_, err := NewCommandContext(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create command context: %w", err)
+	}
+
 	// Setup target directory
 	absDir, specDir, err := setupTargetDirectory(args)
 	if err != nil {

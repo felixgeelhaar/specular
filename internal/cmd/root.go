@@ -6,23 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Global flag variables
-var (
-	// Output control
-	verbose bool
-	quiet   bool
-	format  string
-	noColor bool
-
-	// AI behavior
-	explain bool
-	trace   string
-
-	// Configuration
-	specularHome string
-	logLevel     string
-)
-
 var rootCmd = &cobra.Command{
 	Use:   "specular",
 	Short: "AI-Native Spec and Build Assistant",
@@ -44,31 +27,28 @@ func Execute() error {
 }
 
 func init() {
-	// Environment variable defaults
-	if specularHome == "" {
-		specularHome = os.Getenv("SPECULAR_HOME")
-	}
+	// Get default values from environment variables for flag defaults
+	specularHome := os.Getenv("SPECULAR_HOME")
+
+	logLevel := os.Getenv("SPECULAR_LOG_LEVEL")
 	if logLevel == "" {
-		logLevel = os.Getenv("SPECULAR_LOG_LEVEL")
-		if logLevel == "" {
-			logLevel = "info"
-		}
+		logLevel = "info"
 	}
-	if os.Getenv("SPECULAR_NO_COLOR") == "true" {
-		noColor = true
-	}
+
+	noColor := os.Getenv("SPECULAR_NO_COLOR") == "true"
 
 	// Output control flags
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
-	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Suppress non-essential output")
-	rootCmd.PersistentFlags().StringVar(&format, "format", "text", "Output format (text, json, yaml)")
-	rootCmd.PersistentFlags().BoolVar(&noColor, "no-color", noColor, "Disable colored output")
+	// Note: Commands should use NewCommandContext(cmd) to access these values
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
+	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress non-essential output")
+	rootCmd.PersistentFlags().String("format", "text", "Output format (text, json, yaml)")
+	rootCmd.PersistentFlags().Bool("no-color", noColor, "Disable colored output")
 
 	// AI behavior flags
-	rootCmd.PersistentFlags().BoolVar(&explain, "explain", false, "Show AI reasoning and decision-making process")
-	rootCmd.PersistentFlags().StringVar(&trace, "trace", "", "Distributed tracing ID for debugging")
+	rootCmd.PersistentFlags().Bool("explain", false, "Show AI reasoning and decision-making process")
+	rootCmd.PersistentFlags().String("trace", "", "Distributed tracing ID for debugging")
 
 	// Configuration flags
-	rootCmd.PersistentFlags().StringVar(&specularHome, "home", specularHome, "Override .specular directory location")
-	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", logLevel, "Log level (debug, info, warn, error)")
+	rootCmd.PersistentFlags().String("home", specularHome, "Override .specular directory location")
+	rootCmd.PersistentFlags().String("log-level", logLevel, "Log level (debug, info, warn, error)")
 }

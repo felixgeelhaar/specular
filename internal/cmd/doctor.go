@@ -64,6 +64,12 @@ func init() {
 }
 
 func runDoctor(cmd *cobra.Command, args []string) error {
+	// Extract command context
+	cmdCtx, err := NewCommandContext(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create command context: %w", err)
+	}
+
 	// Detect context
 	ctx, err := detect.DetectAll()
 	if err != nil {
@@ -97,7 +103,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	report.Healthy = len(report.Issues) == 0
 
 	// Output report
-	if format == "json" {
+	if cmdCtx.Format == "json" {
 		return outputJSON(report)
 	}
 
