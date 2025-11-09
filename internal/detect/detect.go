@@ -204,16 +204,16 @@ func detectClaude() ProviderInfo {
 	return info
 }
 
-// detectOpenAI checks if OpenAI is available (API or CLI)
-func detectOpenAI() ProviderInfo {
+// detectProviderWithCLI checks if a provider is available via CLI or API key
+func detectProviderWithCLI(name, cliName, envVar string) ProviderInfo {
 	info := ProviderInfo{
-		Name:   "openai",
+		Name:   name,
 		Type:   "api",
-		EnvVar: "OPENAI_API_KEY",
+		EnvVar: envVar,
 	}
 
 	// Check for CLI
-	path, err := exec.LookPath("openai")
+	path, err := exec.LookPath(cliName)
 	if err == nil {
 		info.Available = true
 		info.Type = "cli"
@@ -235,35 +235,14 @@ func detectOpenAI() ProviderInfo {
 	return info
 }
 
+// detectOpenAI checks if OpenAI is available (API or CLI)
+func detectOpenAI() ProviderInfo {
+	return detectProviderWithCLI("openai", "openai", "OPENAI_API_KEY")
+}
+
 // detectGemini checks if Gemini is available
 func detectGemini() ProviderInfo {
-	info := ProviderInfo{
-		Name:   "gemini",
-		Type:   "api",
-		EnvVar: "GEMINI_API_KEY",
-	}
-
-	// Check for CLI
-	path, err := exec.LookPath("gemini")
-	if err == nil {
-		info.Available = true
-		info.Type = "cli"
-
-		cmd := exec.Command(path, "--version")
-		var output []byte
-		output, err = cmd.Output()
-		if err == nil {
-			info.Version = strings.TrimSpace(string(output))
-		}
-	}
-
-	// Check for API key
-	info.EnvSet = os.Getenv(info.EnvVar) != ""
-	if info.EnvSet {
-		info.Available = true
-	}
-
-	return info
+	return detectProviderWithCLI("gemini", "gemini", "GEMINI_API_KEY")
 }
 
 // detectAnthropic checks if Anthropic API is available
