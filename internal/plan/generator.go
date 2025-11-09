@@ -15,8 +15,23 @@ type GenerateOptions struct {
 	EstimateComplexity bool
 }
 
+// PlanGenerator defines the interface for generating execution plans from specs.
+// This interface enables dependency injection and makes testing easier.
+type PlanGenerator interface {
+	// Generate creates a Plan from a ProductSpec
+	Generate(s *spec.ProductSpec, opts GenerateOptions) (*Plan, error)
+}
+
+// DefaultPlanGenerator implements PlanGenerator with standard plan generation logic
+type DefaultPlanGenerator struct{}
+
+// NewDefaultPlanGenerator creates a new default plan generator
+func NewDefaultPlanGenerator() *DefaultPlanGenerator {
+	return &DefaultPlanGenerator{}
+}
+
 // Generate creates a Plan from a ProductSpec
-func Generate(s *spec.ProductSpec, opts GenerateOptions) (*Plan, error) {
+func (g *DefaultPlanGenerator) Generate(s *spec.ProductSpec, opts GenerateOptions) (*Plan, error) {
 	if opts.SpecLock == nil {
 		return nil, fmt.Errorf("SpecLock is required for plan generation")
 	}
@@ -35,22 +50,22 @@ func Generate(s *spec.ProductSpec, opts GenerateOptions) (*Plan, error) {
 			ID:           fmt.Sprintf("task-%03d", i+1),
 			FeatureID:    feature.ID,
 			ExpectedHash: lockedFeature.Hash,
-			DependsOn:    determineDependencies(feature, s.Features, i),
-			Skill:        determineSkill(feature),
+			DependsOn:    g.determineDependencies(feature, s.Features, i),
+			Skill:        g.determineSkill(feature),
 			Priority:     feature.Priority,
-			ModelHint:    determineModelHint(feature),
+			ModelHint:    g.determineModelHint(feature),
 		}
 
 		// Estimate complexity if enabled
 		if opts.EstimateComplexity {
-			task.Estimate = estimateComplexity(feature)
+			task.Estimate = g.estimateComplexity(feature)
 		}
 
 		tasks = append(tasks, task)
 	}
 
 	// Validate topological ordering
-	if err := validateDependencies(tasks); err != nil {
+	if err := g.validateDependencies(tasks); err != nil {
 		return nil, fmt.Errorf("invalid task dependencies: %w", err)
 	}
 
@@ -58,7 +73,7 @@ func Generate(s *spec.ProductSpec, opts GenerateOptions) (*Plan, error) {
 }
 
 // determineDependencies identifies task dependencies based on priority and trace
-func determineDependencies(feature spec.Feature, allFeatures []spec.Feature, currentIndex int) []string {
+func (g *DefaultPlanGenerator) determineDependencies(feature spec.Feature, allFeatures []spec.Feature, currentIndex int) []string {
 	var deps []string
 
 	// P0 features have no dependencies
@@ -88,7 +103,7 @@ func determineDependencies(feature spec.Feature, allFeatures []spec.Feature, cur
 }
 
 // determineSkill assigns a skill tag based on feature characteristics
-func determineSkill(feature spec.Feature) string {
+func (g *DefaultPlanGenerator) determineSkill(feature spec.Feature) string {
 	// Check for API endpoints
 	if len(feature.API) > 0 {
 		for _, api := range feature.API {
@@ -122,7 +137,7 @@ func determineSkill(feature spec.Feature) string {
 }
 
 // determineModelHint suggests which type of model should handle this task
-func determineModelHint(feature spec.Feature) string {
+func (g *DefaultPlanGenerator) determineModelHint(feature spec.Feature) string {
 	// Complex features with many API endpoints need long-context models
 	if len(feature.API) > 5 {
 		return "long-context"
@@ -138,7 +153,7 @@ func determineModelHint(feature spec.Feature) string {
 }
 
 // estimateComplexity provides a rough complexity estimate (1-10)
-func estimateComplexity(feature spec.Feature) int {
+func (g *DefaultPlanGenerator) estimateComplexity(feature spec.Feature) int {
 	complexity := 1
 
 	// API endpoints add complexity
@@ -159,7 +174,7 @@ func estimateComplexity(feature spec.Feature) int {
 }
 
 // validateDependencies ensures the task graph is acyclic
-func validateDependencies(tasks []Task) error {
+func (g *DefaultPlanGenerator) validateDependencies(tasks []Task) error {
 	// Build task ID set for validation
 	taskIDs := make(map[string]bool)
 	for _, task := range tasks {
@@ -193,3 +208,42 @@ func validateDependencies(tasks []Task) error {
 
 	return nil
 }
+
+// Default instance for package-level functions
+var defaultGenerator = NewDefaultPlanGenerator()
+
+// Generate creates a Plan from a ProductSpec using the default generator.
+// This is a convenience wrapper that maintains backwards compatibility.
+func Generate(s *spec.ProductSpec, opts GenerateOptions) (*Plan, error) {
+	return defaultGenerator.Generate(s, opts)
+}
+
+// Package-level wrappers for helper functions (for backwards compatibility with tests)
+
+// determineDependencies identifies task dependencies based on priority and trace
+func determineDependencies(feature spec.Feature, allFeatures []spec.Feature, currentIndex int) []string {
+	return defaultGenerator.determineDependencies(feature, allFeatures, currentIndex)
+}
+
+// determineSkill assigns a skill tag based on feature characteristics
+func determineSkill(feature spec.Feature) string {
+	return defaultGenerator.determineSkill(feature)
+}
+
+// determineModelHint suggests which type of model should handle this task
+func determineModelHint(feature spec.Feature) string {
+	return defaultGenerator.determineModelHint(feature)
+}
+
+// estimateComplexity provides a rough complexity estimate (1-10)
+func estimateComplexity(feature spec.Feature) int {
+	return defaultGenerator.estimateComplexity(feature)
+}
+
+// validateDependencies ensures the task graph is acyclic
+func validateDependencies(tasks []Task) error {
+	return defaultGenerator.validateDependencies(tasks)
+}
+
+// Compile-time verification that DefaultPlanGenerator implements PlanGenerator
+var _ PlanGenerator = (*DefaultPlanGenerator)(nil)
