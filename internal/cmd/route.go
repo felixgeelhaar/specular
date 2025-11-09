@@ -288,7 +288,7 @@ func runRouteTest(cmd *cobra.Command, args []string) error {
 	}
 
 	// Test model selection
-	result, err := r.SelectModel(req)
+	result, err := r.SelectModel(cmd.Context(), req)
 	if err != nil {
 		return ux.FormatError(err, "selecting model")
 	}
@@ -334,7 +334,7 @@ func runRouteExplain(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get model selection
-	result, err := r.SelectModel(req)
+	result, err := r.SelectModel(cmd.Context(), req)
 	if err != nil {
 		return ux.FormatError(err, "selecting model")
 	}

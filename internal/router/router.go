@@ -122,7 +122,14 @@ func (r *Router) updateModelAvailability() {
 }
 
 // SelectModel chooses the best model for a routing request
-func (r *Router) SelectModel(req RoutingRequest) (*RoutingResult, error) {
+func (r *Router) SelectModel(ctx context.Context, req RoutingRequest) (*RoutingResult, error) {
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	// Check budget
 	if r.budget.RemainingUSD <= 0 {
 		return nil, fmt.Errorf("budget exhausted (spent: $%.2f / limit: $%.2f)", r.budget.SpentUSD, r.budget.LimitUSD)
@@ -358,7 +365,14 @@ func (r *Router) buildSelectionReason(model *Model, req RoutingRequest) string {
 }
 
 // RecordUsage records model usage and updates budget
-func (r *Router) RecordUsage(usage Usage) error {
+func (r *Router) RecordUsage(ctx context.Context, usage Usage) error {
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Update budget
 	r.budget.SpentUSD += usage.CostUSD
 	r.budget.RemainingUSD = r.budget.LimitUSD - r.budget.SpentUSD
@@ -412,7 +426,7 @@ func (r *Router) Generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 		ContextSize: req.ContextSize,
 	}
 
-	result, err := r.SelectModel(routing)
+	result, err := r.SelectModel(ctx, routing)
 	if err != nil {
 		return nil, fmt.Errorf("model selection failed: %w", err)
 	}
@@ -462,7 +476,7 @@ func (r *Router) Generate(ctx context.Context, req GenerateRequest) (*GenerateRe
 		TaskID:    req.TaskID,
 		Success:   provResp.Error == "",
 	}
-	_ = r.RecordUsage(usage) // Best effort usage recording
+	_ = r.RecordUsage(ctx, usage) // Best effort usage recording
 
 	// Build response
 	return &GenerateResponse{
@@ -493,7 +507,7 @@ func (r *Router) Stream(ctx context.Context, req GenerateRequest) (<-chan Stream
 		ContextSize: req.ContextSize,
 	}
 
-	result, err := r.SelectModel(routing)
+	result, err := r.SelectModel(ctx, routing)
 	if err != nil {
 		return nil, fmt.Errorf("model selection failed: %w", err)
 	}
@@ -563,7 +577,7 @@ func (r *Router) Stream(ctx context.Context, req GenerateRequest) (<-chan Stream
 				TaskID:    req.TaskID,
 				Success:   true,
 			}
-			_ = r.RecordUsage(usage) // Best effort usage recording
+			_ = r.RecordUsage(ctx, usage) // Best effort usage recording
 		}
 	}()
 
@@ -727,7 +741,7 @@ func (r *Router) generateWithFallback(ctx context.Context, req GenerateRequest, 
 				TaskID:    req.TaskID,
 				Success:   true,
 			}
-			_ = r.RecordUsage(usage) // Best effort usage recording
+			_ = r.RecordUsage(ctx, usage) // Best effort usage recording
 
 			return &GenerateResponse{
 				Content:         provResp.Content,
@@ -938,7 +952,7 @@ func (r *Router) streamWithFallback(ctx context.Context, req GenerateRequest, pr
 						TaskID:    req.TaskID,
 						Success:   true,
 					}
-					_ = r.RecordUsage(usage) // Best effort usage recording
+					_ = r.RecordUsage(ctx, usage) // Best effort usage recording
 				}
 			}()
 
