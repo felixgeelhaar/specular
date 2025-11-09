@@ -60,7 +60,7 @@ expected hashes for drift detection.`,
 			EstimateComplexity: estimate,
 		}
 
-		p, err := plan.Generate(s, opts)
+		p, err := plan.Generate(cmd.Context(), s, opts)
 		if err != nil {
 			return ux.FormatError(err, "generating plan")
 		}

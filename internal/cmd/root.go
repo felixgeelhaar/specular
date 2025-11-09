@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -24,6 +25,11 @@ maintaining traceability and enforcing organizational guardrails.`,
 // Execute runs the root command
 func Execute() error {
 	return rootCmd.Execute()
+}
+
+// ExecuteContext runs the root command with the given context
+func ExecuteContext(ctx context.Context) error {
+	return rootCmd.ExecuteContext(ctx)
 }
 
 func init() {

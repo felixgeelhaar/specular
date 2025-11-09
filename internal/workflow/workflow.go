@@ -84,7 +84,7 @@ func (w *Workflow) Execute(ctx context.Context) (*WorkflowResult, error) {
 	result.SpecLock = specLock
 
 	// Step 3: Generate execution plan
-	executionPlan, err := w.generatePlan(productSpec, specLock)
+	executionPlan, err := w.generatePlan(ctx, productSpec, specLock)
 	if err != nil {
 		return nil, fmt.Errorf("generate plan: %w", err)
 	}
@@ -157,13 +157,13 @@ func (w *Workflow) generateSpecLock(productSpec *spec.ProductSpec) (*spec.SpecLo
 }
 
 // generatePlan generates an execution plan from spec and lock
-func (w *Workflow) generatePlan(productSpec *spec.ProductSpec, specLock *spec.SpecLock) (*plan.Plan, error) {
+func (w *Workflow) generatePlan(ctx context.Context, productSpec *spec.ProductSpec, specLock *spec.SpecLock) (*plan.Plan, error) {
 	opts := plan.GenerateOptions{
 		SpecLock:           specLock,
 		EstimateComplexity: true,
 	}
 
-	executionPlan, err := plan.Generate(productSpec, opts)
+	executionPlan, err := plan.Generate(ctx, productSpec, opts)
 	if err != nil {
 		return nil, fmt.Errorf("generate plan: %w", err)
 	}

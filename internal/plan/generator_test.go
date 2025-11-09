@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"context"
 	"testing"
 
 	"github.com/felixgeelhaar/specular/internal/spec"
@@ -54,7 +55,7 @@ func TestGenerate(t *testing.T) {
 		EstimateComplexity: true,
 	}
 
-	plan, err := Generate(testSpec, opts)
+	plan, err := Generate(context.Background(), testSpec, opts)
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}

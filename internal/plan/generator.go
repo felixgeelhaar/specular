@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -19,7 +20,7 @@ type GenerateOptions struct {
 // This interface enables dependency injection and makes testing easier.
 type PlanGenerator interface {
 	// Generate creates a Plan from a ProductSpec
-	Generate(s *spec.ProductSpec, opts GenerateOptions) (*Plan, error)
+	Generate(ctx context.Context, s *spec.ProductSpec, opts GenerateOptions) (*Plan, error)
 }
 
 // DefaultPlanGenerator implements PlanGenerator with standard plan generation logic
@@ -31,7 +32,7 @@ func NewDefaultPlanGenerator() *DefaultPlanGenerator {
 }
 
 // Generate creates a Plan from a ProductSpec
-func (g *DefaultPlanGenerator) Generate(s *spec.ProductSpec, opts GenerateOptions) (*Plan, error) {
+func (g *DefaultPlanGenerator) Generate(ctx context.Context, s *spec.ProductSpec, opts GenerateOptions) (*Plan, error) {
 	if opts.SpecLock == nil {
 		return nil, fmt.Errorf("SpecLock is required for plan generation")
 	}
@@ -40,6 +41,13 @@ func (g *DefaultPlanGenerator) Generate(s *spec.ProductSpec, opts GenerateOption
 
 	// Create tasks for each feature
 	for i, feature := range s.Features {
+		// Check for cancellation before processing each feature
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
 		// Get locked feature for hash
 		lockedFeature, exists := opts.SpecLock.Features[feature.ID]
 		if !exists {
@@ -214,8 +222,8 @@ var defaultGenerator = NewDefaultPlanGenerator()
 
 // Generate creates a Plan from a ProductSpec using the default generator.
 // This is a convenience wrapper that maintains backwards compatibility.
-func Generate(s *spec.ProductSpec, opts GenerateOptions) (*Plan, error) {
-	return defaultGenerator.Generate(s, opts)
+func Generate(ctx context.Context, s *spec.ProductSpec, opts GenerateOptions) (*Plan, error) {
+	return defaultGenerator.Generate(ctx, s, opts)
 }
 
 // Package-level wrappers for helper functions (for backwards compatibility with tests)
