@@ -5,7 +5,32 @@ import (
 	"sync"
 )
 
-// Registry manages all loaded providers
+// ProviderRegistry defines the interface for managing AI providers.
+// This interface enables dependency injection and makes testing easier.
+type ProviderRegistry interface {
+	// Register adds a provider to the registry
+	Register(name string, provider ProviderClient, config *ProviderConfig) error
+
+	// Get retrieves a provider by name
+	Get(name string) (ProviderClient, error)
+
+	// GetConfig retrieves a provider's configuration
+	GetConfig(name string) (*ProviderConfig, error)
+
+	// List returns all registered provider names
+	List() []string
+
+	// Remove removes a provider from the registry and closes it
+	Remove(name string) error
+
+	// CloseAll closes all registered providers
+	CloseAll() error
+
+	// LoadFromConfig loads a provider from configuration
+	LoadFromConfig(config *ProviderConfig) error
+}
+
+// Registry manages all loaded providers and implements ProviderRegistry interface
 type Registry struct {
 	mu        sync.RWMutex
 	providers map[string]ProviderClient
@@ -172,3 +197,6 @@ func (r *Registry) LoadFromConfig(config *ProviderConfig) error {
 	// Register the provider
 	return r.Register(config.Name, provider, config)
 }
+
+// Compile-time verification that Registry implements ProviderRegistry
+var _ ProviderRegistry = (*Registry)(nil)

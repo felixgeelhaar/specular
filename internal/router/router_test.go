@@ -95,7 +95,7 @@ func TestNewRouterWithProviders(t *testing.T) {
 	tests := []struct {
 		name     string
 		config   *RouterConfig
-		registry *provider.Registry
+		registry provider.ProviderRegistry
 		wantErr  bool
 		validate func(*testing.T, *Router)
 	}{

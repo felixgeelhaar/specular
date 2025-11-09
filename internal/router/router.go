@@ -15,7 +15,7 @@ type Router struct {
 	budget           *Budget
 	models           []Model
 	usage            []Usage
-	registry         *provider.Registry
+	registry         provider.ProviderRegistry // Use interface for dependency injection
 	contextValidator *ContextValidator
 	contextTruncator *ContextTruncator
 }
@@ -58,7 +58,7 @@ func NewRouter(config *RouterConfig) (*Router, error) {
 }
 
 // NewRouterWithProviders creates a router with pre-loaded providers
-func NewRouterWithProviders(config *RouterConfig, registry *provider.Registry) (*Router, error) {
+func NewRouterWithProviders(config *RouterConfig, registry provider.ProviderRegistry) (*Router, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config is required")
 	}
@@ -603,7 +603,7 @@ func (r *Router) getProviderName(p Provider) string {
 }
 
 // GetRegistry returns the provider registry
-func (r *Router) GetRegistry() *provider.Registry {
+func (r *Router) GetRegistry() provider.ProviderRegistry {
 	return r.registry
 }
 
