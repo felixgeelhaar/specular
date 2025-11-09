@@ -10,10 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
-	"gopkg.in/yaml.v3"
 )
 
 // Extractor unpacks and applies bundles to projects.

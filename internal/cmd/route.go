@@ -731,8 +731,8 @@ func runRouteBench(cmd *cobra.Command, args []string) error {
 
 	// Save to file if requested
 	if routeBenchOutput != "" {
-		if err := saveBenchmarkResults(routeBenchOutput, results); err != nil {
-			return ux.FormatError(err, "saving benchmark results")
+		if saveErr := saveBenchmarkResults(routeBenchOutput, results); saveErr != nil {
+			return ux.FormatError(saveErr, "saving benchmark results")
 		}
 		fmt.Printf("Benchmark results saved to: %s\n", routeBenchOutput)
 	}
@@ -744,7 +744,7 @@ func runRouteBench(cmd *cobra.Command, args []string) error {
 	return outputBenchText(results)
 }
 
-// Optimization analysis types
+// OptimizationAnalysis contains routing optimization analysis results and recommendations
 type OptimizationAnalysis struct {
 	Period              string
 	TotalDecisions      int
@@ -754,6 +754,7 @@ type OptimizationAnalysis struct {
 	DataCollectionStart bool
 }
 
+// Recommendation represents a routing optimization recommendation
 type Recommendation struct {
 	Type        string
 	Title       string
@@ -762,13 +763,14 @@ type Recommendation struct {
 	Savings     float64
 }
 
-// Benchmark result types
+// BenchmarkResults contains model benchmark results for routing evaluation
 type BenchmarkResults struct {
 	Timestamp   string
 	Tasks       []string
 	ModelScores []ModelScore
 }
 
+// ModelScore represents performance and quality metrics for a specific model
 type ModelScore struct {
 	Model           string
 	Provider        string

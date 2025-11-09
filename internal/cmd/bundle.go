@@ -527,8 +527,8 @@ func runBundleBuild(cmd *cobra.Command, args []string) error {
 
 	// Generate attestation if requested
 	if buildAttest && buildAttestFmt != "" {
-		if err := generateBundleAttestation(output, buildAttestFmt); err != nil {
-			return err
+		if attestErr := generateBundleAttestation(output, buildAttestFmt); attestErr != nil {
+			return attestErr
 		}
 	}
 
@@ -648,8 +648,8 @@ func runBundleApply(cmd *cobra.Command, args []string) error {
 	extractor := bundle.NewExtractor(opts)
 
 	// Apply bundle
-	if err := extractor.Apply(bundlePath); err != nil {
-		return ux.FormatError(err, "applying bundle")
+	if applyErr := extractor.Apply(bundlePath); applyErr != nil {
+		return ux.FormatError(applyErr, "applying bundle")
 	}
 
 	return nil
@@ -821,8 +821,8 @@ func runBundleApprove(cmd *cobra.Command, args []string) error {
 		return ux.FormatError(err, "marshaling approval")
 	}
 
-	if err := os.WriteFile(output, approvalJSON, 0600); err != nil {
-		return ux.FormatError(err, "writing approval file")
+	if writeErr := os.WriteFile(output, approvalJSON, 0600); writeErr != nil {
+		return ux.FormatError(writeErr, "writing approval file")
 	}
 
 	fmt.Println()
@@ -848,8 +848,8 @@ func loadApprovalFiles(approvalPaths []string) ([]*bundle.Approval, error) {
 		}
 
 		var approval bundle.Approval
-		if err := json.Unmarshal(data, &approval); err != nil {
-			fmt.Printf("⚠ Warning: Failed to parse %s: %v\n", approvalPath, err)
+		if unmarshalErr := json.Unmarshal(data, &approval); unmarshalErr != nil {
+			fmt.Printf("⚠ Warning: Failed to parse %s: %v\n", approvalPath, unmarshalErr)
 			continue
 		}
 
@@ -1016,8 +1016,8 @@ func runBundleApprovalStatus(cmd *cobra.Command, args []string) error {
 	verifiedRoles, verificationErrors := verifyApprovalSignatures(approvals, digest)
 
 	// Check required roles
-	if err := checkRequiredRoles(statusRequiredRoles, verifiedRoles); err != nil {
-		return err
+	if roleCheckErr := checkRequiredRoles(statusRequiredRoles, verifiedRoles); roleCheckErr != nil {
+		return roleCheckErr
 	}
 
 	// Display results
@@ -1148,9 +1148,9 @@ func runBundleDiff(cmd *cobra.Command, args []string) error {
 
 	// Handle JSON output
 	if diffJSON {
-		output, err := json.MarshalIndent(diffResult, "", "  ")
-		if err != nil {
-			return ux.FormatError(err, "marshaling diff result")
+		output, marshalErr := json.MarshalIndent(diffResult, "", "  ")
+		if marshalErr != nil {
+			return ux.FormatError(marshalErr, "marshaling diff result")
 		}
 		fmt.Println(string(output))
 		return nil

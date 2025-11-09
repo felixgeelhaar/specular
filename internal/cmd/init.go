@@ -98,7 +98,7 @@ func setupTargetDirectory(args []string) (string, string, error) {
 	specDir := filepath.Join(absDir, ".specular")
 
 	// Check if .specular directory already exists
-	if _, err := os.Stat(specDir); err == nil && !initForce {
+	if _, statErr := os.Stat(specDir); statErr == nil && !initForce {
 		return "", "", fmt.Errorf(".specular directory already exists at %s\nUse --force to overwrite existing files", specDir)
 	}
 
@@ -196,8 +196,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Execute initialization
-	if err := executeInit(config); err != nil {
-		return err
+	if initErr := executeInit(config); initErr != nil {
+		return initErr
 	}
 
 	// Print success message and next steps
@@ -998,8 +998,8 @@ func enableProvider(routerPath string, providerName string) error {
 	contentStr = contentStr[:absoluteIndex] + "enabled: true " + contentStr[absoluteIndex+len(enabledPattern):]
 
 	// Write back
-	if err := os.WriteFile(routerPath, []byte(contentStr), 0600); err != nil {
-		return fmt.Errorf("failed to update router.yaml: %w", err)
+	if writeErr := os.WriteFile(routerPath, []byte(contentStr), 0600); writeErr != nil {
+		return fmt.Errorf("failed to update router.yaml: %w", writeErr)
 	}
 
 	fmt.Printf("✓ Enabled provider: %s\n", providerName)
