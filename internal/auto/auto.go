@@ -81,12 +81,23 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 		return result, nil
 	}
 
-	// Step 5: Execute plan (TODO: Phase 2)
-	fmt.Println("🚀 Plan execution...")
-	fmt.Println("⚠️  Task execution not yet implemented (Phase 2)")
-	fmt.Println("    For now, auto mode generates spec, lock, and plan only.")
+	// Step 5: Execute plan
+	fmt.Println("🚀 Executing plan...")
+	executor := NewTaskExecutor(nil, o.config, productSpec)
+	execStats, err := executor.Execute(ctx, execPlan)
+	if err != nil {
+		result.Success = false
+		result.TasksExecuted = execStats.Executed
+		result.TasksFailed = execStats.Failed
+		result.Duration = time.Since(start)
+		result.Errors = append(result.Errors, err)
+		return result, fmt.Errorf("execution failed: %w", err)
+	}
 
-	result.Success = true
+	// Update result with execution stats
+	result.Success = execStats.Success
+	result.TasksExecuted = execStats.Executed
+	result.TasksFailed = execStats.Failed
 	result.Duration = time.Since(start)
 	return result, nil
 }
