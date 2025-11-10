@@ -2,6 +2,7 @@ package auto
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -63,6 +64,14 @@ func (te *TaskExecutor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionSt
 	cpState := checkpoint.NewState(fmt.Sprintf("auto-%d", time.Now().Unix()))
 	cpState.SetMetadata("goal", te.config.Goal)
 	cpState.SetMetadata("product", te.spec.Product)
+
+	// Save spec and plan JSON for resume capability
+	if specJSON, err := json.Marshal(te.spec); err == nil {
+		cpState.SetMetadata("spec_json", string(specJSON))
+	}
+	if planJSON, err := json.Marshal(p); err == nil {
+		cpState.SetMetadata("plan_json", string(planJSON))
+	}
 
 	// Initialize tasks in checkpoint
 	for _, task := range p.Tasks {
@@ -220,4 +229,157 @@ type ExecutionStats struct {
 	EndTime     time.Time
 	Duration    time.Duration
 	TaskResults map[string]*exec.Result
+}
+
+// ExecuteWithCheckpoint runs tasks with an existing checkpoint state (for resume)
+func (te *TaskExecutor) ExecuteWithCheckpoint(ctx context.Context, p *plan.Plan, cpState *checkpoint.State, checkpointMgr *checkpoint.Manager) (*ExecutionStats, error) {
+	stats := &ExecutionStats{
+		TotalTasks: len(p.Tasks),
+		StartTime:  time.Now(),
+	}
+
+	// Load or create default policy if not provided
+	pol := te.policy
+	if pol == nil {
+		pol = policy.DefaultPolicy()
+	}
+
+	// Setup progress indicator
+	progressIndicator := progress.NewIndicator(progress.Config{
+		Writer:      os.Stdout,
+		ShowSpinner: !te.config.Verbose,
+	})
+
+	// Set state in progress indicator
+	progressIndicator.SetState(cpState)
+
+	// Create executor
+	executor := &exec.Executor{
+		Policy:      pol,
+		DryRun:      te.config.DryRun,
+		ManifestDir: ".specular/manifests",
+		ImageCache:  nil,
+		Verbose:     te.config.Verbose,
+	}
+
+	// Start progress indicator
+	if !te.config.Verbose {
+		progressIndicator.Start()
+		defer progressIndicator.Stop()
+	}
+
+	// Track cost before execution (if router available)
+	var initialSpent float64
+	if te.router != nil {
+		initialBudget := te.router.GetBudget()
+		initialSpent = initialBudget.SpentUSD
+	}
+
+	// Execute plan with retry logic
+	var execResult *exec.ExecutionResult
+	var execErr error
+
+	for attempt := 1; attempt <= te.config.MaxRetries; attempt++ {
+		if te.config.Verbose {
+			fmt.Printf("\n🚀 Execution attempt %d/%d...\n", attempt, te.config.MaxRetries)
+		}
+
+		execResult, execErr = executor.Execute(p)
+
+		if execErr == nil && execResult.FailedTasks == 0 {
+			// Success - all tasks completed
+			break
+		}
+
+		// Check if we should retry
+		if attempt < te.config.MaxRetries {
+			if te.config.Verbose {
+				fmt.Printf("⚠️  Attempt %d failed, retrying in %v...\n", attempt, te.config.RetryDelay)
+			}
+
+			// Wait before retry
+			select {
+			case <-ctx.Done():
+				return stats, ctx.Err()
+			case <-time.After(te.config.RetryDelay):
+			}
+		}
+	}
+
+	// Stop progress indicator before final processing
+	if !te.config.Verbose {
+		progressIndicator.Stop()
+	}
+
+	// Handle execution error
+	if execErr != nil {
+		cpState.Status = "failed"
+		checkpointMgr.Save(cpState) // Best effort save
+		return stats, fmt.Errorf("execution failed: %w", execErr)
+	}
+
+	// Track cost after execution (if router available)
+	if te.router != nil {
+		finalBudget := te.router.GetBudget()
+		stats.TotalCost = finalBudget.SpentUSD - initialSpent
+	}
+
+	// Update stats from execution result
+	stats.Executed = execResult.SuccessTasks
+	stats.Failed = execResult.FailedTasks
+	stats.Skipped = execResult.SkippedTasks
+	stats.EndTime = time.Now()
+	stats.Duration = stats.EndTime.Sub(stats.StartTime)
+	stats.TaskResults = execResult.TaskResults
+
+	// Update checkpoint with results
+	for taskID, taskResult := range execResult.TaskResults {
+		if taskResult.ExitCode == 0 {
+			cpState.UpdateTask(taskID, "completed", nil)
+			if te.progressFunc != nil {
+				te.progressFunc(taskID, "completed", nil)
+			}
+		} else {
+			cpState.UpdateTask(taskID, "failed", taskResult.Error)
+			if te.progressFunc != nil {
+				te.progressFunc(taskID, "failed", taskResult.Error)
+			}
+		}
+	}
+
+	// Mark checkpoint as completed or failed
+	if execResult.FailedTasks > 0 {
+		cpState.Status = "failed"
+		stats.Success = false
+	} else {
+		cpState.Status = "completed"
+		stats.Success = true
+	}
+
+	// Save final checkpoint
+	if err := checkpointMgr.Save(cpState); err != nil && te.config.Verbose {
+		fmt.Printf("Warning: failed to save final checkpoint: %v\n", err)
+	}
+
+	// Print summary if not in verbose mode
+	if !te.config.Verbose {
+		fmt.Printf("\n")
+		fmt.Printf("📊 Execution Summary:\n")
+		fmt.Printf("   Total tasks:   %d\n", stats.TotalTasks)
+		fmt.Printf("   ✓ Completed:   %d\n", stats.Executed)
+		if stats.Failed > 0 {
+			fmt.Printf("   ✗ Failed:      %d\n", stats.Failed)
+		}
+		if stats.Skipped > 0 {
+			fmt.Printf("   ⊘ Skipped:     %d\n", stats.Skipped)
+		}
+		fmt.Printf("   Duration:      %v\n", stats.Duration)
+	}
+
+	// Return error if any tasks failed
+	if stats.Failed > 0 {
+		return stats, fmt.Errorf("%d tasks failed", stats.Failed)
+	}
+
+	return stats, nil
 }

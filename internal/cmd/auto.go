@@ -29,8 +29,15 @@ Examples:
   specular auto "Build a REST API for user management"
   specular auto --dry-run "Create a React dashboard"
   specular auto --no-approval "Add authentication to my app"
+  specular auto --resume auto-1762811730
 `,
-	Args: cobra.MinimumNArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		resumeFrom, _ := cmd.Flags().GetString("resume")
+		if resumeFrom == "" && len(args) < 1 {
+			return fmt.Errorf("requires a goal argument when not resuming")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Parse flags
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
@@ -40,14 +47,17 @@ Examples:
 		maxRetries, _ := cmd.Flags().GetInt("max-retries")
 		timeoutMinutes, _ := cmd.Flags().GetInt("timeout")
 		verbose, _ := cmd.Flags().GetBool("verbose")
+		resumeFrom, _ := cmd.Flags().GetString("resume")
 
-		// Build goal from args
+		// Build goal from args (required unless resuming)
 		goal := ""
-		for i, arg := range args {
-			if i > 0 {
-				goal += " "
+		if resumeFrom == "" {
+			for i, arg := range args {
+				if i > 0 {
+					goal += " "
+				}
+				goal += arg
 			}
-			goal += arg
 		}
 
 		// Load provider registry
@@ -90,6 +100,7 @@ Examples:
 			TimeoutMinutes:   timeoutMinutes,
 			Verbose:          verbose,
 			DryRun:           dryRun,
+			ResumeFrom:       resumeFrom,
 		}
 
 		// Create orchestrator and execute
@@ -120,6 +131,7 @@ func init() {
 	autoCmd.Flags().Int("max-retries", 3, "Maximum retries per failed task")
 	autoCmd.Flags().Int("timeout", 30, "Timeout in minutes for entire workflow")
 	autoCmd.Flags().BoolP("verbose", "v", false, "Enable verbose output")
+	autoCmd.Flags().String("resume", "", "Resume from checkpoint (e.g., auto-1762811730)")
 
 	rootCmd.AddCommand(autoCmd)
 }

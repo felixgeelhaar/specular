@@ -2,9 +2,11 @@ package auto
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/felixgeelhaar/specular/internal/checkpoint"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
@@ -32,6 +34,11 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	result := &Result{
 		Success: false,
 		Errors:  []error{},
+	}
+
+	// Check if resuming from checkpoint
+	if o.config.ResumeFrom != "" {
+		return o.executeResume(ctx, start)
 	}
 
 	// Pre-flight: Check budget for spec generation
@@ -180,4 +187,109 @@ func (o *Orchestrator) generatePlan(ctx context.Context, productSpec *spec.Produ
 		EstimateComplexity: true,
 	}
 	return plan.Generate(ctx, productSpec, opts)
+}
+
+// executeResume resumes execution from a checkpoint
+func (o *Orchestrator) executeResume(ctx context.Context, start time.Time) (*Result, error) {
+	result := &Result{
+		Success: false,
+		Errors:  []error{},
+	}
+
+	// Load checkpoint
+	fmt.Printf("🔄 Resuming from checkpoint: %s\n", o.config.ResumeFrom)
+	checkpointMgr := checkpoint.NewManager(".specular/checkpoints", true, 30*time.Second)
+	cpState, err := checkpointMgr.Load(o.config.ResumeFrom)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load checkpoint: %w", err)
+	}
+
+	// Restore goal from checkpoint
+	goal, _ := cpState.GetMetadata("goal")
+	product, _ := cpState.GetMetadata("product")
+	fmt.Printf("📋 Resuming: %s\n", product)
+	fmt.Printf("   Goal: %s\n", goal)
+
+	// Load spec JSON from checkpoint
+	specJSON, ok := cpState.GetMetadata("spec_json")
+	if !ok {
+		return nil, fmt.Errorf("checkpoint missing spec data")
+	}
+	var productSpec spec.ProductSpec
+	if err := json.Unmarshal([]byte(specJSON), &productSpec); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal spec from checkpoint: %w", err)
+	}
+	result.Spec = &productSpec
+
+	// Load plan JSON from checkpoint
+	planJSON, ok := cpState.GetMetadata("plan_json")
+	if !ok {
+		return nil, fmt.Errorf("checkpoint missing plan data")
+	}
+	var execPlan plan.Plan
+	if err := json.Unmarshal([]byte(planJSON), &execPlan); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal plan from checkpoint: %w", err)
+	}
+	result.Plan = &execPlan
+
+	// Get task completion status
+	completed := cpState.GetCompletedTasks()
+	pending := cpState.GetPendingTasks()
+	failed := cpState.GetFailedTasks()
+
+	fmt.Printf("\n📊 Checkpoint status:\n")
+	fmt.Printf("   ✓ Completed: %d\n", len(completed))
+	fmt.Printf("   ⏳ Pending:   %d\n", len(pending))
+	if len(failed) > 0 {
+		fmt.Printf("   ✗ Failed:    %d\n", len(failed))
+	}
+	fmt.Println()
+
+	// Filter plan to only include pending and failed tasks
+	filteredTasks := []plan.Task{}
+	completedMap := make(map[string]bool)
+	for _, taskID := range completed {
+		completedMap[taskID] = true
+	}
+
+	for _, task := range execPlan.Tasks {
+		if !completedMap[task.ID.String()] {
+			filteredTasks = append(filteredTasks, task)
+		}
+	}
+
+	// Create filtered plan
+	filteredPlan := &plan.Plan{
+		Tasks: filteredTasks,
+	}
+
+	fmt.Printf("🚀 Resuming execution (%d tasks remaining)...\n", len(filteredTasks))
+
+	// Get initial budget before execution
+	initialBudget := o.router.GetBudget()
+
+	// Execute remaining tasks
+	executor := NewTaskExecutor(nil, o.config, &productSpec, o.router)
+	execStats, err := executor.ExecuteWithCheckpoint(ctx, filteredPlan, cpState, checkpointMgr)
+	if err != nil {
+		result.Success = false
+		result.TasksExecuted = execStats.Executed
+		result.TasksFailed = execStats.Failed
+		result.Duration = time.Since(start)
+		result.Errors = append(result.Errors, err)
+		return result, fmt.Errorf("resumed execution failed: %w", err)
+	}
+
+	// Get final budget after execution
+	finalBudget := o.router.GetBudget()
+	executionCost := finalBudget.SpentUSD - initialBudget.SpentUSD
+
+	// Update result
+	result.Success = execStats.Success
+	result.TasksExecuted = len(completed) + execStats.Executed // Include previously completed tasks
+	result.TasksFailed = execStats.Failed
+	result.TotalCost = executionCost
+	result.Duration = time.Since(start)
+
+	return result, nil
 }

@@ -36,6 +36,9 @@ type Config struct {
 	FallbackToManual bool `yaml:"fallback_to_manual"`
 	Verbose          bool `yaml:"verbose"`
 	DryRun           bool `yaml:"dry_run"`
+
+	// Resume settings
+	ResumeFrom string `yaml:"resume_from"` // Checkpoint operation ID to resume from
 }
 
 // Result contains the outcome of auto mode execution
