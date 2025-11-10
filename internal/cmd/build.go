@@ -113,8 +113,8 @@ linting, testing, and security scanning.`,
 
 		// Initialize tasks in checkpoint state
 		for _, task := range p.Tasks {
-			if _, exists := cpState.Tasks[task.ID]; !exists {
-				cpState.UpdateTask(task.ID, "pending", nil)
+			if _, exists := cpState.Tasks[task.ID.String()]; !exists {
+				cpState.UpdateTask(task.ID.String(), "pending", nil)
 			}
 		}
 

@@ -55,7 +55,7 @@ func (e *Executor) Execute(p *plan.Plan) (*ExecutionResult, error) {
 		if err := EnforcePolicy(step, e.Policy); err != nil {
 			result.FailedTasks++
 			fmt.Printf("  ✗ Policy violation: %v\n", err)
-			result.TaskResults[task.ID] = &Result{
+			result.TaskResults[task.ID.String()] = &Result{
 				ExitCode: 1,
 				Error:    err,
 			}
@@ -66,21 +66,21 @@ func (e *Executor) Execute(p *plan.Plan) (*ExecutionResult, error) {
 		if e.DryRun {
 			fmt.Printf("  ⊙ Dry run: would execute %s\n", step.Image)
 			result.SuccessTasks++
-			result.TaskResults[task.ID] = &Result{ExitCode: 0}
+			result.TaskResults[task.ID.String()] = &Result{ExitCode: 0}
 		} else {
 			taskResult, err := e.executeTask(step)
 
 			if err != nil {
 				result.FailedTasks++
 				fmt.Printf("  ✗ Failed: %v\n", err)
-				result.TaskResults[task.ID] = &Result{
+				result.TaskResults[task.ID.String()] = &Result{
 					ExitCode: 1,
 					Error:    err,
 				}
 				continue
 			}
 
-			result.TaskResults[task.ID] = taskResult
+			result.TaskResults[task.ID.String()] = taskResult
 
 			if taskResult.ExitCode != 0 {
 				result.FailedTasks++
@@ -109,7 +109,7 @@ func (e *Executor) Execute(p *plan.Plan) (*ExecutionResult, error) {
 // checkDependencies verifies all dependencies completed successfully
 func (e *Executor) checkDependencies(task plan.Task, result *ExecutionResult) error {
 	for _, depID := range task.DependsOn {
-		depResult, exists := result.TaskResults[depID]
+		depResult, exists := result.TaskResults[depID.String()]
 		if !exists {
 			return fmt.Errorf("dependency %s not yet executed", depID)
 		}
@@ -124,7 +124,7 @@ func (e *Executor) checkDependencies(task plan.Task, result *ExecutionResult) er
 func (e *Executor) createStep(task plan.Task) Step {
 	// Default to Docker execution
 	step := Step{
-		ID:      task.ID,
+		ID:      task.ID.String(),
 		Runner:  "docker",
 		Workdir: ".",
 		Env:     make(map[string]string),

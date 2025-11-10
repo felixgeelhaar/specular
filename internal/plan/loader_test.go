@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/felixgeelhaar/specular/internal/domain"
 )
 
 func TestLoadPlan(t *testing.T) {
@@ -165,23 +167,23 @@ func TestSavePlan(t *testing.T) {
 			plan: &Plan{
 				Tasks: []Task{
 					{
-						ID:           "task-001",
-						FeatureID:    "feat-001",
+						ID: domain.TaskID("task-001"),
+						FeatureID: domain.FeatureID("feat-001"),
 						ExpectedHash: "abc123",
-						DependsOn:    []string{},
+						DependsOn: []domain.TaskID{},
 						Skill:        "go-backend",
 						ModelHint:    "codegen",
-						Priority:     "P0",
+						Priority: domain.Priority("P0"),
 						Estimate:     7,
 					},
 					{
-						ID:           "task-002",
-						FeatureID:    "feat-002",
+						ID: domain.TaskID("task-002"),
+						FeatureID: domain.FeatureID("feat-002"),
 						ExpectedHash: "def456",
-						DependsOn:    []string{"task-001"},
+						DependsOn:    []domain.TaskID{domain.TaskID("task-001")},
 						Skill:        "ui-react",
 						ModelHint:    "codegen",
-						Priority:     "P1",
+						Priority: domain.Priority("P1"),
 						Estimate:     5,
 					},
 				},
@@ -200,13 +202,13 @@ func TestSavePlan(t *testing.T) {
 			plan: &Plan{
 				Tasks: []Task{
 					{
-						ID:           "task-only",
-						FeatureID:    "feat-only",
+						ID: domain.TaskID("task-only"),
+						FeatureID: domain.FeatureID("feat-only"),
 						ExpectedHash: "hash1",
-						DependsOn:    []string{},
+						DependsOn: []domain.TaskID{},
 						Skill:        "testing",
 						ModelHint:    "fast",
-						Priority:     "P2",
+						Priority: domain.Priority("P2"),
 						Estimate:     3,
 					},
 				},
@@ -256,33 +258,33 @@ func TestPlanRoundTrip(t *testing.T) {
 	plan := &Plan{
 		Tasks: []Task{
 			{
-				ID:           "task-001",
-				FeatureID:    "feat-001",
+				ID: domain.TaskID("task-001"),
+				FeatureID: domain.FeatureID("feat-001"),
 				ExpectedHash: "hash001",
-				DependsOn:    []string{},
+				DependsOn: []domain.TaskID{},
 				Skill:        "go-backend",
 				ModelHint:    "codegen",
-				Priority:     "P0",
+				Priority: domain.Priority("P0"),
 				Estimate:     8,
 			},
 			{
-				ID:           "task-002",
-				FeatureID:    "feat-002",
+				ID: domain.TaskID("task-002"),
+				FeatureID: domain.FeatureID("feat-002"),
 				ExpectedHash: "hash002",
-				DependsOn:    []string{"task-001"},
+				DependsOn:    []domain.TaskID{domain.TaskID("task-001")},
 				Skill:        "ui-react",
 				ModelHint:    "agentic",
-				Priority:     "P1",
+				Priority: domain.Priority("P1"),
 				Estimate:     6,
 			},
 			{
-				ID:           "task-003",
-				FeatureID:    "feat-003",
+				ID: domain.TaskID("task-003"),
+				FeatureID: domain.FeatureID("feat-003"),
 				ExpectedHash: "hash003",
-				DependsOn:    []string{"task-001", "task-002"},
+				DependsOn:    []domain.TaskID{domain.TaskID("task-001"), domain.TaskID("task-002")},
 				Skill:        "infra",
 				ModelHint:    "fast",
-				Priority:     "P2",
+				Priority: domain.Priority("P2"),
 				Estimate:     4,
 			},
 		},

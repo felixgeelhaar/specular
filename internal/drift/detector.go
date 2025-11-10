@@ -19,7 +19,7 @@ func DetectPlanDrift(lock *spec.SpecLock, p *plan.Plan) []Finding {
 		if !exists {
 			findings = append(findings, Finding{
 				Code:      "UNKNOWN_FEATURE",
-				FeatureID: task.FeatureID,
+				FeatureID: task.FeatureID.String(),
 				Message:   fmt.Sprintf("Task %s references unknown feature %s", task.ID, task.FeatureID),
 				Severity:  "error",
 				Location:  fmt.Sprintf("task:%s", task.ID),
@@ -31,7 +31,7 @@ func DetectPlanDrift(lock *spec.SpecLock, p *plan.Plan) []Finding {
 		if task.ExpectedHash != lockedFeature.Hash {
 			findings = append(findings, Finding{
 				Code:      "HASH_MISMATCH",
-				FeatureID: task.FeatureID,
+				FeatureID: task.FeatureID.String(),
 				Message: fmt.Sprintf("Task %s has mismatched hash (expected: %s, got: %s)",
 					task.ID, lockedFeature.Hash, task.ExpectedHash),
 				Severity: "error",
@@ -43,7 +43,7 @@ func DetectPlanDrift(lock *spec.SpecLock, p *plan.Plan) []Finding {
 	// Check for features in SpecLock not covered by plan
 	taskFeatures := make(map[string]bool)
 	for _, task := range p.Tasks {
-		taskFeatures[task.FeatureID] = true
+		taskFeatures[task.FeatureID.String()] = true
 	}
 
 	for featureID := range lock.Features {

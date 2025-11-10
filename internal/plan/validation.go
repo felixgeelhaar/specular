@@ -3,19 +3,17 @@ package plan
 import (
 	"fmt"
 	"strings"
-
-	"github.com/felixgeelhaar/specular/internal/domain"
 )
 
 // Validate checks if the Task is valid according to domain rules
 func (t *Task) Validate() error {
-	// Validate ID using domain TaskID value object
-	if _, err := domain.NewTaskID(t.ID); err != nil {
+	// Validate TaskID using domain validation
+	if err := t.ID.Validate(); err != nil {
 		return fmt.Errorf("invalid task ID: %w", err)
 	}
 
-	// Validate FeatureID using domain FeatureID value object
-	if _, err := domain.NewFeatureID(t.FeatureID); err != nil {
+	// Validate FeatureID using domain validation
+	if err := t.FeatureID.Validate(); err != nil {
 		return fmt.Errorf("invalid feature ID: %w", err)
 	}
 
@@ -26,7 +24,7 @@ func (t *Task) Validate() error {
 
 	// Validate DependsOn contains valid TaskID values
 	for i, depID := range t.DependsOn {
-		if _, err := domain.NewTaskID(depID); err != nil {
+		if err := depID.Validate(); err != nil {
 			return fmt.Errorf("dependency at index %d has invalid task ID: %w", i, err)
 		}
 	}
@@ -36,8 +34,8 @@ func (t *Task) Validate() error {
 		return fmt.Errorf("skill cannot be empty")
 	}
 
-	// Validate Priority using domain Priority value object
-	if _, err := domain.NewPriority(t.Priority); err != nil {
+	// Validate Priority using domain validation
+	if err := t.Priority.Validate(); err != nil {
 		return fmt.Errorf("invalid priority: %w", err)
 	}
 
@@ -70,16 +68,16 @@ func (p *Plan) Validate() error {
 		}
 
 		// Check for duplicate task IDs
-		if taskIDs[task.ID] {
+		if taskIDs[task.ID.String()] {
 			return fmt.Errorf("duplicate task ID %q at index %d", task.ID, i)
 		}
-		taskIDs[task.ID] = true
+		taskIDs[task.ID.String()] = true
 	}
 
 	// Validate that all dependencies reference existing tasks
 	for i, task := range p.Tasks {
 		for _, depID := range task.DependsOn {
-			if !taskIDs[depID] {
+			if !taskIDs[depID.String()] {
 				return fmt.Errorf("task at index %d (%s) has dependency %q that does not exist in plan", i, task.ID, depID)
 			}
 		}
@@ -95,10 +93,14 @@ func (p *Plan) Validate() error {
 
 // checkCircularDependencies detects cycles in the task dependency graph
 func (p *Plan) checkCircularDependencies() error {
-	// Build adjacency list
+	// Build adjacency list (convert domain types to strings for graph)
 	graph := make(map[string][]string)
 	for _, task := range p.Tasks {
-		graph[task.ID] = task.DependsOn
+		deps := make([]string, len(task.DependsOn))
+		for i, dep := range task.DependsOn {
+			deps[i] = dep.String()
+		}
+		graph[task.ID.String()] = deps
 	}
 
 	// Track visited and recursion stack
@@ -131,8 +133,8 @@ func (p *Plan) checkCircularDependencies() error {
 
 	// Check each task
 	for _, task := range p.Tasks {
-		if !visited[task.ID] {
-			if err := hasCycle(task.ID, []string{}); err != nil {
+		if !visited[task.ID.String()] {
+			if err := hasCycle(task.ID.String(), []string{}); err != nil {
 				return err
 			}
 		}

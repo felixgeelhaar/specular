@@ -209,23 +209,23 @@ func TestValidateDependencies(t *testing.T) {
 		{
 			name: "valid dependencies",
 			tasks: []Task{
-				{ID: "task-001", DependsOn: []string{}},
-				{ID: "task-002", DependsOn: []string{"task-001"}},
+				{ID: domain.TaskID("task-001"), DependsOn: []domain.TaskID{}},
+				{ID: domain.TaskID("task-002"), DependsOn: []domain.TaskID{domain.TaskID("task-001")}},
 			},
 			wantErr: false,
 		},
 		{
 			name: "non-existent dependency",
 			tasks: []Task{
-				{ID: "task-001", DependsOn: []string{"task-999"}},
+				{ID: domain.TaskID("task-001"), DependsOn: []domain.TaskID{domain.TaskID("task-999")}},
 			},
 			wantErr: true,
 		},
 		{
 			name: "forward dependency",
 			tasks: []Task{
-				{ID: "task-001", DependsOn: []string{"task-002"}},
-				{ID: "task-002", DependsOn: []string{}},
+				{ID: domain.TaskID("task-001"), DependsOn: []domain.TaskID{domain.TaskID("task-002")}},
+				{ID: domain.TaskID("task-002"), DependsOn: []domain.TaskID{}},
 			},
 			wantErr: true,
 		},
