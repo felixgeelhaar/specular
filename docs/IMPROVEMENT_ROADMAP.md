@@ -18,6 +18,47 @@
 
 ### 🔥 High Priority (Next 2 Weeks)
 
+#### 0. Autonomous Agent Mode Implementation
+**Current:** Manual CLI tool requiring 5+ commands per workflow
+**Target:** Single-command autonomous workflows with approval gates
+**Effort:** High (7-9 weeks)
+**Impact:** Critical
+
+**See:** [AGENT_MODE_ROADMAP.md](AGENT_MODE_ROADMAP.md) and [ADR 0007](adr/0007-autonomous-agent-mode.md)
+
+**Overview:**
+Transform Specular into an autonomous agent system (similar to Claude Code) while preserving manual control capabilities. Users will be able to run `specular auto --goal "Build a REST API"` and get working, tested code with minimal intervention.
+
+**Key Features:**
+- **Auto Mode:** Full workflow from goal to code with approval gates
+- **Error Recovery:** Automatic retry with AI-powered task regeneration
+- **Watch Mode:** Continuous monitoring and auto-rebuild on file changes
+- **Full Autonomy:** Multi-session workflows with cost optimization
+
+**Implementation Phases:**
+1. **Phase 1 (2-3 weeks):** Auto mode foundation with approval gates
+2. **Phase 2 (1-2 weeks):** Error recovery and retry logic
+3. **Phase 3 (1 week):** Watch mode for continuous monitoring
+4. **Phase 4 (2-3 weeks):** Full autonomy with drift-based regeneration
+
+**Success Metrics:**
+- 3x faster workflow completion
+- 70%+ error recovery rate on first retry
+- 90%+ developer adoption of watch mode for TDD
+- 30% cost reduction via optimization
+
+**Deliverables:**
+- `specular auto` command with natural language goal parsing
+- `specular watch` command for continuous validation
+- Comprehensive approval gate system
+- Budget tracking and cost limits
+- Complete test coverage (>80%)
+- Production-ready documentation
+
+**Status:** Planning complete, ready for Phase 1 implementation
+
+---
+
 #### 1. Improve Infrastructure Package Testing
 **Current:** 36-55% coverage
 **Target:** 60-70% coverage
@@ -540,16 +581,20 @@ Error: Invalid feature ID "MyFeature"
 ## Success Metrics
 
 **Q1 2025:**
+- **Autonomous Agent Mode:** Phase 1-2 complete (auto mode + error recovery)
 - Overall coverage: 45.9% → 55%
 - Integration tests: 0 → 20 scenarios
 - Performance baselines established
 - Infrastructure packages improved
+- Developer productivity: 3x faster workflows with auto mode
 
 **Q2 2025:**
+- **Autonomous Agent Mode:** Phase 3-4 complete (watch mode + full autonomy)
 - Overall coverage: 55% → 60%
 - Advanced domain patterns implemented
 - Observability setup complete
 - Plugin architecture ready
+- Agent mode in production use
 
 **Q3-Q4 2025:**
 - Production-ready v1.0 release
