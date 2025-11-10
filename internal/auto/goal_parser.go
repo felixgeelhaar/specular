@@ -25,32 +25,33 @@ func NewGoalParser(r *router.Router) *GoalParser {
 func (p *GoalParser) ParseGoal(ctx context.Context, goal string) (*spec.ProductSpec, error) {
 	systemPrompt := `You are a software specification expert. Convert the user's goal into a structured YAML specification following this exact format:
 
-name: <project-name>
-description: <brief-description>
-version: 1.0.0
-metadata:
-  author: AI Generated
-  created: <timestamp-YYYY-MM-DD>
+product: <project-name>
+goals:
+  - <high-level-goal-1>
+  - <high-level-goal-2>
 
 features:
   - id: <feature-id>  # lowercase-with-hyphens
     title: <feature-title>
-    description: <detailed-description>
+    desc: <detailed-description>
     priority: P0  # or P1, P2
-    category: api  # or ui, data, infra, testing
-    acceptance_criteria:
-      - <testable-criterion-1>
-      - <testable-criterion-2>
-      - <testable-criterion-3>
+    success:
+      - <testable-success-criterion-1>
+      - <testable-success-criterion-2>
+      - <testable-success-criterion-3>
+    trace:
+      - <implementation-detail-1>
+      - <implementation-detail-2>
 
 IMPORTANT RULES:
-1. Feature IDs must be lowercase letters, numbers, and hyphens only (e.g., "user-auth", "payment-api")
-2. Priority: P0 = critical/required, P1 = important, P2 = nice-to-have
-3. Categories: api, ui, data, infra, testing
-4. Each feature must have 2-5 specific, testable acceptance criteria
-5. Keep descriptions concise but clear
-6. Break down the goal into 2-5 logical features
-7. Order features by priority (P0 first, then P1, then P2)
+1. Product name should be short and descriptive (e.g., "Todo API", "Weather Service")
+2. Goals should be high-level objectives (1-3 goals)
+3. Feature IDs must be lowercase letters, numbers, and hyphens only (e.g., "user-auth", "payment-api")
+4. Priority: P0 = critical/required, P1 = important, P2 = nice-to-have
+5. Each feature must have 2-5 specific, testable success criteria
+6. Trace items describe implementation details or technical requirements
+7. Break down the goal into 2-5 logical features
+8. Order features by priority (P0 first, then P1, then P2)
 
 Return ONLY the YAML, no explanations or markdown code blocks.`
 
