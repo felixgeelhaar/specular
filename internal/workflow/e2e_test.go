@@ -115,6 +115,9 @@ features:
       - Feature works
     trace:
       - PRD-002
+acceptance:
+  - All features work correctly
+  - Tests pass
 `,
 			policyContent: `
 execution:
@@ -151,6 +154,9 @@ features:
       - API works
     trace:
       - PRD-001
+acceptance:
+  - API endpoints accessible
+  - Tests pass
 `,
 			policyContent: `
 execution:
@@ -197,6 +203,9 @@ features:
       - API works
     trace:
       - PRD-001
+acceptance:
+  - API endpoints accessible
+  - Tests pass
 `,
 			policyContent: `
 execution:
@@ -373,6 +382,9 @@ features:
       - It works
     trace:
       - PRD-001
+acceptance:
+  - Feature works correctly
+  - Tests pass
 `
 	specPath := filepath.Join(aidvDir, "spec.yaml")
 	if err := os.WriteFile(specPath, []byte(specContent), 0644); err != nil {
@@ -463,15 +475,18 @@ features: []
 	workflow := NewWorkflow(config)
 	ctx := context.Background()
 
-	// Execute should succeed even with empty spec (it's technically valid YAML)
+	// Execute should fail with validation errors for invalid spec
 	result, err := workflow.Execute(ctx)
 
-	// The workflow should complete but may have no features
-	if err != nil {
-		// If there is an error, it should be informative
-		t.Logf("Execute() returned error (may be expected for empty spec): %v", err)
+	// The workflow should fail because the spec is invalid
+	if err == nil {
+		t.Error("Execute() expected error for invalid spec, got nil")
+	} else {
+		// Validation error is expected - log it for verification
+		t.Logf("Execute() returned expected validation error: %v", err)
 	}
 
+	// Result may be nil or incomplete due to validation failure
 	if result != nil {
 		t.Logf("Result: SpecLock features=%d, Plan tasks=%d",
 			len(result.SpecLock.Features), len(result.Plan.Tasks))
@@ -499,6 +514,9 @@ features:
       - UI renders correctly
     trace:
       - PRD-001
+acceptance:
+  - Application is responsive
+  - Tests pass
 `,
 		},
 		{
@@ -521,6 +539,9 @@ features:
       - API responds
     trace:
       - PRD-001
+acceptance:
+  - API endpoints accessible
+  - Tests pass
 `,
 		},
 		{
@@ -538,6 +559,9 @@ features:
       - Commands work
     trace:
       - PRD-001
+acceptance:
+  - CLI commands work correctly
+  - Tests pass
 `,
 		},
 	}

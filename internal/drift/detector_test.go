@@ -32,12 +32,12 @@ func TestDetectPlanDrift(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           "task-001",
-						FeatureID:    "feat-001",
+						ID:           domain.TaskID("task-001"),
+						FeatureID:    domain.FeatureID("feat-001"),
 						ExpectedHash: "abc123",
-						DependsOn:    []string{},
+						DependsOn:    []domain.TaskID{},
 						Skill:        "go-backend",
-						Priority:     "P0",
+						Priority:     domain.Priority("P0"),
 					},
 				},
 			},
@@ -60,12 +60,12 @@ func TestDetectPlanDrift(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           "task-001",
-						FeatureID:    "feat-001",
+						ID:           domain.TaskID("task-001"),
+						FeatureID:    domain.FeatureID("feat-001"),
 						ExpectedHash: "xyz789", // Mismatch!
-						DependsOn:    []string{},
+						DependsOn:    []domain.TaskID{},
 						Skill:        "go-backend",
-						Priority:     "P0",
+						Priority:     domain.Priority("P0"),
 					},
 				},
 			},
@@ -82,12 +82,12 @@ func TestDetectPlanDrift(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           "task-001",
-						FeatureID:    "feat-999", // Unknown!
+						ID:           domain.TaskID("task-001"),
+						FeatureID:    domain.FeatureID("feat-999"), // Unknown!
 						ExpectedHash: "abc123",
-						DependsOn:    []string{},
+						DependsOn:    []domain.TaskID{},
 						Skill:        "go-backend",
-						Priority:     "P0",
+						Priority:     domain.Priority("P0"),
 					},
 				},
 			},
@@ -115,12 +115,12 @@ func TestDetectPlanDrift(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           "task-001",
-						FeatureID:    "feat-001",
+						ID:           domain.TaskID("task-001"),
+						FeatureID:    domain.FeatureID("feat-001"),
 						ExpectedHash: "abc123",
-						DependsOn:    []string{},
+						DependsOn:    []domain.TaskID{},
 						Skill:        "go-backend",
-						Priority:     "P0",
+						Priority:     domain.Priority("P0"),
 					},
 					// feat-002 is missing!
 				},
