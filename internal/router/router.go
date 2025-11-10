@@ -642,7 +642,7 @@ func (r *Router) generateWithRetry(ctx context.Context, req GenerateRequest, res
 			"model": result.Model.Name,
 		},
 		Metadata: map[string]string{
-			"task_id":  req.TaskID,
+			"task_id":  req.TaskID.String(),
 			"hint":     req.ModelHint,
 			"priority": req.Priority,
 		},
@@ -835,7 +835,7 @@ func (r *Router) streamWithRetry(ctx context.Context, req GenerateRequest, resul
 			"model": result.Model.Name,
 		},
 		Metadata: map[string]string{
-			"task_id":  req.TaskID,
+			"task_id":  req.TaskID.String(),
 			"hint":     req.ModelHint,
 			"priority": req.Priority,
 		},

@@ -3,6 +3,7 @@ package router
 import (
 	"time"
 
+	"github.com/felixgeelhaar/specular/internal/domain"
 	"github.com/felixgeelhaar/specular/internal/provider"
 )
 
@@ -82,14 +83,14 @@ type RoutingResult struct {
 
 // Usage represents AI model usage tracking
 type Usage struct {
-	Model     string    `json:"model"`
-	Provider  Provider  `json:"provider"`
-	Tokens    int       `json:"tokens"`
-	CostUSD   float64   `json:"cost_usd"`
-	LatencyMs int       `json:"latency_ms"`
-	Timestamp time.Time `json:"timestamp"`
-	TaskID    string    `json:"task_id,omitempty"`
-	Success   bool      `json:"success"`
+	Model     string         `json:"model"`
+	Provider  Provider       `json:"provider"`
+	Tokens    int            `json:"tokens"`
+	CostUSD   float64        `json:"cost_usd"`
+	LatencyMs int            `json:"latency_ms"`
+	Timestamp time.Time      `json:"timestamp"`
+	TaskID    domain.TaskID  `json:"task_id,omitempty"`
+	Success   bool           `json:"success"`
 }
 
 // Budget tracks spending against limits
@@ -122,7 +123,7 @@ type GenerateRequest struct {
 	ContextSize int                `json:"context_size,omitempty"` // Estimated context in tokens
 
 	// Metadata
-	TaskID string `json:"task_id,omitempty"`
+	TaskID domain.TaskID `json:"task_id,omitempty"`
 }
 
 // GenerateResponse represents the response from AI generation
