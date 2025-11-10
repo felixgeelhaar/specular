@@ -11,6 +11,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/progress"
+	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
@@ -19,15 +20,17 @@ type TaskExecutor struct {
 	policy       *policy.Policy
 	config       Config
 	spec         *spec.ProductSpec
+	router       interface{ GetBudget() *router.Budget } // Use interface for testability
 	progressFunc func(taskID, status string, err error)
 }
 
 // NewTaskExecutor creates a new task executor
-func NewTaskExecutor(pol *policy.Policy, cfg Config, s *spec.ProductSpec) *TaskExecutor {
+func NewTaskExecutor(pol *policy.Policy, cfg Config, s *spec.ProductSpec, r interface{ GetBudget() *router.Budget }) *TaskExecutor {
 	return &TaskExecutor{
 		policy: pol,
 		config: cfg,
 		spec:   s,
+		router: r,
 	}
 }
 
@@ -89,6 +92,13 @@ func (te *TaskExecutor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionSt
 		defer progressIndicator.Stop()
 	}
 
+	// Track cost before execution (if router available)
+	var initialSpent float64
+	if te.router != nil {
+		initialBudget := te.router.GetBudget()
+		initialSpent = initialBudget.SpentUSD
+	}
+
 	// Execute plan with retry logic
 	var execResult *exec.ExecutionResult
 	var execErr error
@@ -130,6 +140,12 @@ func (te *TaskExecutor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionSt
 		cpState.Status = "failed"
 		checkpointMgr.Save(cpState) // Best effort save
 		return stats, fmt.Errorf("execution failed: %w", execErr)
+	}
+
+	// Track cost after execution (if router available)
+	if te.router != nil {
+		finalBudget := te.router.GetBudget()
+		stats.TotalCost = finalBudget.SpentUSD - initialSpent
 	}
 
 	// Update stats from execution result
@@ -199,6 +215,7 @@ type ExecutionStats struct {
 	Failed      int
 	Skipped     int
 	Success     bool
+	TotalCost   float64               // Total cost in USD for AI operations
 	StartTime   time.Time
 	EndTime     time.Time
 	Duration    time.Duration

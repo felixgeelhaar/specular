@@ -17,7 +17,7 @@ func TestNewTaskExecutor(t *testing.T) {
 		Product: "TestProduct",
 	}
 
-	executor := NewTaskExecutor(pol, cfg, productSpec)
+	executor := NewTaskExecutor(pol, cfg, productSpec, nil)
 
 	if executor == nil {
 		t.Fatal("NewTaskExecutor returned nil")
@@ -42,13 +42,16 @@ func TestNewTaskExecutor_NilPolicy(t *testing.T) {
 		Product: "TestProduct",
 	}
 
-	executor := NewTaskExecutor(nil, cfg, productSpec)
+	executor := NewTaskExecutor(nil, cfg, productSpec, nil)
 
 	if executor == nil {
 		t.Fatal("NewTaskExecutor returned nil")
 	}
 	if executor.policy != nil {
 		t.Error("Executor policy should be nil when passed nil")
+	}
+	if executor.router != nil {
+		t.Error("Executor router should be nil when passed nil")
 	}
 }
 
@@ -72,7 +75,7 @@ func TestNewTaskExecutor_ConfigPreservation(t *testing.T) {
 		Product: "TestProduct",
 	}
 
-	executor := NewTaskExecutor(pol, cfg, productSpec)
+	executor := NewTaskExecutor(pol, cfg, productSpec, nil)
 
 	// Verify all config fields are preserved
 	if executor.config.Goal != cfg.Goal {
@@ -114,7 +117,7 @@ func TestNewTaskExecutor_ConfigPreservation(t *testing.T) {
 }
 
 func TestSetProgressCallback(t *testing.T) {
-	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{})
+	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{}, nil)
 
 	if executor.progressFunc != nil {
 		t.Error("Progress function should be nil initially")
@@ -156,7 +159,7 @@ func TestSetProgressCallback(t *testing.T) {
 }
 
 func TestSetProgressCallback_WithError(t *testing.T) {
-	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{})
+	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{}, nil)
 
 	var capturedErr error
 	callback := func(taskID, status string, err error) {
@@ -178,7 +181,7 @@ func TestSetProgressCallback_WithError(t *testing.T) {
 }
 
 func TestSetProgressCallback_Multiple(t *testing.T) {
-	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{})
+	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{}, nil)
 
 	callCount := 0
 	callback := func(taskID, status string, err error) {

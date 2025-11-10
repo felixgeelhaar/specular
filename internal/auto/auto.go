@@ -83,7 +83,11 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 
 	// Step 5: Execute plan
 	fmt.Println("🚀 Executing plan...")
-	executor := NewTaskExecutor(nil, o.config, productSpec)
+
+	// Get initial budget before execution
+	initialBudget := o.router.GetBudget()
+
+	executor := NewTaskExecutor(nil, o.config, productSpec, o.router)
 	execStats, err := executor.Execute(ctx, execPlan)
 	if err != nil {
 		result.Success = false
@@ -94,11 +98,26 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 		return result, fmt.Errorf("execution failed: %w", err)
 	}
 
-	// Update result with execution stats
+	// Get final budget after execution
+	finalBudget := o.router.GetBudget()
+	executionCost := finalBudget.SpentUSD - initialBudget.SpentUSD
+
+	// Update result with execution stats and cost
 	result.Success = execStats.Success
 	result.TasksExecuted = execStats.Executed
 	result.TasksFailed = execStats.Failed
+	result.TotalCost = execStats.TotalCost + executionCost // Include spec generation + execution costs
 	result.Duration = time.Since(start)
+
+	// Print cost summary
+	if result.TotalCost > 0 {
+		fmt.Printf("\n💰 Cost Summary:\n")
+		fmt.Printf("   Spec generation: $%.4f\n", initialBudget.SpentUSD)
+		fmt.Printf("   Task execution:  $%.4f\n", executionCost)
+		fmt.Printf("   Total cost:      $%.4f\n", result.TotalCost)
+		fmt.Printf("   Remaining:       $%.2f / $%.2f\n", finalBudget.RemainingUSD, finalBudget.LimitUSD)
+	}
+
 	return result, nil
 }
 
