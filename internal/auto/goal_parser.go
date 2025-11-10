@@ -22,7 +22,29 @@ func NewGoalParser(r *router.Router) *GoalParser {
 }
 
 // ParseGoal converts a natural language goal into a ProductSpec
+// It retries up to 3 times if parsing fails
 func (p *GoalParser) ParseGoal(ctx context.Context, goal string) (*spec.ProductSpec, error) {
+	const maxRetries = 3
+	var lastErr error
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		productSpec, err := p.parseGoalAttempt(ctx, goal)
+		if err == nil {
+			return productSpec, nil
+		}
+
+		lastErr = err
+		if attempt < maxRetries {
+			// Simple retry - AI models are non-deterministic, different attempt may succeed
+			continue
+		}
+	}
+
+	return nil, fmt.Errorf("failed after %d attempts: %w", maxRetries, lastErr)
+}
+
+// parseGoalAttempt performs a single attempt at parsing the goal
+func (p *GoalParser) parseGoalAttempt(ctx context.Context, goal string) (*spec.ProductSpec, error) {
 	systemPrompt := `You are a software specification expert. Convert the user's goal into a structured YAML specification following this exact format:
 
 product: <project-name>
@@ -77,13 +99,37 @@ Return ONLY the YAML, no explanations or markdown code blocks.`
 	// Parse YAML into ProductSpec
 	var productSpec spec.ProductSpec
 	if err := yaml.Unmarshal([]byte(yamlContent), &productSpec); err != nil {
-		return nil, fmt.Errorf("parse generated spec: %w\nRaw content:\n%s", err, yamlContent)
+		// Provide helpful error message with context
+		return nil, fmt.Errorf("parse generated spec: %w\n\n"+
+			"This error usually means the AI generated invalid YAML format.\n"+
+			"The spec will be automatically retried with a fresh AI generation.\n\n"+
+			"Raw YAML content:\n%s", err, yamlContent)
+	}
+
+	// Validate required fields
+	if productSpec.Product == "" {
+		return nil, fmt.Errorf("generated spec missing required 'product' field\n\nRaw content:\n%s", yamlContent)
+	}
+
+	if len(productSpec.Features) == 0 {
+		return nil, fmt.Errorf("generated spec has no features\n\nRaw content:\n%s", yamlContent)
 	}
 
 	// Validate feature IDs
 	for i, feature := range productSpec.Features {
 		if _, err := domain.NewFeatureID(feature.ID.String()); err != nil {
-			return nil, fmt.Errorf("invalid feature ID at index %d: %w", i, err)
+			return nil, fmt.Errorf("invalid feature ID '%s' at index %d: %w\n"+
+				"Feature IDs must be lowercase letters, numbers, and hyphens only",
+				feature.ID.String(), i, err)
+		}
+
+		// Validate feature has required fields
+		if feature.Title == "" {
+			return nil, fmt.Errorf("feature %d ('%s') missing required 'title' field", i, feature.ID.String())
+		}
+
+		if len(feature.Success) == 0 {
+			return nil, fmt.Errorf("feature %d ('%s') has no success criteria", i, feature.ID.String())
 		}
 	}
 
