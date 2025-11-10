@@ -63,12 +63,8 @@ func TestLoadPlan(t *testing.T) {
 			planContent: `{
   "tasks": []
 }`,
-			wantErr: false,
-			validate: func(t *testing.T, p *Plan) {
-				if len(p.Tasks) != 0 {
-					t.Errorf("Tasks length = %d, want 0", len(p.Tasks))
-				}
-			},
+			wantErr:     true,
+			errContains: "plan must have at least one task",
 		},
 		{
 			name: "single task plan",
@@ -195,7 +191,7 @@ func TestSavePlan(t *testing.T) {
 			plan: &Plan{
 				Tasks: []Task{},
 			},
-			wantErr: false,
+			wantErr: true, // SavePlan validates during LoadPlan roundtrip
 		},
 		{
 			name: "single task",
@@ -223,14 +219,6 @@ func TestSavePlan(t *testing.T) {
 			planFile := filepath.Join(tmpDir, "plan.json")
 
 			err := SavePlan(tt.plan, planFile)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Error("SavePlan() expected error, got nil")
-				}
-				return
-			}
-
 			if err != nil {
 				t.Fatalf("SavePlan() unexpected error = %v", err)
 			}
@@ -240,8 +228,16 @@ func TestSavePlan(t *testing.T) {
 				t.Error("SavePlan() did not create file")
 			}
 
-			// Verify file can be loaded back
+			// Verify file can be loaded back - validation happens here
 			loaded, err := LoadPlan(planFile)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("LoadPlan() after SavePlan() expected error, got nil")
+				}
+				return
+			}
+
 			if err != nil {
 				t.Fatalf("LoadPlan() after SavePlan() failed: %v", err)
 			}

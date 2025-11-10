@@ -107,15 +107,8 @@ features:
     trace:
       - PRD-001
 `,
-			wantErr: false,
-			validate: func(t *testing.T, s *ProductSpec) {
-				if s.Product != "MinimalProduct" {
-					t.Errorf("Product = %v, want MinimalProduct", s.Product)
-				}
-				if len(s.Features) != 1 {
-					t.Errorf("Features length = %d, want 1", len(s.Features))
-				}
-			},
+			wantErr:     true,
+			errContains: "product must have at least one acceptance criterion",
 		},
 		{
 			name:        "invalid yaml",
@@ -126,12 +119,8 @@ features:
 		{
 			name:        "empty file",
 			specContent: "",
-			wantErr:     false,
-			validate: func(t *testing.T, s *ProductSpec) {
-				if s == nil {
-					t.Error("LoadSpec should return non-nil spec for empty file")
-				}
-			},
+			wantErr:     true,
+			errContains: "product name cannot be empty",
 		},
 	}
 
@@ -228,7 +217,7 @@ func TestSaveSpec(t *testing.T) {
 				Goals:    []string{},
 				Features: []Feature{},
 			},
-			wantErr: false,
+			wantErr: true, // SaveSpec validates during LoadSpec roundtrip
 		},
 	}
 
@@ -238,14 +227,6 @@ func TestSaveSpec(t *testing.T) {
 			specFile := filepath.Join(tmpDir, "subdir", "spec.yaml")
 
 			err := SaveSpec(tt.spec, specFile)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Error("SaveSpec() expected error, got nil")
-				}
-				return
-			}
-
 			if err != nil {
 				t.Fatalf("SaveSpec() unexpected error = %v", err)
 			}
@@ -255,8 +236,16 @@ func TestSaveSpec(t *testing.T) {
 				t.Error("SaveSpec() did not create file")
 			}
 
-			// Verify file can be loaded back
+			// Verify file can be loaded back - validation happens here
 			loaded, err := LoadSpec(specFile)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("LoadSpec() after SaveSpec() expected error, got nil")
+				}
+				return
+			}
+
 			if err != nil {
 				t.Fatalf("LoadSpec() after SaveSpec() failed: %v", err)
 			}

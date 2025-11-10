@@ -38,6 +38,11 @@ func (r *FileSpecRepository) Load(path string) (*ProductSpec, error) {
 		return nil, fmt.Errorf("unmarshal spec: %w", err)
 	}
 
+	// Validate the loaded spec using domain validation
+	if err := spec.Validate(); err != nil {
+		return nil, fmt.Errorf("validate spec: %w", err)
+	}
+
 	return &spec, nil
 }
 

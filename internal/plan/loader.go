@@ -18,6 +18,11 @@ func LoadPlan(path string) (*Plan, error) {
 		return nil, fmt.Errorf("unmarshal plan: %w", err)
 	}
 
+	// Validate the loaded plan using domain validation
+	if err := p.Validate(); err != nil {
+		return nil, fmt.Errorf("validate plan: %w", err)
+	}
+
 	return &p, nil
 }
 
