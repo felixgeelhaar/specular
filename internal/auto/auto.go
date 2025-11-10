@@ -34,6 +34,19 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 		Errors:  []error{},
 	}
 
+	// Pre-flight: Check budget for spec generation
+	if o.router != nil {
+		budget := o.router.GetBudget()
+		estimatedCost := EstimateSpecGenerationCost(len(o.config.Goal), 0.01) // $0.01 per MTok typical
+		warning, err := CheckBudgetWithWarning(budget, estimatedCost, "spec generation")
+		if err != nil {
+			return nil, fmt.Errorf("budget check failed: %w", err)
+		}
+		if warning != "" {
+			fmt.Printf("%s\n\n", warning)
+		}
+	}
+
 	// Step 1: Parse goal into spec
 	fmt.Println("🤖 Generating specification from goal...")
 	productSpec, err := o.parser.ParseGoal(ctx, o.config.Goal)
@@ -52,6 +65,19 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	}
 	result.SpecLock = specLock
 	fmt.Printf("✅ Spec locked: %d features\n\n", len(specLock.Features))
+
+	// Pre-flight: Check budget for plan generation
+	if o.router != nil {
+		budget := o.router.GetBudget()
+		estimatedCost := EstimatePlanGenerationCost(len(productSpec.Features), 0.01) // $0.01 per MTok typical
+		warning, err := CheckBudgetWithWarning(budget, estimatedCost, "plan generation")
+		if err != nil {
+			return nil, fmt.Errorf("budget check failed: %w", err)
+		}
+		if warning != "" {
+			fmt.Printf("%s\n\n", warning)
+		}
+	}
 
 	// Step 3: Generate execution plan
 	fmt.Println("📋 Generating execution plan...")
@@ -79,6 +105,27 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 		result.Success = true
 		result.Duration = time.Since(start)
 		return result, nil
+	}
+
+	// Pre-flight: Check budget for task execution
+	if o.router != nil {
+		budget := o.router.GetBudget()
+		estimatedCost := EstimateTaskExecutionCost(len(execPlan.Tasks), 0.01) // $0.01 per MTok typical
+		warning, err := CheckBudgetWithWarning(budget, estimatedCost, "task execution")
+		if err != nil {
+			return nil, fmt.Errorf("budget check failed: %w", err)
+		}
+		if warning != "" {
+			fmt.Printf("%s\n\n", warning)
+		}
+
+		// Check per-task budget if configured
+		if o.config.MaxCostPerTask > 0 {
+			perTaskEstimate := estimatedCost / float64(len(execPlan.Tasks))
+			if err := CheckPerTaskBudget(perTaskEstimate, o.config.MaxCostPerTask, "average"); err != nil {
+				fmt.Printf("⚠️  Warning: %v\n\n", err)
+			}
+		}
 	}
 
 	// Step 5: Execute plan
