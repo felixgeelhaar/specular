@@ -163,10 +163,10 @@ func TestDetectPlanDrift(t *testing.T) {
 
 func TestGenerateReport(t *testing.T) {
 	planDrift := []Finding{
-		{Code: "HASH_MISMATCH", FeatureID: "feat-001", Severity: "error"},
+		{Code: "HASH_MISMATCH", FeatureID: domain.FeatureID("feat-001"), Severity: "error"},
 	}
 	codeDrift := []Finding{
-		{Code: "API_MISMATCH", FeatureID: "feat-002", Severity: "warning"},
+		{Code: "API_MISMATCH", FeatureID: domain.FeatureID("feat-002"), Severity: "warning"},
 	}
 	infraDrift := []Finding{
 		{Code: "POLICY_VIOLATION", Severity: "info"},

@@ -53,7 +53,7 @@ func checkFileHashes(s *spec.ProductSpec, lock *spec.SpecLock, opts CodeDriftOpt
 			if !pathExists(filepath.Join(opts.ProjectRoot, testPath)) {
 				findings = append(findings, Finding{
 					Code:      "MISSING_TEST",
-					FeatureID: feature.ID.String(),
+					FeatureID: feature.ID,
 					Message:   fmt.Sprintf("Test file missing: %s", testPath),
 					Severity:  "error",
 					Location:  testPath,
@@ -66,7 +66,7 @@ func checkFileHashes(s *spec.ProductSpec, lock *spec.SpecLock, opts CodeDriftOpt
 			if err != nil {
 				findings = append(findings, Finding{
 					Code:      "HASH_ERROR",
-					FeatureID: feature.ID.String(),
+					FeatureID: feature.ID,
 					Message:   fmt.Sprintf("Cannot hash file %s: %v", testPath, err),
 					Severity:  "warning",
 					Location:  testPath,
@@ -90,7 +90,7 @@ func checkFileHashes(s *spec.ProductSpec, lock *spec.SpecLock, opts CodeDriftOpt
 			if !pathExists(fullPath) {
 				findings = append(findings, Finding{
 					Code:      "MISSING_TRACE",
-					FeatureID: feature.ID.String(),
+					FeatureID: feature.ID,
 					Message:   fmt.Sprintf("Traced file missing: %s", tracePath),
 					Severity:  "error",
 					Location:  tracePath,
@@ -102,7 +102,7 @@ func checkFileHashes(s *spec.ProductSpec, lock *spec.SpecLock, opts CodeDriftOpt
 			if _, err := os.Stat(fullPath); err != nil {
 				findings = append(findings, Finding{
 					Code:      "TRACE_ERROR",
-					FeatureID: feature.ID.String(),
+					FeatureID: feature.ID,
 					Message:   fmt.Sprintf("Cannot access traced file %s: %v", tracePath, err),
 					Severity:  "warning",
 					Location:  tracePath,
@@ -184,7 +184,7 @@ func checkTestCoverage(s *spec.ProductSpec, opts CodeDriftOptions) []Finding {
 		if testCount == 0 && feature.Priority == "P0" {
 			findings = append(findings, Finding{
 				Code:      "NO_TESTS",
-				FeatureID: feature.ID.String(),
+				FeatureID: feature.ID,
 				Message:   fmt.Sprintf("P0 feature '%s' has no associated tests", feature.Title),
 				Severity:  "error",
 				Location:  feature.ID.String(),
@@ -192,7 +192,7 @@ func checkTestCoverage(s *spec.ProductSpec, opts CodeDriftOptions) []Finding {
 		} else if testCount == 0 && feature.Priority == "P1" {
 			findings = append(findings, Finding{
 				Code:      "NO_TESTS",
-				FeatureID: feature.ID.String(),
+				FeatureID: feature.ID,
 				Message:   fmt.Sprintf("P1 feature '%s' has no associated tests", feature.Title),
 				Severity:  "warning",
 				Location:  feature.ID.String(),

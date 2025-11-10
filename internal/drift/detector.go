@@ -19,7 +19,7 @@ func DetectPlanDrift(lock *spec.SpecLock, p *plan.Plan) []Finding {
 		if !exists {
 			findings = append(findings, Finding{
 				Code:      "UNKNOWN_FEATURE",
-				FeatureID: task.FeatureID.String(),
+				FeatureID: task.FeatureID,
 				Message:   fmt.Sprintf("Task %s references unknown feature %s", task.ID, task.FeatureID),
 				Severity:  "error",
 				Location:  fmt.Sprintf("task:%s", task.ID),
@@ -31,7 +31,7 @@ func DetectPlanDrift(lock *spec.SpecLock, p *plan.Plan) []Finding {
 		if task.ExpectedHash != lockedFeature.Hash {
 			findings = append(findings, Finding{
 				Code:      "HASH_MISMATCH",
-				FeatureID: task.FeatureID.String(),
+				FeatureID: task.FeatureID,
 				Message: fmt.Sprintf("Task %s has mismatched hash (expected: %s, got: %s)",
 					task.ID, lockedFeature.Hash, task.ExpectedHash),
 				Severity: "error",
@@ -50,7 +50,7 @@ func DetectPlanDrift(lock *spec.SpecLock, p *plan.Plan) []Finding {
 		if !taskFeatures[featureID.String()] {
 			findings = append(findings, Finding{
 				Code:      "MISSING_TASK",
-				FeatureID: featureID.String(),
+				FeatureID: featureID,
 				Message:   fmt.Sprintf("Feature %s in SpecLock has no corresponding task in plan", featureID),
 				Severity:  "warning",
 				Location:  fmt.Sprintf("feature:%s", featureID),

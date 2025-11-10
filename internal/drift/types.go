@@ -1,12 +1,14 @@
 package drift
 
+import "github.com/felixgeelhaar/specular/internal/domain"
+
 // Finding represents a drift detection finding
 type Finding struct {
-	Code      string `json:"code"` // UNKNOWN_FEATURE, HASH_MISMATCH, etc.
-	FeatureID string `json:"feature_id"`
-	Message   string `json:"message"`
-	Severity  string `json:"severity"` // error, warning, info
-	Location  string `json:"location,omitempty"`
+	Code      string           `json:"code"` // UNKNOWN_FEATURE, HASH_MISMATCH, etc.
+	FeatureID domain.FeatureID `json:"feature_id"`
+	Message   string           `json:"message"`
+	Severity  string           `json:"severity"` // error, warning, info
+	Location  string           `json:"location,omitempty"`
 }
 
 // Report represents a complete drift detection report
