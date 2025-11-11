@@ -57,31 +57,33 @@ checksum:
   algorithm: sha256
 
 changelog:
-  use: github
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
-      - '^chore:'
-      - '^ci:'
-      - Merge pull request
-      - Merge branch
-  groups:
-    - title: Features
-      regexp: "^.*feat[(\\w)]*:+.*$"
-      order: 0
-    - title: 'Bug Fixes'
-      regexp: "^.*fix[(\\w)]*:+.*$"
-      order: 1
-    - title: 'Performance Improvements'
-      regexp: "^.*perf[(\\w)]*:+.*$"
-      order: 2
-    - title: 'Refactoring'
-      regexp: "^.*refactor[(\\w)]*:+.*$"
-      order: 3
-    - title: Others
-      order: 999
+  disable: true
+  # Temporarily disabled due to git history rewrite
+  # use: github
+  # sort: asc
+  # filters:
+  #   exclude:
+  #     - '^docs:'
+  #     - '^test:'
+  #     - '^chore:'
+  #     - '^ci:'
+  #     - Merge pull request
+  #     - Merge branch
+  # groups:
+  #   - title: Features
+  #     regexp: "^.*feat[(\\w)]*:+.*$"
+  #     order: 0
+  #   - title: 'Bug Fixes'
+  #     regexp: "^.*fix[(\\w)]*:+.*$"
+  #     order: 1
+  #   - title: 'Performance Improvements'
+  #     regexp: "^.*perf[(\\w)]*:+.*$"
+  #     order: 2
+  #   - title: 'Refactoring'
+  #     regexp: "^.*refactor[(\\w)]*:+.*$"
+  #     order: 3
+  #   - title: Others
+  #     order: 999
 
 release:
   github:
