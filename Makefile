@@ -21,7 +21,7 @@ test-coverage: test
 test-e2e: build
 	@echo "Running E2E tests..."
 	@if [ -d "test/e2e" ]; then \
-		go test -v -timeout 30m ./test/e2e/...; \
+		go test -v -tags=e2e -timeout 30m ./test/e2e/...; \
 	else \
 		echo "E2E tests not yet implemented (test/e2e directory not found)"; \
 		echo "See docs/E2E_TEST_PLAN.md for implementation plan"; \
