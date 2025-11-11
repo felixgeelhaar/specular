@@ -46,14 +46,14 @@ func TestNewOrchestrator_ParserInitialization(t *testing.T) {
 func TestNewOrchestrator_ConfigPreservation(t *testing.T) {
 	var r *router.Router = nil
 	config := Config{
-		Goal:             "Build a REST API",
-		RequireApproval:  false,
-		MaxCostUSD:       10.0,
-		MaxCostPerTask:   2.0,
-		MaxRetries:       5,
-		TimeoutMinutes:   60,
-		Verbose:          true,
-		DryRun:           true,
+		Goal:            "Build a REST API",
+		RequireApproval: false,
+		MaxCostUSD:      10.0,
+		MaxCostPerTask:  2.0,
+		MaxRetries:      5,
+		TimeoutMinutes:  60,
+		Verbose:         true,
+		DryRun:          true,
 	}
 
 	orchestrator := NewOrchestrator(r, config)

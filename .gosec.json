@@ -1,0 +1,6 @@
+{
+  "exclude": {
+    "G204": "Subprocess command with variable - required for Docker execution and tool invocation",
+    "G304": "File path from variable - required for file operations throughout the application"
+  }
+}
