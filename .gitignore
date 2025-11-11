@@ -58,3 +58,9 @@ logs/
 dist/
 build/
 bin/
+
+# Sensitive internal documents (IP)
+docs/prd.md
+docs/*roadmap*.md
+docs/*strategy*.md
+RELEASE_PLAN*.md
