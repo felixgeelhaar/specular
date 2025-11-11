@@ -39,6 +39,9 @@ type Config struct {
 
 	// Resume settings
 	ResumeFrom string `yaml:"resume_from"` // Checkpoint operation ID to resume from
+
+	// Output settings
+	OutputDir string `yaml:"output_dir"` // Directory to save spec and plan files
 }
 
 // Result contains the outcome of auto mode execution

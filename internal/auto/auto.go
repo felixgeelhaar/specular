@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/checkpoint"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"gopkg.in/yaml.v3"
 )
 
 // Orchestrator manages the autonomous workflow
@@ -94,6 +97,13 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	}
 	result.Plan = execPlan
 	fmt.Printf("✅ Plan created: %d tasks\n\n", len(execPlan.Tasks))
+
+	// Save spec and plan to output directory if specified
+	if o.config.OutputDir != "" {
+		if err := o.saveOutputFiles(productSpec, specLock, execPlan); err != nil {
+			fmt.Printf("⚠️  Warning: failed to save output files: %v\n\n", err)
+		}
+	}
 
 	// Step 4: Approval gate (if enabled)
 	if o.config.RequireApproval && !o.config.DryRun {
@@ -292,4 +302,49 @@ func (o *Orchestrator) executeResume(ctx context.Context, start time.Time) (*Res
 	result.Duration = time.Since(start)
 
 	return result, nil
+}
+
+// saveOutputFiles saves spec, lock, and plan to the output directory
+func (o *Orchestrator) saveOutputFiles(productSpec *spec.ProductSpec, specLock *spec.SpecLock, execPlan *plan.Plan) error {
+	// Create output directory if it doesn't exist
+	if err := os.MkdirAll(o.config.OutputDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Save spec as YAML
+	specYAML, err := yaml.Marshal(productSpec)
+	if err != nil {
+		return fmt.Errorf("failed to marshal spec: %w", err)
+	}
+	specPath := filepath.Join(o.config.OutputDir, "spec.yaml")
+	if err := os.WriteFile(specPath, specYAML, 0o644); err != nil {
+		return fmt.Errorf("failed to write spec file: %w", err)
+	}
+
+	// Save spec lock as JSON
+	lockJSON, err := json.MarshalIndent(specLock, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal spec lock: %w", err)
+	}
+	lockPath := filepath.Join(o.config.OutputDir, "spec.lock.json")
+	if err := os.WriteFile(lockPath, lockJSON, 0o644); err != nil {
+		return fmt.Errorf("failed to write spec lock file: %w", err)
+	}
+
+	// Save plan as JSON
+	planJSON, err := json.MarshalIndent(execPlan, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal plan: %w", err)
+	}
+	planPath := filepath.Join(o.config.OutputDir, "plan.json")
+	if err := os.WriteFile(planPath, planJSON, 0o644); err != nil {
+		return fmt.Errorf("failed to write plan file: %w", err)
+	}
+
+	fmt.Printf("📁 Saved output files to: %s\n", o.config.OutputDir)
+	fmt.Printf("   - spec.yaml\n")
+	fmt.Printf("   - spec.lock.json\n")
+	fmt.Printf("   - plan.json\n\n")
+
+	return nil
 }

@@ -48,6 +48,7 @@ Examples:
 		timeoutMinutes, _ := cmd.Flags().GetInt("timeout")
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		resumeFrom, _ := cmd.Flags().GetString("resume")
+		outputDir, _ := cmd.Flags().GetString("output")
 
 		// Build goal from args (required unless resuming)
 		goal := ""
@@ -101,6 +102,7 @@ Examples:
 			Verbose:          verbose,
 			DryRun:           dryRun,
 			ResumeFrom:       resumeFrom,
+			OutputDir:        outputDir,
 		}
 
 		// Create orchestrator and execute
@@ -132,6 +134,7 @@ func init() {
 	autoCmd.Flags().Int("timeout", 30, "Timeout in minutes for entire workflow")
 	autoCmd.Flags().BoolP("verbose", "v", false, "Enable verbose output")
 	autoCmd.Flags().String("resume", "", "Resume from checkpoint (e.g., auto-1762811730)")
+	autoCmd.Flags().StringP("output", "o", "", "Output directory to save spec and plan files")
 
 	rootCmd.AddCommand(autoCmd)
 }
