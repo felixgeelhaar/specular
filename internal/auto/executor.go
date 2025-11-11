@@ -21,17 +21,19 @@ type TaskExecutor struct {
 	policy       *policy.Policy
 	config       Config
 	spec         *spec.ProductSpec
+	actionPlan   *ActionPlan
 	router       interface{ GetBudget() *router.Budget } // Use interface for testability
 	progressFunc func(taskID, status string, err error)
 }
 
 // NewTaskExecutor creates a new task executor
-func NewTaskExecutor(pol *policy.Policy, cfg Config, s *spec.ProductSpec, r interface{ GetBudget() *router.Budget }) *TaskExecutor {
+func NewTaskExecutor(pol *policy.Policy, cfg Config, s *spec.ProductSpec, actionPlan *ActionPlan, r interface{ GetBudget() *router.Budget }) *TaskExecutor {
 	return &TaskExecutor{
-		policy: pol,
-		config: cfg,
-		spec:   s,
-		router: r,
+		policy:     pol,
+		config:     cfg,
+		spec:       s,
+		actionPlan: actionPlan,
+		router:     r,
 	}
 }
 
@@ -65,12 +67,17 @@ func (te *TaskExecutor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionSt
 	cpState.SetMetadata("goal", te.config.Goal)
 	cpState.SetMetadata("product", te.spec.Product)
 
-	// Save spec and plan JSON for resume capability
+	// Save spec, plan, and action plan JSON for resume capability
 	if specJSON, err := json.Marshal(te.spec); err == nil {
 		cpState.SetMetadata("spec_json", string(specJSON))
 	}
 	if planJSON, err := json.Marshal(p); err == nil {
 		cpState.SetMetadata("plan_json", string(planJSON))
+	}
+	if te.actionPlan != nil {
+		if actionPlanJSON, err := json.Marshal(te.actionPlan); err == nil {
+			cpState.SetMetadata("action_plan_json", string(actionPlanJSON))
+		}
 	}
 
 	// Initialize tasks in checkpoint
@@ -147,7 +154,7 @@ func (te *TaskExecutor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionSt
 	// Handle execution error
 	if execErr != nil {
 		cpState.Status = "failed"
-		checkpointMgr.Save(cpState) // Best effort save
+		checkpointMgr.Save(cpState) //#nosec G104 -- Best effort checkpoint save
 		return stats, fmt.Errorf("execution failed: %w", execErr)
 	}
 
@@ -224,7 +231,7 @@ type ExecutionStats struct {
 	Failed      int
 	Skipped     int
 	Success     bool
-	TotalCost   float64               // Total cost in USD for AI operations
+	TotalCost   float64 // Total cost in USD for AI operations
 	StartTime   time.Time
 	EndTime     time.Time
 	Duration    time.Duration
@@ -314,7 +321,7 @@ func (te *TaskExecutor) ExecuteWithCheckpoint(ctx context.Context, p *plan.Plan,
 	// Handle execution error
 	if execErr != nil {
 		cpState.Status = "failed"
-		checkpointMgr.Save(cpState) // Best effort save
+		checkpointMgr.Save(cpState) //#nosec G104 -- Best effort checkpoint save
 		return stats, fmt.Errorf("execution failed: %w", execErr)
 	}
 

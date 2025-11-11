@@ -79,7 +79,7 @@ func (c *ImageCache) SaveManifest() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if err := os.MkdirAll(c.CacheDir, 0755); err != nil {
+	if err := os.MkdirAll(c.CacheDir, 0750); err != nil {
 		return fmt.Errorf("create cache dir: %w", err)
 	}
 
@@ -95,7 +95,7 @@ func (c *ImageCache) SaveManifest() error {
 	}
 
 	manifestPath := filepath.Join(c.CacheDir, "manifest.json")
-	if err := os.WriteFile(manifestPath, data, 0644); err != nil {
+	if err := os.WriteFile(manifestPath, data, 0600); err != nil {
 		return fmt.Errorf("write manifest: %w", err)
 	}
 
@@ -126,7 +126,9 @@ func (c *ImageCache) EnsureImage(image string, verbose bool) error {
 			c.mu.Lock()
 			state.LastUsed = time.Now()
 			c.mu.Unlock()
-			c.SaveManifest()
+			if err := c.SaveManifest(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to save cache manifest: %v\n", err)
+			}
 
 			return nil
 		}
@@ -288,7 +290,7 @@ func (c *ImageCache) PruneCache(maxAge time.Duration, verbose bool) error {
 
 // ExportImages exports cached images to tar files for CI/CD caching
 func (c *ImageCache) ExportImages(images []string, outputDir string, verbose bool) error {
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0750); err != nil {
 		return fmt.Errorf("create output dir: %w", err)
 	}
 
@@ -439,7 +441,7 @@ func GetImageInfo(image string) (digest string, size int64, err error) {
 	}
 
 	digest = parts[0]
-	fmt.Sscanf(parts[1], "%d", &size)
+	fmt.Sscanf(parts[1], "%d", &size) // #nosec G104 - size parsing is best-effort
 
 	return digest, size, nil
 }

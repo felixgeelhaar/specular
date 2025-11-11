@@ -145,7 +145,7 @@ func (w *Workflow) generateSpecLock(productSpec *spec.ProductSpec) (*spec.SpecLo
 
 	// Save spec lock to .specular/spec.lock.json
 	lockPath := filepath.Join(w.config.ProjectRoot, ".specular", "spec.lock.json")
-	if err := os.MkdirAll(filepath.Dir(lockPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0750); err != nil {
 		return nil, fmt.Errorf("create .specular directory: %w", err)
 	}
 

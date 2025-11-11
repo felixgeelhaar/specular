@@ -108,7 +108,7 @@ func SaveConfig(config *RouterConfig, path string) error {
 		return fmt.Errorf("marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("write config file: %w", err)
 	}
 

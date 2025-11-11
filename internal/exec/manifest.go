@@ -29,7 +29,7 @@ func CreateManifest(step Step, result *Result) *RunManifest {
 // SaveManifest writes a run manifest to disk
 func SaveManifest(manifest *RunManifest, dir string) error {
 	// Ensure directory exists
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("create manifest directory: %w", err)
 	}
 
@@ -46,7 +46,7 @@ func SaveManifest(manifest *RunManifest, dir string) error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("write manifest: %w", err)
 	}
 

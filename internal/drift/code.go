@@ -159,8 +159,7 @@ func checkTestCoverage(s *spec.ProductSpec, opts CodeDriftOptions) []Finding {
 			featureName := strings.ToLower(strings.ReplaceAll(feature.Title, " ", "_"))
 
 			// Walk the directory tree to find matching test files
-			//nolint:errcheck,gosec // Walk errors handled inline
-			filepath.Walk(opts.ProjectRoot, func(path string, info os.FileInfo, err error) error {
+			_ = filepath.Walk(opts.ProjectRoot, func(path string, info os.FileInfo, err error) error { //nolint:errcheck //#nosec G104 -- Walk errors handled inline
 				if err != nil {
 					return nil // Skip files with errors
 				}

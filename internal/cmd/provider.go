@@ -73,7 +73,7 @@ var providerListCmd = &cobra.Command{
 				p.Name, p.Type, enabled, source, version)
 		}
 
-		w.Flush() //nolint:errcheck,gosec // G104: Tabwriter flush errors are not critical for display
+		w.Flush() //#nosec G104 -- Tabwriter flush errors not critical
 
 		// Print strategy info
 		if config.Strategy.Budget.MaxCostPerDay > 0 || config.Strategy.Budget.MaxCostPerRequest > 0 {
@@ -154,7 +154,7 @@ var providerHealthCmd = &cobra.Command{
 			}
 		}
 
-		w.Flush() //nolint:errcheck,gosec // G104: Tabwriter flush errors are not critical for display
+		w.Flush() //#nosec G104 -- Tabwriter flush errors not critical
 
 		return nil
 	},

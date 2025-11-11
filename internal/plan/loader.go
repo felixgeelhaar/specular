@@ -33,7 +33,7 @@ func SavePlan(p *Plan, path string) error {
 		return fmt.Errorf("marshal plan: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("write plan file: %w", err)
 	}
 

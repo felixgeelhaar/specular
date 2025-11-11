@@ -50,7 +50,7 @@ func (r *FileSpecRepository) Load(path string) (*ProductSpec, error) {
 func (r *FileSpecRepository) Save(spec *ProductSpec, path string) error {
 	// Ensure directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("create directory: %w", err)
 	}
 
@@ -61,7 +61,7 @@ func (r *FileSpecRepository) Save(spec *ProductSpec, path string) error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("write spec file: %w", err)
 	}
 

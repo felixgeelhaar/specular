@@ -205,7 +205,7 @@ func runStreamingGenerate(ctx context.Context, r *router.Router, req router.Gene
 		// Print the delta (incremental text)
 		if chunk.Delta != "" {
 			fmt.Print(chunk.Delta)
-			os.Stdout.Sync() //nolint:errcheck,gosec // Flush output immediately for streaming effect
+			os.Stdout.Sync() //#nosec G104 -- Stdout sync for streaming
 		}
 
 		totalContent = chunk.Content
