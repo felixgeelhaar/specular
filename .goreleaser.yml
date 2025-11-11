@@ -289,8 +289,9 @@ metadata:
   mod_timestamp: '{{ .CommitTimestamp }}'
 
 # SBOM and signatures
-sboms:
-  - artifacts: archive
+# Temporarily disabled - syft not available
+#sboms:
+#  - artifacts: archive
 
 signs:
   - cmd: gpg
