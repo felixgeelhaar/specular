@@ -504,8 +504,8 @@ func TestAutoModeFlags(t *testing.T) {
 			if err != nil {
 				// Check if error is about flags or about missing providers/checkpoints
 				if strings.Contains(outputStr, "unknown flag") ||
-				   strings.Contains(outputStr, "flag provided but not defined") ||
-				   strings.Contains(outputStr, "invalid argument") {
+					strings.Contains(outputStr, "flag provided but not defined") ||
+					strings.Contains(outputStr, "invalid argument") {
 					t.Logf("Output: %s", outputStr)
 					t.Fatalf("Flag parsing error: %v", err)
 				}

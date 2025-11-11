@@ -12,11 +12,11 @@ import (
 
 // approvalModel is the bubbletea model for the approval gate
 type approvalModel struct {
-	plan         *plan.Plan
-	spec         *spec.ProductSpec
+	plan          *plan.Plan
+	spec          *spec.ProductSpec
 	featureTitles map[string]string
-	approved     bool
-	quitting     bool
+	approved      bool
+	quitting      bool
 }
 
 // ShowApprovalGate displays the plan and requests user approval

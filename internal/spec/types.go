@@ -50,7 +50,7 @@ type Milestone struct {
 
 // SpecLock represents the canonical, hashed specification snapshot
 type SpecLock struct {
-	Version  string                            `json:"version"`
+	Version  string                             `json:"version"`
 	Features map[domain.FeatureID]LockedFeature `json:"features"`
 }
 

@@ -1,0 +1,52 @@
+schema: "specular.auto.profiles/v1"
+
+profiles:
+  ci:
+    description: "Profile for CI/CD pipelines (non-interactive)"
+
+    approvals:
+      mode: "none"
+      interactive: false
+      auto_approve:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+      require_approval: []
+
+    safety:
+      max_steps: 8
+      timeout: "15m"
+      max_cost_usd: 2.0
+      max_cost_per_task: 0.25
+      max_retries: 2
+      require_policy: true
+      allowed_step_types:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+      blocked_step_types: []
+
+    routing:
+      preferred_agent: "openai"
+      fallback_agent: "cline"
+      temperature: 0.5
+      model_preferences:
+        "spec:update": "gpt-4-turbo"
+        "plan:gen": "gpt-4-turbo"
+        "build:run": "gpt-4"
+
+    policies:
+      enabled: true
+      policy_files: []
+      enforcement: "strict"
+
+    execution:
+      trace_logging: true
+      save_patches: true
+      checkpoint_frequency: 1
+      json_output: true
+      enable_tui: false
+
+    hooks: {}

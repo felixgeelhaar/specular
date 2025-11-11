@@ -109,10 +109,10 @@ func TestPriority_String(t *testing.T) {
 
 func TestPriority_IsHigherThan(t *testing.T) {
 	tests := []struct {
-		name  string
-		p1    Priority
-		p2    Priority
-		want  bool
+		name string
+		p1   Priority
+		p2   Priority
+		want bool
 	}{
 		{"P0 is higher than P1", PriorityP0, PriorityP1, true},
 		{"P0 is higher than P2", PriorityP0, PriorityP2, true},
@@ -134,10 +134,10 @@ func TestPriority_IsHigherThan(t *testing.T) {
 
 func TestPriority_IsLowerThan(t *testing.T) {
 	tests := []struct {
-		name  string
-		p1    Priority
-		p2    Priority
-		want  bool
+		name string
+		p1   Priority
+		p2   Priority
+		want bool
 	}{
 		{"P2 is lower than P1", PriorityP2, PriorityP1, true},
 		{"P2 is lower than P0", PriorityP2, PriorityP0, true},

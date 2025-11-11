@@ -41,7 +41,15 @@ type Config struct {
 	ResumeFrom string `yaml:"resume_from"` // Checkpoint operation ID to resume from
 
 	// Output settings
-	OutputDir string `yaml:"output_dir"` // Directory to save spec and plan files
+	OutputDir  string `yaml:"output_dir"`  // Directory to save spec and plan files
+	JSONOutput bool   `yaml:"json_output"` // Enable JSON output format
+
+	// Scope filtering
+	ScopePatterns       []string `yaml:"scope_patterns"`       // Patterns to filter plan execution
+	IncludeDependencies bool     `yaml:"include_dependencies"` // Include dependencies of matched tasks
+
+	// Profile name for execution settings
+	Profile string `yaml:"profile"`
 }
 
 // Result contains the outcome of auto mode execution
@@ -50,6 +58,8 @@ type Result struct {
 	Spec          *spec.ProductSpec
 	SpecLock      *spec.SpecLock
 	Plan          *plan.Plan
+	ActionPlan    *ActionPlan
+	AutoOutput    *AutoOutput // JSON output for CI/CD integration
 	EvalResult    *eval.GateReport
 	DriftFindings []drift.Finding
 	TotalCost     float64

@@ -17,7 +17,7 @@ func TestNewTaskExecutor(t *testing.T) {
 		Product: "TestProduct",
 	}
 
-	executor := NewTaskExecutor(pol, cfg, productSpec, nil)
+	executor := NewTaskExecutor(pol, cfg, productSpec, nil, nil)
 
 	if executor == nil {
 		t.Fatal("NewTaskExecutor returned nil")
@@ -42,7 +42,7 @@ func TestNewTaskExecutor_NilPolicy(t *testing.T) {
 		Product: "TestProduct",
 	}
 
-	executor := NewTaskExecutor(nil, cfg, productSpec, nil)
+	executor := NewTaskExecutor(nil, cfg, productSpec, nil, nil)
 
 	if executor == nil {
 		t.Fatal("NewTaskExecutor returned nil")
@@ -75,7 +75,7 @@ func TestNewTaskExecutor_ConfigPreservation(t *testing.T) {
 		Product: "TestProduct",
 	}
 
-	executor := NewTaskExecutor(pol, cfg, productSpec, nil)
+	executor := NewTaskExecutor(pol, cfg, productSpec, nil, nil)
 
 	// Verify all config fields are preserved
 	if executor.config.Goal != cfg.Goal {
@@ -117,7 +117,7 @@ func TestNewTaskExecutor_ConfigPreservation(t *testing.T) {
 }
 
 func TestSetProgressCallback(t *testing.T) {
-	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{}, nil)
+	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{}, nil, nil)
 
 	if executor.progressFunc != nil {
 		t.Error("Progress function should be nil initially")
@@ -159,7 +159,7 @@ func TestSetProgressCallback(t *testing.T) {
 }
 
 func TestSetProgressCallback_WithError(t *testing.T) {
-	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{}, nil)
+	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{}, nil, nil)
 
 	var capturedErr error
 	callback := func(taskID, status string, err error) {
@@ -181,7 +181,7 @@ func TestSetProgressCallback_WithError(t *testing.T) {
 }
 
 func TestSetProgressCallback_Multiple(t *testing.T) {
-	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{}, nil)
+	executor := NewTaskExecutor(nil, DefaultConfig(), &spec.ProductSpec{}, nil, nil)
 
 	callCount := 0
 	callback := func(taskID, status string, err error) {

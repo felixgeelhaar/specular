@@ -104,9 +104,9 @@ func TestNewFeatureID(t *testing.T) {
 
 func TestFeatureID_Validate(t *testing.T) {
 	tests := []struct {
-		name     string
+		name      string
 		featureID FeatureID
-		wantErr  bool
+		wantErr   bool
 	}{
 		{"valid simple ID", FeatureID("auth"), false},
 		{"valid with hyphens", FeatureID("user-profile-management"), false},
@@ -130,9 +130,9 @@ func TestFeatureID_Validate(t *testing.T) {
 
 func TestFeatureID_String(t *testing.T) {
 	tests := []struct {
-		name     string
+		name      string
 		featureID FeatureID
-		want     string
+		want      string
 	}{
 		{"simple ID", FeatureID("auth"), "auth"},
 		{"ID with hyphens", FeatureID("user-auth"), "user-auth"},
@@ -150,10 +150,10 @@ func TestFeatureID_String(t *testing.T) {
 
 func TestFeatureID_Equals(t *testing.T) {
 	tests := []struct {
-		name  string
-		id1   FeatureID
-		id2   FeatureID
-		want  bool
+		name string
+		id1  FeatureID
+		id2  FeatureID
+		want bool
 	}{
 		{"same IDs", FeatureID("auth"), FeatureID("auth"), true},
 		{"different IDs", FeatureID("auth"), FeatureID("profile"), false},

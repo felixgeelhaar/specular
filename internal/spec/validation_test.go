@@ -252,8 +252,8 @@ func TestAPI_Validate(t *testing.T) {
 
 func TestProductSpec_Validate(t *testing.T) {
 	validSpec := ProductSpec{
-		Product:  "Test Product",
-		Goals:    []string{"Goal 1", "Goal 2"},
+		Product: "Test Product",
+		Goals:   []string{"Goal 1", "Goal 2"},
 		Features: []Feature{
 			{
 				ID:       "feature-1",
@@ -268,7 +268,7 @@ func TestProductSpec_Validate(t *testing.T) {
 			{
 				ID:         "milestone-1",
 				Name:       "Milestone 1",
-				FeatureIDs:  []domain.FeatureID{domain.FeatureID("feature-1")},
+				FeatureIDs: []domain.FeatureID{domain.FeatureID("feature-1")},
 			},
 		},
 	}
@@ -417,7 +417,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "",
 				Name:       "Milestone",
-				FeatureIDs:  []domain.FeatureID{domain.FeatureID("feature-1")},
+				FeatureIDs: []domain.FeatureID{domain.FeatureID("feature-1")},
 			},
 			wantErr: true,
 			errMsg:  "ID cannot be empty",
@@ -427,7 +427,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "",
-				FeatureIDs:  []domain.FeatureID{domain.FeatureID("feature-1")},
+				FeatureIDs: []domain.FeatureID{domain.FeatureID("feature-1")},
 			},
 			wantErr: true,
 			errMsg:  "name cannot be empty",
@@ -437,7 +437,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "Milestone",
-				FeatureIDs:  []domain.FeatureID{},
+				FeatureIDs: []domain.FeatureID{},
 			},
 			wantErr: true,
 			errMsg:  "at least one feature",
@@ -447,7 +447,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "Milestone",
-				FeatureIDs:  []domain.FeatureID{domain.FeatureID("Feature-1")},
+				FeatureIDs: []domain.FeatureID{domain.FeatureID("Feature-1")},
 			},
 			wantErr: true,
 			errMsg:  "feature ID at index 0 is invalid",

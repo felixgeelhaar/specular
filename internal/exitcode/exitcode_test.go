@@ -105,6 +105,169 @@ func TestDetermineExitCode(t *testing.T) {
 			err:      errors.New("something went wrong"),
 			expected: GeneralError,
 		},
+		// Additional policy violation tests
+		{
+			name:     "budget exceeded",
+			err:      errors.New("budget exceeded: $10.00 > $5.00"),
+			expected: PolicyViolation,
+		},
+		{
+			name:     "cost limit",
+			err:      errors.New("cost limit reached"),
+			expected: PolicyViolation,
+		},
+		{
+			name:     "step type blocked",
+			err:      errors.New("step type blocked by profile"),
+			expected: PolicyViolation,
+		},
+		{
+			name:     "operation blocked",
+			err:      errors.New("operation blocked by security policy"),
+			expected: PolicyViolation,
+		},
+		{
+			name:     "restricted operation",
+			err:      errors.New("operation is restricted"),
+			expected: PolicyViolation,
+		},
+		// Additional drift detection tests
+		{
+			name:     "spec changed",
+			err:      errors.New("spec changed since lock"),
+			expected: DriftDetected,
+		},
+		{
+			name:     "verification failed",
+			err:      errors.New("verification failed for spec"),
+			expected: DriftDetected,
+		},
+		{
+			name:     "checksum mismatch",
+			err:      errors.New("checksum mismatch detected"),
+			expected: DriftDetected,
+		},
+		// Additional auth errors
+		{
+			name:     "forbidden",
+			err:      errors.New("forbidden: insufficient permissions"),
+			expected: AuthError,
+		},
+		{
+			name:     "permission denied",
+			err:      errors.New("permission denied"),
+			expected: AuthError,
+		},
+		{
+			name:     "expired token",
+			err:      errors.New("expired token, please re-authenticate"),
+			expected: AuthError,
+		},
+		{
+			name:     "401 http error",
+			err:      errors.New("HTTP 401 Unauthorized"),
+			expected: AuthError,
+		},
+		{
+			name:     "403 http error",
+			err:      errors.New("HTTP 403 Forbidden"),
+			expected: AuthError,
+		},
+		// Additional network errors
+		{
+			name:     "dns error",
+			err:      errors.New("DNS lookup failed"),
+			expected: NetworkError,
+		},
+		{
+			name:     "unreachable host",
+			err:      errors.New("host unreachable"),
+			expected: NetworkError,
+		},
+		{
+			name:     "service unavailable",
+			err:      errors.New("service unavailable"),
+			expected: NetworkError,
+		},
+		{
+			name:     "no route to host",
+			err:      errors.New("no route to host"),
+			expected: NetworkError,
+		},
+		{
+			name:     "502 error",
+			err:      errors.New("HTTP 502 Bad Gateway"),
+			expected: NetworkError,
+		},
+		{
+			name:     "503 error",
+			err:      errors.New("HTTP 503 Service Unavailable"),
+			expected: NetworkError,
+		},
+		{
+			name:     "504 error",
+			err:      errors.New("HTTP 504 Gateway Timeout"),
+			expected: NetworkError,
+		},
+		// Additional usage errors
+		{
+			name:     "unknown command",
+			err:      errors.New("unknown command: foo"),
+			expected: UsageError,
+		},
+		{
+			name:     "missing argument",
+			err:      errors.New("missing argument for flag"),
+			expected: UsageError,
+		},
+		{
+			name:     "invalid argument",
+			err:      errors.New("invalid argument: xyz"),
+			expected: UsageError,
+		},
+		{
+			name:     "unknown flag",
+			err:      errors.New("unknown flag: --bar"),
+			expected: UsageError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			code := DetermineExitCode(tt.err)
+			if code != tt.expected {
+				t.Errorf("DetermineExitCode(%v) = %d, want %d", tt.err, code, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDetermineExitCode_CaseInsensitive(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected int
+	}{
+		{
+			name:     "uppercase POLICY",
+			err:      errors.New("POLICY violation occurred"),
+			expected: PolicyViolation,
+		},
+		{
+			name:     "mixed case Network",
+			err:      errors.New("NeTwOrK error"),
+			expected: NetworkError,
+		},
+		{
+			name:     "uppercase UNAUTHORIZED",
+			err:      errors.New("UNAUTHORIZED access"),
+			expected: AuthError,
+		},
+		{
+			name:     "uppercase DRIFT",
+			err:      errors.New("DRIFT DETECTED"),
+			expected: DriftDetected,
+		},
 	}
 
 	for _, tt := range tests {

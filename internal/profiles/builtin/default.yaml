@@ -1,0 +1,52 @@
+schema: "specular.auto.profiles/v1"
+
+profiles:
+  default:
+    description: "Default profile for interactive development"
+
+    approvals:
+      mode: "critical_only"
+      interactive: true
+      auto_approve:
+        - "spec:update"
+        - "plan:gen"
+      require_approval:
+        - "spec:lock"
+        - "build:run"
+
+    safety:
+      max_steps: 12
+      timeout: "25m"
+      max_cost_usd: 5.0
+      max_cost_per_task: 0.50
+      max_retries: 3
+      require_policy: true
+      allowed_step_types:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+      blocked_step_types: []
+
+    routing:
+      preferred_agent: "cline"
+      fallback_agent: "openai"
+      temperature: 0.7
+      model_preferences:
+        "spec:update": "claude-sonnet-3.5"
+        "plan:gen": "claude-sonnet-3.5"
+        "build:run": "claude-opus-3.5"
+
+    policies:
+      enabled: true
+      policy_files: []
+      enforcement: "strict"
+
+    execution:
+      trace_logging: true
+      save_patches: false
+      checkpoint_frequency: 1
+      json_output: false
+      enable_tui: true
+
+    hooks: {}

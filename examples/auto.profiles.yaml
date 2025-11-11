@@ -1,0 +1,299 @@
+# Specular Auto Mode Profiles
+#
+# This file defines environment-specific configurations for autonomous mode.
+# Copy this file to one of the following locations:
+#
+# - Project-level: ./auto.profiles.yaml (highest precedence)
+# - User-level: ~/.specular/auto.profiles.yaml
+#
+# Built-in profiles (default, ci, strict) are always available.
+# You can override built-in profiles or create custom ones.
+
+schema: "specular.auto.profiles/v1"
+
+profiles:
+  # Example: Override default profile with custom settings
+  default:
+    description: "Custom default profile for my project"
+
+    approvals:
+      mode: "critical_only"        # all, critical_only, none
+      interactive: true
+      auto_approve:
+        - "spec:update"
+        - "plan:gen"
+      require_approval:
+        - "spec:lock"
+        - "build:run"
+
+    safety:
+      max_steps: 15                # Increased from default 12
+      timeout: "30m"                # Increased from default 25m
+      max_cost_usd: 10.0            # Increased from default 5.0
+      max_cost_per_task: 1.0
+      max_retries: 3
+      require_policy: true
+      allowed_step_types:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+      blocked_step_types: []
+
+    routing:
+      preferred_agent: "cline"
+      fallback_agent: "openai"
+      temperature: 0.7
+      model_preferences:
+        "spec:update": "claude-sonnet-3.5"
+        "plan:gen": "claude-sonnet-3.5"
+        "build:run": "claude-opus-3.5"
+
+    policies:
+      enabled: true
+      policy_files: []
+      enforcement: "strict"          # strict, warn, none
+
+    execution:
+      trace_logging: true
+      save_patches: false
+      checkpoint_frequency: 1
+      json_output: false
+      enable_tui: true
+
+    hooks: {}
+
+  # Example: Custom production profile
+  production:
+    description: "Production deployment profile with extra safety"
+
+    approvals:
+      mode: "all"                    # Require approval for all steps
+      interactive: true
+      auto_approve: []
+      require_approval:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+
+    safety:
+      max_steps: 5                   # Strict limit
+      timeout: "10m"
+      max_cost_usd: 2.0
+      max_cost_per_task: 0.40
+      max_retries: 1
+      require_policy: true
+      allowed_step_types:
+        - "spec:update"
+        - "plan:gen"
+      blocked_step_types:
+        - "build:run"                # Block direct builds in production
+
+    routing:
+      preferred_agent: "cline"
+      fallback_agent: "openai"
+      temperature: 0.3               # Lower temperature for consistency
+      model_preferences:
+        "spec:update": "claude-opus-3.5"
+        "plan:gen": "claude-opus-3.5"
+
+    policies:
+      enabled: true
+      policy_files:
+        - "~/.specular/policies/production.rego"
+      enforcement: "strict"
+
+    execution:
+      trace_logging: true
+      save_patches: true             # Enable rollback support
+      checkpoint_frequency: 1
+      json_output: true              # Enable JSON for automation
+      enable_tui: false
+
+    hooks:
+      on_plan_created:
+        - type: "webhook"
+          url: "${WEBHOOK_URL}"
+          method: "POST"
+          headers:
+            Authorization: "Bearer ${WEBHOOK_TOKEN}"
+
+      on_complete:
+        - type: "slack"
+          channel: "#deployments"
+          webhook_url: "${SLACK_WEBHOOK_URL}"
+          message: "✅ Autonomous mode completed successfully"
+
+      on_error:
+        - type: "slack"
+          channel: "#alerts"
+          webhook_url: "${SLACK_WEBHOOK_URL}"
+          message: "❌ Autonomous mode failed"
+        - type: "email"
+          recipients:
+            - "oncall@example.com"
+          subject: "Specular Auto Mode Failed"
+
+  # Example: Fast development profile for rapid iteration
+  fast:
+    description: "Fast profile for rapid development with minimal approvals"
+
+    approvals:
+      mode: "none"                   # No approvals
+      interactive: false
+      auto_approve:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+      require_approval: []
+
+    safety:
+      max_steps: 20                  # Higher limit for complex features
+      timeout: "45m"
+      max_cost_usd: 15.0
+      max_cost_per_task: 2.0
+      max_retries: 3
+      require_policy: false          # Disable policy checks for speed
+      allowed_step_types:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+      blocked_step_types: []
+
+    routing:
+      preferred_agent: "openai"
+      fallback_agent: "cline"
+      temperature: 0.8               # Higher temperature for creativity
+      model_preferences:
+        "spec:update": "gpt-4-turbo"
+        "plan:gen": "gpt-4-turbo"
+        "build:run": "gpt-4"
+
+    policies:
+      enabled: false
+      policy_files: []
+      enforcement: "none"
+
+    execution:
+      trace_logging: false           # Disable for speed
+      save_patches: false
+      checkpoint_frequency: 5
+      json_output: false
+      enable_tui: true
+
+    hooks: {}
+
+  # Example: Testing profile for test environments
+  testing:
+    description: "Profile for automated testing environments"
+
+    approvals:
+      mode: "none"
+      interactive: false
+      auto_approve:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+      require_approval: []
+
+    safety:
+      max_steps: 10
+      timeout: "20m"
+      max_cost_usd: 3.0
+      max_cost_per_task: 0.50
+      max_retries: 2
+      require_policy: true
+      allowed_step_types:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+      blocked_step_types: []
+
+    routing:
+      preferred_agent: "cline"
+      fallback_agent: "openai"
+      temperature: 0.6
+      model_preferences:
+        "spec:update": "claude-sonnet-3.5"
+        "plan:gen": "claude-sonnet-3.5"
+        "build:run": "claude-sonnet-3.5"
+
+    policies:
+      enabled: true
+      policy_files:
+        - "./policies/testing.rego"
+      enforcement: "warn"            # Warn but don't block
+
+    execution:
+      trace_logging: true
+      save_patches: true
+      checkpoint_frequency: 1
+      json_output: true              # JSON for test reporting
+      enable_tui: false
+
+    hooks:
+      on_complete:
+        - type: "webhook"
+          url: "${TEST_RESULTS_WEBHOOK}"
+          method: "POST"
+
+      on_error:
+        - type: "webhook"
+          url: "${TEST_FAILURE_WEBHOOK}"
+          method: "POST"
+
+  # Example: Budget-conscious profile
+  budget:
+    description: "Budget-conscious profile with aggressive cost limits"
+
+    approvals:
+      mode: "critical_only"
+      interactive: true
+      auto_approve:
+        - "spec:update"
+        - "plan:gen"
+      require_approval:
+        - "spec:lock"
+        - "build:run"
+
+    safety:
+      max_steps: 8
+      timeout: "15m"
+      max_cost_usd: 1.0              # Strict budget limit
+      max_cost_per_task: 0.15
+      max_retries: 1
+      require_policy: true
+      allowed_step_types:
+        - "spec:update"
+        - "spec:lock"
+        - "plan:gen"
+        - "build:run"
+      blocked_step_types: []
+
+    routing:
+      preferred_agent: "openai"
+      fallback_agent: "cline"
+      temperature: 0.5
+      model_preferences:
+        "spec:update": "gpt-4-turbo"    # More cost-effective
+        "plan:gen": "gpt-4-turbo"
+        "build:run": "gpt-4-turbo"
+
+    policies:
+      enabled: true
+      policy_files: []
+      enforcement: "strict"
+
+    execution:
+      trace_logging: false           # Reduce overhead
+      save_patches: false
+      checkpoint_frequency: 2
+      json_output: false
+      enable_tui: true
+
+    hooks: {}

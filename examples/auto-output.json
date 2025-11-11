@@ -1,0 +1,160 @@
+{
+  "schema": "specular.auto.output/v1",
+  "goal": "Build a REST API for user management",
+  "status": "completed",
+  "steps": [
+    {
+      "id": "step-1",
+      "type": "spec:update",
+      "status": "completed",
+      "startedAt": "2025-01-15T10:30:00Z",
+      "completedAt": "2025-01-15T10:30:05Z",
+      "duration": 5000000000,
+      "costUSD": 0.50
+    },
+    {
+      "id": "step-2",
+      "type": "spec:lock",
+      "status": "completed",
+      "startedAt": "2025-01-15T10:30:05Z",
+      "completedAt": "2025-01-15T10:30:06Z",
+      "duration": 1000000000,
+      "costUSD": 0.01
+    },
+    {
+      "id": "step-3",
+      "type": "plan:gen",
+      "status": "completed",
+      "startedAt": "2025-01-15T10:30:06Z",
+      "completedAt": "2025-01-15T10:30:09Z",
+      "duration": 3000000000,
+      "costUSD": 0.30
+    },
+    {
+      "id": "step-4",
+      "type": "build:run",
+      "status": "completed",
+      "startedAt": "2025-01-15T10:30:09Z",
+      "completedAt": "2025-01-15T10:30:19Z",
+      "duration": 10000000000,
+      "costUSD": 1.00,
+      "warnings": [
+        "Test coverage below 90% threshold"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "spec.yaml",
+      "type": "spec",
+      "size": 2048,
+      "hash": "sha256:abc123def456...",
+      "createdAt": "2025-01-15T10:30:05Z"
+    },
+    {
+      "path": "spec.lock",
+      "type": "lock",
+      "size": 512,
+      "hash": "sha256:def456abc123...",
+      "createdAt": "2025-01-15T10:30:06Z"
+    },
+    {
+      "path": "plan.json",
+      "type": "plan",
+      "size": 4096,
+      "hash": "sha256:123abc456def...",
+      "createdAt": "2025-01-15T10:30:09Z"
+    },
+    {
+      "path": "src/api/users.go",
+      "type": "code",
+      "size": 8192,
+      "hash": "sha256:456def789abc...",
+      "createdAt": "2025-01-15T10:30:15Z"
+    },
+    {
+      "path": "src/api/users_test.go",
+      "type": "test",
+      "size": 4096,
+      "hash": "sha256:789abc123def...",
+      "createdAt": "2025-01-15T10:30:18Z"
+    }
+  ],
+  "metrics": {
+    "totalDuration": 19000000000,
+    "totalCost": 1.81,
+    "stepsExecuted": 4,
+    "stepsFailed": 0,
+    "stepsSkipped": 0,
+    "policyViolations": 0,
+    "tokensUsed": 125000,
+    "retriesPerformed": 0
+  },
+  "audit": {
+    "checkpointId": "auto-1736936400",
+    "profile": "ci",
+    "startedAt": "2025-01-15T10:30:00Z",
+    "completedAt": "2025-01-15T10:30:19Z",
+    "user": "ci-bot",
+    "hostname": "ci-runner-01",
+    "approvals": [
+      {
+        "stepId": "step-4",
+        "timestamp": "2025-01-15T10:30:09Z",
+        "approved": true,
+        "reason": "build step requires approval in ci profile",
+        "user": "ci-bot"
+      }
+    ],
+    "policies": [
+      {
+        "stepId": "step-1",
+        "timestamp": "2025-01-15T10:30:00Z",
+        "checkerName": "cost_limit",
+        "allowed": true,
+        "metadata": {
+          "estimated_cost": 0.50,
+          "total_cost_so_far": 0.0,
+          "projected_total": 0.50
+        }
+      },
+      {
+        "stepId": "step-2",
+        "timestamp": "2025-01-15T10:30:05Z",
+        "checkerName": "cost_limit",
+        "allowed": true,
+        "metadata": {
+          "estimated_cost": 0.01,
+          "total_cost_so_far": 0.50,
+          "projected_total": 0.51
+        }
+      },
+      {
+        "stepId": "step-3",
+        "timestamp": "2025-01-15T10:30:06Z",
+        "checkerName": "cost_limit",
+        "allowed": true,
+        "warnings": [
+          "Approaching cost limit: $4.19 remaining of $5.00 budget"
+        ],
+        "metadata": {
+          "estimated_cost": 0.30,
+          "total_cost_so_far": 0.51,
+          "projected_total": 0.81
+        }
+      },
+      {
+        "stepId": "step-4",
+        "timestamp": "2025-01-15T10:30:09Z",
+        "checkerName": "cost_limit",
+        "allowed": true,
+        "metadata": {
+          "estimated_cost": 1.00,
+          "total_cost_so_far": 0.81,
+          "projected_total": 1.81
+        }
+      }
+    ],
+    "version": "v1.4.0"
+  }
+}

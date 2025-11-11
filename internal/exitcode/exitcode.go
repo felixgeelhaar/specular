@@ -79,55 +79,109 @@ func DetermineExitCode(err error) int {
 
 // checkPolicyViolation checks if the error is a policy violation
 func checkPolicyViolation(errMsg string) (int, bool) {
-	if strings.Contains(errMsg, "policy") && strings.Contains(errMsg, "violation") {
-		return PolicyViolation, true
+	keywords := []string{
+		"policy violation",
+		"policy check failed",
+		"not allowed by policy",
+		"not allowed",
+		"restricted",
+		"budget exceeded",
+		"cost limit",
+		"step type blocked",
+		"operation blocked",
 	}
-	if strings.Contains(errMsg, "not allowed by policy") {
-		return PolicyViolation, true
+
+	for _, keyword := range keywords {
+		if strings.Contains(errMsg, keyword) {
+			return PolicyViolation, true
+		}
 	}
 	return 0, false
 }
 
 // checkDriftDetection checks if the error is drift detection
 func checkDriftDetection(errMsg string) (int, bool) {
-	if strings.Contains(errMsg, "drift detected") {
-		return DriftDetected, true
+	keywords := []string{
+		"drift detected",
+		"drift",
+		"hash mismatch",
+		"spec changed",
+		"verification failed",
+		"checksum mismatch",
 	}
-	if strings.Contains(errMsg, "hash mismatch") {
-		return DriftDetected, true
+
+	for _, keyword := range keywords {
+		if strings.Contains(errMsg, keyword) {
+			return DriftDetected, true
+		}
 	}
 	return 0, false
 }
 
 // checkAuthError checks if the error is an authentication error
 func checkAuthError(errMsg string) (int, bool) {
-	if strings.Contains(errMsg, "authentication") || strings.Contains(errMsg, "unauthorized") {
-		return AuthError, true
+	keywords := []string{
+		"authentication",
+		"unauthorized",
+		"forbidden",
+		"permission denied",
+		"api key",
+		"invalid api key",
+		"invalid token",
+		"expired token",
+		"access denied",
+		"401",
+		"403",
 	}
-	if strings.Contains(errMsg, "api key") || strings.Contains(errMsg, "token") {
-		return AuthError, true
+
+	for _, keyword := range keywords {
+		if strings.Contains(errMsg, keyword) {
+			return AuthError, true
+		}
 	}
 	return 0, false
 }
 
 // checkNetworkError checks if the error is a network error
 func checkNetworkError(errMsg string) (int, bool) {
-	if strings.Contains(errMsg, "network") || strings.Contains(errMsg, "connection") {
-		return NetworkError, true
+	keywords := []string{
+		"network",
+		"connection",
+		"timeout",
+		"unreachable",
+		"dns",
+		"service unavailable",
+		"connection refused",
+		"no route to host",
+		"502",
+		"503",
+		"504",
 	}
-	if strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "unreachable") {
-		return NetworkError, true
+
+	for _, keyword := range keywords {
+		if strings.Contains(errMsg, keyword) {
+			return NetworkError, true
+		}
 	}
 	return 0, false
 }
 
 // checkUsageError checks if the error is a usage error
 func checkUsageError(errMsg string) (int, bool) {
-	if strings.Contains(errMsg, "invalid flag") || strings.Contains(errMsg, "unknown command") {
-		return UsageError, true
+	keywords := []string{
+		"invalid flag",
+		"unknown command",
+		"required flag",
+		"missing argument",
+		"invalid argument",
+		"unknown flag",
+		"usage:",
 	}
-	if strings.Contains(errMsg, "required flag") || strings.Contains(errMsg, "missing argument") {
-		return UsageError, true
+
+	for _, keyword := range keywords {
+		if strings.Contains(errMsg, keyword) {
+			return UsageError, true
+		}
 	}
 	return 0, false
 }

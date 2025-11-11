@@ -120,10 +120,10 @@ func TestGetPriorityColor(t *testing.T) {
 		priority domain.Priority
 		expected string
 	}{
-		{domain.PriorityP0, "1"}, // Red
-		{domain.PriorityP1, "3"}, // Yellow
-		{domain.PriorityP2, "2"}, // Green
-		{domain.Priority("P3"), "8"}, // Gray (default)
+		{domain.PriorityP0, "1"},          // Red
+		{domain.PriorityP1, "3"},          // Yellow
+		{domain.PriorityP2, "2"},          // Green
+		{domain.Priority("P3"), "8"},      // Gray (default)
 		{domain.Priority("invalid"), "8"}, // Gray (default)
 	}
 

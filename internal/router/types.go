@@ -83,14 +83,14 @@ type RoutingResult struct {
 
 // Usage represents AI model usage tracking
 type Usage struct {
-	Model     string         `json:"model"`
-	Provider  Provider       `json:"provider"`
-	Tokens    int            `json:"tokens"`
-	CostUSD   float64        `json:"cost_usd"`
-	LatencyMs int            `json:"latency_ms"`
-	Timestamp time.Time      `json:"timestamp"`
-	TaskID    domain.TaskID  `json:"task_id,omitempty"`
-	Success   bool           `json:"success"`
+	Model     string        `json:"model"`
+	Provider  Provider      `json:"provider"`
+	Tokens    int           `json:"tokens"`
+	CostUSD   float64       `json:"cost_usd"`
+	LatencyMs int           `json:"latency_ms"`
+	Timestamp time.Time     `json:"timestamp"`
+	TaskID    domain.TaskID `json:"task_id,omitempty"`
+	Success   bool          `json:"success"`
 }
 
 // Budget tracks spending against limits

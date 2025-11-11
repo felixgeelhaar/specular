@@ -290,7 +290,7 @@ func TestEstimateTaskExecutionCost(t *testing.T) {
 		costPerMTok float64
 		wantZero    bool
 	}{
-		{"Few tasks", 3, 0.01, true},  // < 5 tasks, conservative estimate is 0
+		{"Few tasks", 3, 0.01, true},    // < 5 tasks, conservative estimate is 0
 		{"Many tasks", 10, 0.01, false}, // >= 5 tasks, should have cost
 		{"Zero tasks", 0, 0.01, true},
 		{"Zero cost per token", 10, 0.0, true},

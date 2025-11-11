@@ -247,7 +247,7 @@ func TestSelectModel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := router.SelectModel(context.Background(),tt.request)
+			result, err := router.SelectModel(context.Background(), tt.request)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SelectModel() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -280,7 +280,7 @@ func TestBudgetManagement(t *testing.T) {
 	router.SetModelsAvailable(true) // Enable models for testing
 
 	// First request should succeed
-	result1, err := router.SelectModel(context.Background(),RoutingRequest{
+	result1, err := router.SelectModel(context.Background(), RoutingRequest{
 		ModelHint:   "cheap",
 		Complexity:  3,
 		Priority:    "P2",
@@ -320,7 +320,7 @@ func TestBudgetManagement(t *testing.T) {
 	})
 
 	// Budget should be exhausted
-	_, err = router.SelectModel(context.Background(),RoutingRequest{
+	_, err = router.SelectModel(context.Background(), RoutingRequest{
 		ModelHint:  "codegen",
 		Complexity: 7,
 		Priority:   "P0",
@@ -340,7 +340,7 @@ func TestModelScoring(t *testing.T) {
 	router.SetModelsAvailable(true) // Enable models for testing
 
 	// High complexity P0 task should get capable model
-	result1, err := router.SelectModel(context.Background(),RoutingRequest{
+	result1, err := router.SelectModel(context.Background(), RoutingRequest{
 		ModelHint:   "codegen",
 		Complexity:  9,
 		Priority:    "P0",
@@ -361,7 +361,7 @@ func TestModelScoring(t *testing.T) {
 	})
 	router2.SetModelsAvailable(true) // Enable models for testing
 
-	result2, err := router2.SelectModel(context.Background(),RoutingRequest{
+	result2, err := router2.SelectModel(context.Background(), RoutingRequest{
 		ModelHint:   "fast",
 		Complexity:  2,
 		Priority:    "P2",
@@ -427,7 +427,7 @@ func TestContextSizeFiltering(t *testing.T) {
 	router.SetModelsAvailable(true) // Enable models for testing
 
 	// Request with large context (100k tokens)
-	result, err := router.SelectModel(context.Background(),RoutingRequest{
+	result, err := router.SelectModel(context.Background(), RoutingRequest{
 		ModelHint:   "long-context",
 		Complexity:  6,
 		Priority:    "P1",
@@ -782,7 +782,7 @@ func TestSelectModel_ErrorCases(t *testing.T) {
 				tt.setupRouter(router)
 			}
 
-			result, err := router.SelectModel(context.Background(),tt.request)
+			result, err := router.SelectModel(context.Background(), tt.request)
 
 			if tt.wantErr {
 				if err == nil {

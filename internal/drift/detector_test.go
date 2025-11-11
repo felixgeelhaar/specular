@@ -3,9 +3,9 @@ package drift
 import (
 	"testing"
 
+	"github.com/felixgeelhaar/specular/internal/domain"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
-	"github.com/felixgeelhaar/specular/internal/domain"
 )
 
 func TestDetectPlanDrift(t *testing.T) {
