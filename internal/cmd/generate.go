@@ -45,7 +45,7 @@ The router will automatically select the best model based on complexity, budget,
 		// Check if provider config exists
 		if _, err := os.Stat(providerConfigPath); os.IsNotExist(err) {
 			fmt.Fprintf(os.Stderr, "Error: Provider configuration not found at %s\n", providerConfigPath)
-			fmt.Fprintln(os.Stderr, "Run 'ai-dev provider init' to create one.")
+			fmt.Fprintln(os.Stderr, "Run 'specular provider init' to create one.")
 			return fmt.Errorf("provider config not found")
 		}
 

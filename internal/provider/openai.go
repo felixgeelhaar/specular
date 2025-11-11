@@ -371,7 +371,7 @@ func (p *OpenAIProvider) GetInfo() *ProviderInfo {
 	return &ProviderInfo{
 		Name:        p.config.Name,
 		Version:     p.config.Version,
-		Author:      "ai-dev",
+		Author:      "specular",
 		Type:        ProviderTypeAPI,
 		TrustLevel:  p.trustLevel,
 		Description: fmt.Sprintf("OpenAI API provider: %s", p.baseURL),

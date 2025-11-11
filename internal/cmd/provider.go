@@ -21,7 +21,7 @@ const (
 var providerCmd = &cobra.Command{
 	Use:   "provider",
 	Short: "Manage AI providers",
-	Long: `Manage AI providers that ai-dev can use for various tasks.
+	Long: `Manage AI providers that specular can use for various tasks.
 Providers can be local models (ollama), cloud APIs (OpenAI, Anthropic), or custom implementations.`,
 }
 
@@ -38,7 +38,7 @@ var providerListCmd = &cobra.Command{
 		// Check if config file exists
 		if _, err := os.Stat(configPath); os.IsNotExist(err) {
 			fmt.Printf("No provider configuration found at %s\n", configPath)
-			fmt.Printf("Run 'ai-dev provider init' to create one from the example.\n")
+			fmt.Printf("Run 'specular provider init' to create one from the example.\n")
 			return nil
 		}
 
@@ -198,7 +198,7 @@ This creates a providers.yaml file from providers.yaml.example with default sett
 		fmt.Println("\nNext steps:")
 		fmt.Println("  1. Edit .specular/providers.yaml to enable desired providers")
 		fmt.Println("  2. Set any required API keys as environment variables")
-		fmt.Println("  3. Run 'ai-dev provider health' to check provider status")
+		fmt.Println("  3. Run 'specular provider health' to check provider status")
 
 		return nil
 	},

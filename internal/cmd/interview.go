@@ -203,9 +203,9 @@ func runCLIInterview(preset string, strict bool, out string) error {
 
 	fmt.Println("\nNext steps:")
 	fmt.Printf("  1. Review and edit: %s\n", out)
-	fmt.Printf("  2. Validate spec: ai-dev spec validate --in %s\n", out)
-	fmt.Printf("  3. Generate lock: ai-dev spec lock --in %s --out .specular/spec.lock.json\n", out)
-	fmt.Printf("  4. Create plan: ai-dev plan --in %s --lock .specular/spec.lock.json --out plan.json\n", out)
+	fmt.Printf("  2. Validate spec: specular spec validate --in %s\n", out)
+	fmt.Printf("  3. Generate lock: specular spec lock --in %s --out .specular/spec.lock.json\n", out)
+	fmt.Printf("  4. Create plan: specular plan --in %s --lock .specular/spec.lock.json --out plan.json\n", out)
 
 	return nil
 }

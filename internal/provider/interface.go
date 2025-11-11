@@ -66,7 +66,7 @@ type ProviderInfo struct {
 	// Version is the provider version (e.g., "1.0.0")
 	Version string
 
-	// Author is the provider author (e.g., "ai-dev-plugins")
+	// Author is the provider author (e.g., "specular-plugins")
 	Author string
 
 	// Type is the provider implementation type (api, cli, grpc, native)
@@ -100,7 +100,7 @@ const (
 type TrustLevel string
 
 const (
-	// TrustLevelBuiltin providers ship with ai-dev and have full trust
+	// TrustLevelBuiltin providers ship with specular and have full trust
 	TrustLevelBuiltin TrustLevel = "builtin"
 
 	// TrustLevelVerified providers are from trusted sources with signed releases

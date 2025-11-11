@@ -2,7 +2,7 @@
 
 This document contains GitHub issue templates for all 14 autonomous mode features. Copy and paste these into GitHub issues to track implementation progress.
 
-**Repository**: felixgeelhaar/ai-dev
+**Repository**: felixgeelhaar/specular
 **Labels to create**: `auto-mode`, `v1.4.0`, `v1.5.0`, `v1.6.0`, `priority-critical`, `priority-high`, `priority-medium`, `priority-low`
 
 ---
@@ -1068,7 +1068,7 @@ Implement advanced security features including credential management, enhanced a
 
 2. **Create Issues**:
    - Copy each issue template above
-   - Go to https://github.com/felixgeelhaar/ai-dev/issues/new
+   - Go to https://github.com/felixgeelhaar/specular/issues/new
    - Paste the title and body
    - Add the specified labels
    - Click "Submit new issue"

@@ -372,7 +372,7 @@ func (p *AnthropicProvider) GetInfo() *ProviderInfo {
 	return &ProviderInfo{
 		Name:        p.config.Name,
 		Version:     p.config.Version,
-		Author:      "ai-dev",
+		Author:      "specular",
 		Type:        ProviderTypeAPI,
 		TrustLevel:  p.trustLevel,
 		Description: fmt.Sprintf("Anthropic Claude API provider: %s", p.baseURL),

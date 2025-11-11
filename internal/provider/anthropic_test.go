@@ -451,8 +451,8 @@ func TestAnthropicProvider_GetInfo(t *testing.T) {
 	if info.Type != ProviderTypeAPI {
 		t.Errorf("type = %s, want %s", info.Type, ProviderTypeAPI)
 	}
-	if info.Author != "ai-dev" {
-		t.Errorf("author = %s, want 'ai-dev'", info.Author)
+	if info.Author != "specular" {
+		t.Errorf("author = %s, want 'specular'", info.Author)
 	}
 }
 

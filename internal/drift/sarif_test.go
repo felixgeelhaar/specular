@@ -154,8 +154,8 @@ func TestToSARIF(t *testing.T) {
 			if len(sarif.Runs) > 0 {
 				run := sarif.Runs[0]
 
-				if run.Tool.Driver.Name != "ai-dev" {
-					t.Errorf("ToSARIF() Tool Name = %v, want ai-dev", run.Tool.Driver.Name)
+				if run.Tool.Driver.Name != "specular" {
+					t.Errorf("ToSARIF() Tool Name = %v, want specular", run.Tool.Driver.Name)
 				}
 
 				if len(run.Results) != tt.wantResultCount {
@@ -381,8 +381,8 @@ func TestSARIFRoundTrip(t *testing.T) {
 	}
 
 	run := loaded.Runs[0]
-	if run.Tool.Driver.Name != "ai-dev" {
-		t.Errorf("Round-trip Tool Name = %v, want ai-dev", run.Tool.Driver.Name)
+	if run.Tool.Driver.Name != "specular" {
+		t.Errorf("Round-trip Tool Name = %v, want specular", run.Tool.Driver.Name)
 	}
 
 	expectedResultCount := len(report.PlanDrift) + len(report.CodeDrift) + len(report.InfraDrift)
