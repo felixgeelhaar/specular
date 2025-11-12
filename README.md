@@ -19,6 +19,8 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 
 ## Features
 
+### Core Capabilities
+
 - **AI Provider Plugin System**: Pluggable architecture for local models (Ollama), cloud APIs (OpenAI, Anthropic, Gemini), and custom providers
 - **CLI Provider Protocol**: Language-agnostic protocol for creating custom AI providers (see [docs/CLI_PROVIDERS.md](docs/CLI_PROVIDERS.md))
 - **Intelligent Model Routing**: Smart model selection based on task complexity, budget, and performance constraints
@@ -27,9 +29,21 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 - **SpecLock**: Canonical, hashed specification snapshots for drift detection
 - **Plan Generator**: Converts specs into task DAGs with dependencies
 - **Drift Detection**: Multi-level drift detection (plan, code, infrastructure)
-- **Policy Engine**: YAML-based guardrail enforcement
 - **Docker-Only Sandbox**: Secure isolated execution environment
+
+### CLI v1.0 Features (NEW)
+
+- **Evaluation Framework**: Comprehensive testing with scenario-based evaluation, model comparison, and quality scoring
+- **Autonomous Mode**: Checkpoint/resume capabilities for long-running sessions with full state preservation
+- **Routing Intelligence**: Provider selection optimization with cost tracking and task-type routing explanations
+- **Governance & Policies**: Enterprise-grade policy management with cryptographic approval workflows
+- **Authentication**: Secure credential management with token lifecycle and expiration tracking
+
+### Testing & Quality Assurance
+
 - **Eval Gate**: Automated tests, linting, coverage, and security checks
+- **Policy Engine**: YAML-based guardrail enforcement
+- **Approval Workflows**: SHA256-based governance signatures for artifacts
 
 ## Installation
 
