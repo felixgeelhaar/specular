@@ -265,7 +265,13 @@ func LoadRegistryFromAutoDiscovery() (*Registry, error) {
 		configPath string
 		required   bool
 	}{
+		// Local/CLI providers
 		{"ollama", "", false},
+		{"claude-code", "", false},
+		{"gemini-cli", "", false},
+		{"copilot-cli", "", false},
+		{"codex-cli", "", false},
+		// API providers
 		{"anthropic", "", false},
 		{"openai", "", false},
 	}
@@ -286,7 +292,7 @@ func LoadRegistryFromAutoDiscovery() (*Registry, error) {
 	}
 
 	if loadedCount == 0 {
-		return nil, fmt.Errorf("no providers available - please install at least one AI provider (ollama, anthropic, openai)")
+		return nil, fmt.Errorf("no providers available - please install at least one AI provider (ollama, claude-code, gemini-cli, copilot-cli, codex-cli, anthropic, openai)")
 	}
 
 	return registry, nil
@@ -355,6 +361,90 @@ func generateProviderConfig(providerName string) *ProviderConfig {
 					"cheap":        "gpt-5-nano",
 					"long-context": "gpt-5",
 					"agentic":      "gpt-5",
+				},
+			}
+		}
+
+	case "claude-code":
+		// Check if claude CLI is available (Claude Code)
+		if path, err := lookupCommand("claude"); err == nil {
+			return &ProviderConfig{
+				Name:    "claude-code",
+				Type:    ProviderTypeCLI,
+				Enabled: true,
+				Source:  "local",
+				Config: map[string]interface{}{
+					"path": path,
+				},
+				Models: map[string]string{
+					"fast":         "claude-haiku-4-5-20251015",
+					"codegen":      "claude-sonnet-4-5-20250929",
+					"agentic":      "claude-opus-4-1-20250805",
+					"long-context": "claude-sonnet-4-5-20250929",
+					"cheap":        "claude-haiku-4-5-20251015",
+				},
+			}
+		}
+
+	case "gemini-cli":
+		// Check if gemini CLI is available
+		if path, err := lookupCommand("gemini"); err == nil {
+			return &ProviderConfig{
+				Name:    "gemini-cli",
+				Type:    ProviderTypeCLI,
+				Enabled: true,
+				Source:  "local",
+				Config: map[string]interface{}{
+					"path": path,
+				},
+				Models: map[string]string{
+					"fast":         "gemini-2.0-flash-exp",
+					"codegen":      "gemini-exp-1206",
+					"agentic":      "gemini-exp-1206",
+					"long-context": "gemini-exp-1206",
+					"cheap":        "gemini-2.0-flash-exp",
+				},
+			}
+		}
+
+	case "copilot-cli":
+		// Check if copilot CLI is available (GitHub Copilot)
+		if path, err := lookupCommand("copilot"); err == nil {
+			return &ProviderConfig{
+				Name:    "copilot-cli",
+				Type:    ProviderTypeCLI,
+				Enabled: true,
+				Source:  "local",
+				Config: map[string]interface{}{
+					"path": path,
+				},
+				Models: map[string]string{
+					"fast":         "copilot",
+					"codegen":      "copilot",
+					"agentic":      "copilot",
+					"long-context": "copilot",
+					"cheap":        "copilot",
+				},
+			}
+		}
+
+	case "codex-cli":
+		// Check if codex CLI is available (OpenAI Codex)
+		if path, err := lookupCommand("codex"); err == nil {
+			return &ProviderConfig{
+				Name:    "codex-cli",
+				Type:    ProviderTypeCLI,
+				Enabled: true,
+				Source:  "local",
+				Config: map[string]interface{}{
+					"path": path,
+				},
+				Models: map[string]string{
+					"fast":         "codex",
+					"codegen":      "codex",
+					"agentic":      "codex",
+					"long-context": "codex",
+					"cheap":        "codex",
 				},
 			}
 		}

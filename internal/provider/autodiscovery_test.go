@@ -55,7 +55,7 @@ func TestLoadRegistryFromAutoDiscovery(t *testing.T) {
 
 	if err != nil {
 		// Check error message
-		if err.Error() != "no providers available - please install at least one AI provider (ollama, anthropic, openai)" {
+		if err.Error() != "no providers available - please install at least one AI provider (ollama, claude-code, gemini-cli, copilot-cli, codex-cli, anthropic, openai)" {
 			t.Errorf("Unexpected error message: %v", err)
 		}
 		t.Log("No providers available (expected in test environment)")
@@ -179,6 +179,114 @@ func TestGenerateProviderConfig_OpenAI(t *testing.T) {
 
 	if config.Type != ProviderTypeAPI {
 		t.Errorf("Expected type API, got %s", config.Type)
+	}
+
+	if !config.Enabled {
+		t.Error("Auto-generated config should be enabled")
+	}
+
+	if len(config.Models) == 0 {
+		t.Error("Expected default models to be configured")
+	}
+}
+
+func TestGenerateProviderConfig_ClaudeCode(t *testing.T) {
+	config := generateProviderConfig("claude-code")
+
+	// May be nil if claude command not found
+	if config == nil {
+		t.Log("Claude Code CLI not available (expected in many environments)")
+		return
+	}
+
+	// Verify config structure
+	if config.Name != "claude-code" {
+		t.Errorf("Expected name 'claude-code', got %s", config.Name)
+	}
+
+	if config.Type != ProviderTypeCLI {
+		t.Errorf("Expected type CLI, got %s", config.Type)
+	}
+
+	if !config.Enabled {
+		t.Error("Auto-generated config should be enabled")
+	}
+
+	if len(config.Models) == 0 {
+		t.Error("Expected default models to be configured")
+	}
+}
+
+func TestGenerateProviderConfig_GeminiCLI(t *testing.T) {
+	config := generateProviderConfig("gemini-cli")
+
+	// May be nil if gemini command not found
+	if config == nil {
+		t.Log("Gemini CLI not available (expected in many environments)")
+		return
+	}
+
+	// Verify config structure
+	if config.Name != "gemini-cli" {
+		t.Errorf("Expected name 'gemini-cli', got %s", config.Name)
+	}
+
+	if config.Type != ProviderTypeCLI {
+		t.Errorf("Expected type CLI, got %s", config.Type)
+	}
+
+	if !config.Enabled {
+		t.Error("Auto-generated config should be enabled")
+	}
+
+	if len(config.Models) == 0 {
+		t.Error("Expected default models to be configured")
+	}
+}
+
+func TestGenerateProviderConfig_CopilotCLI(t *testing.T) {
+	config := generateProviderConfig("copilot-cli")
+
+	// May be nil if copilot command not found
+	if config == nil {
+		t.Log("GitHub Copilot CLI not available (expected in many environments)")
+		return
+	}
+
+	// Verify config structure
+	if config.Name != "copilot-cli" {
+		t.Errorf("Expected name 'copilot-cli', got %s", config.Name)
+	}
+
+	if config.Type != ProviderTypeCLI {
+		t.Errorf("Expected type CLI, got %s", config.Type)
+	}
+
+	if !config.Enabled {
+		t.Error("Auto-generated config should be enabled")
+	}
+
+	if len(config.Models) == 0 {
+		t.Error("Expected default models to be configured")
+	}
+}
+
+func TestGenerateProviderConfig_CodexCLI(t *testing.T) {
+	config := generateProviderConfig("codex-cli")
+
+	// May be nil if codex command not found
+	if config == nil {
+		t.Log("OpenAI Codex CLI not available (expected in many environments)")
+		return
+	}
+
+	// Verify config structure
+	if config.Name != "codex-cli" {
+		t.Errorf("Expected name 'codex-cli', got %s", config.Name)
+	}
+
+	if config.Type != ProviderTypeCLI {
+		t.Errorf("Expected type CLI, got %s", config.Type)
 	}
 
 	if !config.Enabled {
