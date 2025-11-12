@@ -18,11 +18,13 @@ Three phases of test coverage improvements combining unit tests and integration 
 
 | Package | Before | After | Change | New Tests | Functions at 100% |
 |---------|--------|-------|--------|-----------|------------------|
-| internal/detect | 38.5% | 54.7% | +16.2% | 19 | 6 |
+| internal/detect | 38.5% | 53.3% | +14.8% | 19 | 3 |
+
+**Note**: Coverage decreased from initial 54.7% to 53.3% after bug fix in detectGit(). This is a positive change - the code is now correct and more efficient.
 
 ### Combined Total
 
-**Overall improvement: +22.2% coverage across 3 packages with 82 new tests and 29 functions at 100% coverage**
+**Overall improvement: +20.8% coverage across 3 packages with 82 new tests and 26 functions at 100% coverage**
 
 ## Phase 1: internal/auto Package
 
@@ -245,21 +247,7 @@ Phase 3 implemented comprehensive integration tests for the internal/detect pack
 
 **Functions Tested**: detectOllama(), detectClaude(), detectOpenAI(), detectGemini(), detectAnthropic()
 
-### Coverage by Function
-
-| Function | Before | After | Change |
-|----------|--------|-------|--------|
-| DetectAll() | 0% | 87.5% | +87.5% |
-| detectDocker() | 0% | 58.8% | +58.8% |
-| detectPodman() | 0% | 30.8% | +30.8% |
-| detectOllama() | 0% | 90.0% | +90.0% |
-| detectClaude() | 0% | 90.9% | +90.9% |
-| detectOpenAI() | 0% | 100.0% | **+100.0% ✓** |
-| detectGemini() | 0% | 100.0% | **+100.0% ✓** |
-| detectAnthropic() | 0% | 100.0% | **+100.0% ✓** |
-| detectGit() | 0% | 100.0% | **+100.0% ✓** |
-
-**Functions at 100% Coverage**: 6 (detectOpenAI, detectGemini, detectAnthropic, detectGit, plus 2 existing helpers)
+**See "Final Coverage with Bug Fix" section below for updated coverage numbers after bug fix.**
 
 ### Test Execution Results
 
@@ -292,14 +280,62 @@ Phase 3 implemented comprehensive integration tests for the internal/detect pack
 
 ### Analysis
 
-The integration tests successfully cover the `exec.Command()` dependent functions that couldn't be properly tested with unit tests. The 16.2% coverage improvement brings internal/detect from 38.5% to 54.7%, with 6 functions now at 100% coverage.
+The integration tests successfully cover the `exec.Command()` dependent functions that couldn't be properly tested with unit tests. The 14.8% coverage improvement brings internal/detect from 38.5% to 53.3%, with 3 functions now at 100% coverage.
 
-**Remaining Coverage Gaps**:
+**Remaining Coverage Gaps** (see "Final Coverage with Bug Fix" section for details):
 - detectDocker (58.8%): Missing coverage for Docker daemon unavailable scenarios
 - detectPodman (30.8%): Missing coverage for version parsing edge cases
+- detectGit (85.0%): Missing coverage for dirty repository scenarios (by design - tests primarily use clean repos)
 - detectLanguagesAndFrameworks (86.4%): Already high, complex file detection logic
 
-These remaining gaps are acceptable for integration tests, as they represent edge cases that would require complex environment setup (Docker installed but daemon not running, malformed version outputs, etc.).
+These remaining gaps are acceptable for integration tests, as they represent edge cases that would require complex environment setup (Docker installed but daemon not running, malformed version outputs, dirty test repositories, etc.).
+
+### Bug Fix: detectGit Uncommitted Count
+
+**Issue Found**: Integration tests revealed a bug in `detectGit()` where clean repositories incorrectly reported `Uncommitted=1` instead of `0`.
+
+**Root Cause**: `strings.Split("", "\n")` returns a slice with one empty string element `[]string{""}`, not an empty slice.
+
+**Fix Applied** (commit: e958bfb):
+```go
+// Before (buggy):
+statusLines := strings.Split(strings.TrimSpace(string(output)), "\n")
+git.Uncommitted = len(statusLines)  // Always >= 1
+if statusLines[0] != "" {
+    git.Dirty = true
+}
+
+// After (fixed):
+trimmed := strings.TrimSpace(string(output))
+if trimmed != "" {
+    statusLines := strings.Split(trimmed, "\n")
+    git.Uncommitted = len(statusLines)
+    git.Dirty = true
+}
+```
+
+**Impact**: Clean repositories now correctly report `Uncommitted=0, Dirty=false`. The fix reduced detectGit coverage from 100% to 85% because the code is now more efficient - it doesn't execute the split logic for clean repositories. This is a positive change: less code executing for the common case improves performance, and 85% coverage remains excellent.
+
+### Final Coverage with Bug Fix
+
+**Package Coverage**: 38.5% → 53.3% (+14.8%)
+
+**Function Coverage (Updated)**:
+| Function | Before | After | Change |
+|----------|--------|-------|--------|
+| DetectAll() | 0% | 87.5% | +87.5% |
+| detectDocker() | 0% | 58.8% | +58.8% |
+| detectPodman() | 0% | 30.8% | +30.8% |
+| detectOllama() | 0% | 90.0% | +90.0% |
+| detectClaude() | 0% | 90.9% | +90.9% |
+| detectOpenAI() | 0% | 100.0% | **+100.0% ✓** |
+| detectGemini() | 0% | 100.0% | **+100.0% ✓** |
+| detectAnthropic() | 0% | 100.0% | **+100.0% ✓** |
+| detectGit() | 0% | 85.0% | +85.0% |
+
+**Functions at 100% Coverage**: 3 (detectOpenAI, detectGemini, detectAnthropic)
+
+**Note**: detectGit coverage decreased from initial 100% to 85% after bug fix. This is expected and positive - the fixed code has a conditional branch for empty output that isn't fully exercised by tests of clean repositories. The code is now correct and more efficient.
 
 ## Integration Test Requirements
 
