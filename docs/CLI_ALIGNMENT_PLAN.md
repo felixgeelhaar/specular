@@ -516,15 +516,63 @@ This document outlines the changes needed to align the current CLI with the v1.0
    - `org sync` - Sync with registry
    - `team status` - Show approvals and reviews
 
-### Phase 9: Auth Command (Priority: LOW)
+### Phase 9: Auth Command ✅ COMPLETED (Priority: LOW)
 
-**Goal:** Credential management
+**Completion Summary:**
+- ✅ 4 auth subcommands implemented (login, logout, whoami, token)
+- ✅ Secure credential storage in .specular/auth.json
+- ✅ Token management with expiration tracking
+- ✅ User identity management
+- ✅ 9 test functions created (100% pass rate)
+- ✅ All commands build and function correctly
+
+**Implementation Details:**
 
 1. **Add `auth` command:**
-   - `auth login` - Login to governance/registry
-   - `auth logout` - Logout
-   - `auth whoami` - Show current user
-   - `auth token` - Get/refresh token
+   - ✅ `auth login [--user] [--token] [--registry]` - Login to governance/registry
+     - **File:** `internal/cmd/auth.go:64-125`
+     - Accepts user identity (username or email)
+     - Generates or accepts authentication token
+     - Stores credentials with 30-day expiration
+     - Saves to .specular/auth.json with 0600 permissions
+   - ✅ `auth logout` - Logout and remove credentials
+     - **File:** `internal/cmd/auth.go:128-165`
+     - Removes .specular/auth.json file
+     - Shows confirmation message
+   - ✅ `auth whoami` - Show current user identity
+     - **File:** `internal/cmd/auth.go:168-207`
+     - Displays current user identity
+     - Shows token expiration status
+     - Warns if token has expired
+   - ✅ `auth token [--refresh] [--show]` - Get or refresh authentication token
+     - **File:** `internal/cmd/auth.go:210-277`
+     - Shows token status and expiration
+     - Refreshes token on demand or when expired
+     - Optionally displays full token (with security warning)
+
+2. **Supporting infrastructure:**
+   - ✅ `AuthCredentials` struct for credential storage
+     - **File:** `internal/cmd/auth.go:13-19`
+     - Includes: user, token, expiration, registry, update time
+   - ✅ `loadCredentials()` function for reading credentials
+     - **File:** `internal/cmd/auth.go:280-293`
+     - Reads from .specular/auth.json
+   - ✅ `saveCredentials()` function for writing credentials
+     - **File:** `internal/cmd/auth.go:296-313`
+     - Writes with 0600 permissions for security
+
+**Test Coverage:**
+- ✅ TestAuthSubcommands - Verifies all 4 subcommands registered
+- ✅ TestAuthLoginFlags - Validates login command flags (user, token, registry)
+- ✅ TestAuthTokenFlags - Validates token command flags (refresh, show)
+- ✅ TestAuthLoginCommand - Tests login command configuration
+- ✅ TestAuthLogoutCommand - Tests logout command configuration
+- ✅ TestAuthWhoamiCommand - Tests whoami command configuration
+- ✅ TestAuthTokenCommand - Tests token command configuration
+- ✅ TestAuthCommand - Tests auth command structure
+- ✅ TestAuthCredentialsStruct - Tests AuthCredentials struct definition
+- **File:** `internal/cmd/auth_test.go` (212 lines)
+- **Coverage:** Command registration, configuration, flags, struct definitions
 
 ## Implementation Strategy
 
