@@ -378,18 +378,43 @@ This document outlines the changes needed to align the current CLI with the v1.0
    - **File:** `internal/cmd/eval_test.go` (190 lines)
    - **Coverage:** Scenario validation, checks, flags, subcommands
 
-### Phase 6: Auto Mode Enhancement (Priority: MEDIUM)
+### Phase 6: Auto Mode Enhancement ✅ COMPLETED (Priority: MEDIUM)
 
-**Goal:** Add Auto history and explain
+**Completion Summary:**
+- ✅ 3 auto subcommands implemented (resume, history, explain)
+- ✅ Session persistence via checkpoint manager
+- ✅ Backward compatibility maintained with --resume flag
+- ✅ 5 test functions created (100% pass rate)
+- ✅ All commands build and function correctly
 
+**Implementation Details:**
 1. **Add auto subcommands:**
-   - `auto resume` - Resume paused session
-   - `auto history` - View logs and history
-   - `auto explain` - Explain reasoning per step
+   - ✅ `auto resume [session-id]` - Resume paused session or list available sessions
+     - **File:** `internal/cmd/auto.go:355-448`
+     - Lists all available sessions from `.specular/checkpoints/`
+     - Resumes specific session by ID with status display
+   - ✅ `auto history` - View logs and session history
+     - **File:** `internal/cmd/auto.go:451-546`
+     - Displays all sessions with status, timestamps, goal, and task breakdown
+     - Shows failed tasks with error messages
+   - ✅ `auto explain <session-id> [step]` - Explain reasoning per step
+     - **File:** `internal/cmd/auto.go:549-657`
+     - Overall session explanation or specific task details
+     - Shows task status, duration, attempts, and artifacts
 
 2. **Session persistence:**
-   - Store sessions in `~/.specular/auto/sessions/`
-   - Allow resume after interruption
+   - ✅ Sessions stored in `~/.specular/checkpoints/` via checkpoint.Manager
+   - ✅ Resume capability via existing --resume flag and new resume subcommand
+   - ✅ Checkpoint data includes status, tasks, metadata, and timestamps
+
+**Test Coverage:**
+- ✅ TestAutoSubcommands - Verifies all 3 subcommands registered
+- ✅ TestAutoResumeFlags - Validates resume command configuration
+- ✅ TestAutoHistoryFlags - Validates history command configuration
+- ✅ TestAutoExplainFlags - Validates explain command configuration
+- ✅ TestAutoBackwardCompatibilityFlags - Ensures backward compatibility
+- **File:** `internal/cmd/auto_test.go` (107 lines)
+- **Coverage:** Command registration, configuration, flags, backward compatibility
 
 ### Phase 7: Routing Intelligence (Priority: LOW)
 

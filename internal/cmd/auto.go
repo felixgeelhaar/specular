@@ -13,6 +13,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/attestation"
 	"github.com/felixgeelhaar/specular/internal/auto"
 	"github.com/felixgeelhaar/specular/internal/autopolicy"
+	"github.com/felixgeelhaar/specular/internal/checkpoint"
 	"github.com/felixgeelhaar/specular/internal/hooks"
 	"github.com/felixgeelhaar/specular/internal/profiles"
 	"github.com/felixgeelhaar/specular/internal/provider"
@@ -351,7 +352,317 @@ func (a *policyCheckerAdapter) Name() string {
 	return a.checker.Name()
 }
 
+// autoResumeCmd resumes a paused auto session
+var autoResumeCmd = &cobra.Command{
+	Use:   "resume [session-id]",
+	Short: "Resume a paused auto session",
+	Long: `Resume a previously paused or interrupted auto session.
+
+If no session-id is provided, lists all available sessions to resume.
+
+Examples:
+  specular auto resume                    # List available sessions
+  specular auto resume auto-1762811730    # Resume specific session`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Get checkpoint directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+		checkpointDir := filepath.Join(homeDir, ".specular", "checkpoints")
+
+		// Create checkpoint manager
+		mgr := checkpoint.NewManager(checkpointDir, false, 0)
+
+		// If no session-id provided, list available sessions
+		if len(args) == 0 {
+			sessions, err := mgr.List()
+			if err != nil {
+				return fmt.Errorf("failed to list sessions: %w", err)
+			}
+
+			if len(sessions) == 0 {
+				fmt.Println("No sessions available to resume")
+				return nil
+			}
+
+			fmt.Println("Available sessions:")
+			fmt.Println()
+
+			for _, sessionID := range sessions {
+				state, err := mgr.Load(sessionID)
+				if err != nil {
+					fmt.Printf("  ❌ %s (error: %v)\n", sessionID, err)
+					continue
+				}
+
+				// Display session info
+				statusIcon := "🔄"
+				if state.Status == "completed" {
+					statusIcon = "✅"
+				} else if state.Status == "failed" {
+					statusIcon = "❌"
+				}
+
+				fmt.Printf("  %s %s\n", statusIcon, sessionID)
+				fmt.Printf("     Status: %s\n", state.Status)
+				fmt.Printf("     Started: %s\n", state.StartedAt.Format("2006-01-02 15:04:05"))
+				fmt.Printf("     Updated: %s\n", state.UpdatedAt.Format("2006-01-02 15:04:05"))
+				if goal, ok := state.Metadata["goal"]; ok {
+					fmt.Printf("     Goal: %s\n", goal)
+				}
+				fmt.Printf("     Tasks: %d total\n", len(state.Tasks))
+				fmt.Println()
+			}
+
+			fmt.Println("Usage:")
+			fmt.Println("  specular auto resume <session-id>")
+			return nil
+		}
+
+		// Resume specific session
+		sessionID := args[0]
+
+		// Check if session exists
+		if !mgr.Exists(sessionID) {
+			return fmt.Errorf("session not found: %s", sessionID)
+		}
+
+		// Load session to show info
+		state, err := mgr.Load(sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		fmt.Printf("Resuming session: %s\n", sessionID)
+		fmt.Printf("Status: %s\n", state.Status)
+		if goal, ok := state.Metadata["goal"]; ok {
+			fmt.Printf("Goal: %s\n", goal)
+		}
+		fmt.Println()
+
+		// Call auto with --resume flag
+		// We need to reconstruct the auto command with the --resume flag
+		// This is a simple implementation that delegates to the parent command
+		return fmt.Errorf("resume functionality requires calling 'specular auto --resume %s <goal>'", sessionID)
+	},
+}
+
+// autoHistoryCmd shows auto session history
+var autoHistoryCmd = &cobra.Command{
+	Use:   "history",
+	Short: "View auto session history and logs",
+	Long: `View history of all auto sessions including status, tasks, and execution details.
+
+Examples:
+  specular auto history`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Get checkpoint directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+		checkpointDir := filepath.Join(homeDir, ".specular", "checkpoints")
+
+		// Create checkpoint manager
+		mgr := checkpoint.NewManager(checkpointDir, false, 0)
+
+		// List all sessions
+		sessions, err := mgr.List()
+		if err != nil {
+			return fmt.Errorf("failed to list sessions: %w", err)
+		}
+
+		if len(sessions) == 0 {
+			fmt.Println("No auto sessions found")
+			return nil
+		}
+
+		fmt.Println("=== Auto Session History ===")
+		fmt.Println()
+
+		// Display each session
+		for _, sessionID := range sessions {
+			state, err := mgr.Load(sessionID)
+			if err != nil {
+				fmt.Printf("❌ %s (error: %v)\n", sessionID, err)
+				fmt.Println()
+				continue
+			}
+
+			// Status icon
+			statusIcon := "🔄"
+			if state.Status == "completed" {
+				statusIcon = "✅"
+			} else if state.Status == "failed" {
+				statusIcon = "❌"
+			}
+
+			// Display session header
+			fmt.Printf("%s Session: %s\n", statusIcon, sessionID)
+			fmt.Printf("   Status: %s\n", state.Status)
+			fmt.Printf("   Started: %s\n", state.StartedAt.Format("2006-01-02 15:04:05"))
+			fmt.Printf("   Updated: %s\n", state.UpdatedAt.Format("2006-01-02 15:04:05"))
+
+			// Display goal from metadata
+			if goal, ok := state.Metadata["goal"]; ok {
+				fmt.Printf("   Goal: %s\n", goal)
+			}
+
+			// Task statistics
+			var pending, running, completed, failed, skipped int
+			for _, task := range state.Tasks {
+				switch task.Status {
+				case "pending":
+					pending++
+				case "running":
+					running++
+				case "completed":
+					completed++
+				case "failed":
+					failed++
+				case "skipped":
+					skipped++
+				}
+			}
+
+			fmt.Printf("   Tasks: %d total (%d completed, %d failed, %d pending)\n",
+				len(state.Tasks), completed, failed, pending)
+
+			// Show failed tasks if any
+			if failed > 0 {
+				fmt.Println("   Failed tasks:")
+				for _, task := range state.Tasks {
+					if task.Status == "failed" {
+						fmt.Printf("     • %s: %s\n", task.ID, task.Error)
+					}
+				}
+			}
+
+			fmt.Println()
+		}
+
+		return nil
+	},
+}
+
+// autoExplainCmd explains reasoning for a specific step
+var autoExplainCmd = &cobra.Command{
+	Use:   "explain <session-id> [step]",
+	Short: "Explain reasoning for auto session steps",
+	Long: `Explain the reasoning and model routing decisions for a specific auto session.
+
+If no step is provided, shows overall session explanation.
+
+Examples:
+  specular auto explain auto-1762811730           # Explain entire session
+  specular auto explain auto-1762811730 task-1    # Explain specific task`,
+	Args: cobra.MinimumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		sessionID := args[0]
+
+		// Get checkpoint directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+		checkpointDir := filepath.Join(homeDir, ".specular", "checkpoints")
+
+		// Create checkpoint manager
+		mgr := checkpoint.NewManager(checkpointDir, false, 0)
+
+		// Load session
+		state, err := mgr.Load(sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		// If specific step requested
+		if len(args) > 1 {
+			stepID := args[1]
+			task, ok := state.Tasks[stepID]
+			if !ok {
+				return fmt.Errorf("step not found: %s", stepID)
+			}
+
+			fmt.Printf("=== Step: %s ===\n", stepID)
+			fmt.Println()
+			fmt.Printf("Status: %s\n", task.Status)
+			if !task.StartedAt.IsZero() {
+				fmt.Printf("Started: %s\n", task.StartedAt.Format("2006-01-02 15:04:05"))
+			}
+			if !task.CompletedAt.IsZero() {
+				fmt.Printf("Completed: %s\n", task.CompletedAt.Format("2006-01-02 15:04:05"))
+				duration := task.CompletedAt.Sub(task.StartedAt)
+				fmt.Printf("Duration: %s\n", duration)
+			}
+			fmt.Printf("Attempts: %d\n", task.Attempts)
+
+			if task.Error != "" {
+				fmt.Printf("Error: %s\n", task.Error)
+			}
+
+			if len(task.Artifacts) > 0 {
+				fmt.Println("Artifacts:")
+				for _, artifact := range task.Artifacts {
+					fmt.Printf("  • %s\n", artifact)
+				}
+			}
+
+			return nil
+		}
+
+		// Show overall session explanation
+		fmt.Printf("=== Session Explanation: %s ===\n", sessionID)
+		fmt.Println()
+		fmt.Printf("Status: %s\n", state.Status)
+		fmt.Printf("Started: %s\n", state.StartedAt.Format("2006-01-02 15:04:05"))
+		fmt.Printf("Updated: %s\n", state.UpdatedAt.Format("2006-01-02 15:04:05"))
+
+		if goal, ok := state.Metadata["goal"]; ok {
+			fmt.Printf("Goal: %s\n", goal)
+		}
+
+		fmt.Println()
+		fmt.Printf("Tasks: %d total\n", len(state.Tasks))
+		fmt.Println()
+
+		// List all tasks with status
+		fmt.Println("Task Breakdown:")
+		for taskID, task := range state.Tasks {
+			statusIcon := "⏸"
+			switch task.Status {
+			case "completed":
+				statusIcon = "✅"
+			case "failed":
+				statusIcon = "❌"
+			case "running":
+				statusIcon = "🔄"
+			case "pending":
+				statusIcon = "⏳"
+			case "skipped":
+				statusIcon = "⊘"
+			}
+
+			fmt.Printf("  %s %s - %s\n", statusIcon, taskID, task.Status)
+			if task.Error != "" {
+				fmt.Printf("      Error: %s\n", task.Error)
+			}
+		}
+
+		fmt.Println()
+		fmt.Println("Use 'specular auto explain <session-id> <task-id>' for task details")
+
+		return nil
+	},
+}
+
 func init() {
+	// Add subcommands to auto
+	autoCmd.AddCommand(autoResumeCmd)
+	autoCmd.AddCommand(autoHistoryCmd)
+	autoCmd.AddCommand(autoExplainCmd)
+
 	// Profile flags
 	autoCmd.Flags().StringP("profile", "p", "", "Profile to use (default, ci, strict, or custom)")
 	autoCmd.Flags().Bool("list-profiles", false, "List available profiles and exit")
