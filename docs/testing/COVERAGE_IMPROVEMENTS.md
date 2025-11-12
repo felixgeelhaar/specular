@@ -4,15 +4,16 @@ This document tracks test coverage improvements across the Specular codebase.
 
 ## Summary
 
-Three phases of test coverage improvements combining unit tests and integration tests:
+Four phases of test coverage improvements combining unit tests and integration tests:
 
-### Unit Test Coverage (Phases 1-2)
+### Unit Test Coverage (Phases 1-2, 4)
 
 | Package | Before | After | Change | New Tests | Functions at 100% |
 |---------|--------|-------|--------|-----------|------------------|
 | internal/auto | 31.0% | 34.5% | +3.5% | 41 | 11 |
 | internal/bundle | 36.0% | 38.5% | +2.5% | 22 | 12 |
-| **Unit Test Total** | - | - | **+6.0%** | **63** | **23** |
+| internal/cmd | 10.5% | 11.1% | +0.6% | 6 | 2 |
+| **Unit Test Total** | - | - | **+6.6%** | **69** | **25** |
 
 ### Integration Test Coverage (Phase 3)
 
@@ -24,7 +25,7 @@ Three phases of test coverage improvements combining unit tests and integration 
 
 ### Combined Total
 
-**Overall improvement: +20.8% coverage across 3 packages with 82 new tests and 26 functions at 100% coverage**
+**Overall improvement: +21.4% coverage across 4 packages with 88 new tests and 28 functions at 100% coverage**
 
 ## Phase 1: internal/auto Package
 
@@ -337,6 +338,147 @@ if trimmed != "" {
 
 **Note**: detectGit coverage decreased from initial 100% to 85% after bug fix. This is expected and positive - the fixed code has a conditional branch for empty output that isn't fully exercised by tests of clean repositories. The code is now correct and more efficient.
 
+## Phase 4: internal/cmd Unit Tests (COMPLETED)
+
+**Coverage Impact: 10.5% → 11.1% (+0.6%)**
+
+### Implementation Summary
+
+Phase 4 implemented comprehensive unit tests for two pure utility functions in the internal/cmd package that had 0% coverage. Unlike the functions requiring integration tests, these utility functions are pure with no external dependencies, making them perfect candidates for traditional unit testing with table-driven test patterns.
+
+### Test File Created
+
+#### bundle_test.go (552 lines) - 6 test functions
+
+**Main Test Functions**:
+- `TestParseMetadataFlags` (13 subtests): Tests metadata parsing with various input scenarios
+- `TestCheckRequiredRoles` (9 subtests): Tests role validation logic with different approval combinations
+- `TestCheckRequiredRolesErrorMessage` (3 subtests): Validates error message formatting
+- `TestCheckRequiredRolesConsoleOutput` (2 subtests): Tests console output for user feedback
+- `TestParseMetadataFlagsWithRealWorldExamples` (1 test): Real-world usage scenarios
+- `TestCheckRequiredRolesWithComplexScenario` (2 subtests): Production deployment scenarios
+
+**Benchmarks**: 2 benchmark functions for performance validation
+
+**Total Test Cases**: 30 comprehensive test cases covering edge cases, error scenarios, and real-world usage
+
+**Functions Tested**:
+- `parseMetadataFlags()`: Converts metadata flags (key=value format) to a map
+- `checkRequiredRoles()`: Validates that all required roles have approved
+
+### Test Patterns Used
+
+1. **Table-Driven Tests**: Structured test cases with input/expected output for comprehensive coverage
+2. **Subtest Organization**: Logical grouping with `t.Run()` for clear test hierarchy
+3. **Edge Case Coverage**: Empty values, nil inputs, invalid formats, special characters
+4. **Error Message Validation**: Verify exact error format and content
+5. **Console Output Testing**: Capture and validate stdout messages for user-facing feedback
+6. **Real-World Scenarios**: Production deployment workflows with multiple approval tiers
+7. **Benchmarking**: Performance validation for both functions
+
+### Test Execution Results
+
+**All Unit Tests (30 test cases)**:
+- ✅ parseMetadataFlags: 13 tests passed
+- ✅ checkRequiredRoles: 9 tests passed
+- ✅ Error message validation: 3 tests passed
+- ✅ Console output: 2 tests passed
+- ✅ Real-world examples: 1 test passed
+- ✅ Complex scenarios: 2 tests passed
+
+**Execution**: `go test ./internal/cmd -v -run "TestParseMetadataFlags|TestCheckRequiredRoles"`
+
+### Function Coverage (Improved)
+
+| Function | Before | After | Change |
+|----------|--------|-------|--------|
+| parseMetadataFlags() | 0% | 100.0% | **+100.0% ✓** |
+| checkRequiredRoles() | 0% | 100.0% | **+100.0% ✓** |
+
+**Functions at 100% Coverage**: 2 (parseMetadataFlags, checkRequiredRoles)
+
+### Test Coverage Highlights
+
+**parseMetadataFlags() Test Cases**:
+- Empty/nil inputs
+- Single and multiple valid key=value pairs
+- Missing equals sign (should skip)
+- Multiple equals signs (only split on first)
+- Empty keys and values
+- Whitespace in keys and values
+- Special characters in keys and values
+- Duplicate keys (last value wins)
+- URL-like values (https://, git@)
+- Real-world metadata examples (version, author, email, etc.)
+
+**checkRequiredRoles() Test Cases**:
+- No required roles (should pass)
+- Nil required roles (should pass)
+- Single role satisfied/missing
+- Multiple roles (all satisfied, some missing, all missing)
+- Extra verified roles (should not affect outcome)
+- Error message format validation
+- Console output validation (✓ and ✗ symbols)
+- Complex production deployment scenarios with 6 approval tiers
+
+### Analysis
+
+The unit tests successfully brought two previously untested utility functions to 100% coverage with minimal complexity. The 0.6% package-level coverage improvement is modest because these are small utility functions relative to the entire internal/cmd package, which contains many complex cobra command implementations that would require more elaborate mocking or integration testing.
+
+**Why Only 0.6% Package Improvement?**
+
+The internal/cmd package is large with many files:
+- 15 test files already existed with 14 command implementations
+- The two functions tested are small (9 lines for parseMetadataFlags, 28 lines for checkRequiredRoles)
+- Package total lines: Several thousand across all cmd files
+- Our 37 new lines of tested code represent a small fraction of the total
+
+However, the **quality impact is significant**:
+- 2 functions moved from 0% to 100% coverage
+- 30 comprehensive test cases ensure robustness
+- Edge cases, error paths, and real-world scenarios all validated
+- Future refactoring is now safe for these functions
+
+**Remaining Coverage Gaps in internal/cmd**:
+
+Many functions require more complex testing approaches:
+- Cobra command implementations requiring mock flags and contexts
+- File I/O operations with temp directories
+- Interactive TUI components
+- Docker/container operations
+- Network operations and API calls
+
+These functions are better candidates for integration tests or would require significant mocking infrastructure, making them less suitable for simple unit tests. The functions we tested were chosen specifically because they are pure with no external dependencies - the low-hanging fruit for unit test coverage improvement.
+
+### Key Insights
+
+**What Worked Well**:
+
+1. **Pure Functions**: Functions with no external dependencies are ideal for unit testing
+   - parseMetadataFlags: Simple string parsing
+   - checkRequiredRoles: Validation logic with map operations
+
+2. **Table-Driven Tests**: Excellent for covering many scenarios systematically
+   - 13 test cases for parseMetadataFlags variations
+   - 9 test cases for checkRequiredRoles scenarios
+
+3. **Comprehensive Edge Cases**: Testing boundary conditions and invalid inputs
+   - Empty/nil values
+   - Special characters and whitespace
+   - Error conditions and failure paths
+
+4. **Real-World Usage**: Including production scenarios improves test value
+   - Production deployment with multiple approval tiers
+   - Real metadata examples (version, author, email)
+   - URL-like values commonly used in metadata
+
+**Testing Patterns Established**:
+
+- Console output capture using `os.Pipe()` for stdout redirection
+- Error message format validation beyond just checking for error presence
+- Benchmarking for performance regression detection
+- Subtest organization for clear test hierarchy
+
 ## Integration Test Requirements
 
 Based on analysis of internal/detect and expected patterns in internal/builder and internal/extractor:
@@ -380,16 +522,19 @@ See [INTEGRATION_TEST_STRATEGY.md](./INTEGRATION_TEST_STRATEGY.md) for:
 
 ## Conclusion
 
-### Unit Test Success
+### Overall Test Coverage Success
 
-The test coverage improvement initiative successfully added 63 comprehensive test functions across two packages, bringing 23 functions to 100% coverage. The focus on utility functions and data structures provided maximum coverage impact with minimal complexity.
+The test coverage improvement initiative successfully added 88 comprehensive tests across four packages, bringing 28 functions to 100% coverage. The systematic approach combining unit tests and integration tests provided maximum coverage impact across different types of code.
 
-**Key Achievements:**
+**Key Achievements (Phases 1-4):**
 - ✅ internal/auto: 31.0% → 34.5% (+3.5%)
 - ✅ internal/bundle: 36.0% → 38.5% (+2.5%)
-- ✅ 63 new test functions added
-- ✅ 23 functions at 100% coverage
-- ✅ All 2033 tests passing
+- ✅ internal/cmd: 10.5% → 11.1% (+0.6%)
+- ✅ internal/detect: 38.5% → 53.3% (+14.8%)
+- ✅ 88 new tests added (69 unit tests + 19 integration tests)
+- ✅ 28 functions at 100% coverage (25 from unit tests + 3 from integration tests)
+- ✅ All tests passing
+- ✅ Bug discovered and fixed in detectGit() through integration testing
 
 ### Next Steps
 
@@ -409,8 +554,8 @@ The test coverage improvement initiative successfully added 63 comprehensive tes
 - Bundle lifecycle (build → verify → apply)
 - Checkpoint creation and resume workflows
 
-The unit test foundation is strong. The path forward requires strategic investment in integration and E2E testing to cover complex workflows with external dependencies.
+The combined unit test and integration test foundation is strong. Phase 4 demonstrated the value of targeting pure utility functions for quick wins. The path forward includes continuing to identify similar opportunities while building out more comprehensive integration and E2E testing for complex workflows with external dependencies.
 
 ---
 
-Last Updated: 2025-01-12
+Last Updated: 2025-01-12 (Phase 4 completed)
