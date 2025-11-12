@@ -520,6 +520,83 @@ See [INTEGRATION_TEST_STRATEGY.md](./INTEGRATION_TEST_STRATEGY.md) for:
 - Mock vs. real dependency guidance
 - Coverage goals and measurement
 
+## Phase 5: Coverage Analysis and Verification (COMPLETED)
+
+**Target: Find additional utility functions with low coverage across all packages**
+
+### Investigation Summary
+
+Phase 5 involved a systematic analysis of all packages to identify additional testable utility functions with low or zero coverage.
+
+#### Analysis Process
+
+1. **Package Coverage Survey** (analyzed 6 packages):
+   - internal/cmd: 11.1% (requires complex cobra CLI mocking)
+   - internal/auto: 34.5% (comprehensive tests already exist)
+   - internal/detect: 38.3% (target for analysis)
+   - internal/bundle: 38.5% (mostly cryptographic/file I/O functions)
+   - internal/policy: 64.7% (only file I/O gaps remaining)
+   - internal/patch: 76.6% (mostly file operations at 60-80%)
+
+2. **Function Classification**:
+   - **Pure utility functions**: Good candidates for unit tests
+   - **Integration functions**: Require external dependencies (Docker, Git, file system)
+   - **Complex operations**: Cryptographic, network, or CLI-dependent
+
+#### Key Finding: Functions Already Well-Tested
+
+Investigation of internal/detect revealed that the 4 functions initially identified as having 0% coverage were actually already comprehensively tested in Phase 3:
+
+| Function | Perceived Coverage | Actual Coverage | Status |
+|----------|-------------------|-----------------|---------|
+| `contains()` | 0.0% | **100.0%** | ✅ Fully tested in Phase 3 |
+| `hasInFile()` | 0.0% | **100.0%** | ✅ Fully tested in Phase 3 |
+| `GetRecommendedProviders()` | 0.0% | **100.0%** | ✅ Fully tested in Phase 3 |
+| `Summary()` | 0.0% | **96.2%** | ✅ Near-complete coverage in Phase 3 |
+
+**Root Cause**: The coverage data file used for analysis (`/tmp/detect_final.out`) was outdated and did not reflect the comprehensive tests added in Phase 3.
+
+#### Remaining 0% Coverage Functions in internal/detect
+
+All remaining functions with 0% coverage are integration-level functions requiring external dependencies:
+
+- `DetectAll` - Orchestration function calling all detectors
+- `detectDocker` - Requires Docker daemon
+- `detectPodman` - Requires Podman installation
+- `detectOllama` - Requires Ollama CLI
+- `detectClaude` - Requires Claude CLI
+- `detectProviderWithCLI` - Generic CLI detection utility
+- `detectOpenAI` - Requires OpenAI CLI tools
+- `detectGemini` - Requires Gemini CLI tools
+- `detectAnthropic` - Requires Anthropic CLI tools
+- `detectGit` - Already tested in integration tests (Phase 3)
+
+These functions are appropriate for **integration tests** rather than unit tests, aligning with the strategy outlined in the Integration Test Requirements section.
+
+### Conclusion for Phase 5
+
+**Status**: No additional unit tests needed
+
+Phase 5 demonstrated that:
+
+1. **Phase 3 was highly effective** - The utility functions in internal/detect already have excellent test coverage (96-100%)
+
+2. **Coverage measurement is critical** - Using outdated coverage data led to investigating already-tested functions
+
+3. **Remaining low-coverage functions are appropriate** - The functions still showing 0% coverage are integration-level and should be tested via integration tests, not unit tests
+
+4. **Package selection matters** - Other packages (bundle, cmd) have low coverage primarily due to complex dependencies (cryptographic operations, CLI frameworks, file I/O) rather than lack of testable utility functions
+
+### Recommendation
+
+The test coverage initiative should now focus on:
+
+1. **Integration tests** for the detector functions (detectDocker, detectPodman, etc.)
+2. **E2E tests** for complete workflows
+3. **Selective unit tests** only when new utility functions are added
+
+The current state represents a good balance between unit test coverage for pure logic and integration test needs for dependency-heavy code.
+
 ## Conclusion
 
 ### Overall Test Coverage Success
@@ -558,4 +635,4 @@ The combined unit test and integration test foundation is strong. Phase 4 demons
 
 ---
 
-Last Updated: 2025-01-12 (Phase 4 completed)
+Last Updated: 2025-01-12 (Phase 5 completed - coverage verification)
