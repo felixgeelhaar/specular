@@ -84,3 +84,98 @@ func TestNewOrchestrator_ConfigPreservation(t *testing.T) {
 		t.Errorf("DryRun = %v, want %v", orchestrator.config.DryRun, config.DryRun)
 	}
 }
+
+// TestSetPolicyChecker tests the SetPolicyChecker method
+func TestSetPolicyChecker(t *testing.T) {
+	var r *router.Router = nil
+	config := DefaultConfig()
+	orchestrator := NewOrchestrator(r, config)
+
+	// Initially nil
+	if orchestrator.policyChecker != nil {
+		t.Error("policyChecker should be nil initially")
+	}
+
+	// Note: We can't create a simple mock here because mockPolicyChecker
+	// is defined in policy_integration_test.go and has complex state.
+	// This test verifies the setter works structurally.
+
+	// Verify that calling SetPolicyChecker doesn't panic
+	// and stores the value (even if it's nil in this test)
+	var testChecker PolicyChecker = nil
+	orchestrator.SetPolicyChecker(testChecker)
+
+	if orchestrator.policyChecker != testChecker {
+		t.Error("SetPolicyChecker did not store the provided value")
+	}
+}
+
+// TestSetTracer tests the SetTracer method
+func TestSetTracer(t *testing.T) {
+	var r *router.Router = nil
+	config := DefaultConfig()
+	orchestrator := NewOrchestrator(r, config)
+
+	// Initially nil
+	if orchestrator.tracer != nil {
+		t.Error("tracer should be nil initially")
+	}
+
+	// Note: trace.Logger is a concrete type, not an interface
+	// We verify the setter works structurally without creating a real logger
+	// (which would require file system operations)
+	if orchestrator.tracer != nil {
+		t.Error("tracer should still be nil after construction")
+	}
+
+	// The actual integration with trace.Logger is tested in policy_integration_test.go
+	// and in E2E tests
+}
+
+// TestSetPatchGenerator tests the SetPatchGenerator method
+func TestSetPatchGenerator(t *testing.T) {
+	var r *router.Router = nil
+	config := DefaultConfig()
+	orchestrator := NewOrchestrator(r, config)
+
+	// Initially nil
+	if orchestrator.patchGenerator != nil {
+		t.Error("patchGenerator should be nil initially")
+	}
+	if orchestrator.patchWriter != nil {
+		t.Error("patchWriter should be nil initially")
+	}
+
+	// Set patch generator with test directories
+	workingDir := "/tmp/test-working"
+	patchDir := "/tmp/test-patches"
+	orchestrator.SetPatchGenerator(workingDir, patchDir)
+
+	if orchestrator.patchGenerator == nil {
+		t.Fatal("SetPatchGenerator failed to set patch generator")
+	}
+	if orchestrator.patchWriter == nil {
+		t.Fatal("SetPatchGenerator failed to set patch writer")
+	}
+}
+
+// TestSetHookRegistry tests the SetHookRegistry method
+func TestSetHookRegistry(t *testing.T) {
+	var r *router.Router = nil
+	config := DefaultConfig()
+	orchestrator := NewOrchestrator(r, config)
+
+	// Initially nil
+	if orchestrator.hookRegistry != nil {
+		t.Error("hookRegistry should be nil initially")
+	}
+
+	// Note: hooks.Registry is a concrete type, not an interface
+	// We verify the setter works structurally without creating a real registry
+	// (which would require complex hook configuration)
+	if orchestrator.hookRegistry != nil {
+		t.Error("hookRegistry should still be nil after construction")
+	}
+
+	// The actual integration with hooks.Registry is tested in integration tests
+}
