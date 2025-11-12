@@ -4,13 +4,25 @@ This document tracks test coverage improvements across the Specular codebase.
 
 ## Summary
 
-Two phases of test coverage improvements focused on low-hanging fruit in internal packages:
+Three phases of test coverage improvements combining unit tests and integration tests:
+
+### Unit Test Coverage (Phases 1-2)
 
 | Package | Before | After | Change | New Tests | Functions at 100% |
 |---------|--------|-------|--------|-----------|------------------|
 | internal/auto | 31.0% | 34.5% | +3.5% | 41 | 11 |
 | internal/bundle | 36.0% | 38.5% | +2.5% | 22 | 12 |
-| **Total** | - | - | **+6.0%** | **63** | **23** |
+| **Unit Test Total** | - | - | **+6.0%** | **63** | **23** |
+
+### Integration Test Coverage (Phase 3)
+
+| Package | Before | After | Change | New Tests | Functions at 100% |
+|---------|--------|-------|--------|-----------|------------------|
+| internal/detect | 38.5% | 54.7% | +16.2% | 19 | 6 |
+
+### Combined Total
+
+**Overall improvement: +22.2% coverage across 3 packages with 82 new tests and 29 functions at 100% coverage**
 
 ## Phase 1: internal/auto Package
 
@@ -188,39 +200,106 @@ All tests passing across entire project:
 - **Test Patterns**: Table-driven tests, subtests, error interface validation
 - **Documentation**: All test files include descriptive comments
 
-## Phase 3: internal/detect Analysis
+## Phase 3: internal/detect Integration Tests (COMPLETED)
 
-**Current Coverage**: 38.5%
+**Coverage Impact: 38.5% → 54.7% (+16.2%)**
 
-### Coverage Breakdown
+### Implementation Summary
 
-**Functions at 100% Coverage**:
-- `contains()` - helper function for slice search
-- `hasInFile()` - file content checker
-- `GetRecommendedProviders()` - provider recommendations
-- `detectCI()` - CI environment detection
+Phase 3 implemented comprehensive integration tests for the internal/detect package, targeting the 10 functions that use `exec.Command()` to interact with external tools. Unlike unit tests which can mock simple dependencies, these functions require actual Docker, Git, Ollama, and AI provider CLIs to be present for proper testing.
 
-**Functions with High Coverage**:
-- `Summary()` - 96.2% (Context formatting method)
-- `detectLanguagesAndFrameworks()` - 86.4% (file-based language/framework detection)
+### Test Files Created
 
-**Functions at 0% Coverage** (10 functions, all use `exec.Command()`):
-- `DetectAll()` - main detection orchestration
-- `detectDocker()`, `detectPodman()` - container runtime detection
-- `detectOllama()`, `detectClaude()`, `detectOpenAI()`, `detectGemini()`, `detectAnthropic()` - AI provider detection
-- `detectProviderWithCLI()` - generic CLI-based provider detection
-- `detectGit()` - Git repository information
+#### docker_test.go (84 lines) - 3 tests
+- `TestDetectDocker`: Verifies Docker detection and version parsing
+- `TestDetectDockerFields`: Validates all Docker-related context fields
+- `TestDetectDockerVersion`: Tests version string parsing correctness
 
-### Analysis Result
+**Functions Tested**: detectDocker(), ContainerRuntime fields, Runtime selection
 
-Unlike internal/auto and internal/bundle which had many testable utility functions, **internal/detect's remaining coverage gaps consist almost entirely of functions that require `exec.Command()` to call external binaries**. These functions:
+#### git_test.go (220 lines) - 4 tests
+- `TestDetectGit`: Validates Git detection in current repository
+- `TestDetectGitFields`: Checks GitContext fields (Root, Branch, Dirty, Uncommitted)
+- `TestDetectGitInTempDir`: Tests behavior outside a Git repository
+- `TestDetectGitCleanRepo`: Creates temporary repo and tests clean state detection
 
-1. Check for tool availability (Docker, Podman, Ollama, etc.)
-2. Execute commands to get version information
-3. Verify tools are running properly
-4. Read environment variables for API keys
+**Functions Tested**: detectGit(), GitContext validation, repository state detection
 
-**Conclusion**: The remaining 61.5% coverage gap in internal/detect requires **integration tests** rather than unit tests. See [INTEGRATION_TEST_STRATEGY.md](./INTEGRATION_TEST_STRATEGY.md) for detailed testing approach.
+#### podman_test.go (161 lines) - 5 tests
+- `TestDetectPodman`: Validates Podman detection and version parsing
+- `TestDetectPodmanFields`: Checks all Podman-related fields
+- `TestDetectPodmanVersion`: Tests version parsing correctness
+- `TestDetectRuntimePriority`: Verifies Docker prioritization over Podman
+- `TestDetectPodmanNotAvailable`: Validates behavior when Podman not installed
+
+**Functions Tested**: detectPodman(), runtime priority logic, unavailability handling
+
+#### providers_test.go (263 lines) - 7 tests
+- `TestDetectProviders`: Validates provider map structure (5 providers)
+- `TestDetectOllama`: Tests local Ollama detection (Type: local)
+- `TestDetectClaude`: Tests Claude CLI detection (Type: cli, ANTHROPIC_API_KEY)
+- `TestDetectOpenAI`: Tests OpenAI API detection (Type: api, OPENAI_API_KEY)
+- `TestDetectGemini`: Tests Gemini CLI detection (Type: cli, GEMINI_API_KEY)
+- `TestDetectAnthropic`: Tests Anthropic API detection (Type: api, ANTHROPIC_API_KEY)
+- `TestProviderFieldConsistency`: Validates all providers have consistent field patterns
+
+**Functions Tested**: detectOllama(), detectClaude(), detectOpenAI(), detectGemini(), detectAnthropic()
+
+### Coverage by Function
+
+| Function | Before | After | Change |
+|----------|--------|-------|--------|
+| DetectAll() | 0% | 87.5% | +87.5% |
+| detectDocker() | 0% | 58.8% | +58.8% |
+| detectPodman() | 0% | 30.8% | +30.8% |
+| detectOllama() | 0% | 90.0% | +90.0% |
+| detectClaude() | 0% | 90.9% | +90.9% |
+| detectOpenAI() | 0% | 100.0% | **+100.0% ✓** |
+| detectGemini() | 0% | 100.0% | **+100.0% ✓** |
+| detectAnthropic() | 0% | 100.0% | **+100.0% ✓** |
+| detectGit() | 0% | 100.0% | **+100.0% ✓** |
+
+**Functions at 100% Coverage**: 6 (detectOpenAI, detectGemini, detectAnthropic, detectGit, plus 2 existing helpers)
+
+### Test Execution Results
+
+**All Integration Tests (19 total)**:
+- ✅ Docker: 3 tests passed
+- ✅ Git: 4 tests passed
+- ✅ Podman: 3 tests passed, 2 skipped (Podman not installed)
+- ✅ Providers: 7 tests passed
+
+**Execution**: `go test -tags=integration ./tests/integration/detect/...`
+**Coverage Measurement**: `go test -tags=integration -coverprofile=coverage.out -coverpkg=./internal/detect ./tests/integration/detect`
+
+### Test Patterns Used
+
+1. **Graceful Skipping**: Tests use `t.Skip()` when required tools not available
+2. **Public API Testing**: All tests use `detect.DetectAll()` public API
+3. **Field Validation**: Comprehensive validation of all struct fields
+4. **Environment Detection**: Tests validate actual environment variable state
+5. **Priority Logic**: Tests verify runtime selection (Docker > Podman)
+6. **Type Consistency**: Tests ensure provider types are correctly set (local, cli, api)
+
+### CI/CD Integration
+
+**GitHub Actions Workflow**: `.github/workflows/integration-tests.yml`
+- Runs on push to main/develop and pull requests
+- Ubuntu-latest with Go 1.21
+- Verifies Docker and Git availability
+- Executes all integration tests with `-tags=integration` flag
+- Uploads test results as artifacts
+
+### Analysis
+
+The integration tests successfully cover the `exec.Command()` dependent functions that couldn't be properly tested with unit tests. The 16.2% coverage improvement brings internal/detect from 38.5% to 54.7%, with 6 functions now at 100% coverage.
+
+**Remaining Coverage Gaps**:
+- detectDocker (58.8%): Missing coverage for Docker daemon unavailable scenarios
+- detectPodman (30.8%): Missing coverage for version parsing edge cases
+- detectLanguagesAndFrameworks (86.4%): Already high, complex file detection logic
+
+These remaining gaps are acceptable for integration tests, as they represent edge cases that would require complex environment setup (Docker installed but daemon not running, malformed version outputs, etc.).
 
 ## Integration Test Requirements
 
