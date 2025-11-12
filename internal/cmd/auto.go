@@ -138,16 +138,17 @@ Examples:
 			}
 		}
 
-		// Load provider registry
+		// Load provider registry with auto-discovery
+		// Try providers.yaml first, fall back to auto-discovery
 		providerConfigPath := ".specular/providers.yaml"
-		registry, err := provider.LoadRegistryFromConfig(providerConfigPath)
+		registry, err := provider.LoadRegistryWithAutoDiscovery(providerConfigPath)
 		if err != nil {
 			return fmt.Errorf("failed to load providers: %w", err)
 		}
 
 		if verbose {
 			providerNames := registry.List()
-			fmt.Fprintf(os.Stderr, "Loaded %d provider(s)\n", len(providerNames))
+			fmt.Fprintf(os.Stderr, "Loaded %d provider(s): %v\n", len(providerNames), providerNames)
 		}
 
 		// Create router config

@@ -51,7 +51,7 @@ Examples:
 
 		// Load provider registry
 		providerConfigPath := ".specular/providers.yaml"
-		registry, err := provider.LoadRegistryFromConfig(providerConfigPath)
+		registry, err := provider.LoadRegistryWithAutoDiscovery(providerConfigPath)
 		if err != nil {
 			// If config doesn't exist, use empty registry
 			registry = provider.NewRegistry()
@@ -195,7 +195,7 @@ To clear the override:
 
 		// Check if provider is configured
 		providerConfigPath := ".specular/providers.yaml"
-		registry, err := provider.LoadRegistryFromConfig(providerConfigPath)
+		registry, err := provider.LoadRegistryWithAutoDiscovery(providerConfigPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "⚠️  Warning: Could not load provider config: %v\n", err)
 		} else {
@@ -267,7 +267,7 @@ Examples:
 
 		// Load provider registry
 		providerConfigPath := ".specular/providers.yaml"
-		registry, err := provider.LoadRegistryFromConfig(providerConfigPath)
+		registry, err := provider.LoadRegistryWithAutoDiscovery(providerConfigPath)
 		if err != nil {
 			registry = provider.NewRegistry()
 		}

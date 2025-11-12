@@ -54,7 +54,7 @@ The router will automatically select the best model based on complexity, budget,
 			fmt.Fprintf(os.Stderr, "Loading providers from %s...\n", providerConfigPath)
 		}
 
-		registry, err := provider.LoadRegistryFromConfig(providerConfigPath)
+		registry, err := provider.LoadRegistryWithAutoDiscovery(providerConfigPath)
 		if err != nil {
 			return fmt.Errorf("failed to load providers: %w", err)
 		}

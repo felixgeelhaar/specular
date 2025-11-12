@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -231,6 +232,140 @@ func LoadRegistryFromProvidersConfig(config *ProvidersConfig) (*Registry, error)
 	}
 
 	return registry, nil
+}
+
+// LoadRegistryWithAutoDiscovery loads providers with auto-discovery fallback
+// If configPath doesn't exist or is empty, auto-discovers available providers
+func LoadRegistryWithAutoDiscovery(configPath string) (*Registry, error) {
+	// Try to load from config file first
+	if configPath != "" {
+		if _, err := os.Stat(configPath); err == nil {
+			return LoadRegistryFromConfig(configPath)
+		}
+	}
+
+	// No config file found - use auto-discovery
+	return LoadRegistryFromAutoDiscovery()
+}
+
+// LoadRegistryFromAutoDiscovery creates a registry by auto-discovering available providers
+func LoadRegistryFromAutoDiscovery() (*Registry, error) {
+	// Import detect package to use detection
+	// Note: This creates a dependency on internal/detect
+	// We'll need to add the import at the top of the file
+
+	registry := NewRegistry()
+
+	// Auto-discover and load available providers
+	// For now, we'll use a simple approach: try to load known providers
+	// and skip those that aren't available
+
+	knownProviders := []struct {
+		name       string
+		configPath string
+		required   bool
+	}{
+		{"ollama", "", false},
+		{"anthropic", "", false},
+		{"openai", "", false},
+	}
+
+	loadedCount := 0
+	for _, p := range knownProviders {
+		config := generateProviderConfig(p.name)
+		if config != nil {
+			if err := registry.LoadFromConfig(config); err != nil {
+				if p.required {
+					return nil, fmt.Errorf("failed to load required provider %s: %w", p.name, err)
+				}
+				// Skip optional providers that fail to load
+				continue
+			}
+			loadedCount++
+		}
+	}
+
+	if loadedCount == 0 {
+		return nil, fmt.Errorf("no providers available - please install at least one AI provider (ollama, anthropic, openai)")
+	}
+
+	return registry, nil
+}
+
+// generateProviderConfig creates a provider configuration based on auto-detection
+func generateProviderConfig(providerName string) *ProviderConfig {
+	switch providerName {
+	case "ollama":
+		// Check if ollama CLI is available
+		if path, err := lookupCommand("ollama"); err == nil {
+			return &ProviderConfig{
+				Name:    "ollama",
+				Type:    ProviderTypeCLI,
+				Enabled: true,
+				Source:  "local",
+				Config: map[string]interface{}{
+					"path": path,
+				},
+				Models: map[string]string{
+					"fast":         "llama3.3:70b",
+					"codegen":      "qwen2.5-coder:7b",
+					"cheap":        "llama3.2",
+					"long-context": "llama3.3:70b",
+				},
+			}
+		}
+
+	case "anthropic":
+		// Check if ANTHROPIC_API_KEY is set
+		if IsEnvVarSet("ANTHROPIC_API_KEY") {
+			return &ProviderConfig{
+				Name:    "anthropic",
+				Type:    ProviderTypeAPI,
+				Enabled: true,
+				Source:  "api",
+				Config: map[string]interface{}{
+					"api_key":  "${ANTHROPIC_API_KEY}",
+					"base_url": "https://api.anthropic.com",
+				},
+				Models: map[string]string{
+					"fast":         "claude-haiku-4-5-20251015",
+					"codegen":      "claude-sonnet-4-5-20250929",
+					"agentic":      "claude-opus-4-1-20250805",
+					"long-context": "claude-sonnet-4-5-20250929",
+					"cheap":        "claude-haiku-4-5-20251015",
+				},
+			}
+		}
+
+	case "openai":
+		// Check if OPENAI_API_KEY is set
+		if IsEnvVarSet("OPENAI_API_KEY") {
+			return &ProviderConfig{
+				Name:    "openai",
+				Type:    ProviderTypeAPI,
+				Enabled: true,
+				Source:  "api",
+				Config: map[string]interface{}{
+					"api_key":  "${OPENAI_API_KEY}",
+					"base_url": "https://api.openai.com/v1",
+				},
+				Models: map[string]string{
+					"fast":         "gpt-4-1-mini",
+					"codegen":      "gpt-4-1",
+					"cheap":        "gpt-4-1-nano",
+					"long-context": "gpt-4-1",
+					"agentic":      "gpt-4-1",
+				},
+			}
+		}
+	}
+
+	return nil
+}
+
+// lookupCommand checks if a command exists in PATH and returns its path
+func lookupCommand(name string) (string, error) {
+	return exec.LookPath(name)
 }
 
 // expandEnvVars expands environment variables in a string
