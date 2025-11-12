@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/provider"
+	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
 const (
@@ -32,13 +33,24 @@ var providerListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configPath := cmd.Flags().Lookup("config").Value.String()
 		if configPath == "" {
-			configPath = defaultProviderConfigPath
+			// Try to discover providers.yaml in multiple locations
+			discoveredPath, discoverErr := ux.DiscoverConfigFile("providers.yaml")
+			if discoverErr == nil {
+				if _, statErr := os.Stat(discoveredPath); statErr == nil {
+					configPath = discoveredPath
+				}
+			}
+			// Fall back to default if discovery didn't find existing file
+			if configPath == "" {
+				configPath = defaultProviderConfigPath
+			}
 		}
 
 		// Check if config file exists
 		if _, err := os.Stat(configPath); os.IsNotExist(err) {
 			fmt.Printf("No provider configuration found at %s\n", configPath)
-			fmt.Printf("Run 'specular provider init' to create one from the example.\n")
+			fmt.Printf("Run 'specular provider init' to create one.\n")
+			fmt.Printf("Tip: Specular will auto-discover providers if you have ollama installed or API keys set.\n")
 			return nil
 		}
 
@@ -104,16 +116,21 @@ var providerHealthCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configPath := cmd.Flags().Lookup("config").Value.String()
 		if configPath == "" {
-			configPath = defaultProviderConfigPath
+			// Try to discover providers.yaml in multiple locations
+			discoveredPath, discoverErr := ux.DiscoverConfigFile("providers.yaml")
+			if discoverErr == nil {
+				if _, statErr := os.Stat(discoveredPath); statErr == nil {
+					configPath = discoveredPath
+				}
+			}
+			// Fall back to default if discovery didn't find existing file
+			if configPath == "" {
+				configPath = defaultProviderConfigPath
+			}
 		}
 
-		// Check if config file exists
-		if _, err := os.Stat(configPath); os.IsNotExist(err) {
-			return fmt.Errorf("no provider configuration found at %s", configPath)
-		}
-
-		// Load registry from config
-		registry, err := provider.LoadRegistryFromConfig(configPath)
+		// Load registry with auto-discovery (will try config first, then auto-discover)
+		registry, err := provider.LoadRegistryWithAutoDiscovery(configPath)
 		if err != nil {
 			return fmt.Errorf("failed to load providers: %w", err)
 		}
@@ -184,17 +201,24 @@ This creates a providers.yaml file from providers.yaml.example with default sett
 			return fmt.Errorf("failed to read example config: %w", err)
 		}
 
-		// Ensure .specular directory exists
-		if mkdirErr := os.MkdirAll(filepath.Dir(defaultProviderConfigPath), 0o750); mkdirErr != nil {
+		// Ensure .specular directory exists (with all subdirectories)
+		if mkdirErr := ux.EnsureSpecularDir(); mkdirErr != nil {
 			return fmt.Errorf("failed to create .specular directory: %w", mkdirErr)
 		}
 
-		// Write to target file
-		if writeErr := os.WriteFile(defaultProviderConfigPath, data, 0o600); writeErr != nil {
+		// Get the discovered .specular directory
+		specularDir, discoverErr := ux.DiscoverSpecularDir()
+		if discoverErr != nil {
+			return fmt.Errorf("failed to discover .specular directory: %w", discoverErr)
+		}
+
+		// Write to providers.yaml in discovered directory
+		targetPath := filepath.Join(specularDir, "providers.yaml")
+		if writeErr := os.WriteFile(targetPath, data, 0o600); writeErr != nil {
 			return fmt.Errorf("failed to write provider config: %w", writeErr)
 		}
 
-		fmt.Printf("✓ Created provider configuration at %s\n", defaultProviderConfigPath)
+		fmt.Printf("✓ Created provider configuration at %s\n", targetPath)
 		fmt.Println("\nNext steps:")
 		fmt.Println("  1. Edit .specular/providers.yaml to enable desired providers")
 		fmt.Println("  2. Set any required API keys as environment variables")
