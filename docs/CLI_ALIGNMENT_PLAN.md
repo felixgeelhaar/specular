@@ -318,20 +318,65 @@ This document outlines the changes needed to align the current CLI with the v1.0
    - **File:** `internal/cmd/build_test.go` (380 lines)
    - **Coverage:** Filtering, verification, manifest lookup, approval, flags, subcommands
 
-### Phase 5: Evaluation Framework (Priority: MEDIUM)
+### Phase 5: Evaluation Framework ✅ COMPLETED (Priority: MEDIUM)
 
 **Goal:** Structured evaluation and guardrails
 
+**Status:** ✅ Completed - All 3 eval subcommands implemented with comprehensive tests
+
+**Completion Summary:**
+- ✅ 3 eval subcommands implemented (run, rules, drift)
+- ✅ 4 evaluation scenarios defined (smoke, integration, security, performance)
+- ✅ Backward compatibility maintained with deprecation notice
+- ✅ 7 test functions created (16 test cases, 100% pass rate)
+- ✅ All commands build and function correctly
+
+**Implementation Details:**
+
 1. **Add `eval` subcommands:**
-   - `eval run [--scenario <name>]` - Run evaluation scenarios
-   - `eval rules` - Edit or list guardrail rules
-   - `eval drift` - Compare eval metrics across runs
+   - ✅ `eval run [--scenario <name>]` - Run evaluation scenarios
+     - **File:** `internal/cmd/eval.go:86-289`
+     - Supports scenario argument or --scenario flag
+     - 4 scenarios: smoke, integration, security, performance
+     - Smoke: go vet, go build, basic tests (3 checks)
+     - Integration: go vet, all tests, coverage (3 checks)
+     - Security: go vet, gosec scan, policy check (3 checks)
+     - Performance: benchmarks, memory/CPU profiling (3 checks)
+   - ✅ `eval rules` - View or edit guardrail rules
+     - **File:** `internal/cmd/eval.go:291-430`
+     - Displays policy rules (execution, linters, formatters, tests, security, routing)
+     - --edit flag opens policy in $EDITOR
+     - Validates policy after editing
+     - Shows next steps if policy missing
+   - ✅ `eval drift` - Detect drift between plan and repository
+     - **File:** `internal/cmd/eval.go:432-794`
+     - Original eval functionality preserved
+     - Comprehensive drift detection (plan, code, infrastructure)
+     - SARIF report generation
+     - Checkpoint/resume support
 
 2. **Define eval scenarios:**
-   - smoke - Basic health checks
-   - integration - Full integration tests
-   - security - Security scan + policy check
-   - performance - Performance benchmarks
+   - ✅ smoke - Basic health checks (go vet, go build, basic tests)
+   - ✅ integration - Full integration tests (go vet, all tests, coverage)
+   - ✅ security - Security scan + policy check (go vet, gosec, policy)
+   - ✅ performance - Performance benchmarks (benchmarks, profiling)
+
+3. **Backward Compatibility:**
+   - ✅ Root eval command detects old flag usage
+     - **File:** `internal/cmd/eval.go:30-44`
+     - Shows deprecation warning (v1.6.0 removal)
+     - Delegates to `eval drift` for compatibility
+
+4. **Tests created:**
+   - ✅ TestEvalScenarioValidation (6 cases) - Scenario validation logic
+   - ✅ TestEvalScenarioChecks (4 cases) - Check count per scenario
+   - ✅ TestEvalBackwardCompatibilityFlags (4 flags) - Backward compatibility
+   - ✅ TestEvalRunFlags (2 flags) - Eval run flags
+   - ✅ TestEvalRulesFlags (2 flags) - Eval rules flags
+   - ✅ TestEvalDriftFlags (6 flags) - Eval drift flags
+   - ✅ TestEvalSubcommands (3 commands) - Subcommand registration
+   - **File:** `internal/cmd/eval_test.go` (190 lines)
+   - **Coverage:** Scenario validation, checks, flags, subcommands
 
 ### Phase 6: Auto Mode Enhancement (Priority: MEDIUM)
 
