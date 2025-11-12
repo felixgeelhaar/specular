@@ -11,21 +11,35 @@ import (
 	"github.com/felixgeelhaar/specular/internal/checkpoint"
 )
 
-var checkpointCmd = &cobra.Command{
-	Use:   "checkpoint",
-	Short: "Manage checkpoints for resumable execution",
-	Long: `Manage checkpoints created by autonomous mode for resumable execution.
+var sessionCmd = &cobra.Command{
+	Use:   "session",
+	Short: "Manage workflow sessions and checkpoints",
+	Long: `Manage workflow sessions and checkpoints for resumable execution.
 
-Checkpoints are saved automatically during execution and can be used to
-resume interrupted or failed runs.`,
+Sessions are created automatically during autonomous mode execution and can be
+used to resume interrupted or failed workflows.
+
+Commands:
+  list     List all available sessions
+  show     Show detailed information about a session
+
+To resume a session, use: specular auto --resume <session-id>
+
+Examples:
+  specular session list
+  specular session show auto-1762811730
+  specular auto --resume auto-1762811730`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Help()
+	},
 }
 
-var checkpointListCmd = &cobra.Command{
+var sessionListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all available checkpoints",
-	Long: `List all checkpoints saved in .specular/checkpoints directory.
+	Short: "List all available sessions",
+	Long: `List all sessions saved in .specular/checkpoints directory.
 
-Shows checkpoint ID, status, created time, and task completion.`,
+Shows session ID, status, created time, and task completion.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create checkpoint manager
 		checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
@@ -33,16 +47,16 @@ Shows checkpoint ID, status, created time, and task completion.`,
 		// List all checkpoints
 		checkpointIDs, err := checkpointMgr.List()
 		if err != nil {
-			return fmt.Errorf("failed to list checkpoints: %w", err)
+			return fmt.Errorf("failed to list sessions: %w", err)
 		}
 
 		if len(checkpointIDs) == 0 {
-			fmt.Println("No checkpoints found.")
+			fmt.Println("No sessions found.")
 			return nil
 		}
 
 		// Load and display each checkpoint
-		type checkpointInfo struct {
+		type sessionInfo struct {
 			ID          string
 			Status      string
 			StartedAt   time.Time
@@ -53,7 +67,7 @@ Shows checkpoint ID, status, created time, and task completion.`,
 			FailedTasks int
 		}
 
-		var checkpoints []checkpointInfo
+		var sessions []sessionInfo
 
 		for _, id := range checkpointIDs {
 			cpState, err := checkpointMgr.Load(id)
@@ -68,7 +82,7 @@ Shows checkpoint ID, status, created time, and task completion.`,
 			failed := len(cpState.GetFailedTasks())
 			total := len(cpState.Tasks)
 
-			checkpoints = append(checkpoints, checkpointInfo{
+			sessions = append(sessions, sessionInfo{
 				ID:          id,
 				Status:      cpState.Status,
 				StartedAt:   cpState.StartedAt,
@@ -81,18 +95,18 @@ Shows checkpoint ID, status, created time, and task completion.`,
 		}
 
 		// Sort by started time (newest first)
-		sort.Slice(checkpoints, func(i, j int) bool {
-			return checkpoints[i].StartedAt.After(checkpoints[j].StartedAt)
+		sort.Slice(sessions, func(i, j int) bool {
+			return sessions[i].StartedAt.After(sessions[j].StartedAt)
 		})
 
 		// Print header
-		fmt.Println("Checkpoints:")
+		fmt.Println("Sessions:")
 		fmt.Println()
 
-		// Print checkpoints
-		for _, cp := range checkpoints {
+		// Print sessions
+		for _, s := range sessions {
 			statusIcon := "📦"
-			switch cp.Status {
+			switch s.Status {
 			case "completed":
 				statusIcon = "✅"
 			case "failed":
@@ -101,13 +115,13 @@ Shows checkpoint ID, status, created time, and task completion.`,
 				statusIcon = "⏳"
 			}
 
-			fmt.Printf("%s %s\n", statusIcon, cp.ID)
-			fmt.Printf("   Status:   %s\n", cp.Status)
-			fmt.Printf("   Product:  %s\n", cp.Product)
-			fmt.Printf("   Started:  %s\n", cp.StartedAt.Format("2006-01-02 15:04:05"))
-			fmt.Printf("   Progress: %d/%d tasks", cp.Completed, cp.Total)
-			if cp.FailedTasks > 0 {
-				fmt.Printf(" (%d failed)", cp.FailedTasks)
+			fmt.Printf("%s %s\n", statusIcon, s.ID)
+			fmt.Printf("   Status:   %s\n", s.Status)
+			fmt.Printf("   Product:  %s\n", s.Product)
+			fmt.Printf("   Started:  %s\n", s.StartedAt.Format("2006-01-02 15:04:05"))
+			fmt.Printf("   Progress: %d/%d tasks", s.Completed, s.Total)
+			if s.FailedTasks > 0 {
+				fmt.Printf(" (%d failed)", s.FailedTasks)
 			}
 			fmt.Println()
 			fmt.Println()
@@ -117,23 +131,23 @@ Shows checkpoint ID, status, created time, and task completion.`,
 	},
 }
 
-var checkpointShowCmd = &cobra.Command{
-	Use:   "show <checkpoint-id>",
-	Short: "Show detailed information about a checkpoint",
-	Long: `Show detailed information about a specific checkpoint.
+var sessionShowCmd = &cobra.Command{
+	Use:   "show <session-id>",
+	Short: "Show detailed information about a session",
+	Long: `Show detailed information about a specific session.
 
-Displays checkpoint metadata, task status, and execution details.`,
+Displays session metadata, task status, and execution details.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		checkpointID := args[0]
+		sessionID := args[0]
 
 		// Create checkpoint manager
 		checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
 
 		// Load checkpoint
-		cpState, err := checkpointMgr.Load(checkpointID)
+		cpState, err := checkpointMgr.Load(sessionID)
 		if err != nil {
-			return fmt.Errorf("failed to load checkpoint: %w", err)
+			return fmt.Errorf("failed to load session: %w", err)
 		}
 
 		// Get metadata
@@ -145,8 +159,8 @@ Displays checkpoint metadata, task status, and execution details.`,
 		pending := cpState.GetPendingTasks()
 		failed := cpState.GetFailedTasks()
 
-		// Print checkpoint info
-		fmt.Printf("Checkpoint: %s\n\n", checkpointID)
+		// Print session info
+		fmt.Printf("Session: %s\n\n", sessionID)
 		fmt.Printf("Status:     %s\n", cpState.Status)
 		fmt.Printf("Product:    %s\n", product)
 		fmt.Printf("Goal:       %s\n", goal)
@@ -202,7 +216,7 @@ Displays checkpoint metadata, task status, and execution details.`,
 		if asJSON {
 			jsonData, err := json.MarshalIndent(cpState, "", "  ")
 			if err != nil {
-				return fmt.Errorf("failed to marshal checkpoint: %w", err)
+				return fmt.Errorf("failed to marshal session: %w", err)
 			}
 			fmt.Println()
 			fmt.Println("JSON:")
@@ -215,13 +229,13 @@ Displays checkpoint metadata, task status, and execution details.`,
 
 func init() {
 	// Add show command flags
-	checkpointShowCmd.Flags().BoolP("verbose", "v", false, "Show detailed task information")
-	checkpointShowCmd.Flags().Bool("json", false, "Output checkpoint as JSON")
+	sessionShowCmd.Flags().BoolP("verbose", "v", false, "Show detailed task information")
+	sessionShowCmd.Flags().Bool("json", false, "Output session as JSON")
 
 	// Add subcommands
-	checkpointCmd.AddCommand(checkpointListCmd)
-	checkpointCmd.AddCommand(checkpointShowCmd)
+	sessionCmd.AddCommand(sessionListCmd)
+	sessionCmd.AddCommand(sessionShowCmd)
 
-	// Add checkpoint command to root
-	rootCmd.AddCommand(checkpointCmd)
+	// Add session command to root
+	rootCmd.AddCommand(sessionCmd)
 }

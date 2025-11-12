@@ -26,19 +26,15 @@ Checks include:
 
 Examples:
   # Display environment in default text format
-  specular context
+  specular debug context
 
   # Output as JSON for scripting
-  specular context --format json
+  specular debug context --format json
 
   # Output as YAML
-  specular context --format yaml
+  specular debug context --format yaml
 `,
 	RunE: runContext,
-}
-
-func init() {
-	rootCmd.AddCommand(contextCmd)
 }
 
 func runContext(cmd *cobra.Command, args []string) error {

@@ -27,19 +27,15 @@ Status information includes:
 
 Examples:
   # Display status in default text format
-  specular status
+  specular debug status
 
   # Output as JSON for scripting
-  specular status --format json
+  specular debug status --format json
 
   # Output as YAML
-  specular status --format yaml
+  specular debug status --format yaml
 `,
 	RunE: runStatus,
-}
-
-func init() {
-	rootCmd.AddCommand(statusCmd)
 }
 
 // StatusReport represents the complete project status

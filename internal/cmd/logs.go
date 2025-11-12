@@ -32,19 +32,19 @@ getting its own trace file.
 
 Examples:
   # Show recent logs
-  specular logs
+  specular debug logs
 
   # Show last 50 log entries
-  specular logs --lines 50
+  specular debug logs --lines 50
 
   # Show a specific trace log
-  specular logs --trace <trace-id>
+  specular debug logs --trace <trace-id>
 
   # Follow logs in real-time
-  specular logs --follow
+  specular debug logs --follow
 
   # List all available trace logs
-  specular logs --list
+  specular debug logs list
 `,
 	RunE: runLogs,
 }
@@ -63,7 +63,6 @@ func init() {
 	logsCmd.Flags().IntVarP(&logsLines, "lines", "n", 20, "Number of recent lines to show")
 
 	logsCmd.AddCommand(logsListCmd)
-	rootCmd.AddCommand(logsCmd)
 }
 
 func runLogs(cmd *cobra.Command, args []string) error {

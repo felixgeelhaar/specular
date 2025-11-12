@@ -29,16 +29,16 @@ This is useful for:
 
 Examples:
   # Explain routing for a completed workflow
-  specular explain auto-1762811730
+  specular debug explain auto-1762811730
 
   # Output as JSON for programmatic analysis
-  specular explain auto-1762811730 --format json
+  specular debug explain auto-1762811730 --format json
 
   # Output as Markdown for documentation
-  specular explain auto-1762811730 --format markdown
+  specular debug explain auto-1762811730 --format markdown
 
   # Compact summary format
-  specular explain auto-1762811730 --format compact`,
+  specular debug explain auto-1762811730 --format compact`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		checkpointID := args[0]
@@ -102,6 +102,4 @@ Examples:
 func init() {
 	explainCmd.Flags().StringP("format", "f", "text", "Output format (text, json, markdown, compact)")
 	explainCmd.Flags().StringP("output", "o", "", "Write output to file instead of stdout")
-
-	rootCmd.AddCommand(explainCmd)
 }

@@ -27,10 +27,10 @@ Checks include:
 
 Examples:
   # Run diagnostics with colored output
-  specular doctor
+  specular debug doctor
 
   # Output as JSON for CI/CD
-  specular doctor --format json
+  specular debug doctor --format json
 `,
 	RunE: runDoctor,
 }
@@ -57,10 +57,6 @@ type DoctorCheck struct {
 	Status  string                 `json:"status"` // "ok", "warning", "error", "missing"
 	Message string                 `json:"message"`
 	Details map[string]interface{} `json:"details,omitempty"`
-}
-
-func init() {
-	rootCmd.AddCommand(doctorCmd)
 }
 
 func runDoctor(cmd *cobra.Command, args []string) error {
