@@ -42,6 +42,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install syft for SBOM generation
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
       - name: Import GPG key (if configured)
         id: import_gpg
         if: secrets.GPG_PRIVATE_KEY != ''
@@ -73,4 +77,6 @@ jobs:
             dist/*.rpm
             dist/*.apk
             dist/checksums.txt
+            dist/*.spdx.json
+            dist/*.sig
           retention-days: 7
