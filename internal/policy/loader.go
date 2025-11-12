@@ -52,6 +52,20 @@ func DefaultPolicy() *Policy {
 	}
 }
 
+// SavePolicy writes a Policy to a YAML file
+func SavePolicy(policy *Policy, path string) error {
+	data, err := yaml.Marshal(policy)
+	if err != nil {
+		return fmt.Errorf("marshal policy: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("write policy file: %w", err)
+	}
+
+	return nil
+}
+
 // ValidateToolConfig checks if a tool configuration is valid
 func ValidateToolConfig(config ToolConfig) error {
 	if config.Enabled && config.Cmd == "" {

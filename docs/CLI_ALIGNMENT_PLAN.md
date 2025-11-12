@@ -457,18 +457,62 @@ This document outlines the changes needed to align the current CLI with the v1.0
 - **File:** `internal/cmd/route_test.go` (123 lines)
 - **Coverage:** Command registration, configuration, flags, arguments
 
-### Phase 8: Governance & Pro Features (Priority: LOW - Future)
+### Phase 8: Governance & Pro Features ✅ COMPLETED (Priority: LOW - Future)
 
-**Goal:** Enterprise features for teams
+**Completion Summary:**
+- ✅ 2 policy subcommands implemented (new, apply)
+- ✅ 1 approve command for governance signatures
+- ✅ Policy creation with defaults and strict mode
+- ✅ Policy application to project targets
+- ✅ SHA256-based approval workflow for artifacts
+- ✅ 10 test functions created (100% pass rate)
+- ✅ All commands build and function correctly
+
+**Implementation Details:**
 
 1. **Policy management:**
-   - `policy new` - Create new policy
-   - `policy apply` - Apply policy to target
+   - ✅ `policy new [--output] [--strict] [--force]` - Create new policy with defaults
+     - **File:** `internal/cmd/policy.go:32-92`
+     - Creates policy files with sensible defaults
+     - Strict mode: Docker required, 80% coverage, security scans enabled
+     - Default mode: 70% coverage, security scans enabled
+   - ✅ `policy apply --file <file> [--target]` - Apply policy to target
+     - **File:** `internal/cmd/policy.go:95-157`
+     - Validates and loads policy files
+     - Applies to project (.specular/policy.yaml)
+     - Future: workspace and organization targets
 
 2. **Approval workflow:**
-   - `approve [spec|plan|bundle]` - Governance signature
+   - ✅ `approve [spec|plan|bundle] --file <file> [--approver] [--comment] [--env]` - Governance signature
+     - **File:** `internal/cmd/approve.go:26-147`
+     - Computes SHA256 hash of artifacts
+     - Stores approval signatures with metadata
+     - Includes: hash, approver, timestamp, comment, environment
+     - Saves to: `.specular/approvals/<artifact>-<timestamp>-<approver>.json`
 
-3. **Team collaboration (Future):**
+3. **Supporting infrastructure:**
+   - ✅ `SavePolicy` function added to policy package
+     - **File:** `internal/policy/loader.go:55-67`
+     - Marshals Policy struct to YAML
+     - Writes to disk with proper error handling
+
+**Test Coverage:**
+- ✅ TestPolicySubcommands - Verifies both policy subcommands registered
+- ✅ TestPolicyNewFlags - Validates policy new flags (output, strict, force)
+- ✅ TestPolicyApplyFlags - Validates policy apply flags (file, target)
+- ✅ TestPolicyNewCommand - Tests policy new command configuration
+- ✅ TestPolicyApplyCommand - Tests policy apply command configuration
+- ✅ TestPolicyCommand - Tests policy command structure
+- ✅ TestApproveCommand - Tests approve command configuration
+- ✅ TestApproveFlags - Validates approve command flags
+- ✅ TestApproveArtifactTypes - Validates artifact type validation
+- ✅ TestApprovalStruct - Tests Approval struct definition
+- **Files:**
+  - `internal/cmd/policy_test.go` (145 lines)
+  - `internal/cmd/approve_test.go` (88 lines)
+- **Coverage:** Command registration, configuration, flags, struct definitions
+
+**Team collaboration (Future):**
    - `org sync` - Sync with registry
    - `team status` - Show approvals and reviews
 
