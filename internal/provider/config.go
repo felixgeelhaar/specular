@@ -350,11 +350,11 @@ func generateProviderConfig(providerName string) *ProviderConfig {
 					"base_url": "https://api.openai.com/v1",
 				},
 				Models: map[string]string{
-					"fast":         "gpt-4-1-mini",
-					"codegen":      "gpt-4-1",
-					"cheap":        "gpt-4-1-nano",
-					"long-context": "gpt-4-1",
-					"agentic":      "gpt-4-1",
+					"fast":         "gpt-5-mini",
+					"codegen":      "gpt-5",
+					"cheap":        "gpt-5-nano",
+					"long-context": "gpt-5",
+					"agentic":      "gpt-5",
 				},
 			}
 		}
