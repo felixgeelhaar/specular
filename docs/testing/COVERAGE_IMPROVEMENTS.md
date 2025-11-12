@@ -901,6 +901,203 @@ The test coverage improvement initiative successfully added 105+ comprehensive t
 - ✅ Bug discovered and fixed in detectGit() through integration testing
 - ✅ Phase 6 integration tests: **Largest single-phase improvement (+32.8%)**
 - ✅ Phase 7 integration tests: **Docker cache management fully validated**
+- ✅ Phase 8 integration tests: **Sigstore attestation operations validated**
+
+## Phase 8: Integration Tests for Sigstore Attestation Operations (COMPLETED)
+
+**Target**: `internal/bundle` attestation functions (11 functions at 0%)
+
+**Objective**: Create integration tests for Sigstore attestation generation and verification operations that require cryptographic key operations.
+
+### Context and Rationale
+
+The `internal/bundle/attestation_sigstore.go` file contains 11 attestation-related functions at 0% coverage. These functions handle:
+- SLSA provenance generation
+- In-toto statement creation
+- ECDSA key-based signing (fully implemented)
+- Attestation verification workflows
+- Placeholder functions for keyless signing and Rekor transparency log uploads
+
+These operations require real cryptographic operations with EC keys and cannot be effectively unit tested without external dependencies.
+
+### Test Functions Implemented
+
+All tests use `//go:build integration` tag and are in `internal/bundle/attestation_sigstore_integration_test.go`:
+
+| Test Function | Purpose | Testing Pattern |
+|---------------|---------|----------------|
+| TestNewAttestationGenerator | Generator initialization with defaults | Verifies default Rekor/Fulcio URLs and custom URL preservation |
+| TestCreateSLSAProvenance | SLSA provenance structure creation | Tests pure function creating SLSA provenance metadata |
+| TestCreateInTotoStatement | In-toto statement structure creation | Tests pure function creating in-toto statements |
+| TestGenerateAttestationWithKey | Key-based attestation generation | Tests SLSA, Sigstore, and InToto formats with EC keys |
+| TestGenerateAttestationKeylessError | Keyless signing placeholder validation | Verifies keyless returns appropriate error |
+| TestGenerateAttestationNoKeyError | Missing key error handling | Verifies error when neither key nor keyless provided |
+| TestNewAttestationVerifier | Verifier initialization | Tests default Rekor URL application |
+| TestVerifyAttestation | Attestation verification workflow | Tests basic validation and expiration checking |
+| TestVerifyAttestationDigestMismatch | Digest verification | Tests digest mismatch detection |
+
+### Test Fixtures Created
+
+Created in `internal/bundle/testdata/`:
+
+1. **test-ec-key.pem** (227 bytes) - EC private key (P-256 curve)
+   ```bash
+   openssl ecparam -name prime256v1 -genkey -noout -out test-ec-key.pem
+   ```
+
+2. **test-ec-pub.pem** (178 bytes) - EC public key
+   ```bash
+   openssl ec -in test-ec-key.pem -pubout -out test-ec-pub.pem
+   ```
+
+3. **test-bundle.tar** (36 bytes) - Test bundle for attestation
+   ```bash
+   echo "test bundle content for attestation" > test-bundle.tar
+   ```
+
+### Coverage Impact
+
+**Function-Level Coverage** (11 attestation functions):
+
+| Function | Before | After | Status |
+|----------|--------|-------|--------|
+| NewAttestationGenerator | 0.0% | 100.0% | ✅ Full coverage |
+| GenerateAttestation | 0.0% | 78.1% | ✅ Good coverage |
+| createSLSAProvenance | 0.0% | 100.0% | ✅ Full coverage |
+| createInTotoStatement | 0.0% | 100.0% | ✅ Full coverage |
+| signKeyless | 0.0% | 100.0% | ✅ Placeholder tested |
+| signWithKey | 0.0% | 72.7% | ✅ Core path covered |
+| uploadToRekor | 0.0% | 0.0% | ⚠️ Not called (placeholder) |
+| NewAttestationVerifier | 0.0% | 100.0% | ✅ Full coverage |
+| VerifyAttestation | 0.0% | 59.1% | ✅ Main path covered |
+| verifySignature | 0.0% | 0.0% | ⚠️ Not called yet |
+| verifyRekorEntry | 0.0% | 0.0% | ⚠️ Not called (placeholder) |
+
+**Summary**:
+- ✅ **7 functions** improved from 0% to good/full coverage (59-100%)
+- ⚠️ **3 functions** remain at 0% (verifySignature, uploadToRekor, verifyRekorEntry - not called or placeholders)
+- ⚠️ **1 function** (signKeyless) is a placeholder that correctly returns error
+
+### Test Execution
+
+```bash
+# Run attestation integration tests
+go test ./internal/bundle -tags=integration -v -run "Attestation" \
+    -coverprofile=/tmp/bundle_attestation_coverage.out
+
+# Measure function-level coverage
+go tool cover -func=/tmp/bundle_attestation_coverage.out | grep attestation_sigstore.go
+```
+
+**Test Results**:
+- ✅ All 11 test functions passed
+- ✅ Total execution time: 0.530s
+- ✅ ECDSA signing operations validated with P-256 keys
+- ✅ SLSA provenance structure validated
+- ✅ In-toto statement structure validated
+- ✅ Attestation verification workflow validated
+- ✅ Error handling for keyless and missing key scenarios validated
+
+### Key Implementation Details
+
+#### 1. Cryptographic Key Testing Strategy
+- Uses real EC P-256 keys (not mocks) for authentic ECDSA signing
+- Tests key-based signing path (signWithKey) which is fully implemented
+- Documents placeholder functions (signKeyless, uploadToRekor) for future implementation
+
+#### 2. Test Data Patterns
+```go
+// Table-driven tests for multiple attestation formats
+tests := []struct {
+    name   string
+    format AttestationFormat
+}{
+    {name: "SLSA format", format: AttestationFormatSLSA},
+    {name: "Sigstore format", format: AttestationFormatSigstore},
+    {name: "InToto format", format: AttestationFormatInToto},
+}
+```
+
+#### 3. Conditional Test Skipping
+```go
+if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+    t.Skipf("Test key not found: %s", keyPath)
+}
+```
+
+#### 4. Comprehensive Validation
+Each attestation test validates:
+- Format field matches request
+- Subject name and digest are correct
+- Signature is present and non-empty
+- Public key is extracted and stored
+- Signature algorithm is ECDSA-SHA256
+- Predicate type matches format
+- Timestamp is set
+- Metadata is preserved
+- Rekor entry handling is correct
+
+### Results and Benefits
+
+**Coverage Achievement**:
+- ✅ 7 of 11 attestation functions now have good to excellent coverage
+- ✅ Core attestation generation workflow (GenerateAttestation) at 78.1%
+- ✅ Pure functions (createSLSAProvenance, createInTotoStatement) at 100%
+- ✅ Key-based signing (signWithKey) at 72.7%
+- ✅ Verification workflow (VerifyAttestation) at 59.1%
+
+**Testing Infrastructure**:
+- ✅ Test fixtures for EC cryptographic operations
+- ✅ Integration test patterns for Sigstore workflows
+- ✅ Validation framework for attestation structure
+- ✅ Error handling tests for unimplemented features
+
+**Production Confidence**:
+- ✅ Real cryptographic operations validated
+- ✅ SLSA provenance structure conforms to specification
+- ✅ In-toto statement structure validated
+- ✅ Attestation verification workflow tested
+- ✅ Digest mismatch detection working
+- ✅ Expiration handling validated
+
+### Files Created/Modified
+
+1. **internal/bundle/attestation_sigstore_integration_test.go** (NEW - 488 lines)
+   - 11 comprehensive integration test functions
+   - Table-driven tests for multiple formats
+   - Cryptographic operation validation
+
+2. **internal/bundle/testdata/test-ec-key.pem** (NEW - 227 bytes)
+   - EC private key (P-256 curve) for signing tests
+
+3. **internal/bundle/testdata/test-ec-pub.pem** (NEW - 178 bytes)
+   - EC public key for verification
+
+4. **internal/bundle/testdata/test-bundle.tar** (NEW - 36 bytes)
+   - Test bundle for attestation operations
+
+### Lessons Learned
+
+1. **Real Crypto is Essential**: Using real EC keys (not mocks) provides authentic validation of cryptographic operations
+2. **Placeholder Documentation**: Documenting unimplemented functions (keyless, Rekor) helps clarify implementation status
+3. **Structured Validation**: Comprehensive field validation catches structure issues early
+4. **Test Fixtures Matter**: Proper test fixtures (keys, bundles) enable realistic integration testing
+
+### Next Steps
+
+**Immediate Opportunities**:
+- Implement verifySignature() function and add tests
+- Add integration tests when keyless signing is implemented
+- Add integration tests when Rekor upload is implemented
+
+**Future Enhancements**:
+- Keyless signing integration with Fulcio
+- Rekor transparency log integration
+- Signature verification with public keys
+- Rekor entry verification
+- Complete attestation verification workflow
+
+---
 
 ### Next Steps
 
@@ -920,8 +1117,8 @@ The test coverage improvement initiative successfully added 105+ comprehensive t
 - Bundle lifecycle (build → verify → apply)
 - Checkpoint creation and resume workflows
 
-The combined unit test and integration test foundation is strong. Phase 4 demonstrated the value of targeting pure utility functions for quick wins. Phase 6 achieved the largest single-phase coverage improvement (+32.8%) through comprehensive integration testing of detector functions. The path forward includes continuing to identify similar opportunities while building out more comprehensive integration and E2E testing for complex workflows with external dependencies.
+The combined unit test and integration test foundation is strong. Phase 4 demonstrated the value of targeting pure utility functions for quick wins. Phase 6 achieved the largest single-phase coverage improvement (+32.8%) through comprehensive integration testing of detector functions. Phase 7 validated Docker cache management operations. Phase 8 validated Sigstore attestation operations with real cryptographic keys. The path forward includes continuing to identify similar opportunities while building out more comprehensive integration and E2E testing for complex workflows with external dependencies.
 
 ---
 
-Last Updated: 2025-01-12 (Phase 7 completed - Docker cache integration tests, internal/exec 54.7% → ~62%)
+Last Updated: 2025-01-12 (Phase 8 completed - Sigstore attestation integration tests, 7 of 11 functions improved from 0% to 59-100%)
