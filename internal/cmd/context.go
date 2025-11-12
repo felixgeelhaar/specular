@@ -1,90 +1,209 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
+
+	"github.com/felixgeelhaar/specular/internal/detect"
+	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
-// CommandContext holds all command-line flags and configuration
-// that were previously global variables. This enables:
-// - Better testability (no global state interference)
-// - Concurrent command execution
-// - Explicit dependencies
-type CommandContext struct {
-	// Output control
-	Verbose bool
-	Quiet   bool
-	Format  string
-	NoColor bool
+var contextCmd = &cobra.Command{
+	Use:   "context",
+	Short: "Detect and display environment setup",
+	Long: `Detect environment setup including installed models, API keys, Docker, and other dependencies.
 
-	// AI behavior
-	Explain bool
-	Trace   string
+This command helps you understand what AI providers and tools are available in your environment.
 
-	// Configuration
-	SpecularHome string
-	LogLevel     string
+Checks include:
+  • Container runtime (Docker/Podman) availability
+  • AI providers (Ollama, OpenAI, Anthropic, Google Gemini)
+  • API key configuration
+  • Programming languages and frameworks
+  • Git repository status
+  • CI/CD environment detection
+
+Examples:
+  # Display environment in default text format
+  specular context
+
+  # Output as JSON for scripting
+  specular context --format json
+
+  # Output as YAML
+  specular context --format yaml
+`,
+	RunE: runContext,
 }
 
-// NewCommandContext extracts command context from cobra.Command flags.
-// Commands should call this in their RunE function to get their configuration:
-//
-//	func runCommand(cmd *cobra.Command, args []string) error {
-//		ctx, err := NewCommandContext(cmd)
-//		if err != nil {
-//			return fmt.Errorf("failed to create command context: %w", err)
-//		}
-//		// Use ctx.Verbose, ctx.Format, etc.
-//	}
-func NewCommandContext(cmd *cobra.Command) (*CommandContext, error) {
-	// Extract all persistent flags from the command
-	verbose, err := cmd.Flags().GetBool("verbose")
+func init() {
+	rootCmd.AddCommand(contextCmd)
+}
+
+func runContext(cmd *cobra.Command, args []string) error {
+	// Extract command context
+	cmdCtx, err := NewCommandContext(cmd)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to create command context: %w", err)
 	}
 
-	quiet, err := cmd.Flags().GetBool("quiet")
+	// Detect all environment context
+	ctx, err := detect.DetectAll()
 	if err != nil {
-		return nil, err
+		return ux.FormatError(err, "detecting environment context")
 	}
 
-	format, err := cmd.Flags().GetString("format")
-	if err != nil {
-		return nil, err
+	// Format and output the context
+	return outputContext(cmdCtx, ctx)
+}
+
+func outputContext(cmdCtx *CommandContext, ctx *detect.Context) error {
+	// For JSON and YAML, use the formatter
+	if cmdCtx.Format == "json" || cmdCtx.Format == "yaml" {
+		formatter, err := ux.NewFormatter(cmdCtx.Format, &ux.FormatterOptions{
+			NoColor: cmdCtx.NoColor,
+		})
+		if err != nil {
+			return err
+		}
+		return formatter.Format(ctx)
 	}
 
-	noColor, err := cmd.Flags().GetBool("no-color")
-	if err != nil {
-		return nil, err
+	// For text format, use the built-in Summary method
+	fmt.Println(ctx.Summary())
+
+	// Add recommendations
+	recommended := ctx.GetRecommendedProviders()
+	if len(recommended) > 0 {
+		fmt.Println("\nRecommended Providers:")
+		for _, provider := range recommended {
+			fmt.Printf("  • %s\n", provider)
+		}
 	}
 
-	explain, err := cmd.Flags().GetBool("explain")
-	if err != nil {
-		return nil, err
+	// Add warnings if no providers are available
+	hasProvider := false
+	for _, info := range ctx.Providers {
+		if info.Available {
+			hasProvider = true
+			break
+		}
 	}
 
-	trace, err := cmd.Flags().GetString("trace")
-	if err != nil {
-		return nil, err
+	if !hasProvider {
+		fmt.Println("\n⚠️  Warning: No AI providers detected")
+		fmt.Println("   Install Ollama (https://ollama.ai) or set API keys:")
+		fmt.Println("     • OPENAI_API_KEY for OpenAI")
+		fmt.Println("     • ANTHROPIC_API_KEY for Anthropic Claude")
+		fmt.Println("     • GEMINI_API_KEY for Google Gemini")
 	}
 
-	specularHome, err := cmd.Flags().GetString("home")
-	if err != nil {
-		return nil, err
+	// Add warning if no container runtime
+	if ctx.Runtime == "" {
+		fmt.Println("\n⚠️  Warning: No container runtime detected")
+		fmt.Println("   Install Docker (https://docker.com) or Podman")
 	}
 
-	logLevel, err := cmd.Flags().GetString("log-level")
-	if err != nil {
-		return nil, err
+	return nil
+}
+
+// ContextReport creates a simplified report structure for external use
+type ContextReport struct {
+	Runtime   RuntimeInfo              `json:"runtime"`
+	Providers map[string]ProviderState `json:"providers"`
+	Languages []string                 `json:"languages,omitempty"`
+	Git       *GitInfo                 `json:"git,omitempty"`
+	CI        *CIInfo                  `json:"ci,omitempty"`
+}
+
+type RuntimeInfo struct {
+	Type      string `json:"type"`      // "docker", "podman", or ""
+	Version   string `json:"version"`   // Runtime version
+	Available bool   `json:"available"` // Is runtime available
+	Running   bool   `json:"running"`   // Is daemon running
+}
+
+type ProviderState struct {
+	Available bool   `json:"available"`        // Is provider available
+	Type      string `json:"type"`             // "cli", "api", "local"
+	Version   string `json:"version"`          // Provider version
+	APIKey    bool   `json:"api_key_set"`      // Is API key set
+	KeyName   string `json:"key_name"`         // Environment variable name
+}
+
+type GitInfo struct {
+	Initialized bool   `json:"initialized"`
+	Branch      string `json:"branch,omitempty"`
+	Dirty       bool   `json:"dirty"`
+	Uncommitted int    `json:"uncommitted"`
+}
+
+type CIInfo struct {
+	Detected bool   `json:"detected"`
+	Name     string `json:"name,omitempty"`
+}
+
+// convertToReport converts detect.Context to ContextReport
+func convertToReport(ctx *detect.Context) *ContextReport {
+	report := &ContextReport{
+		Providers: make(map[string]ProviderState),
 	}
 
-	return &CommandContext{
-		Verbose:      verbose,
-		Quiet:        quiet,
-		Format:       format,
-		NoColor:      noColor,
-		Explain:      explain,
-		Trace:        trace,
-		SpecularHome: specularHome,
-		LogLevel:     logLevel,
-	}, nil
+	// Runtime info
+	if ctx.Runtime == "docker" {
+		report.Runtime = RuntimeInfo{
+			Type:      "docker",
+			Version:   ctx.Docker.Version,
+			Available: ctx.Docker.Available,
+			Running:   ctx.Docker.Running,
+		}
+	} else if ctx.Runtime == "podman" {
+		report.Runtime = RuntimeInfo{
+			Type:      "podman",
+			Version:   ctx.Podman.Version,
+			Available: ctx.Podman.Available,
+			Running:   ctx.Podman.Running,
+		}
+	} else {
+		report.Runtime = RuntimeInfo{
+			Type:      "",
+			Available: false,
+			Running:   false,
+		}
+	}
+
+	// Provider info
+	for name, info := range ctx.Providers {
+		report.Providers[name] = ProviderState{
+			Available: info.Available,
+			Type:      info.Type,
+			Version:   info.Version,
+			APIKey:    info.EnvSet,
+			KeyName:   info.EnvVar,
+		}
+	}
+
+	// Languages
+	report.Languages = ctx.Languages
+
+	// Git info (if initialized)
+	if ctx.Git.Initialized {
+		report.Git = &GitInfo{
+			Initialized: true,
+			Branch:      ctx.Git.Branch,
+			Dirty:       ctx.Git.Dirty,
+			Uncommitted: ctx.Git.Uncommitted,
+		}
+	}
+
+	// CI info (if detected)
+	if ctx.CI.Detected {
+		report.CI = &CIInfo{
+			Detected: true,
+			Name:     ctx.CI.Name,
+		}
+	}
+
+	return report
 }
