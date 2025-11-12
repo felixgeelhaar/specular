@@ -160,7 +160,8 @@ func (r *Registry) LoadFromConfig(config *ProviderConfig) error {
 
 	switch config.Type {
 	case ProviderTypeCLI:
-		// Extract executable path from config
+		// All CLI providers use the generic ExecutableProvider
+		// which expects executables that implement generate/stream/health commands
 		path, ok := config.Config["path"].(string)
 		if !ok || path == "" {
 			return fmt.Errorf("executable path required for CLI provider %s", config.Name)

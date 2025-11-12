@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -367,43 +368,53 @@ func generateProviderConfig(providerName string) *ProviderConfig {
 
 	case "claude-code":
 		// Check if claude CLI is available (Claude Code)
-		if path, err := lookupCommand("claude"); err == nil {
-			return &ProviderConfig{
-				Name:    "claude-code",
-				Type:    ProviderTypeCLI,
-				Enabled: true,
-				Source:  "local",
-				Config: map[string]interface{}{
-					"path": path,
-				},
-				Models: map[string]string{
-					"fast":         "claude-haiku-4-5-20251015",
-					"codegen":      "claude-sonnet-4-5-20250929",
-					"agentic":      "claude-opus-4-1-20250805",
-					"long-context": "claude-sonnet-4-5-20250929",
-					"cheap":        "claude-haiku-4-5-20251015",
-				},
+		// Use wrapper executable that implements the provider protocol
+		if _, err := lookupCommand("claude"); err == nil {
+			// Get absolute path to wrapper executable
+			wrapperPath, err := filepath.Abs("providers/claude-code/claude-code-provider")
+			if err == nil {
+				return &ProviderConfig{
+					Name:    "claude-code",
+					Type:    ProviderTypeCLI,
+					Enabled: true,
+					Source:  "local",
+					Config: map[string]interface{}{
+						"path": wrapperPath,
+					},
+					Models: map[string]string{
+						"fast":         "claude-haiku-4-5-20251015",
+						"codegen":      "claude-sonnet-4-5-20250929",
+						"agentic":      "claude-opus-4-1-20250805",
+						"long-context": "claude-sonnet-4-5-20250929",
+						"cheap":        "claude-haiku-4-5-20251015",
+					},
+				}
 			}
 		}
 
 	case "gemini-cli":
 		// Check if gemini CLI is available
-		if path, err := lookupCommand("gemini"); err == nil {
-			return &ProviderConfig{
-				Name:    "gemini-cli",
-				Type:    ProviderTypeCLI,
-				Enabled: true,
-				Source:  "local",
-				Config: map[string]interface{}{
-					"path": path,
-				},
-				Models: map[string]string{
-					"fast":         "gemini-2.0-flash-exp",
-					"codegen":      "gemini-exp-1206",
-					"agentic":      "gemini-exp-1206",
-					"long-context": "gemini-exp-1206",
-					"cheap":        "gemini-2.0-flash-exp",
-				},
+		// Use wrapper executable that implements the provider protocol
+		if _, err := lookupCommand("gemini"); err == nil {
+			// Get absolute path to wrapper executable
+			wrapperPath, err := filepath.Abs("providers/gemini-cli/gemini-cli-provider")
+			if err == nil {
+				return &ProviderConfig{
+					Name:    "gemini-cli",
+					Type:    ProviderTypeCLI,
+					Enabled: true,
+					Source:  "local",
+					Config: map[string]interface{}{
+						"path": wrapperPath,
+					},
+					Models: map[string]string{
+						"fast":         "gemini-2.0-flash-exp",
+						"codegen":      "gemini-exp-1206",
+						"agentic":      "gemini-exp-1206",
+						"long-context": "gemini-exp-1206",
+						"cheap":        "gemini-2.0-flash-exp",
+					},
+				}
 			}
 		}
 
@@ -430,22 +441,27 @@ func generateProviderConfig(providerName string) *ProviderConfig {
 
 	case "codex-cli":
 		// Check if codex CLI is available (OpenAI Codex)
-		if path, err := lookupCommand("codex"); err == nil {
-			return &ProviderConfig{
-				Name:    "codex-cli",
-				Type:    ProviderTypeCLI,
-				Enabled: true,
-				Source:  "local",
-				Config: map[string]interface{}{
-					"path": path,
-				},
-				Models: map[string]string{
-					"fast":         "codex",
-					"codegen":      "codex",
-					"agentic":      "codex",
-					"long-context": "codex",
-					"cheap":        "codex",
-				},
+		// Use wrapper executable that implements the provider protocol
+		if _, err := lookupCommand("codex"); err == nil {
+			// Get absolute path to wrapper executable
+			wrapperPath, err := filepath.Abs("providers/codex-cli/codex-cli-provider")
+			if err == nil {
+				return &ProviderConfig{
+					Name:    "codex-cli",
+					Type:    ProviderTypeCLI,
+					Enabled: true,
+					Source:  "local",
+					Config: map[string]interface{}{
+						"path": wrapperPath,
+					},
+					Models: map[string]string{
+						"fast":         "codex",
+						"codegen":      "codex",
+						"agentic":      "codex",
+						"long-context": "codex",
+						"cheap":        "codex",
+					},
+				}
 			}
 		}
 	}
