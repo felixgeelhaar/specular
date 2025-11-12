@@ -416,14 +416,46 @@ This document outlines the changes needed to align the current CLI with the v1.0
 - **File:** `internal/cmd/auto_test.go` (107 lines)
 - **Coverage:** Command registration, configuration, flags, backward compatibility
 
-### Phase 7: Routing Intelligence (Priority: LOW)
+### Phase 7: Routing Intelligence ✅ COMPLETED (Priority: LOW)
 
-**Goal:** Expose routing decisions
+**Completion Summary:**
+- ✅ 3 route subcommands implemented (list, override, explain)
+- ✅ Provider and model listing with availability status
+- ✅ Session override via environment variable
+- ✅ Routing explanation with cost estimates
+- ✅ 7 test functions created (100% pass rate)
+- ✅ All commands build and function correctly
 
+**Implementation Details:**
 1. **Add routing commands:**
-   - `route list` - List providers and costs
-   - `route override <provider>` - Override for session
-   - `route explain <task>` - Explain routing logic
+   - ✅ `route list [--available] [--provider]` - List providers, models, and costs
+     - **File:** `internal/cmd/route.go:28-157`
+     - Lists all models grouped by provider (Anthropic, OpenAI, Local)
+     - Shows availability status, context window, cost per Mtok, latency, capability
+     - Displays router budget (limit, spent, remaining)
+     - Filter by availability or specific provider
+   - ✅ `route override <provider>` - Override provider selection for session
+     - **File:** `internal/cmd/route.go:160-227`
+     - Validates provider name (anthropic, openai, local)
+     - Checks provider configuration status
+     - Provides export command for SPECULAR_PROVIDER_OVERRIDE env var
+   - ✅ `route explain <task-type>` - Explain routing logic for task types
+     - **File:** `internal/cmd/route.go:230-332`
+     - Supports task types: codegen, long-context, agentic, fast, cheap
+     - Shows selected model with full details
+     - Explains selection reasoning
+     - Provides cost estimates and alternative models
+
+**Test Coverage:**
+- ✅ TestRouteSubcommands - Verifies all 3 subcommands registered
+- ✅ TestRouteListFlags - Validates list command flags
+- ✅ TestRouteOverrideArgs - Validates override argument requirements
+- ✅ TestRouteExplainArgs - Validates explain argument requirements
+- ✅ TestRouteListCommand - Tests list command configuration
+- ✅ TestRouteOverrideCommand - Tests override command configuration
+- ✅ TestRouteExplainCommand - Tests explain command configuration
+- **File:** `internal/cmd/route_test.go` (123 lines)
+- **Coverage:** Command registration, configuration, flags, arguments
 
 ### Phase 8: Governance & Pro Features (Priority: LOW - Future)
 
