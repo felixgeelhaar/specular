@@ -26,6 +26,15 @@ and strict mode for enhanced validation.`,
 }
 
 func runInterview(cmd *cobra.Command, args []string) error {
+	// Display deprecation notice
+	fmt.Fprintf(os.Stderr, "\n⚠️  DEPRECATION WARNING:\n")
+	fmt.Fprintf(os.Stderr, "The 'interview' command is deprecated and will be removed in v1.6.0.\n")
+	fmt.Fprintf(os.Stderr, "Please use 'specular spec new' instead.\n\n")
+	fmt.Fprintf(os.Stderr, "Migration examples:\n")
+	fmt.Fprintf(os.Stderr, "  specular interview → specular spec new\n")
+	fmt.Fprintf(os.Stderr, "  specular interview --preset web-app → specular spec new --preset web-app\n")
+	fmt.Fprintf(os.Stderr, "  specular interview --tui → specular spec new --tui\n\n")
+
 	defaults := ux.NewPathDefaults()
 	out := cmd.Flags().Lookup("out").Value.String()
 	preset := cmd.Flags().Lookup("preset").Value.String()
