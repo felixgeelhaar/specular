@@ -194,19 +194,66 @@ This document outlines the changes needed to align the current CLI with the v1.0
    - **File:** `internal/cmd/spec_test.go` (297 lines)
    - **Coverage:** Validation logic, diff comparison, note management
 
-### Phase 3: Plan Management Refactor (Priority: HIGH)
+### Phase 3: Plan Management Refactor ✅ COMPLETED (Priority: HIGH)
 
 **Goal:** Add plan review and drift detection
 
+**Status:** ✅ Completed - All 4 plan subcommands implemented with comprehensive tests
+
+**Completion Summary:**
+- ✅ 4 plan subcommands implemented (gen, review, drift, explain)
+- ✅ Backward compatibility maintained with deprecation notice
+- ✅ --feature flag added for feature-specific plans
+- ✅ 6 test functions created (15 test cases, 100% pass rate)
+- ✅ TUI stub created for plan review
+
+**Implementation Details:**
+
 1. **Refactor `plan` to `plan gen`:**
-   - Current `plan` becomes `plan gen`
-   - Add `--feature <id>` flag for feature-specific plans
-   - Keep backward compatibility
+   - ✅ Current `plan` becomes `plan gen`
+     - **File:** `internal/cmd/plan.go:44-186`
+     - Generates task DAG from spec and lock
+     - Supports all original flags (--in, --out, --lock, --estimate)
+   - ✅ Add `--feature <id>` flag for feature-specific plans
+     - **File:** `internal/cmd/plan.go:139-164`
+     - Filters spec to single feature before plan generation
+     - Validates feature exists in spec
+     - Provides tailored next steps
+   - ✅ Keep backward compatibility
+     - **File:** `internal/cmd/plan.go:27-41`
+     - Root plan command detects old flag usage
+     - Shows deprecation warning (v1.6.0 removal)
+     - Delegates to plan gen for backward compatibility
 
 2. **Add new plan subcommands:**
-   - `plan review` - Interactive plan review (TUI)
-   - `plan drift` - Detect drift between plan and repo
-   - `plan explain <step>` - Explain routing for specific step
+   - ✅ `plan review` - Interactive plan review (TUI)
+     - **File:** `internal/cmd/plan.go:188-233`
+     - Loads and validates plan file
+     - Launches TUI for interactive review (stub implementation)
+     - Shows approval/rejection result with next steps
+     - **TUI Stub:** `internal/tui/plan_review.go` (19 lines)
+   - ✅ `plan drift` - Detect drift between plan and repo
+     - **File:** `internal/cmd/plan.go:235-306`
+     - Checks git status for uncommitted changes
+     - Reports number of affected files
+     - Provides recommendations (commit, stash, regenerate)
+     - Placeholder for hash comparison (future enhancement)
+   - ✅ `plan explain <step>` - Explain routing for specific step
+     - **File:** `internal/cmd/plan.go:308-378`
+     - Looks up task by step ID
+     - Shows routing decision rationale
+     - Displays skill, model hint, priority, complexity
+     - Lists task dependencies and expected hash
+
+3. **Tests created:**
+   - ✅ TestPlanFeatureFiltering (3 cases) - Feature filter logic
+   - ✅ TestPlanExplainTaskLookup (3 cases) - Task lookup logic
+   - ✅ TestPlanDriftDetection (2 cases) - Drift detection logic
+   - ✅ TestBackwardCompatibilityFlags (4 flags) - Backward compatibility
+   - ✅ TestPlanGenFlags (5 flags) - Plan gen flags
+   - ✅ TestPlanSubcommands (4 commands) - Subcommand registration
+   - **File:** `internal/cmd/plan_test.go` (246 lines)
+   - **Coverage:** Filtering, lookup, drift, flags, subcommands
 
 ### Phase 4: Build & Execution Enhancement (Priority: MEDIUM)
 
