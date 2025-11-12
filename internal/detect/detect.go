@@ -342,9 +342,10 @@ func detectGit() GitContext {
 	cmd = exec.Command("git", "status", "--porcelain")
 	output, err = cmd.Output()
 	if err == nil {
-		statusLines := strings.Split(strings.TrimSpace(string(output)), "\n")
-		git.Uncommitted = len(statusLines)
-		if statusLines[0] != "" {
+		trimmed := strings.TrimSpace(string(output))
+		if trimmed != "" {
+			statusLines := strings.Split(trimmed, "\n")
+			git.Uncommitted = len(statusLines)
 			git.Dirty = true
 		}
 	}
