@@ -64,3 +64,6 @@ docs/prd.md
 docs/*roadmap*.md
 docs/*strategy*.md
 RELEASE_PLAN*.md
+docs/tech_design.md
+docs/adr/
+AGENTS.md
