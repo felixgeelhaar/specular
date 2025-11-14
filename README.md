@@ -10,10 +10,11 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 
 ## Quick Links
 
-📚 **[Getting Started Guide](docs/getting-started.md)** - Complete quickstart tutorial
-🎯 **[Examples & Workflows](docs/getting-started.md#common-workflows)** - Real-world use cases
-🔧 **[Provider Setup](docs/provider-guide.md)** - Configure AI providers
-📖 **[Documentation](#documentation)** - Technical specs and design docs
+📚 **[Getting Started](docs/getting-started.md)** – Quickstart plus common workflows
+🛠️ **[Installation Guide](docs/installation.md)** – Package, binary, and Docker installs
+🔧 **[Provider Guide](docs/provider-guide.md)** – Configure local/cloud AI providers
+📘 **[CLI Reference](docs/CLI_REFERENCE.md)** – Command/flag reference
+📦 **[Bundle User Guide](docs/BUNDLE_USER_GUIDE.md)** – Governed bundle workflows
 
 ---
 
@@ -22,7 +23,7 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 ### Core Capabilities
 
 - **AI Provider Plugin System**: Pluggable architecture for local models (Ollama), cloud APIs (OpenAI, Anthropic, Gemini), and custom providers
-- **CLI Provider Protocol**: Language-agnostic protocol for creating custom AI providers (see [docs/CLI_PROVIDERS.md](docs/CLI_PROVIDERS.md))
+- **CLI Provider Protocol**: Language-agnostic protocol for creating custom AI providers (covered in the [Provider Guide](docs/provider-guide.md))
 - **Intelligent Model Routing**: Smart model selection based on task complexity, budget, and performance constraints
 - **Interview Mode**: Guided Q&A with interactive TUI to generate best-practice specifications
 - **Enhanced Error System**: Structured errors with error codes, suggestions, and documentation links
@@ -379,7 +380,7 @@ specular eval --plan plan.json --lock .specular/spec.lock.json --spec .specular/
 - Language-agnostic JSON-based stdin/stdout protocol
 - Three required commands: generate, stream, health
 - Support for streaming with newline-delimited JSON (NDJSON)
-- Comprehensive documentation in [docs/CLI_PROVIDERS.md](docs/CLI_PROVIDERS.md)
+- Protocol specification and examples in the [Provider Guide](docs/provider-guide.md)
 - Example router configuration in `.specular/router.example.yaml`
 - Reference implementation with ollama provider
 - Easy integration with ExecutableProvider adapter
@@ -4181,7 +4182,7 @@ specular/
  │   └─ tools/           # External tool integrations
  ├─ providers/           # Provider implementations
  │   └─ ollama/          # Ollama provider wrapper
- ├─ docs/                # Documentation (PRD, tech design)
+ ├─ docs/                # Public docs (getting started, installation, CLI reference, guides)
  └─ .specular/               # Workspace (specs, plans, logs, providers.yaml)
 ```
 
@@ -4349,8 +4350,9 @@ strategy:
 ```
 
 **For detailed documentation, see:**
-- [Provider System Guide](internal/provider/README.md) - Provider configuration and custom provider development
-- [Provider Selection & Routing Guide](docs/provider-guide.md) - Model selection, retry/fallback, context management, streaming
+- [CLI Reference](docs/CLI_REFERENCE.md) – Complete command/flag reference
+- [Provider Guide](docs/provider-guide.md) – Model selection, retry/fallback, context management, streaming
+- [Bundle User Guide](docs/BUNDLE_USER_GUIDE.md) – Building, verifying, and distributing governance bundles
 
 ## Core Principles
 
@@ -4361,12 +4363,11 @@ strategy:
 
 ## Documentation
 
-- **[Getting Started Guide](docs/getting-started.md)** - Quickstart tutorial and common workflows
-- [Product Requirements Document](docs/prd.md) - Product vision and requirements
-- [Technical Design Document](docs/tech_design.md) - Architecture and implementation
-- [Provider Guide](docs/provider-guide.md) - AI provider configuration and routing
-- [Homebrew Tap Setup](docs/homebrew-tap-setup.md) - Distribution via Homebrew
-- [Development Guide](CLAUDE.md) - Contributing and development setup
+- **[Getting Started](docs/getting-started.md)** – Quickstart tutorial and workflows
+- **[Installation Guide](docs/installation.md)** – Package, binary, and Docker installs
+- **[CLI Reference](docs/CLI_REFERENCE.md)** – Command/flag details
+- **[Provider Guide](docs/provider-guide.md)** – Configure local/cloud AI providers and routing
+- **[Bundle User Guide](docs/BUNDLE_USER_GUIDE.md)** – Governed bundle lifecycle
 
 ## License
 
