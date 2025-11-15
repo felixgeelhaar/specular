@@ -132,7 +132,7 @@ Examples:
 
 		profile, err := loader.Load(profileName)
 		if err != nil {
-			return fmt.Errorf("failed to load profile %q: %w", profileName, err)
+			return ProfileLoadError(profileName, err)
 		}
 
 		if verbose {
@@ -182,7 +182,7 @@ Examples:
 		providerConfigPath := ".specular/providers.yaml"
 		registry, err := provider.LoadRegistryWithAutoDiscovery(providerConfigPath)
 		if err != nil {
-			return fmt.Errorf("failed to load providers: %w", err)
+			return ProviderLoadError(providerConfigPath, err)
 		}
 
 		if verbose {
@@ -200,7 +200,7 @@ Examples:
 		// Create router
 		r, err := router.NewRouterWithProviders(routerConfig, registry)
 		if err != nil {
-			return fmt.Errorf("failed to create router: %w", err)
+			return RouterError(err)
 		}
 
 		if verbose {
@@ -370,7 +370,7 @@ Examples:
 				}
 				fmt.Println(string(jsonData))
 			} else {
-				return fmt.Errorf("JSON output not available")
+				return JSONOutputError()
 			}
 		} else {
 			// Output text format (default)

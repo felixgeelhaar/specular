@@ -100,7 +100,7 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 		"performance": true,
 	}
 	if !validScenarios[scenario] {
-		return fmt.Errorf("invalid scenario '%s'. Valid scenarios: smoke, integration, security, performance", scenario)
+		return ValidationError("scenario", scenario, "smoke, integration, security, performance")
 	}
 
 	fmt.Printf("Running evaluation scenario: %s\n\n", scenario)
@@ -303,11 +303,7 @@ func runEvalRules(cmd *cobra.Command, args []string) error {
 
 	// Check if policy file exists
 	if _, err := os.Stat(policyFile); os.IsNotExist(err) {
-		fmt.Printf("Policy file not found: %s\n\n", policyFile)
-		fmt.Println("To create a policy file:")
-		fmt.Printf("  specular init\n\n")
-		fmt.Println("Or create manually at: .specular/policy.yaml")
-		return fmt.Errorf("policy file not found")
+		return PolicyNotFoundError(policyFile)
 	}
 
 	// Load policy
