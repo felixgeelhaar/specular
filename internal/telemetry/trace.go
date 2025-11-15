@@ -11,6 +11,7 @@ import (
 
 // StartCommandSpan creates a span for a CLI command execution.
 // It automatically records command name, arguments, and flags as attributes.
+// Also records command invocation metric.
 //
 // Usage:
 //
@@ -30,11 +31,15 @@ func StartCommandSpan(ctx context.Context, cmdName string) (context.Context, tra
 		attribute.String("component", "cli"),
 	)
 
+	// Record command invocation metric
+	RecordCommandInvocation(ctx, cmdName, "started")
+
 	return ctx, span
 }
 
 // StartProviderSpan creates a span for a provider API call.
 // It automatically records provider name, operation, and model as attributes.
+// Also records provider call metric.
 //
 // Usage:
 //
@@ -54,6 +59,9 @@ func StartProviderSpan(ctx context.Context, providerName, operation string) (con
 		attribute.String("operation", operation),
 		attribute.String("component", "provider"),
 	)
+
+	// Record provider call metric
+	RecordProviderCall(ctx, providerName, operation, "started")
 
 	return ctx, span
 }
@@ -114,6 +122,93 @@ func RecordError(span trace.Span, err error) {
 	span.SetAttributes(
 		attribute.Bool("error", true),
 	)
+}
+
+// RecordCommandSuccess records command success in both traces and metrics.
+// Call this when a command completes successfully.
+//
+// Usage:
+//
+//	telemetry.RecordCommandSuccess(ctx, span, "auto", duration,
+//	    attribute.Int("tasks_count", 5),
+//	)
+func RecordCommandSuccess(ctx context.Context, span trace.Span, cmdName string, duration time.Duration, attrs ...attribute.KeyValue) {
+	// Record in trace
+	RecordSuccess(span, attrs...)
+
+	// Record metrics
+	RecordCommandInvocation(ctx, cmdName, "success", attrs...)
+	RecordCommandDuration(ctx, cmdName, duration, attrs...)
+}
+
+// RecordCommandFailure records command failure in both traces and metrics.
+// Call this when a command fails.
+//
+// Usage:
+//
+//	if err != nil {
+//	    telemetry.RecordCommandFailure(ctx, span, "auto", err)
+//	    return err
+//	}
+func RecordCommandFailure(ctx context.Context, span trace.Span, cmdName string, err error) {
+	if err == nil {
+		return
+	}
+
+	// Record in trace
+	RecordError(span, err)
+
+	// Record metrics
+	errorType := "unknown"
+	if err != nil {
+		errorType = "execution_error"
+	}
+	RecordCommandInvocation(ctx, cmdName, "failed")
+	RecordCommandError(ctx, cmdName, errorType)
+}
+
+// RecordProviderSuccess records provider call success in both traces and metrics.
+// Call this when a provider API call completes successfully.
+//
+// Usage:
+//
+//	telemetry.RecordProviderSuccess(ctx, span, "anthropic", "generate", duration,
+//	    attribute.String("model", "claude-3-sonnet"),
+//	    attribute.Int("tokens", 1234),
+//	)
+func RecordProviderSuccess(ctx context.Context, span trace.Span, provider string, operation string, duration time.Duration, attrs ...attribute.KeyValue) {
+	// Record in trace
+	RecordSuccess(span, attrs...)
+
+	// Record metrics
+	RecordProviderCall(ctx, provider, operation, "success", attrs...)
+	RecordProviderLatency(ctx, provider, operation, duration, attrs...)
+}
+
+// RecordProviderFailure records provider call failure in both traces and metrics.
+// Call this when a provider API call fails.
+//
+// Usage:
+//
+//	if err != nil {
+//	    telemetry.RecordProviderFailure(ctx, span, "anthropic", "generate", err)
+//	    return err
+//	}
+func RecordProviderFailure(ctx context.Context, span trace.Span, provider string, operation string, err error) {
+	if err == nil {
+		return
+	}
+
+	// Record in trace
+	RecordError(span, err)
+
+	// Record metrics
+	errorType := "api_error"
+	if err != nil {
+		errorType = "api_error"
+	}
+	RecordProviderCall(ctx, provider, operation, "failed")
+	RecordProviderError(ctx, provider, operation, errorType)
 }
 
 // RecordDuration records the duration of an operation as a span attribute.
