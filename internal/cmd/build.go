@@ -15,7 +15,9 @@ import (
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/progress"
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/ux"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var buildCmd = &cobra.Command{
@@ -97,6 +99,12 @@ Shows:
 }
 
 func runBuildRun(cmd *cobra.Command, args []string) error {
+	// Start distributed tracing span for build run command
+	_, span := telemetry.StartCommandSpan(cmd.Context(), "build.run")
+	defer span.End()
+
+	startTime := time.Now()
+
 	defaults := ux.NewPathDefaults()
 	planFile := cmd.Flags().Lookup("plan").Value.String()
 	policyFile := cmd.Flags().Lookup("policy").Value.String()
@@ -121,14 +129,32 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		checkpointDir = defaults.CheckpointDir()
 	}
 
+	// Record span attributes
+	span.SetAttributes(
+		attribute.String("plan_file", planFile),
+		attribute.String("policy_file", policyFile),
+		attribute.Bool("dry_run", dryRun),
+		attribute.String("manifest_dir", manifestDir),
+		attribute.Bool("resume", resume),
+		attribute.String("checkpoint_dir", checkpointDir),
+	)
+	if featureID != "" {
+		span.SetAttributes(attribute.String("feature_id", featureID))
+	}
+	if checkpointID != "" {
+		span.SetAttributes(attribute.String("checkpoint_id", checkpointID))
+	}
+
 	// Validate plan file exists with helpful error
 	if err := ux.ValidateRequiredFile(planFile, "Plan file", "specular plan gen"); err != nil {
+		telemetry.RecordError(span, err)
 		return ux.EnhanceError(err)
 	}
 
 	// Load plan
 	p, err := plan.LoadPlan(planFile)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return ux.FormatError(err, "loading plan file")
 	}
 
@@ -142,7 +168,9 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		}
 
 		if len(filteredTasks) == 0 {
-			return fmt.Errorf("no tasks found for feature '%s'", featureID)
+			err := fmt.Errorf("no tasks found for feature '%s'", featureID)
+			telemetry.RecordError(span, err)
+			return err
 		}
 
 		fmt.Printf("Executing %d tasks for feature: %s\n\n", len(filteredTasks), featureID)
@@ -181,6 +209,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		if checkpointMgr.Exists(checkpointID) {
 			cpState, err = checkpointMgr.Load(checkpointID)
 			if err != nil {
+				telemetry.RecordError(span, err)
 				return fmt.Errorf("failed to load checkpoint: %w", err)
 			}
 
@@ -263,6 +292,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
 			fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
 		}
+		telemetry.RecordError(span, err)
 		return fmt.Errorf("execution failed: %w", err)
 	}
 
@@ -289,7 +319,9 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 
 	// Check for failures
 	if result.FailedTasks > 0 {
-		return fmt.Errorf("execution completed with %d failed tasks", result.FailedTasks)
+		err := fmt.Errorf("execution completed with %d failed tasks", result.FailedTasks)
+		telemetry.RecordError(span, err)
+		return err
 	}
 
 	fmt.Println("\n✓ All tasks completed successfully")
@@ -307,6 +339,16 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 			fmt.Printf("Checkpoint cleaned up: %s\n", checkpointID)
 		}
 	}
+
+	// Record success with metrics
+	duration := time.Since(startTime)
+	telemetry.RecordSuccess(span,
+		attribute.Int("total_tasks", len(p.Tasks)),
+		attribute.Int("success_tasks", result.SuccessTasks),
+		attribute.Int("failed_tasks", result.FailedTasks),
+		attribute.Int("skipped_tasks", result.SkippedTasks),
+		attribute.Int64("duration_ms", duration.Milliseconds()),
+	)
 
 	return nil
 }
