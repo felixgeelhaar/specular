@@ -62,12 +62,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Spec Build
+      - name: Run Spec Build with Docker Cache
         uses: ./.github/actions/specular
         with:
           command: build
           plan-file: plan.json
           policy-file: .specular/policy.yaml
+          enable-cache: 'true'  # Cache Docker images for faster builds
+          cache-max-age: '168h'  # Keep cache for 7 days
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           additional-args: '--dry-run'
 

@@ -8,11 +8,14 @@ This guide covers the configuration and integration of the production-grade Open
 
 1. [Quick Start](#quick-start)
 2. [Configuration](#configuration)
-3. [Circuit Breaker](#circuit-breaker)
-4. [Retry Logic](#retry-logic)
-5. [Integration Examples](#integration-examples)
-6. [Performance Characteristics](#performance-characteristics)
-7. [Troubleshooting](#troubleshooting)
+3. [Distributed Tracing](#distributed-tracing)
+4. [Metrics Collection](#metrics-collection)
+5. [Provider Health Checks](#provider-health-checks)
+6. [Circuit Breaker](#circuit-breaker)
+7. [Retry Logic](#retry-logic)
+8. [Integration Examples](#integration-examples)
+9. [Performance Characteristics](#performance-characteristics)
+10. [Troubleshooting](#troubleshooting)
 
 ## Quick Start
 
@@ -140,6 +143,682 @@ cfg.SampleRate = 0.01
 - Uses trace ID ratio-based sampling (deterministic)
 - Same trace ID always makes same sampling decision
 - Maintains trace completeness across services
+
+## Distributed Tracing
+
+Distributed tracing allows you to track requests as they flow through your application. The telemetry package provides convenient helper functions for common tracing patterns.
+
+### Helper Functions
+
+#### Command Tracing
+
+```go
+import "github.com/felixgeelhaar/specular/internal/telemetry"
+
+func executeAutoCommand(ctx context.Context, goal string, profile string) error {
+    // Start command span - automatically records command name and component
+    ctx, span := telemetry.StartCommandSpan(ctx, "auto")
+    defer span.End()
+
+    // Add custom attributes
+    span.SetAttributes(
+        attribute.String("goal", goal),
+        attribute.String("profile", profile),
+    )
+
+    start := time.Now()
+
+    // Your command logic here
+    err := runAutoMode(ctx, goal, profile)
+
+    duration := time.Since(start)
+
+    if err != nil {
+        // Record failure in both traces and metrics
+        telemetry.RecordCommandFailure(ctx, span, "auto", err)
+        return err
+    }
+
+    // Record success in both traces and metrics
+    telemetry.RecordCommandSuccess(ctx, span, "auto", duration,
+        attribute.Int("tasks_completed", 5),
+    )
+
+    return nil
+}
+```
+
+**StartCommandSpan** automatically adds:
+- `command`: Command name
+- `component`: "cli"
+- Records command invocation metric with status "started"
+
+#### Provider API Tracing
+
+```go
+func callProviderAPI(ctx context.Context, provider string, prompt string) (*Response, error) {
+    // Start provider span - automatically records provider and operation
+    ctx, span := telemetry.StartProviderSpan(ctx, provider, "generate")
+    defer span.End()
+
+    // Add request metadata
+    span.SetAttributes(
+        attribute.String("model", "claude-3-sonnet"),
+        attribute.Int("prompt_length", len(prompt)),
+    )
+
+    start := time.Now()
+
+    // Make API call
+    resp, err := apiClient.Generate(ctx, prompt)
+
+    duration := time.Since(start)
+
+    if err != nil {
+        // Record failure in both traces and metrics
+        telemetry.RecordProviderFailure(ctx, span, provider, "generate", err)
+        return nil, err
+    }
+
+    // Record success in both traces and metrics
+    telemetry.RecordProviderSuccess(ctx, span, provider, "generate", duration,
+        attribute.String("model", resp.Model),
+        attribute.Int("prompt_tokens", resp.PromptTokens),
+        attribute.Int("completion_tokens", resp.CompletionTokens),
+    )
+
+    // Also record token usage metrics
+    telemetry.RecordProviderTokens(ctx, provider, resp.Model, "input", resp.PromptTokens)
+    telemetry.RecordProviderTokens(ctx, provider, resp.Model, "output", resp.CompletionTokens)
+
+    return resp, nil
+}
+```
+
+**StartProviderSpan** automatically adds:
+- `provider`: Provider name (e.g., "anthropic", "openai")
+- `operation`: Operation name (e.g., "generate", "stream")
+- `component`: "provider"
+- Records provider call metric with status "started"
+
+#### Subprocess/Step Tracing (Auto Mode)
+
+```go
+func executeAutoWorkflow(ctx context.Context, goal string) error {
+    ctx, span := telemetry.StartCommandSpan(ctx, "auto")
+    defer span.End()
+
+    // Subprocess 1: Spec generation
+    ctx, specSpan := telemetry.StartSubprocessSpan(ctx, "spec_generation")
+    spec, err := generateSpec(ctx, goal)
+    if err != nil {
+        telemetry.RecordError(specSpan, err)
+        specSpan.End()
+        return err
+    }
+    telemetry.RecordSuccess(specSpan, attribute.Int("requirements_count", len(spec.Requirements)))
+    specSpan.End()
+
+    // Subprocess 2: Plan generation
+    ctx, planSpan := telemetry.StartSubprocessSpan(ctx, "plan_generation")
+    plan, err := generatePlan(ctx, spec)
+    if err != nil {
+        telemetry.RecordError(planSpan, err)
+        planSpan.End()
+        return err
+    }
+    telemetry.RecordSuccess(planSpan, attribute.Int("steps_count", len(plan.Steps)))
+    planSpan.End()
+
+    // Subprocess 3-N: Execute each step
+    for i, step := range plan.Steps {
+        _, stepSpan := telemetry.StartSubprocessSpan(ctx, "step_execution")
+        stepSpan.SetAttributes(
+            attribute.Int("step_number", i+1),
+            attribute.Int("total_steps", len(plan.Steps)),
+            attribute.String("step_description", step.Description),
+        )
+
+        err := executeStep(ctx, step)
+        if err != nil {
+            telemetry.RecordError(stepSpan, err)
+            stepSpan.End()
+            return err
+        }
+
+        telemetry.RecordSuccess(stepSpan)
+        stepSpan.End()
+    }
+
+    telemetry.RecordSuccess(span)
+    return nil
+}
+```
+
+**StartSubprocessSpan** automatically adds:
+- `step`: Step name (e.g., "spec_generation", "plan_generation")
+- `component`: "auto"
+
+### Helper Functions Reference
+
+#### RecordSuccess
+Marks a span as successful with optional result attributes.
+
+```go
+telemetry.RecordSuccess(span,
+    attribute.Int("tokens_used", 1234),
+    attribute.String("model", "claude-3-sonnet"),
+)
+```
+
+#### RecordError
+Records an error in a span and sets error status.
+
+```go
+if err != nil {
+    telemetry.RecordError(span, err)
+    return err
+}
+```
+
+#### RecordDuration
+Records the duration of an operation as a span attribute.
+
+```go
+start := time.Now()
+// ... operation ...
+telemetry.RecordDuration(span, "api_call_duration", time.Since(start))
+```
+
+#### RecordMetrics
+Records multiple metrics as span attributes.
+
+```go
+telemetry.RecordMetrics(span, map[string]int64{
+    "lines_of_code": 1234,
+    "files_modified": 5,
+    "tests_added": 12,
+})
+```
+
+#### TraceFunction
+Wraps a function call with automatic span creation and error handling.
+
+```go
+result, err := telemetry.TraceFunction(ctx, "process_spec", func(ctx context.Context) (interface{}, error) {
+    return processSpec(ctx, spec)
+})
+```
+
+## Metrics Collection
+
+The telemetry package provides OpenTelemetry metrics that are compatible with Prometheus and other monitoring systems. Metrics complement distributed tracing by providing aggregated statistical data.
+
+### Metrics Architecture
+
+**Export Configuration:**
+- Protocol: OTLP HTTP
+- Endpoint: Same as traces (defaults to `localhost:4318`)
+- Export interval: 10 seconds (periodic batching)
+- Compression: gzip
+
+**Metric Types:**
+1. **Counter** (Int64Counter): Monotonically increasing values
+   - Command invocations, error counts, API calls, token usage
+2. **Histogram** (Float64Histogram): Distribution of values
+   - Command duration, API latency
+
+### Available Metrics
+
+#### Command Metrics
+
+**1. Command Invocations** (Counter)
+```
+Metric: specular.command.invocations
+Type: Counter
+Description: Total number of command invocations
+Attributes:
+  - command: Command name (e.g., "auto", "spec", "plan")
+  - status: Invocation status ("started", "success", "failed")
+  - [custom attributes]
+```
+
+**Example:**
+```go
+telemetry.RecordCommandInvocation(ctx, "auto", "started",
+    attribute.String("profile", "dev"),
+    attribute.String("scope", "feature/*"),
+)
+```
+
+**2. Command Duration** (Histogram)
+```
+Metric: specular.command.duration
+Type: Histogram
+Description: Command execution duration in seconds
+Attributes:
+  - command: Command name
+  - [custom attributes]
+```
+
+**Example:**
+```go
+duration := time.Since(start)
+telemetry.RecordCommandDuration(ctx, "auto", duration,
+    attribute.Int("steps_executed", 5),
+)
+```
+
+**3. Command Errors** (Counter)
+```
+Metric: specular.command.errors
+Type: Counter
+Description: Total command errors
+Attributes:
+  - command: Command name
+  - error_type: Error classification
+```
+
+**Example:**
+```go
+telemetry.RecordCommandError(ctx, "auto", "validation_error")
+```
+
+#### Provider Metrics
+
+**1. Provider Calls** (Counter)
+```
+Metric: specular.provider.calls
+Type: Counter
+Description: Total provider API calls
+Attributes:
+  - provider: Provider name (e.g., "anthropic", "openai")
+  - operation: Operation type ("generate", "stream", "health")
+  - status: Call status ("started", "success", "failed")
+  - [custom attributes like model]
+```
+
+**Example:**
+```go
+telemetry.RecordProviderCall(ctx, "anthropic", "generate", "success",
+    attribute.String("model", "claude-3-sonnet"),
+)
+```
+
+**2. Provider Latency** (Histogram)
+```
+Metric: specular.provider.latency
+Type: Histogram
+Description: Provider API call latency in seconds
+Attributes:
+  - provider: Provider name
+  - operation: Operation type
+  - [custom attributes]
+```
+
+**Example:**
+```go
+duration := time.Since(start)
+telemetry.RecordProviderLatency(ctx, "anthropic", "generate", duration,
+    attribute.String("model", "claude-3-sonnet"),
+)
+```
+
+**3. Provider Errors** (Counter)
+```
+Metric: specular.provider.errors
+Type: Counter
+Description: Total provider API errors
+Attributes:
+  - provider: Provider name
+  - operation: Operation type
+  - error_type: Error classification
+```
+
+**Example:**
+```go
+telemetry.RecordProviderError(ctx, "anthropic", "generate", "api_error")
+```
+
+**4. Provider Tokens** (Counter)
+```
+Metric: specular.provider.tokens
+Type: Counter
+Description: Token usage by provider and model
+Attributes:
+  - provider: Provider name
+  - model: Model name
+  - token_type: Token type ("input", "output")
+```
+
+**Example:**
+```go
+telemetry.RecordProviderTokens(ctx, "anthropic", "claude-3-sonnet", "input", 1234)
+telemetry.RecordProviderTokens(ctx, "anthropic", "claude-3-sonnet", "output", 567)
+```
+
+### Complete Integration Example
+
+```go
+func executeCommand(ctx context.Context, cmdName string, args []string) error {
+    // Start tracing
+    ctx, span := telemetry.StartCommandSpan(ctx, cmdName)
+    defer span.End()
+
+    start := time.Now()
+
+    // Execute command logic
+    result, err := performWork(ctx, args)
+
+    duration := time.Since(start)
+
+    if err != nil {
+        // Record failure in both traces and metrics
+        telemetry.RecordCommandFailure(ctx, span, cmdName, err)
+        return err
+    }
+
+    // Record success in both traces and metrics
+    telemetry.RecordCommandSuccess(ctx, span, cmdName, duration,
+        attribute.Int("items_processed", result.Count),
+    )
+
+    return nil
+}
+
+func callProvider(ctx context.Context, provider string, prompt string) (*Response, error) {
+    // Start tracing
+    ctx, span := telemetry.StartProviderSpan(ctx, provider, "generate")
+    defer span.End()
+
+    span.SetAttributes(
+        attribute.String("model", "claude-3-sonnet"),
+        attribute.Int("prompt_length", len(prompt)),
+    )
+
+    start := time.Now()
+
+    // Make API call
+    resp, err := api.Generate(ctx, prompt)
+
+    duration := time.Since(start)
+
+    if err != nil {
+        // Record failure in both traces and metrics
+        telemetry.RecordProviderFailure(ctx, span, provider, "generate", err)
+        return nil, err
+    }
+
+    // Record success in both traces and metrics
+    telemetry.RecordProviderSuccess(ctx, span, provider, "generate", duration,
+        attribute.String("model", resp.Model),
+        attribute.Int("prompt_tokens", resp.PromptTokens),
+        attribute.Int("completion_tokens", resp.CompletionTokens),
+    )
+
+    // Record token usage
+    telemetry.RecordProviderTokens(ctx, provider, resp.Model, "input", resp.PromptTokens)
+    telemetry.RecordProviderTokens(ctx, provider, resp.Model, "output", resp.CompletionTokens)
+
+    return resp, nil
+}
+```
+
+### Querying Metrics
+
+**Prometheus Queries:**
+
+```promql
+# Command invocation rate
+rate(specular_command_invocations_total[5m])
+
+# Command success rate
+rate(specular_command_invocations_total{status="success"}[5m])
+/ rate(specular_command_invocations_total[5m])
+
+# Average command duration
+rate(specular_command_duration_sum[5m])
+/ rate(specular_command_duration_count[5m])
+
+# 95th percentile command duration
+histogram_quantile(0.95, rate(specular_command_duration_bucket[5m]))
+
+# Provider API error rate
+rate(specular_provider_errors_total[5m])
+
+# Total tokens used by provider
+sum by (provider, model) (specular_provider_tokens_total)
+
+# Average provider latency by operation
+rate(specular_provider_latency_sum[5m])
+/ rate(specular_provider_latency_count[5m])
+```
+
+### Metrics Best Practices
+
+1. **Use Unified Success/Failure Recording**
+   ```go
+   // GOOD: Records both traces and metrics
+   telemetry.RecordCommandSuccess(ctx, span, "auto", duration)
+
+   // BAD: Only records trace, misses metrics
+   telemetry.RecordSuccess(span)
+   ```
+
+2. **Always Record Token Usage**
+   ```go
+   // After successful provider call
+   telemetry.RecordProviderTokens(ctx, provider, model, "input", promptTokens)
+   telemetry.RecordProviderTokens(ctx, provider, model, "output", completionTokens)
+   ```
+
+3. **Add Meaningful Attributes**
+   ```go
+   // Attributes help with debugging and analysis
+   telemetry.RecordCommandInvocation(ctx, "auto", "started",
+       attribute.String("profile", profile),
+       attribute.String("scope", scope),
+       attribute.Int("max_steps", maxSteps),
+   )
+   ```
+
+4. **Classify Errors Properly**
+   ```go
+   // Use specific error types for better alerting
+   if errors.Is(err, ErrValidation) {
+       telemetry.RecordCommandError(ctx, "auto", "validation_error")
+   } else if errors.Is(err, ErrTimeout) {
+       telemetry.RecordCommandError(ctx, "auto", "timeout_error")
+   } else {
+       telemetry.RecordCommandError(ctx, "auto", "execution_error")
+   }
+   ```
+
+## Provider Health Checks
+
+The doctor command includes comprehensive provider health checks that test actual API connectivity, not just environment variable presence.
+
+### How It Works
+
+Health checks:
+1. Load provider registry using `LoadRegistryWithAutoDiscovery()`
+2. Test each configured provider concurrently
+3. Call `provider.Health(ctx)` with 10-second timeout
+4. Measure and report latency
+5. Warn if latency > 5 seconds
+
+### Usage
+
+```bash
+# Run doctor command to check all providers
+specular doctor
+
+# Example output:
+✓ Provider: anthropic
+  Status: ok
+  API connectivity verified (latency: 234ms)
+
+⚠ Provider: openai
+  Status: warning
+  API connectivity verified (latency: 6543ms) - High latency detected
+
+✗ Provider: cohere (API)
+  Status: error
+  Health check failed: authentication failed
+  Error: invalid API key
+```
+
+### Implementation Details
+
+The health check implementation in `internal/cmd/doctor.go`:
+
+```go
+func checkProviderHealth(report *DoctorReport) {
+    // Load provider registry
+    registry, err := provider.LoadRegistryWithAutoDiscovery(providerConfigPath)
+    if err != nil {
+        return  // Skip if registry can't be loaded
+    }
+
+    providerNames := registry.List()
+    var wg sync.WaitGroup
+    var mu sync.Mutex
+
+    for _, name := range providerNames {
+        wg.Add(1)
+
+        go func(providerName string) {
+            defer wg.Done()
+
+            prov, err := registry.Get(providerName)
+            if err != nil {
+                return
+            }
+
+            check := &DoctorCheck{
+                Name: fmt.Sprintf("%s (API)", providerName),
+            }
+
+            // Health check with timeout
+            healthCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+            defer cancel()
+
+            start := time.Now()
+            healthErr := prov.Health(healthCtx)
+            latency := time.Since(start)
+
+            details := map[string]interface{}{
+                "latency_ms": latency.Milliseconds(),
+            }
+
+            if healthErr != nil {
+                check.Status = "error"
+                check.Message = fmt.Sprintf("Health check failed: %v", healthErr)
+                details["error"] = healthErr.Error()
+            } else {
+                check.Status = "ok"
+                check.Message = fmt.Sprintf("API connectivity verified (latency: %dms)", latency.Milliseconds())
+
+                // Warn on high latency
+                if latency.Milliseconds() > 5000 {
+                    check.Status = "warning"
+                    check.Message += " - High latency detected"
+                }
+            }
+
+            check.Details = details
+
+            mu.Lock()
+            report.Providers[providerName+" (API)"] = check
+            mu.Unlock()
+        }(name)
+    }
+
+    wg.Wait()
+}
+```
+
+### Provider Interface
+
+All providers implement the `ProviderClient` interface defined in `internal/provider/interface.go`:
+
+```go
+type ProviderClient interface {
+    // Health performs a health check on the provider.
+    // Returns nil if healthy, error describing the problem otherwise.
+    Health(ctx context.Context) error
+
+    // ... other methods ...
+}
+```
+
+### Implementing Provider Health Checks
+
+Example implementation for a custom provider:
+
+```go
+type MyProvider struct {
+    apiKey string
+    client *http.Client
+}
+
+func (p *MyProvider) Health(ctx context.Context) error {
+    // Create minimal API request to test connectivity
+    req, err := http.NewRequestWithContext(ctx, "GET", "https://api.example.com/v1/health", nil)
+    if err != nil {
+        return fmt.Errorf("failed to create health check request: %w", err)
+    }
+
+    req.Header.Set("Authorization", "Bearer "+p.apiKey)
+
+    resp, err := p.client.Do(req)
+    if err != nil {
+        return fmt.Errorf("health check request failed: %w", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        body, _ := io.ReadAll(resp.Body)
+        return fmt.Errorf("health check failed with status %d: %s", resp.StatusCode, body)
+    }
+
+    return nil
+}
+```
+
+### Health Check Best Practices
+
+1. **Keep Health Checks Lightweight**
+   - Use dedicated health endpoints when available
+   - Avoid expensive operations
+   - Use minimal request payload
+
+2. **Implement Proper Timeouts**
+   ```go
+   ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+   defer cancel()
+   err := provider.Health(ctx)
+   ```
+
+3. **Return Meaningful Errors**
+   ```go
+   // GOOD: Specific error messages
+   return fmt.Errorf("authentication failed: invalid API key")
+
+   // BAD: Generic error
+   return fmt.Errorf("health check failed")
+   ```
+
+4. **Test Actual API Connectivity**
+   ```go
+   // GOOD: Tests real API endpoint
+   resp, err := client.Get("https://api.example.com/v1/health")
+
+   // BAD: Only checks environment variable
+   if apiKey == "" {
+       return fmt.Errorf("API key not set")
+   }
+   ```
 
 ## Circuit Breaker
 

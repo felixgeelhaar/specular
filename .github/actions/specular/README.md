@@ -33,6 +33,9 @@ This GitHub Action integrates Specular AI Governance into your CI/CD pipeline fo
 | `anthropic-api-key` | Anthropic API key for Claude models | - |
 | `openai-api-key` | OpenAI API key for GPT models | - |
 | `gemini-api-key` | Google Gemini API key | - |
+| `enable-cache` | Enable Docker image caching | `true` |
+| `cache-dir` | Directory for Docker image cache | `.specular/cache` |
+| `cache-max-age` | Maximum cache age (e.g., 168h for 7 days) | `168h` |
 | `additional-args` | Additional arguments to pass to specular | - |
 
 ## Outputs
@@ -69,7 +72,7 @@ jobs:
           fail-on-drift: 'true'
 ```
 
-### Complete CI Pipeline
+### Complete CI Pipeline with Docker Caching
 
 ```yaml
 name: Specular CI Pipeline
@@ -99,10 +102,12 @@ jobs:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 
-      - name: Build
+      - name: Build with Docker Cache
         uses: ./.github/actions/specular
         with:
           command: build
+          enable-cache: 'true'  # Cache Docker images (enabled by default)
+          cache-max-age: '168h'  # Keep cache for 7 days
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -171,6 +176,63 @@ The action uses standardized exit codes:
 - `5` - Build failure
 - `6` - Test failure
 
+## Docker Image Caching
+
+The action automatically caches Docker images between runs to significantly improve build performance. Caching is enabled by default and uses GitHub Actions cache.
+
+### How It Works
+
+1. **First Run**: Downloads and caches Docker images specified in your policy
+2. **Subsequent Runs**: Restores images from cache (if valid)
+3. **Cache Key**: Based on OS and configuration files (`*.yaml`, `*.json`)
+4. **Automatic Cleanup**: GitHub automatically removes old caches (7 days default retention)
+
+### Performance Impact
+
+- **Without Cache**: 30-60 seconds to pull Docker images
+- **With Cache**: < 5 seconds to restore from cache
+- **Cache Size**: Typically 100-500MB per image
+
+### Cache Configuration
+
+```yaml
+- name: Run Build with Custom Cache
+  uses: ./.github/actions/specular
+  with:
+    command: build
+    enable-cache: 'true'
+    cache-dir: '.specular/cache'
+    cache-max-age: '336h'  # 14 days
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+### Disable Caching
+
+To disable caching (not recommended for CI):
+
+```yaml
+- name: Run Build Without Cache
+  uses: ./.github/actions/specular
+  with:
+    command: build
+    enable-cache: 'false'
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+### Cache Management
+
+GitHub Actions automatically manages cache lifecycle:
+- Maximum 10GB total cache per repository
+- Least recently used caches are evicted first
+- Caches older than 7 days are automatically deleted
+
+### Manual Cache Control
+
+To force cache rebuild:
+1. Go to repository Settings → Actions → Caches
+2. Delete the `specular-docker-*` cache
+3. Next workflow run will rebuild the cache
+
 ## Troubleshooting
 
 ### Action Fails to Install
@@ -194,6 +256,14 @@ Check:
 1. `.specular/spec.lock.json` exists
 2. Policy file is valid YAML
 3. Spec and code are in sync
+
+### Slow Build Times
+
+Enable Docker caching:
+1. Verify `enable-cache: 'true'` in action inputs
+2. Check GitHub Actions cache is available (not disabled)
+3. Ensure cache size is under repository limit (10GB)
+4. Review cache hit rate in workflow logs
 
 ## Advanced Configuration
 

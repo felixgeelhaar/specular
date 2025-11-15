@@ -61,6 +61,21 @@ inputs:
     required: false
     default: ''
 
+  enable-cache:
+    description: 'Enable Docker image caching'
+    required: false
+    default: 'true'
+
+  cache-dir:
+    description: 'Directory for Docker image cache'
+    required: false
+    default: '.specular/cache'
+
+  cache-max-age:
+    description: 'Maximum cache age (e.g., 168h for 7 days)'
+    required: false
+    default: '168h'
+
 outputs:
   result:
     description: 'Command execution result (success/failure)'
@@ -132,7 +147,22 @@ runs:
         # Disable telemetry in CI
         echo "SPECULAR_NO_TELEMETRY=true" >> $GITHUB_ENV
 
+        # Create cache directory if caching is enabled
+        if [ "${{ inputs.enable-cache }}" = "true" ]; then
+          mkdir -p "${{ inputs.cache-dir }}"
+        fi
+
         echo "::endgroup::"
+
+    - name: Restore Docker cache
+      id: restore-cache
+      if: inputs.enable-cache == 'true' && inputs.command == 'build'
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ inputs.cache-dir }}
+        key: specular-docker-${{ runner.os }}-${{ hashFiles('**/*.yaml', '**/*.json') }}
+        restore-keys: |
+          specular-docker-${{ runner.os }}-
 
     - name: Run Specular diagnostics
       id: doctor
@@ -169,9 +199,17 @@ runs:
             ;;
 
           build)
+            CACHE_ARGS=""
+            if [ "${{ inputs.enable-cache }}" = "true" ]; then
+              CACHE_ARGS="--enable-cache --cache-dir ${{ inputs.cache-dir }} --cache-max-age ${{ inputs.cache-max-age }}"
+            else
+              CACHE_ARGS="--enable-cache=false"
+            fi
+
             specular build \
               --plan "${{ inputs.plan-file }}" \
               --policy "${{ inputs.policy-file }}" \
+              $CACHE_ARGS \
               ${{ inputs.additional-args }}
             EXIT_CODE=$?
             ;;
@@ -248,3 +286,11 @@ runs:
       run: |
         echo "::error::Drift detected and fail-on-drift is enabled"
         exit 4
+
+    - name: Save Docker cache
+      id: save-cache
+      if: always() && inputs.enable-cache == 'true' && inputs.command == 'build'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ inputs.cache-dir }}
+        key: specular-docker-${{ runner.os }}-${{ hashFiles('**/*.yaml', '**/*.json') }}

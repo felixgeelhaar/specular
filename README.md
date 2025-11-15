@@ -15,6 +15,7 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 🔧 **[Provider Guide](docs/provider-guide.md)** – Configure local/cloud AI providers
 📘 **[CLI Reference](docs/CLI_REFERENCE.md)** – Command/flag reference
 📦 **[Bundle User Guide](docs/BUNDLE_USER_GUIDE.md)** – Governed bundle workflows
+🚀 **[Production Guide](docs/PRODUCTION_GUIDE.md)** – Production deployment, security, monitoring
 
 ---
 
@@ -4368,6 +4369,7 @@ strategy:
 - **[CLI Reference](docs/CLI_REFERENCE.md)** – Command/flag details
 - **[Provider Guide](docs/provider-guide.md)** – Configure local/cloud AI providers and routing
 - **[Bundle User Guide](docs/BUNDLE_USER_GUIDE.md)** – Governed bundle lifecycle
+- **[Production Guide](docs/PRODUCTION_GUIDE.md)** – Production deployment, security, monitoring, and operations
 
 ## License
 
@@ -4375,4 +4377,6 @@ MIT
 
 ## Contributing
 
-Contributions are welcome! Please read the development guide in CLAUDE.md before submitting pull requests.
+Contributions are welcome! Please read the development guide in [CLAUDE.md](.github/CLAUDE.md) before submitting pull requests.
+
+For maintainers releasing new versions, see the [Release Process Guide](docs/RELEASE_PROCESS.md).
