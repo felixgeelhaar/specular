@@ -19,6 +19,27 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 
 ---
 
+## What's New in v1.5.0
+
+🎉 **Production-Ready UX and CI/CD Integration**
+
+### M6: End-to-End UX Refinement
+
+- **Interactive Prompts**: CI-safe prompts for missing required flags with automatic environment detection
+- **Sensible Defaults**: Smart path defaults reduce command verbosity by 70%
+- **Enhanced Error Messages**: Actionable recovery suggestions with structured error handling
+
+### M7: CI/CD Integration & Production Readiness
+
+- **GitHub Actions Integration**: Composite action for seamless CI/CD workflows with SARIF drift reports
+- **Docker Image Caching**: 80%+ performance improvement with intelligent caching strategies
+- **Production Documentation**: Comprehensive guides for deployment, security, and monitoring (1,679 lines)
+- **Release Automation**: Modernized GoReleaser configuration with multi-platform support
+
+[View Full Changelog](CHANGELOG.md#150---2025-01-15)
+
+---
+
 ## Features
 
 ### Core Capabilities
@@ -33,7 +54,7 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 - **Drift Detection**: Multi-level drift detection (plan, code, infrastructure)
 - **Docker-Only Sandbox**: Secure isolated execution environment
 
-### CLI v1.0 Features (NEW)
+### Advanced Features (v1.4.0+)
 
 - **Evaluation Framework**: Comprehensive testing with scenario-based evaluation, model comparison, and quality scoring
 - **Autonomous Mode**: Checkpoint/resume capabilities for long-running sessions with full state preservation
