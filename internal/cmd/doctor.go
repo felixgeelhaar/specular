@@ -1,14 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/detect"
+	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
@@ -206,6 +209,85 @@ func checkProviders(ctx *detect.Context, report *DoctorReport) {
 	if !foundProvider {
 		report.Issues = append(report.Issues, "No AI providers detected")
 	}
+
+	// Perform API health checks for configured providers
+	checkProviderHealth(report)
+}
+
+// checkProviderHealth tests actual API connectivity for configured providers
+func checkProviderHealth(report *DoctorReport) {
+	// Load provider registry
+	providerConfigPath := ".specular/providers.yaml"
+	registry, err := provider.LoadRegistryWithAutoDiscovery(providerConfigPath)
+	if err != nil {
+		// Skip health checks if registry can't be loaded
+		return
+	}
+
+	// Get list of registered providers
+	providerNames := registry.List()
+	if len(providerNames) == 0 {
+		return
+	}
+
+	// Test health for each provider concurrently
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	for _, name := range providerNames {
+		wg.Add(1)
+
+		go func(providerName string) {
+			defer wg.Done()
+
+			// Get provider instance
+			prov, err := registry.Get(providerName)
+			if err != nil {
+				return
+			}
+
+			check := &DoctorCheck{
+				Name: fmt.Sprintf("%s (API)", providerName),
+			}
+
+			// Create context with timeout for health check
+			healthCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			// Measure health check latency
+			start := time.Now()
+			healthErr := prov.Health(healthCtx)
+			latency := time.Since(start)
+
+			// Build check result
+			details := map[string]interface{}{
+				"latency_ms": latency.Milliseconds(),
+			}
+
+			if healthErr != nil {
+				check.Status = "error"
+				check.Message = fmt.Sprintf("Health check failed: %v", healthErr)
+				details["error"] = healthErr.Error()
+			} else {
+				check.Status = "ok"
+				check.Message = fmt.Sprintf("API connectivity verified (latency: %dms)", latency.Milliseconds())
+
+				// Add warning if latency is high
+				if latency.Milliseconds() > 5000 {
+					check.Status = "warning"
+					check.Message += " - High latency detected"
+				}
+			}
+
+			check.Details = details
+
+			mu.Lock()
+			report.Providers[providerName+" (API)"] = check
+			mu.Unlock()
+		}(name)
+	}
+
+	wg.Wait()
 }
 
 func checkProjectStructure(report *DoctorReport) {
