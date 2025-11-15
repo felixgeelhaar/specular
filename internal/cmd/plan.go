@@ -5,13 +5,16 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/ux"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var planCmd = &cobra.Command{
@@ -90,6 +93,12 @@ Shows:
 }
 
 func runPlanGen(cmd *cobra.Command, args []string) error {
+	// Start distributed tracing span for plan gen command
+	ctx, span := telemetry.StartCommandSpan(cmd.Context(), "plan.gen")
+	defer span.End()
+
+	startTime := time.Now()
+
 	defaults := ux.NewPathDefaults()
 	specPath := cmd.Flags().Lookup("in").Value.String()
 	lockPath := cmd.Flags().Lookup("lock").Value.String()
@@ -108,23 +117,38 @@ func runPlanGen(cmd *cobra.Command, args []string) error {
 		out = defaults.PlanFile()
 	}
 
+	// Record span attributes
+	span.SetAttributes(
+		attribute.String("spec_file", specPath),
+		attribute.String("lock_file", lockPath),
+		attribute.String("plan_file", out),
+		attribute.Bool("estimate_complexity", estimate),
+	)
+	if featureID != "" {
+		span.SetAttributes(attribute.String("feature_id", featureID))
+	}
+
 	// Validate required files with helpful errors
 	if err := ux.ValidateRequiredFile(specPath, "Spec file", "specular spec new"); err != nil {
+		telemetry.RecordError(span, err)
 		return ux.EnhanceError(err)
 	}
 	if err := ux.ValidateRequiredFile(lockPath, "SpecLock file", "specular spec lock"); err != nil {
+		telemetry.RecordError(span, err)
 		return ux.EnhanceError(err)
 	}
 
 	// Load spec
 	s, err := spec.LoadSpec(specPath)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return ux.FormatError(err, "loading spec file")
 	}
 
 	// Load SpecLock
 	lock, err := spec.LoadSpecLock(lockPath)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return ux.FormatError(err, "loading SpecLock file")
 	}
 
@@ -162,13 +186,15 @@ func runPlanGen(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	p, err := plan.Generate(cmd.Context(), s, opts)
+	p, err := plan.Generate(ctx, s, opts)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return ux.FormatError(err, "generating plan")
 	}
 
 	// Save plan
 	if saveErr := plan.SavePlan(p, out); saveErr != nil {
+		telemetry.RecordError(span, saveErr)
 		return ux.FormatError(saveErr, "saving plan file")
 	}
 
@@ -190,6 +216,13 @@ func runPlanGen(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  1. Review plan: specular plan review\n")
 		fmt.Printf("  2. Execute plan: specular build\n")
 	}
+
+	// Record success with metrics
+	duration := time.Since(startTime)
+	telemetry.RecordSuccess(span,
+		attribute.Int("tasks_count", len(p.Tasks)),
+		attribute.Int64("duration_ms", duration.Milliseconds()),
+	)
 
 	return nil
 }
