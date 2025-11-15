@@ -10,6 +10,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/telemetry"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // AnthropicProvider implements the ProviderClient interface for Anthropic Claude API
@@ -113,6 +116,17 @@ func NewAnthropicProvider(config *ProviderConfig) (*AnthropicProvider, error) {
 
 // Generate implements ProviderClient.Generate
 func (p *AnthropicProvider) Generate(ctx context.Context, req *GenerateRequest) (*GenerateResponse, error) {
+	// Start distributed tracing span
+	ctx, span := telemetry.StartProviderSpan(ctx, "anthropic", "generate")
+	defer span.End()
+
+	// Record request attributes
+	span.SetAttributes(
+		attribute.String("model", p.model),
+		attribute.Int("max_tokens", p.maxTokens),
+		attribute.Int("prompt_length", len(req.Prompt)),
+	)
+
 	startTime := time.Now()
 
 	// Build Anthropic request
@@ -121,12 +135,14 @@ func (p *AnthropicProvider) Generate(ctx context.Context, req *GenerateRequest) 
 	// Marshal request
 	reqBody, err := json.Marshal(anthReq)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
 	// Create HTTP request
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", p.baseURL+"/messages", bytes.NewReader(reqBody))
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
@@ -137,6 +153,7 @@ func (p *AnthropicProvider) Generate(ctx context.Context, req *GenerateRequest) 
 	// Send request
 	httpResp, err := p.client.Do(httpReq)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("send request: %w", err)
 	}
 	defer httpResp.Body.Close()
@@ -144,6 +161,7 @@ func (p *AnthropicProvider) Generate(ctx context.Context, req *GenerateRequest) 
 	// Read response
 	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("read response: %w", err)
 	}
 
@@ -151,14 +169,21 @@ func (p *AnthropicProvider) Generate(ctx context.Context, req *GenerateRequest) 
 	if httpResp.StatusCode != http.StatusOK {
 		var errResp anthropicResponse
 		if err := json.Unmarshal(respBody, &errResp); err == nil && errResp.Error != nil {
-			return nil, fmt.Errorf("anthropic error: %s", errResp.Error.Message)
+			apiErr := fmt.Errorf("anthropic error: %s", errResp.Error.Message)
+			telemetry.RecordError(span, apiErr)
+			span.SetAttributes(attribute.Int("http_status", httpResp.StatusCode))
+			return nil, apiErr
 		}
-		return nil, fmt.Errorf("http error %d: %s", httpResp.StatusCode, string(respBody))
+		httpErr := fmt.Errorf("http error %d: %s", httpResp.StatusCode, string(respBody))
+		telemetry.RecordError(span, httpErr)
+		span.SetAttributes(attribute.Int("http_status", httpResp.StatusCode))
+		return nil, httpErr
 	}
 
 	// Parse response
 	var anthResp anthropicResponse
 	if err := json.Unmarshal(respBody, &anthResp); err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
@@ -169,6 +194,18 @@ func (p *AnthropicProvider) Generate(ctx context.Context, req *GenerateRequest) 
 	}
 
 	totalTokens := anthResp.Usage.InputTokens + anthResp.Usage.OutputTokens
+	latency := time.Since(startTime)
+
+	// Record success with metrics
+	telemetry.RecordSuccess(span,
+		attribute.Int("tokens_used", totalTokens),
+		attribute.Int("input_tokens", anthResp.Usage.InputTokens),
+		attribute.Int("output_tokens", anthResp.Usage.OutputTokens),
+		attribute.Int64("latency_ms", latency.Milliseconds()),
+		attribute.String("finish_reason", anthResp.StopReason),
+		attribute.Int("response_length", len(content)),
+		attribute.Int("http_status", http.StatusOK),
+	)
 
 	return &GenerateResponse{
 		Content:      content,
@@ -176,7 +213,7 @@ func (p *AnthropicProvider) Generate(ctx context.Context, req *GenerateRequest) 
 		InputTokens:  anthResp.Usage.InputTokens,
 		OutputTokens: anthResp.Usage.OutputTokens,
 		Model:        anthResp.Model,
-		Latency:      time.Since(startTime),
+		Latency:      latency,
 		FinishReason: anthResp.StopReason,
 		Provider:     p.config.Name,
 	}, nil
