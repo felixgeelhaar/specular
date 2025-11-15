@@ -1,0 +1,87 @@
+name: Specular AI Governance CI Example
+
+# This is an example workflow showing how to integrate Specular into your CI/CD pipeline
+# Copy and customize this file for your project
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main ]
+
+jobs:
+  specular-validation:
+    name: Validate Specifications & Detect Drift
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Lock Specifications
+        uses: ./.github/actions/specular
+        with:
+          command: spec
+          spec-file: .specular/spec.yaml
+          lock-file: .specular/spec.lock.json
+
+      - name: Generate Plan
+        uses: ./.github/actions/specular
+        with:
+          command: plan
+          lock-file: .specular/spec.lock.json
+          plan-file: plan.json
+          router-file: .specular/router.yaml
+
+      - name: Evaluate & Detect Drift
+        uses: ./.github/actions/specular
+        with:
+          command: eval
+          lock-file: .specular/spec.lock.json
+          policy-file: .specular/policy.yaml
+          fail-on-drift: 'true'
+          # Add your API keys as GitHub Secrets
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Upload Drift Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: .specular/drift.sarif
+          retention-days: 30
+
+  # Optional: Run build validation
+  specular-build:
+    name: Policy-Enforced Build
+    runs-on: ubuntu-latest
+    needs: specular-validation
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Spec Build
+        uses: ./.github/actions/specular
+        with:
+          command: build
+          plan-file: plan.json
+          policy-file: .specular/policy.yaml
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          additional-args: '--dry-run'
+
+  # Optional: Run system health check
+  specular-doctor:
+    name: System Diagnostics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Diagnostics
+        uses: ./.github/actions/specular
+        with:
+          command: doctor
+          additional-args: '--format json'
