@@ -1,21 +1,164 @@
-MIT License
+# Business Source License 1.1
 
-Copyright (c) 2025 Felix Geelhaar
+## Parameters
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+- **Licensor**: Felix Geelhaar
+- **Licensed Work**: Specular v1.6.0 and later
+  - The Licensed Work is © 2025 Felix Geelhaar
+- **Additional Use Grant**: You may use the Licensed Work for any purpose except providing a commercial AI-assisted specification, plan generation, or build service to third parties that competes with Specular's commercial offerings.
+- **Change Date**: Two years from the date of each release
+- **Change License**: Apache License 2.0
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+For information about alternative licensing arrangements, please visit: https://github.com/felixgeelhaar/specular
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+## Notice
+
+The Business Source License (this document, or the "License") is not an Open Source license. However, the Licensed Work will eventually be made available under an Open Source License, as stated in this License.
+
+---
+
+## License Text
+
+### Terms
+
+The Licensor hereby grants you the right to copy, modify, create derivative works, redistribute, and make non-production use of the Licensed Work. The Licensor may make an Additional Use Grant, above, permitting limited production use.
+
+Effective on the Change Date, or the fourth anniversary of the first publicly available distribution of a specific version of the Licensed Work under this License, whichever comes first, the Licensor hereby grants you rights under the terms of the Change License, and the rights granted in the paragraph above terminate.
+
+If your use of the Licensed Work does not comply with the requirements currently in effect as described in this License, you must purchase a commercial license from the Licensor, its affiliated entities, or authorized resellers, or you must refrain from using the Licensed Work.
+
+All copies of the original and modified Licensed Work, and derivative works of the Licensed Work, are subject to this License. This License applies separately for each version of the Licensed Work and the Change Date may vary for each version of the Licensed Work released by Licensor.
+
+You must conspicuously display this License on each original or modified copy of the Licensed Work. If you receive the Licensed Work in original or modified form from a third party, the terms and conditions set forth in this License apply to your use of that work.
+
+Any use of the Licensed Work in violation of this License will automatically terminate your rights under this License for the current and all other versions of the Licensed Work.
+
+This License does not grant you any right in any trademark or logo of Licensor or its affiliates (provided that you may use a trademark or logo of Licensor as expressly required by this License).
+
+TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSED WORK IS PROVIDED ON AN "AS IS" BASIS. LICENSOR HEREBY DISCLAIMS ALL WARRANTIES AND CONDITIONS, EXPRESS OR IMPLIED, INCLUDING (WITHOUT LIMITATION) WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, AND TITLE.
+
+---
+
+## Additional Use Grant Details
+
+### Permitted Uses
+
+You MAY use the Licensed Work for:
+
+✅ **Internal business use** - Deploy and use Specular within your organization for your own development needs, regardless of organization size
+
+✅ **Consulting and integration services** - Use Specular as part of professional services where you are not selling Specular itself as a service
+
+✅ **Educational purposes** - Use Specular for teaching, research, or academic purposes
+
+✅ **Personal projects** - Use Specular for your own personal or hobbyist projects
+
+✅ **Open-source projects** - Use Specular for developing open-source software
+
+✅ **Evaluation and testing** - Evaluate Specular for potential adoption
+
+✅ **Modifications** - Create modified versions for allowed uses
+
+### Prohibited Uses
+
+You MAY NOT use the Licensed Work for:
+
+❌ **Commercial SaaS offerings** - Provide Specular as a hosted service, managed service, or SaaS product to third parties for a fee
+
+❌ **Competing services** - Offer any commercial service that competes with Specular's core business of AI-assisted specification and build services
+
+❌ **Cloud provider managed services** - Package or resell Specular as a managed service on AWS, Azure, GCP, or other cloud platforms
+
+❌ **Embedding in competing products** - Integrate Specular into a product that directly competes with Specular
+
+### Examples
+
+**✅ ALLOWED**:
+- A Fortune 500 company uses Specular internally for all their development teams
+- A consulting firm uses Specular to build client applications (but doesn't sell Specular itself)
+- A university uses Specular to teach software engineering
+- An individual developer uses Specular for personal projects
+- A company modifies Specular for internal use
+
+**❌ PROHIBITED**:
+- A cloud provider offers "Managed Specular" as a service
+- A company creates "Specular-as-a-Service" and charges users
+- A platform embeds Specular and offers it as a competing AI development assistant
+- A company builds a competing AI specification and build service using Specular's code
+
+### Need a Commercial License?
+
+If your use case is prohibited under this license, please contact us for commercial licensing options:
+- Email: [your-email@example.com]
+- Website: https://github.com/felixgeelhaar/specular
+
+---
+
+## Frequently Asked Questions
+
+**Q: Is this Open Source?**
+A: No, the Business Source License is not an Open Source license. However, the code becomes Open Source (Apache 2.0) automatically after the Change Date (2 years).
+
+**Q: Can I use Specular at my company?**
+A: Yes! Internal business use is fully permitted, regardless of company size.
+
+**Q: Can I contribute to Specular?**
+A: Yes! Contributions are welcome. By contributing, you agree that your contributions will be licensed under the same BSL terms.
+
+**Q: Can I fork Specular?**
+A: Yes, you can fork and modify Specular for permitted uses. However, you cannot use a fork to provide prohibited commercial services.
+
+**Q: What happens after the Change Date?**
+A: The Licensed Work automatically becomes available under Apache License 2.0, making it fully Open Source.
+
+**Q: Can I sell services using Specular?**
+A: Yes, if you're selling consulting or integration services. No, if you're selling Specular itself as a hosted service.
+
+**Q: How is this different from AGPL?**
+A: AGPL requires you to open-source modifications if you run the software as a service. BSL prohibits certain commercial uses entirely, but is more permissive for other uses (like internal business use).
+
+---
+
+## Change Dates by Version
+
+| Version | Release Date | Change Date | Status |
+|---------|--------------|-------------|--------|
+| v1.6.0 | 2025-06-01 (planned) | 2027-06-01 | BSL 1.1 → Apache 2.0 |
+| v1.5.0 | 2025-01-15 | 2027-01-15 | BSL 1.1 → Apache 2.0 |
+
+Note: Earlier versions (v1.0.0 - v1.4.0) were released under MIT License and remain under MIT License.
+
+---
+
+## Apache License 2.0 (Change License)
+
+Upon the Change Date, the Licensed Work will be available under the Apache License 2.0:
+
+```
+Copyright 2025 Felix Geelhaar
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+---
+
+## History
+
+- **2025-01-15**: Transitioned from MIT License to Business Source License 1.1
+  - Versions v1.0.0 - v1.4.0 remain under MIT License
+  - Versions v1.5.0 and later use Business Source License 1.1
+- **Previous**: MIT License (permissive, allows any use including commercial)
+
+---
+
+For the full Business Source License 1.1 specification, visit: https://mariadb.com/bsl11/

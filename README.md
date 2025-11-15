@@ -4394,7 +4394,42 @@ strategy:
 
 ## License
 
-MIT
+**Business Source License 1.1** (BSL 1.1)
+
+Specular is licensed under the Business Source License 1.1, which provides source-available access while protecting our ability to build a sustainable business.
+
+### What You Can Do
+
+✅ **Free for internal use** - Use Specular within your organization for development, regardless of size
+✅ **Consulting & integration services** - Use Specular as part of professional services
+✅ **Educational & research** - Use Specular for teaching, learning, and academic purposes
+✅ **Personal & open-source projects** - Build your own projects with Specular
+✅ **Modify & contribute** - Fork, modify, and contribute to the project
+
+### What Requires a Commercial License
+
+❌ **Commercial SaaS** - Offering Specular as a hosted service or managed offering
+❌ **Competing services** - Building competing AI-assisted specification/build services
+❌ **Cloud provider wrappers** - Packaging Specular as a managed service (AWS, Azure, GCP)
+
+### Automatic Open Source Conversion
+
+After 2 years from each release, the code automatically becomes **Apache License 2.0** (fully open source).
+
+- v1.5.0 (2025-01-15) → Apache 2.0 on 2027-01-15
+- v1.6.0 (2025-06-01) → Apache 2.0 on 2027-06-01
+- Earlier versions (v1.0.0 - v1.4.0) remain under MIT License
+
+### Why BSL?
+
+We chose BSL to:
+1. **Enable free use** for developers and companies for internal purposes
+2. **Protect our business** from cloud providers commercializing our work without contributing
+3. **Ensure long-term openness** via automatic Apache 2.0 conversion
+4. **Build sustainably** while keeping the code transparent
+
+**For full license details**, see [LICENSE](LICENSE) file.
+**For commercial licensing**, contact [your-email@example.com]
 
 ## Contributing
 
