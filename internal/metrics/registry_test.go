@@ -35,10 +35,13 @@ func TestInitDefault(t *testing.T) {
 }
 
 func TestGetDefault(t *testing.T) {
-	// Note: We don't reset here because TestInitDefault already tested initialization
-	// This test verifies that GetDefault returns an existing instance if available
+	// Note: We cannot fully test the lazy initialization path (when Default is nil)
+	// because it would require Reset(), which causes Prometheus registry conflicts.
+	// The lazy initialization is implicitly tested by TestInitDefault.
 
-	// Get or initialize
+	// This test verifies that GetDefault returns the initialized instance
+
+	// GetDefault should return a metrics instance
 	m := GetDefault()
 	if m == nil {
 		t.Fatal("expected metrics, got nil")
@@ -145,6 +148,36 @@ func TestHandlerFor(t *testing.T) {
 	// Verify metric is present
 	if !strings.Contains(body, "specular_provider_calls_total") {
 		t.Error("metrics output does not contain provider_calls_total")
+	}
+}
+
+func TestDefaultHandler(t *testing.T) {
+	// Test the Handler() function which uses prometheus.DefaultGatherer
+	handler := Handler()
+
+	if handler == nil {
+		t.Fatal("expected handler, got nil")
+	}
+
+	// Make request to handler
+	req := httptest.NewRequest("GET", "/metrics", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %v, want %v", w.Code, http.StatusOK)
+	}
+
+	// Verify response is not empty
+	body := w.Body.String()
+	if body == "" {
+		t.Error("expected non-empty metrics output")
+	}
+
+	// The default handler should return Prometheus metrics format
+	// (starts with # HELP or contains metric names)
+	if !strings.Contains(body, "# HELP") && !strings.Contains(body, "# TYPE") {
+		t.Error("expected Prometheus metrics format in output")
 	}
 }
 

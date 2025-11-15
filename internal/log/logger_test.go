@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -663,5 +664,169 @@ func TestNewWithInvalidFormat(t *testing.T) {
 	var logEntry map[string]interface{}
 	if err := json.Unmarshal(buf.Bytes(), &logEntry); err != nil {
 		t.Fatalf("failed to parse JSON (should default to JSON format): %v", err)
+	}
+}
+
+func TestWithErrorWithCause(t *testing.T) {
+	var buf bytes.Buffer
+	config := Config{
+		Level:     LevelInfo,
+		Format:    FormatJSON,
+		Output:    NewOutput(&buf),
+		AddSource: false,
+	}
+	logger := New(config)
+
+	// Create a SpecularError with a Cause
+	causeErr := errors.New("IO-001", "file not found")
+	wrappedErr := errors.Wrap("SPEC-001", "failed to read spec", causeErr)
+
+	loggerWithError := logger.WithError(wrappedErr)
+	loggerWithError.Info("test")
+
+	var logEntry map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &logEntry); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+
+	// Verify error_code is present
+	if logEntry["error_code"] != "SPEC-001" {
+		t.Errorf("expected error_code 'SPEC-001', got %v", logEntry["error_code"])
+	}
+
+	// Verify cause is present
+	if _, ok := logEntry["cause"]; !ok {
+		t.Error("expected cause field for error with Cause")
+	}
+
+	causeStr, ok := logEntry["cause"].(string)
+	if !ok {
+		t.Fatal("expected cause to be a string")
+	}
+
+	// Cause should contain the original error message
+	if !strings.Contains(causeStr, "file not found") {
+		t.Errorf("expected cause to contain 'file not found', got: %s", causeStr)
+	}
+}
+
+func TestLogErrorWithStdlibError(t *testing.T) {
+	var buf bytes.Buffer
+	config := Config{
+		Level:     LevelInfo,
+		Format:    FormatJSON,
+		Output:    NewOutput(&buf),
+		AddSource: false,
+	}
+	logger := New(config)
+
+	// Use a real stdlib error (not SpecularError) using fmt.Errorf
+	stdErr := fmt.Errorf("standard library error")
+
+	logger.LogError(stdErr)
+
+	var logEntry map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &logEntry); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+
+	// Should have "error" field with the error message
+	if logEntry["error"] != "standard library error" {
+		t.Errorf("expected error 'standard library error', got %v", logEntry["error"])
+	}
+
+	// Should NOT have error_code (that's for SpecularError)
+	if _, ok := logEntry["error_code"]; ok {
+		t.Error("expected no error_code field for stdlib error")
+	}
+
+	// Should have the standard log message
+	if logEntry["msg"] != "operation failed" {
+		t.Errorf("expected msg 'operation failed', got %v", logEntry["msg"])
+	}
+}
+
+func TestLogErrorContextWithAllFields(t *testing.T) {
+	var buf bytes.Buffer
+	config := Config{
+		Level:     LevelInfo,
+		Format:    FormatJSON,
+		Output:    NewOutput(&buf),
+		AddSource: false,
+	}
+	logger := New(config)
+
+	ctx := context.Background()
+
+	// Create a SpecularError with all fields
+	causeErr := errors.New("IO-001", "underlying cause")
+	err := errors.Wrap("SPEC-001", "operation failed", causeErr).
+		WithSuggestion("Try this fix").
+		WithDocs("https://docs.example.com/error")
+
+	logger.LogErrorContext(ctx, err)
+
+	var logEntry map[string]interface{}
+	if jsonErr := json.Unmarshal(buf.Bytes(), &logEntry); jsonErr != nil {
+		t.Fatalf("failed to parse JSON: %v", jsonErr)
+	}
+
+	// Verify all fields are present
+	if logEntry["error_code"] != "SPEC-001" {
+		t.Errorf("expected error_code 'SPEC-001', got %v", logEntry["error_code"])
+	}
+
+	if logEntry["error_message"] != "operation failed" {
+		t.Errorf("expected error_message 'operation failed', got %v", logEntry["error_message"])
+	}
+
+	if _, ok := logEntry["suggestions"]; !ok {
+		t.Error("expected suggestions field")
+	}
+
+	if logEntry["docs_url"] != "https://docs.example.com/error" {
+		t.Errorf("expected docs_url, got %v", logEntry["docs_url"])
+	}
+
+	if _, ok := logEntry["cause"]; !ok {
+		t.Error("expected cause field")
+	}
+}
+
+func TestLogErrorContextWithStdlibError(t *testing.T) {
+	var buf bytes.Buffer
+	config := Config{
+		Level:     LevelInfo,
+		Format:    FormatJSON,
+		Output:    NewOutput(&buf),
+		AddSource: false,
+	}
+	logger := New(config)
+
+	ctx := context.Background()
+
+	// Use a real stdlib error (not SpecularError) using fmt.Errorf
+	stdErr := fmt.Errorf("context error")
+
+	logger.LogErrorContext(ctx, stdErr)
+
+	var logEntry map[string]interface{}
+	if jsonErr := json.Unmarshal(buf.Bytes(), &logEntry); jsonErr != nil {
+		t.Fatalf("failed to parse JSON: %v", jsonErr)
+	}
+
+	// Should have "error" field with the error message
+	if logEntry["error"] != "context error" {
+		t.Errorf("expected error 'context error', got %v", logEntry["error"])
+	}
+
+	// Should NOT have error_code (that's for SpecularError)
+	if _, ok := logEntry["error_code"]; ok {
+		t.Error("expected no error_code field for stdlib error")
+	}
+
+	// Should have the standard log message
+	if logEntry["msg"] != "operation failed" {
+		t.Errorf("expected msg 'operation failed', got %v", logEntry["msg"])
 	}
 }
