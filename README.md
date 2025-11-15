@@ -19,24 +19,31 @@ A Go-based CLI tool that enables spec-first, policy-enforced software developmen
 
 ---
 
-## What's New in v1.5.0
+## What's New in v1.0.0
 
-🎉 **Production-Ready UX and CI/CD Integration**
+🎉 **Official Release with Open-Core Model**
 
-### M6: End-to-End UX Refinement
+### Business Source License 1.1
 
-- **Interactive Prompts**: CI-safe prompts for missing required flags with automatic environment detection
-- **Sensible Defaults**: Smart path defaults reduce command verbosity by 70%
-- **Enhanced Error Messages**: Actionable recovery suggestions with structured error handling
+- **Source-Available IP Protection**: BSL 1.1 license with automatic Apache 2.0 conversion after 2 years
+- **Open-Core Architecture**: Public CLI with extensible SDK for community and enterprise integration
+- **Clear Use Rights**: Permits internal use, consulting, education; prohibits competing SaaS
 
-### M7: CI/CD Integration & Production Readiness
+### Public SDK (`pkg/specular/`)
 
-- **GitHub Actions Integration**: Composite action for seamless CI/CD workflows with SARIF drift reports
-- **Docker Image Caching**: 80%+ performance improvement with intelligent caching strategies
-- **Production Documentation**: Comprehensive guides for deployment, security, and monitoring (1,679 lines)
-- **Release Automation**: Modernized GoReleaser configuration with multi-platform support
+- **Type-Safe Domain Models**: Value objects for features, tasks, priorities with validation
+- **Provider Plugin System**: Universal interface for AI provider integration
+- **Feature Flags**: Edition-based feature differentiation (free vs enterprise)
+- **Platform API Client**: Stub for future enterprise platform integration
 
-[View Full Changelog](CHANGELOG.md#150---2025-01-15)
+### Production Features
+
+- **Autonomous Mode**: Checkpoint/resume capabilities with full state preservation
+- **Policy Engine**: Enterprise-grade governance with cryptographic approval workflows
+- **Docker Sandboxing**: Secure isolated execution environment
+- **Drift Detection**: Multi-level drift tracking (plan, code, infrastructure)
+
+[View Full Changelog](CHANGELOG.md)
 
 ---
 
