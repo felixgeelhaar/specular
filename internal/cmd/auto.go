@@ -83,9 +83,13 @@ Examples:
 		listProfiles, _ := cmd.Flags().GetBool("list-profiles")
 		resumeFrom, _ := cmd.Flags().GetString("resume")
 
-		// Allow no goal if listing profiles or resuming
-		if !listProfiles && resumeFrom == "" && len(args) < 1 {
-			return fmt.Errorf("invalid argument: requires a goal argument when not resuming or listing profiles")
+		// Allow no goal if listing profiles, resuming, or in interactive mode
+		// Interactive mode will prompt for the goal if missing
+		if !listProfiles && resumeFrom == "" && len(args) < 1 && !tui.ShouldPrompt() {
+			return fmt.Errorf("invalid argument: requires a goal argument when not resuming or listing profiles\n\n" +
+				"Usage: specular auto <goal>\n" +
+				"Example: specular auto \"Build a REST API for user management\"\n\n" +
+				"Run 'specular auto --help' for more information.")
 		}
 		return nil
 	},
@@ -143,6 +147,33 @@ Examples:
 					goal += " "
 				}
 				goal += arg
+			}
+
+			// If goal is empty and we're interactive, prompt for it
+			if goal == "" && tui.ShouldPrompt() {
+				if verbose {
+					fmt.Fprintln(os.Stderr, "No goal provided, entering interactive mode...")
+				}
+
+				promptedGoal, err := tui.PromptForString(tui.Prompt{
+					Message:     "What would you like to build?",
+					Placeholder: "e.g., Build a REST API for user management",
+					Required:    true,
+				})
+				if err != nil {
+					return fmt.Errorf("failed to get goal: %w", err)
+				}
+
+				goal = promptedGoal
+
+				if verbose {
+					fmt.Fprintf(os.Stderr, "Goal: %s\n", goal)
+				}
+			}
+
+			// If still no goal, return error (shouldn't happen if prompting worked)
+			if goal == "" {
+				return fmt.Errorf("no goal provided. Use 'specular auto \"your goal here\"' or run interactively")
 			}
 		}
 
