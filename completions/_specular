@@ -1,3 +1,5 @@
+{"time":"2025-11-15T22:17:32.444535+01:00","level":"INFO","msg":"Logging initialized","level":"debug","format":"json"}
+{"time":"2025-11-15T22:17:32.444692+01:00","level":"INFO","msg":"File logging enabled","path":"/Users/felixgeelhaar/.specular/logs/specular.log"}
 #compdef specular
 compdef _specular specular
 

@@ -104,7 +104,7 @@ func FileNotFoundError(filePath string, suggestions ...string) error {
 	return NewErrorWithSuggestions(
 		fmt.Sprintf("File not found: %s", filePath),
 		nil,
-		allSuggestions...
+		allSuggestions...,
 	)
 }
 

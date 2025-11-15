@@ -1,3 +1,5 @@
+{"time":"2025-11-15T22:17:32.429679+01:00","level":"INFO","msg":"Logging initialized","level":"debug","format":"json"}
+{"time":"2025-11-15T22:17:32.429961+01:00","level":"INFO","msg":"File logging enabled","path":"/Users/felixgeelhaar/.specular/logs/specular.log"}
 # bash completion for specular                             -*- shell-script -*-
 
 __specular_debug()
@@ -360,6 +362,348 @@ __specular_handle_word()
     __specular_handle_word
 }
 
+_specular_approve()
+{
+    last_command="specular_approve"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--approver=")
+    two_word_flags+=("--approver")
+    local_nonpersistent_flags+=("--approver")
+    local_nonpersistent_flags+=("--approver=")
+    flags+=("--comment=")
+    two_word_flags+=("--comment")
+    local_nonpersistent_flags+=("--comment")
+    local_nonpersistent_flags+=("--comment=")
+    flags+=("--env=")
+    two_word_flags+=("--env")
+    local_nonpersistent_flags+=("--env")
+    local_nonpersistent_flags+=("--env=")
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    local_nonpersistent_flags+=("--file")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_auth_login()
+{
+    last_command="specular_auth_login"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--token=")
+    two_word_flags+=("--token")
+    local_nonpersistent_flags+=("--token")
+    local_nonpersistent_flags+=("--token=")
+    flags+=("--user=")
+    two_word_flags+=("--user")
+    local_nonpersistent_flags+=("--user")
+    local_nonpersistent_flags+=("--user=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_auth_logout()
+{
+    last_command="specular_auth_logout"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_auth_token()
+{
+    last_command="specular_auth_token"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--refresh")
+    local_nonpersistent_flags+=("--refresh")
+    flags+=("--show")
+    local_nonpersistent_flags+=("--show")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_auth_whoami()
+{
+    last_command="specular_auth_whoami"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_auth()
+{
+    last_command="specular_auth"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("login")
+    commands+=("logout")
+    commands+=("token")
+    commands+=("whoami")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_auto_explain()
+{
+    last_command="specular_auto_explain"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_auto_history()
+{
+    last_command="specular_auto_history"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_auto_resume()
+{
+    last_command="specular_auto_resume"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _specular_auto_rollback()
 {
     last_command="specular_auto_rollback"
@@ -465,6 +809,9 @@ _specular_auto()
     command_aliases=()
 
     commands=()
+    commands+=("explain")
+    commands+=("history")
+    commands+=("resume")
     commands+=("rollback")
     commands+=("verify")
 
@@ -554,9 +901,85 @@ _specular_auto()
     noun_aliases=()
 }
 
-_specular_build()
+_specular_build_approve()
 {
-    last_command="specular_build"
+    last_command="specular_build_approve"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--manifest-dir=")
+    two_word_flags+=("--manifest-dir")
+    local_nonpersistent_flags+=("--manifest-dir")
+    local_nonpersistent_flags+=("--manifest-dir=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_build_explain()
+{
+    last_command="specular_build_explain"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--manifest-dir=")
+    two_word_flags+=("--manifest-dir")
+    local_nonpersistent_flags+=("--manifest-dir")
+    local_nonpersistent_flags+=("--manifest-dir=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_build_run()
+{
+    last_command="specular_build_run"
 
     command_aliases=()
 
@@ -592,6 +1015,10 @@ _specular_build()
     two_word_flags+=("--fail-on")
     local_nonpersistent_flags+=("--fail-on")
     local_nonpersistent_flags+=("--fail-on=")
+    flags+=("--feature=")
+    two_word_flags+=("--feature")
+    local_nonpersistent_flags+=("--feature")
+    local_nonpersistent_flags+=("--feature=")
     flags+=("--keep-checkpoint")
     local_nonpersistent_flags+=("--keep-checkpoint")
     flags+=("--manifest-dir=")
@@ -622,6 +1049,96 @@ _specular_build()
     flags+=("-q")
     flags+=("--trace=")
     two_word_flags+=("--trace")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_build_verify()
+{
+    last_command="specular_build_verify"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--policy=")
+    two_word_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_build()
+{
+    last_command="specular_build"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("approve")
+    commands+=("explain")
+    commands+=("run")
+    commands+=("verify")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--manifest-dir=")
+    two_word_flags+=("--manifest-dir")
+    local_nonpersistent_flags+=("--manifest-dir")
+    local_nonpersistent_flags+=("--manifest-dir=")
+    flags+=("--plan=")
+    two_word_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan=")
+    flags+=("--policy=")
+    two_word_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -1112,114 +1629,6 @@ _specular_bundle()
     noun_aliases=()
 }
 
-_specular_checkpoint_list()
-{
-    last_command="specular_checkpoint_list"
-
-    command_aliases=()
-
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--explain")
-    flags+=("--format=")
-    two_word_flags+=("--format")
-    flags+=("--home=")
-    two_word_flags+=("--home")
-    flags+=("--log-level=")
-    two_word_flags+=("--log-level")
-    flags+=("--no-color")
-    flags+=("--quiet")
-    flags+=("-q")
-    flags+=("--trace=")
-    two_word_flags+=("--trace")
-    flags+=("--verbose")
-    flags+=("-v")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
-_specular_checkpoint_show()
-{
-    last_command="specular_checkpoint_show"
-
-    command_aliases=()
-
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--json")
-    local_nonpersistent_flags+=("--json")
-    flags+=("--verbose")
-    flags+=("-v")
-    local_nonpersistent_flags+=("--verbose")
-    local_nonpersistent_flags+=("-v")
-    flags+=("--explain")
-    flags+=("--format=")
-    two_word_flags+=("--format")
-    flags+=("--home=")
-    two_word_flags+=("--home")
-    flags+=("--log-level=")
-    two_word_flags+=("--log-level")
-    flags+=("--no-color")
-    flags+=("--quiet")
-    flags+=("-q")
-    flags+=("--trace=")
-    two_word_flags+=("--trace")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
-_specular_checkpoint()
-{
-    last_command="specular_checkpoint"
-
-    command_aliases=()
-
-    commands=()
-    commands+=("list")
-    commands+=("show")
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--explain")
-    flags+=("--format=")
-    two_word_flags+=("--format")
-    flags+=("--home=")
-    two_word_flags+=("--home")
-    flags+=("--log-level=")
-    two_word_flags+=("--log-level")
-    flags+=("--no-color")
-    flags+=("--quiet")
-    flags+=("-q")
-    flags+=("--trace=")
-    two_word_flags+=("--trace")
-    flags+=("--verbose")
-    flags+=("-v")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
 _specular_completion()
 {
     last_command="specular_completion"
@@ -1262,9 +1671,9 @@ _specular_completion()
     noun_aliases=()
 }
 
-_specular_doctor()
+_specular_config_edit()
 {
-    last_command="specular_doctor"
+    last_command="specular_config_edit"
 
     command_aliases=()
 
@@ -1296,9 +1705,452 @@ _specular_doctor()
     noun_aliases=()
 }
 
-_specular_eval()
+_specular_config_get()
 {
-    last_command="specular_eval"
+    last_command="specular_config_get"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_config_path()
+{
+    last_command="specular_config_path"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_config_set()
+{
+    last_command="specular_config_set"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_config_view()
+{
+    last_command="specular_config_view"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_config()
+{
+    last_command="specular_config"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("edit")
+    commands+=("get")
+    commands+=("path")
+    commands+=("set")
+    commands+=("view")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_debug_context()
+{
+    last_command="specular_debug_context"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_debug_doctor()
+{
+    last_command="specular_debug_doctor"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_debug_explain()
+{
+    last_command="specular_debug_explain"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--format")
+    local_nonpersistent_flags+=("--format=")
+    local_nonpersistent_flags+=("-f")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output")
+    local_nonpersistent_flags+=("--output=")
+    local_nonpersistent_flags+=("-o")
+    flags+=("--explain")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_debug_logs_list()
+{
+    last_command="specular_debug_logs_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_debug_logs()
+{
+    last_command="specular_debug_logs"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("list")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--follow")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--follow")
+    local_nonpersistent_flags+=("-f")
+    flags+=("--lines=")
+    two_word_flags+=("--lines")
+    two_word_flags+=("-n")
+    local_nonpersistent_flags+=("--lines")
+    local_nonpersistent_flags+=("--lines=")
+    local_nonpersistent_flags+=("-n")
+    flags+=("--tail")
+    local_nonpersistent_flags+=("--tail")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    local_nonpersistent_flags+=("--trace")
+    local_nonpersistent_flags+=("--trace=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_debug_status()
+{
+    last_command="specular_debug_status"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_debug()
+{
+    last_command="specular_debug"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("context")
+    commands+=("doctor")
+    commands+=("explain")
+    commands+=("logs")
+    commands+=("status")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_eval_drift()
+{
+    last_command="specular_eval_drift"
 
     command_aliases=()
 
@@ -1376,9 +2228,9 @@ _specular_eval()
     noun_aliases=()
 }
 
-_specular_explain()
+_specular_eval_rules()
 {
-    last_command="specular_explain"
+    last_command="specular_eval_rules"
 
     command_aliases=()
 
@@ -1390,19 +2242,140 @@ _specular_explain()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--edit")
+    local_nonpersistent_flags+=("--edit")
+    flags+=("--policy=")
+    two_word_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy=")
+    flags+=("--explain")
     flags+=("--format=")
     two_word_flags+=("--format")
-    two_word_flags+=("-f")
-    local_nonpersistent_flags+=("--format")
-    local_nonpersistent_flags+=("--format=")
-    local_nonpersistent_flags+=("-f")
-    flags+=("--output=")
-    two_word_flags+=("--output")
-    two_word_flags+=("-o")
-    local_nonpersistent_flags+=("--output")
-    local_nonpersistent_flags+=("--output=")
-    local_nonpersistent_flags+=("-o")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_eval_run()
+{
+    last_command="specular_eval_run"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--policy=")
+    two_word_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy=")
+    flags+=("--scenario=")
+    two_word_flags+=("--scenario")
+    local_nonpersistent_flags+=("--scenario")
+    local_nonpersistent_flags+=("--scenario=")
     flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_eval()
+{
+    last_command="specular_eval"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("drift")
+    commands+=("rules")
+    commands+=("run")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--api-spec=")
+    two_word_flags+=("--api-spec")
+    local_nonpersistent_flags+=("--api-spec")
+    local_nonpersistent_flags+=("--api-spec=")
+    flags+=("--checkpoint-dir=")
+    two_word_flags+=("--checkpoint-dir")
+    local_nonpersistent_flags+=("--checkpoint-dir")
+    local_nonpersistent_flags+=("--checkpoint-dir=")
+    flags+=("--checkpoint-id=")
+    two_word_flags+=("--checkpoint-id")
+    local_nonpersistent_flags+=("--checkpoint-id")
+    local_nonpersistent_flags+=("--checkpoint-id=")
+    flags+=("--fail-on-drift")
+    local_nonpersistent_flags+=("--fail-on-drift")
+    flags+=("--ignore=")
+    two_word_flags+=("--ignore")
+    local_nonpersistent_flags+=("--ignore")
+    local_nonpersistent_flags+=("--ignore=")
+    flags+=("--keep-checkpoint")
+    local_nonpersistent_flags+=("--keep-checkpoint")
+    flags+=("--lock=")
+    two_word_flags+=("--lock")
+    local_nonpersistent_flags+=("--lock")
+    local_nonpersistent_flags+=("--lock=")
+    flags+=("--plan=")
+    two_word_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan=")
+    flags+=("--policy=")
+    two_word_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy")
+    local_nonpersistent_flags+=("--policy=")
+    flags+=("--project-root=")
+    two_word_flags+=("--project-root")
+    local_nonpersistent_flags+=("--project-root")
+    local_nonpersistent_flags+=("--project-root=")
+    flags+=("--report=")
+    two_word_flags+=("--report")
+    local_nonpersistent_flags+=("--report")
+    local_nonpersistent_flags+=("--report=")
+    flags+=("--resume")
+    local_nonpersistent_flags+=("--resume")
+    flags+=("--spec=")
+    two_word_flags+=("--spec")
+    local_nonpersistent_flags+=("--spec")
+    local_nonpersistent_flags+=("--spec=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
     flags+=("--home=")
     two_word_flags+=("--home")
     flags+=("--log-level=")
@@ -1639,6 +2612,176 @@ _specular_interview()
     noun_aliases=()
 }
 
+_specular_plan_drift()
+{
+    last_command="specular_plan_drift"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--plan=")
+    two_word_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_plan_explain()
+{
+    last_command="specular_plan_explain"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--plan=")
+    two_word_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_plan_gen()
+{
+    last_command="specular_plan_gen"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--estimate")
+    local_nonpersistent_flags+=("--estimate")
+    flags+=("--feature=")
+    two_word_flags+=("--feature")
+    local_nonpersistent_flags+=("--feature")
+    local_nonpersistent_flags+=("--feature=")
+    flags+=("--in=")
+    two_word_flags+=("--in")
+    two_word_flags+=("-i")
+    local_nonpersistent_flags+=("--in")
+    local_nonpersistent_flags+=("--in=")
+    local_nonpersistent_flags+=("-i")
+    flags+=("--lock=")
+    two_word_flags+=("--lock")
+    local_nonpersistent_flags+=("--lock")
+    local_nonpersistent_flags+=("--lock=")
+    flags+=("--out=")
+    two_word_flags+=("--out")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--out")
+    local_nonpersistent_flags+=("--out=")
+    local_nonpersistent_flags+=("-o")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_plan_review()
+{
+    last_command="specular_plan_review"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--plan=")
+    two_word_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan")
+    local_nonpersistent_flags+=("--plan=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _specular_plan()
 {
     last_command="specular_plan"
@@ -1646,6 +2789,10 @@ _specular_plan()
     command_aliases=()
 
     commands=()
+    commands+=("drift")
+    commands+=("explain")
+    commands+=("gen")
+    commands+=("review")
 
     flags=()
     two_word_flags=()
@@ -1671,6 +2818,126 @@ _specular_plan()
     local_nonpersistent_flags+=("--out")
     local_nonpersistent_flags+=("--out=")
     local_nonpersistent_flags+=("-o")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_policy_apply()
+{
+    last_command="specular_policy_apply"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    local_nonpersistent_flags+=("--file")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--target=")
+    two_word_flags+=("--target")
+    local_nonpersistent_flags+=("--target")
+    local_nonpersistent_flags+=("--target=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_policy_new()
+{
+    last_command="specular_policy_new"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--force")
+    local_nonpersistent_flags+=("--force")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    local_nonpersistent_flags+=("--output")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--strict")
+    local_nonpersistent_flags+=("--strict")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_policy()
+{
+    last_command="specular_policy"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("apply")
+    commands+=("new")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
     flags+=("--explain")
     flags+=("--format=")
     two_word_flags+=("--format")
@@ -1902,54 +3169,6 @@ _specular_provider()
     noun_aliases=()
 }
 
-_specular_route_bench()
-{
-    last_command="specular_route_bench"
-
-    command_aliases=()
-
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--models=")
-    two_word_flags+=("--models")
-    local_nonpersistent_flags+=("--models")
-    local_nonpersistent_flags+=("--models=")
-    flags+=("--output=")
-    two_word_flags+=("--output")
-    local_nonpersistent_flags+=("--output")
-    local_nonpersistent_flags+=("--output=")
-    flags+=("--quick")
-    local_nonpersistent_flags+=("--quick")
-    flags+=("--tasks=")
-    two_word_flags+=("--tasks")
-    local_nonpersistent_flags+=("--tasks")
-    local_nonpersistent_flags+=("--tasks=")
-    flags+=("--explain")
-    flags+=("--format=")
-    two_word_flags+=("--format")
-    flags+=("--home=")
-    two_word_flags+=("--home")
-    flags+=("--log-level=")
-    two_word_flags+=("--log-level")
-    flags+=("--no-color")
-    flags+=("--quiet")
-    flags+=("-q")
-    flags+=("--trace=")
-    two_word_flags+=("--trace")
-    flags+=("--verbose")
-    flags+=("-v")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
 _specular_route_explain()
 {
     last_command="specular_route_explain"
@@ -1964,22 +3183,6 @@ _specular_route_explain()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--complexity=")
-    two_word_flags+=("--complexity")
-    local_nonpersistent_flags+=("--complexity")
-    local_nonpersistent_flags+=("--complexity=")
-    flags+=("--context-size=")
-    two_word_flags+=("--context-size")
-    local_nonpersistent_flags+=("--context-size")
-    local_nonpersistent_flags+=("--context-size=")
-    flags+=("--hint=")
-    two_word_flags+=("--hint")
-    local_nonpersistent_flags+=("--hint")
-    local_nonpersistent_flags+=("--hint=")
-    flags+=("--priority=")
-    two_word_flags+=("--priority")
-    local_nonpersistent_flags+=("--priority")
-    local_nonpersistent_flags+=("--priority=")
     flags+=("--explain")
     flags+=("--format=")
     two_word_flags+=("--format")
@@ -2000,9 +3203,9 @@ _specular_route_explain()
     noun_aliases=()
 }
 
-_specular_route_optimize()
+_specular_route_list()
 {
-    last_command="specular_route_optimize"
+    last_command="specular_route_list"
 
     command_aliases=()
 
@@ -2014,12 +3217,12 @@ _specular_route_optimize()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--dry-run")
-    local_nonpersistent_flags+=("--dry-run")
-    flags+=("--since=")
-    two_word_flags+=("--since")
-    local_nonpersistent_flags+=("--since")
-    local_nonpersistent_flags+=("--since=")
+    flags+=("--available")
+    local_nonpersistent_flags+=("--available")
+    flags+=("--provider=")
+    two_word_flags+=("--provider")
+    local_nonpersistent_flags+=("--provider")
+    local_nonpersistent_flags+=("--provider=")
     flags+=("--explain")
     flags+=("--format=")
     two_word_flags+=("--format")
@@ -2040,9 +3243,9 @@ _specular_route_optimize()
     noun_aliases=()
 }
 
-_specular_route_show()
+_specular_route_override()
 {
-    last_command="specular_route_show"
+    last_command="specular_route_override"
 
     command_aliases=()
 
@@ -2054,56 +3257,6 @@ _specular_route_show()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--explain")
-    flags+=("--format=")
-    two_word_flags+=("--format")
-    flags+=("--home=")
-    two_word_flags+=("--home")
-    flags+=("--log-level=")
-    two_word_flags+=("--log-level")
-    flags+=("--no-color")
-    flags+=("--quiet")
-    flags+=("-q")
-    flags+=("--trace=")
-    two_word_flags+=("--trace")
-    flags+=("--verbose")
-    flags+=("-v")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
-_specular_route_test()
-{
-    last_command="specular_route_test"
-
-    command_aliases=()
-
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--complexity=")
-    two_word_flags+=("--complexity")
-    local_nonpersistent_flags+=("--complexity")
-    local_nonpersistent_flags+=("--complexity=")
-    flags+=("--context-size=")
-    two_word_flags+=("--context-size")
-    local_nonpersistent_flags+=("--context-size")
-    local_nonpersistent_flags+=("--context-size=")
-    flags+=("--hint=")
-    two_word_flags+=("--hint")
-    local_nonpersistent_flags+=("--hint")
-    local_nonpersistent_flags+=("--hint=")
-    flags+=("--priority=")
-    two_word_flags+=("--priority")
-    local_nonpersistent_flags+=("--priority")
-    local_nonpersistent_flags+=("--priority=")
     flags+=("--explain")
     flags+=("--format=")
     two_word_flags+=("--format")
@@ -2131,11 +3284,219 @@ _specular_route()
     command_aliases=()
 
     commands=()
-    commands+=("bench")
     commands+=("explain")
-    commands+=("optimize")
+    commands+=("list")
+    commands+=("override")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_session_list()
+{
+    last_command="specular_session_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_session_show()
+{
+    last_command="specular_session_show"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--json")
+    local_nonpersistent_flags+=("--json")
+    flags+=("--verbose")
+    flags+=("-v")
+    local_nonpersistent_flags+=("--verbose")
+    local_nonpersistent_flags+=("-v")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_session()
+{
+    last_command="specular_session"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("list")
     commands+=("show")
-    commands+=("test")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_spec_approve()
+{
+    last_command="specular_spec_approve"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_spec_diff()
+{
+    last_command="specular_spec_diff"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_spec_edit()
+{
+    last_command="specular_spec_edit"
+
+    command_aliases=()
+
+    commands=()
 
     flags=()
     two_word_flags=()
@@ -2233,6 +3594,10 @@ _specular_spec_lock()
     local_nonpersistent_flags+=("--in")
     local_nonpersistent_flags+=("--in=")
     local_nonpersistent_flags+=("-i")
+    flags+=("--note=")
+    two_word_flags+=("--note")
+    local_nonpersistent_flags+=("--note")
+    local_nonpersistent_flags+=("--note=")
     flags+=("--out=")
     two_word_flags+=("--out")
     two_word_flags+=("-o")
@@ -2243,6 +3608,60 @@ _specular_spec_lock()
     two_word_flags+=("--version")
     local_nonpersistent_flags+=("--version")
     local_nonpersistent_flags+=("--version=")
+    flags+=("--explain")
+    flags+=("--format=")
+    two_word_flags+=("--format")
+    flags+=("--home=")
+    two_word_flags+=("--home")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    flags+=("--no-color")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--trace=")
+    two_word_flags+=("--trace")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_specular_spec_new()
+{
+    last_command="specular_spec_new"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--from=")
+    two_word_flags+=("--from")
+    local_nonpersistent_flags+=("--from")
+    local_nonpersistent_flags+=("--from=")
+    flags+=("--list")
+    local_nonpersistent_flags+=("--list")
+    flags+=("--out=")
+    two_word_flags+=("--out")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--out")
+    local_nonpersistent_flags+=("--out=")
+    local_nonpersistent_flags+=("-o")
+    flags+=("--preset=")
+    two_word_flags+=("--preset")
+    local_nonpersistent_flags+=("--preset")
+    local_nonpersistent_flags+=("--preset=")
+    flags+=("--strict")
+    local_nonpersistent_flags+=("--strict")
+    flags+=("--tui")
+    local_nonpersistent_flags+=("--tui")
     flags+=("--explain")
     flags+=("--format=")
     two_word_flags+=("--format")
@@ -2310,8 +3729,12 @@ _specular_spec()
     command_aliases=()
 
     commands=()
+    commands+=("approve")
+    commands+=("diff")
+    commands+=("edit")
     commands+=("generate")
     commands+=("lock")
+    commands+=("new")
     commands+=("validate")
 
     flags=()
@@ -2385,22 +3808,25 @@ _specular_root_command()
     command_aliases=()
 
     commands=()
+    commands+=("approve")
+    commands+=("auth")
     commands+=("auto")
     commands+=("build")
     commands+=("bundle")
-    commands+=("checkpoint")
     commands+=("completion")
-    commands+=("doctor")
+    commands+=("config")
+    commands+=("debug")
     commands+=("eval")
-    commands+=("explain")
     commands+=("generate")
     commands+=("help")
     commands+=("init")
     commands+=("interview")
     commands+=("plan")
+    commands+=("policy")
     commands+=("prewarm")
     commands+=("provider")
     commands+=("route")
+    commands+=("session")
     commands+=("spec")
     commands+=("version")
 
