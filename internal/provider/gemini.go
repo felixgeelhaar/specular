@@ -10,6 +10,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/telemetry"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // GeminiProvider implements the ProviderClient interface for Google Gemini API
@@ -118,6 +121,17 @@ func NewGeminiProvider(config *ProviderConfig) (*GeminiProvider, error) {
 
 // Generate implements ProviderClient.Generate
 func (p *GeminiProvider) Generate(ctx context.Context, req *GenerateRequest) (*GenerateResponse, error) {
+	// Start distributed tracing span
+	ctx, span := telemetry.StartProviderSpan(ctx, "gemini", "generate")
+	defer span.End()
+
+	// Record request attributes
+	span.SetAttributes(
+		attribute.String("model", p.model),
+		attribute.Int("max_tokens", p.maxTokens),
+		attribute.Int("prompt_length", len(req.Prompt)),
+	)
+
 	startTime := time.Now()
 
 	// Build Gemini request
@@ -126,6 +140,7 @@ func (p *GeminiProvider) Generate(ctx context.Context, req *GenerateRequest) (*G
 	// Marshal request
 	reqBody, err := json.Marshal(geminiReq)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
@@ -141,6 +156,7 @@ func (p *GeminiProvider) Generate(ctx context.Context, req *GenerateRequest) (*G
 	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s", p.baseURL, modelName, p.apiKey)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(reqBody))
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
@@ -149,6 +165,7 @@ func (p *GeminiProvider) Generate(ctx context.Context, req *GenerateRequest) (*G
 	// Send request
 	httpResp, err := p.client.Do(httpReq)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("send request: %w", err)
 	}
 	defer httpResp.Body.Close()
@@ -156,27 +173,51 @@ func (p *GeminiProvider) Generate(ctx context.Context, req *GenerateRequest) (*G
 	// Read response
 	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("read response: %w", err)
 	}
 
 	// Check for HTTP errors
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API error (status %d): %s", httpResp.StatusCode, string(respBody))
+		apiErr := fmt.Errorf("API error (status %d): %s", httpResp.StatusCode, string(respBody))
+		telemetry.RecordError(span, apiErr)
+		span.SetAttributes(attribute.Int("http_status", httpResp.StatusCode))
+		return nil, apiErr
 	}
 
 	// Parse response
 	var geminiResp geminiResponse
 	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("parse response: %w", err)
 	}
 
 	// Check for API errors
 	if geminiResp.Error != nil {
-		return nil, fmt.Errorf("Gemini API error: %s (code: %d)", geminiResp.Error.Message, geminiResp.Error.Code)
+		apiErr := fmt.Errorf("Gemini API error: %s (code: %d)", geminiResp.Error.Message, geminiResp.Error.Code)
+		telemetry.RecordError(span, apiErr)
+		return nil, apiErr
 	}
 
 	// Convert to our response format
-	return p.convertResponse(&geminiResp, time.Since(startTime), modelName)
+	result, err := p.convertResponse(&geminiResp, time.Since(startTime), modelName)
+	if err != nil {
+		telemetry.RecordError(span, err)
+		return nil, err
+	}
+
+	// Record success with metrics
+	telemetry.RecordSuccess(span,
+		attribute.Int("tokens_used", result.TokensUsed),
+		attribute.Int("input_tokens", result.InputTokens),
+		attribute.Int("output_tokens", result.OutputTokens),
+		attribute.Int64("latency_ms", result.Latency.Milliseconds()),
+		attribute.String("finish_reason", result.FinishReason),
+		attribute.Int("response_length", len(result.Content)),
+		attribute.Int("http_status", http.StatusOK),
+	)
+
+	return result, nil
 }
 
 // Stream implements ProviderClient.Stream

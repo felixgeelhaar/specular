@@ -10,6 +10,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/telemetry"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // OpenAIProvider implements the ProviderClient interface for OpenAI API
@@ -114,6 +117,17 @@ func NewOpenAIProvider(config *ProviderConfig) (*OpenAIProvider, error) {
 
 // Generate implements ProviderClient.Generate
 func (p *OpenAIProvider) Generate(ctx context.Context, req *GenerateRequest) (*GenerateResponse, error) {
+	// Start distributed tracing span
+	ctx, span := telemetry.StartProviderSpan(ctx, "openai", "generate")
+	defer span.End()
+
+	// Record request attributes
+	span.SetAttributes(
+		attribute.String("model", p.model),
+		attribute.Int("max_tokens", p.maxTokens),
+		attribute.Int("prompt_length", len(req.Prompt)),
+	)
+
 	startTime := time.Now()
 
 	// Build OpenAI request
@@ -122,12 +136,14 @@ func (p *OpenAIProvider) Generate(ctx context.Context, req *GenerateRequest) (*G
 	// Marshal request
 	reqBody, err := json.Marshal(oaiReq)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
 	// Create HTTP request
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", p.baseURL+"/chat/completions", bytes.NewReader(reqBody))
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
@@ -137,6 +153,7 @@ func (p *OpenAIProvider) Generate(ctx context.Context, req *GenerateRequest) (*G
 	// Send request
 	httpResp, err := p.client.Do(httpReq)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("send request: %w", err)
 	}
 	defer httpResp.Body.Close()
@@ -144,6 +161,7 @@ func (p *OpenAIProvider) Generate(ctx context.Context, req *GenerateRequest) (*G
 	// Read response
 	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("read response: %w", err)
 	}
 
@@ -151,14 +169,21 @@ func (p *OpenAIProvider) Generate(ctx context.Context, req *GenerateRequest) (*G
 	if httpResp.StatusCode != http.StatusOK {
 		var errResp openAIResponse
 		if err := json.Unmarshal(respBody, &errResp); err == nil && errResp.Error != nil {
-			return nil, fmt.Errorf("openai error: %s", errResp.Error.Message)
+			apiErr := fmt.Errorf("openai error: %s", errResp.Error.Message)
+			telemetry.RecordError(span, apiErr)
+			span.SetAttributes(attribute.Int("http_status", httpResp.StatusCode))
+			return nil, apiErr
 		}
-		return nil, fmt.Errorf("http error %d: %s", httpResp.StatusCode, string(respBody))
+		httpErr := fmt.Errorf("http error %d: %s", httpResp.StatusCode, string(respBody))
+		telemetry.RecordError(span, httpErr)
+		span.SetAttributes(attribute.Int("http_status", httpResp.StatusCode))
+		return nil, httpErr
 	}
 
 	// Parse response
 	var oaiResp openAIResponse
 	if err := json.Unmarshal(respBody, &oaiResp); err != nil {
+		telemetry.RecordError(span, err)
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
@@ -170,13 +195,26 @@ func (p *OpenAIProvider) Generate(ctx context.Context, req *GenerateRequest) (*G
 		finishReason = oaiResp.Choices[0].FinishReason
 	}
 
+	latency := time.Since(startTime)
+
+	// Record success with metrics
+	telemetry.RecordSuccess(span,
+		attribute.Int("tokens_used", oaiResp.Usage.TotalTokens),
+		attribute.Int("input_tokens", oaiResp.Usage.PromptTokens),
+		attribute.Int("output_tokens", oaiResp.Usage.CompletionTokens),
+		attribute.Int64("latency_ms", latency.Milliseconds()),
+		attribute.String("finish_reason", finishReason),
+		attribute.Int("response_length", len(content)),
+		attribute.Int("http_status", http.StatusOK),
+	)
+
 	return &GenerateResponse{
 		Content:      content,
 		TokensUsed:   oaiResp.Usage.TotalTokens,
 		InputTokens:  oaiResp.Usage.PromptTokens,
 		OutputTokens: oaiResp.Usage.CompletionTokens,
 		Model:        oaiResp.Model,
-		Latency:      time.Since(startTime),
+		Latency:      latency,
 		FinishReason: finishReason,
 		Provider:     p.config.Name,
 	}, nil
