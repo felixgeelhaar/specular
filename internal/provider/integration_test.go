@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -321,7 +320,7 @@ func TestExecutableProvider_GenerateTimeout(t *testing.T) {
 
 func TestIntegration_OpenAIProvider(t *testing.T) {
 	// Create mock OpenAI server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/chat/completions" {
 			resp := openAIResponse{
 				ID:      "chatcmpl-123",
@@ -455,7 +454,7 @@ func TestIntegration_OpenAIProvider(t *testing.T) {
 
 func TestIntegration_AnthropicProvider(t *testing.T) {
 	// Create mock Anthropic server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/messages" {
 			resp := anthropicResponse{
 				ID:    "msg_123",
@@ -586,7 +585,7 @@ func TestIntegration_AnthropicProvider(t *testing.T) {
 
 func TestIntegration_MultiProviderRegistry(t *testing.T) {
 	// Create mock servers for both providers
-	openaiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	openaiServer := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := openAIResponse{
 			Model: "gpt-4o-mini",
 			Choices: []openAIChoice{
@@ -598,7 +597,7 @@ func TestIntegration_MultiProviderRegistry(t *testing.T) {
 	}))
 	defer openaiServer.Close()
 
-	anthropicServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	anthropicServer := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := anthropicResponse{
 			Model: "claude-sonnet-3.5",
 			Content: []anthropicContent{

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -15,6 +16,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/autopolicy"
 	"github.com/felixgeelhaar/specular/internal/checkpoint"
 	"github.com/felixgeelhaar/specular/internal/hooks"
+	"github.com/felixgeelhaar/specular/internal/metrics"
 	"github.com/felixgeelhaar/specular/internal/profiles"
 	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/router"
@@ -284,8 +286,10 @@ Examples:
 		// Execute workflow
 		result, err := orchestrator.Execute(cmd.Context())
 		if err != nil {
+			recordAutoMetrics(result, err)
 			return fmt.Errorf("auto mode failed: %w", err)
 		}
+		recordAutoMetrics(result, nil)
 
 		// Generate attestation if enabled
 		if enableAttest {
@@ -771,6 +775,31 @@ func generateAttestation(result *auto.Result, config *auto.Config, outputDir str
 	fmt.Printf("   Output hash: %s\n", att.OutputHash[:16]+"...")
 
 	return nil
+}
+
+func recordAutoMetrics(result *auto.Result, execErr error) {
+	m := metrics.GetDefault()
+	if m == nil {
+		return
+	}
+
+	success := execErr == nil && result != nil && result.Success
+	m.AutoWorkflows.WithLabelValues(strconv.FormatBool(success)).Inc()
+
+	if result == nil || result.ActionPlan == nil {
+		return
+	}
+
+	for _, step := range result.ActionPlan.Steps {
+		stepSuccess := step.Status == auto.StepStatusCompleted
+		m.AutoSteps.WithLabelValues(string(step.Type), strconv.FormatBool(stepSuccess)).Inc()
+
+		if step.StartedAt != nil && step.CompletedAt != nil {
+			if duration := step.CompletedAt.Sub(*step.StartedAt).Seconds(); duration > 0 {
+				m.AutoStepDuration.WithLabelValues(string(step.Type)).Observe(duration)
+			}
+		}
+	}
 }
 
 // listAvailableProfiles lists all available profiles from all sources.

@@ -2,6 +2,8 @@ package bundle
 
 import (
 	"fmt"
+	"net"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -27,13 +29,22 @@ func setupTestRegistry(t *testing.T) (*httptest.Server, string) {
 	// Create a registry handler
 	regHandler := registry.New()
 
-	// Start test server
-	server := httptest.NewServer(regHandler)
+	// Start test server bound to IPv4 to avoid sandbox IPv6 restrictions
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("unable to start test registry: %v", err)
+	}
+
+	server := &httptest.Server{
+		Listener: listener,
+		Config:   &http.Server{Handler: regHandler},
+	}
+	server.Start()
 	t.Cleanup(server.Close)
 
 	// Parse URL to get host
-	u, err := url.Parse(server.URL)
-	require.NoError(t, err)
+	u, parseErr := url.Parse(server.URL)
+	require.NoError(t, parseErr)
 
 	return server, u.Host
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -69,7 +68,7 @@ func TestNewOpenAIProvider(t *testing.T) {
 
 func TestOpenAIProvider_Generate(t *testing.T) {
 	// Create mock server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify request
 		if r.URL.Path != "/chat/completions" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -172,7 +171,7 @@ func TestOpenAIProvider_Generate(t *testing.T) {
 
 func TestOpenAIProvider_Generate_WithSystemPrompt(t *testing.T) {
 	// Create mock server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Parse request
 		var req openAIRequest
 		_ = json.NewDecoder(r.Body).Decode(&req)
@@ -258,7 +257,7 @@ func TestOpenAIProvider_Generate_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
 				w.Header().Set("Content-Type", "application/json")
 				_ = json.NewEncoder(w).Encode(tt.response)
@@ -290,7 +289,7 @@ func TestOpenAIProvider_Generate_Error(t *testing.T) {
 
 func TestOpenAIProvider_Stream(t *testing.T) {
 	// Create mock SSE server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify streaming is requested
 		var req openAIRequest
 		_ = json.NewDecoder(r.Body).Decode(&req)
@@ -475,7 +474,7 @@ func TestOpenAIProvider_IsAvailable(t *testing.T) {
 
 func TestOpenAIProvider_Health(t *testing.T) {
 	// Mock successful health check
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/models" {
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -504,7 +503,7 @@ func TestOpenAIProvider_Health(t *testing.T) {
 
 func TestOpenAIProvider_Health_Error(t *testing.T) {
 	// Mock failed health check
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer server.Close()

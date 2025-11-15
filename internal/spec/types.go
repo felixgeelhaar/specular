@@ -21,6 +21,7 @@ type Feature struct {
 	API      []API            `json:"api,omitempty"`
 	Success  []string         `json:"success"`
 	Trace    []string         `json:"trace"`
+	Refs     []string         `json:"refs,omitempty"`
 }
 
 // API represents an API endpoint definition

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -69,7 +68,7 @@ func TestNewGeminiProvider(t *testing.T) {
 
 func TestGeminiProvider_Generate(t *testing.T) {
 	// Create mock server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify URL contains model and API key
 		if !strings.Contains(r.URL.Path, "/models/") {
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -172,7 +171,7 @@ func TestGeminiProvider_Generate(t *testing.T) {
 
 func TestGeminiProvider_Generate_WithContext(t *testing.T) {
 	// Create mock server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req geminiRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Fatalf("failed to decode request: %v", err)
@@ -245,7 +244,7 @@ func TestGeminiProvider_Generate_WithContext(t *testing.T) {
 
 func TestGeminiProvider_Generate_ModelOverride(t *testing.T) {
 	// Test that model can be overridden via request config
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify the custom model name is in the URL
 		if !strings.Contains(r.URL.Path, "custom-model") {
 			t.Errorf("Expected custom-model in URL path, got: %s", r.URL.Path)
@@ -304,7 +303,7 @@ func TestGeminiProvider_Generate_ModelOverride(t *testing.T) {
 
 func TestGeminiProvider_Stream(t *testing.T) {
 	// Create mock SSE server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify streaming endpoint
 		if !strings.Contains(r.URL.Path, ":streamGenerateContent") {
 			t.Errorf("path missing :streamGenerateContent: %s", r.URL.Path)
@@ -507,7 +506,7 @@ func TestGeminiProvider_IsAvailable(t *testing.T) {
 
 func TestGeminiProvider_Generate_APIError(t *testing.T) {
 	// Create mock server that returns an error
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := geminiResponse{
 			Error: &geminiError{
 				Code:    400,
@@ -545,7 +544,7 @@ func TestGeminiProvider_Generate_APIError(t *testing.T) {
 
 func TestGeminiProvider_Health(t *testing.T) {
 	// Mock successful health check
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify it's using query parameter auth
 		if !strings.Contains(r.URL.RawQuery, "key=test-key") {
 			t.Error("expected query parameter with api key")
@@ -594,7 +593,7 @@ func TestGeminiProvider_Health(t *testing.T) {
 
 func TestGeminiProvider_Health_Error(t *testing.T) {
 	// Mock failed health check
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := geminiResponse{
 			Error: &geminiError{
 				Code:    401,

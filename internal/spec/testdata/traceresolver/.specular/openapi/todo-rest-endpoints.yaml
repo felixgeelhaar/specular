@@ -1,0 +1,4 @@
+openapi: 3.1.0
+info:
+  title: Todo REST Endpoints
+  version: 1.0.0

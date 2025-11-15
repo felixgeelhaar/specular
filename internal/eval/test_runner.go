@@ -3,18 +3,27 @@ package eval
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/felixgeelhaar/specular/internal/policy"
+)
+
+var (
+	goCacheDirOnce sync.Once
+	goCacheDir     string
 )
 
 // RunGoTests executes Go tests and returns results
 func RunGoTests(projectRoot string, pol *policy.Policy) (*TestResult, error) {
 	cmd := exec.Command("go", "test", "-v", "-race", "-coverprofile=coverage.txt", "-covermode=atomic", "./...")
 	cmd.Dir = projectRoot
+	prepareGoCommand(cmd)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -74,6 +83,7 @@ func CheckCoverage(projectRoot string, minCoverage float64) (*TestResult, error)
 	// Run tests with coverage
 	cmd := exec.Command("go", "test", "-coverprofile=coverage.txt", "-covermode=atomic", "./...")
 	cmd.Dir = projectRoot
+	prepareGoCommand(cmd)
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
@@ -194,6 +204,27 @@ func countSecrets(output string) int {
 	return len(findingRegex.FindAllString(output, -1))
 }
 
+func prepareGoCommand(cmd *exec.Cmd) {
+	cacheDir := ensureGoCacheDir()
+	if cacheDir == "" {
+		return
+	}
+
+	env := os.Environ()
+	env = append(env, "GOCACHE="+cacheDir)
+	cmd.Env = env
+}
+
+func ensureGoCacheDir() string {
+	goCacheDirOnce.Do(func() {
+		dir := filepath.Join(os.TempDir(), "specular-go-cache")
+		if err := os.MkdirAll(dir, 0o755); err == nil {
+			goCacheDir = dir
+		}
+	})
+	return goCacheDir
+}
+
 // RunDependencyScan scans for vulnerable dependencies using govulncheck
 func RunDependencyScan(projectRoot string) (*SecurityResult, error) {
 	// Check if govulncheck is available
@@ -201,6 +232,7 @@ func RunDependencyScan(projectRoot string) (*SecurityResult, error) {
 		// Fall back to basic dependency listing if govulncheck not available
 		cmd := exec.Command("go", "list", "-m", "all")
 		cmd.Dir = projectRoot
+		prepareGoCommand(cmd)
 
 		var stdout bytes.Buffer
 		cmd.Stdout = &stdout
@@ -221,6 +253,7 @@ func RunDependencyScan(projectRoot string) (*SecurityResult, error) {
 	// Run govulncheck to scan for vulnerabilities
 	cmd := exec.Command("govulncheck", "./...")
 	cmd.Dir = projectRoot
+	prepareGoCommand(cmd)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

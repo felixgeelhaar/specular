@@ -93,11 +93,11 @@ func init() {
 
 // GlobalConfig represents the global Specular configuration
 type GlobalConfig struct {
-	Providers  ProviderDefaults `yaml:"providers,omitempty"`
-	Defaults   CommandDefaults  `yaml:"defaults,omitempty"`
-	Budget     BudgetLimits     `yaml:"budget,omitempty"`
-	Logging    LoggingConfig    `yaml:"logging,omitempty"`
-	Telemetry  TelemetryConfig  `yaml:"telemetry,omitempty"`
+	Providers ProviderDefaults `yaml:"providers,omitempty"`
+	Defaults  CommandDefaults  `yaml:"defaults,omitempty"`
+	Budget    BudgetLimits     `yaml:"budget,omitempty"`
+	Logging   LoggingConfig    `yaml:"logging,omitempty"`
+	Telemetry TelemetryConfig  `yaml:"telemetry,omitempty"`
 }
 
 type ProviderDefaults struct {
@@ -106,7 +106,7 @@ type ProviderDefaults struct {
 }
 
 type CommandDefaults struct {
-	Format      string `yaml:"format,omitempty"`      // "text", "json", "yaml"
+	Format      string `yaml:"format,omitempty"` // "text", "json", "yaml"
 	NoColor     bool   `yaml:"no_color,omitempty"`
 	Verbose     bool   `yaml:"verbose,omitempty"`
 	SpecularDir string `yaml:"specular_dir,omitempty"` // Default .specular
@@ -125,8 +125,10 @@ type LoggingConfig struct {
 }
 
 type TelemetryConfig struct {
-	Enabled    bool `yaml:"enabled,omitempty"`
-	ShareUsage bool `yaml:"share_usage,omitempty"`
+	Enabled    bool    `yaml:"enabled,omitempty"`
+	ShareUsage bool    `yaml:"share_usage,omitempty"`
+	Endpoint   string  `yaml:"endpoint,omitempty"`
+	SampleRate float64 `yaml:"sample_rate,omitempty"`
 }
 
 // getConfigPath returns the path to the global configuration file
@@ -217,6 +219,8 @@ func defaultGlobalConfig() *GlobalConfig {
 		Telemetry: TelemetryConfig{
 			Enabled:    false,
 			ShareUsage: false,
+			Endpoint:   "",
+			SampleRate: 1.0,
 		},
 	}
 }
@@ -379,6 +383,10 @@ func getNestedValue(config *GlobalConfig, key string) (string, error) {
 		return fmt.Sprintf("%t", config.Telemetry.Enabled), nil
 	case "telemetry.share_usage":
 		return fmt.Sprintf("%t", config.Telemetry.ShareUsage), nil
+	case "telemetry.endpoint":
+		return config.Telemetry.Endpoint, nil
+	case "telemetry.sample_rate":
+		return fmt.Sprintf("%.2f", config.Telemetry.SampleRate), nil
 	default:
 		return "", fmt.Errorf("unknown configuration key: %s", key)
 	}
@@ -428,6 +436,14 @@ func setNestedValue(config *GlobalConfig, key, value string) error {
 		config.Telemetry.Enabled = parseBool(value)
 	case "telemetry.share_usage":
 		config.Telemetry.ShareUsage = parseBool(value)
+	case "telemetry.endpoint":
+		config.Telemetry.Endpoint = value
+	case "telemetry.sample_rate":
+		if v, err := parseFloat(value); err == nil {
+			config.Telemetry.SampleRate = v
+		} else {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown configuration key: %s", key)
 	}

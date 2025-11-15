@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -205,7 +206,7 @@ func TestNewWebhookHookMissingURL(t *testing.T) {
 func TestWebhookHookExecute(t *testing.T) {
 	// Create test server
 	receivedEvent := &Event{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify request
 		if r.Method != "POST" {
 			t.Errorf("Expected POST request, got %s", r.Method)
@@ -260,7 +261,7 @@ func TestWebhookHookExecute(t *testing.T) {
 
 func TestWebhookHookExecuteFailure(t *testing.T) {
 	// Create server that returns error
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
@@ -349,7 +350,7 @@ func TestNewSlackHookMissingWebhookURL(t *testing.T) {
 func TestSlackHookExecute(t *testing.T) {
 	// Create test server
 	var receivedPayload map[string]interface{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("Expected POST request, got %s", r.Method)
 		}
@@ -549,7 +550,7 @@ func TestRegisterBuiltinHooks(t *testing.T) {
 
 func TestSlackHookExecuteFailure(t *testing.T) {
 	// Create server that returns error
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}))
 	defer server.Close()
@@ -581,4 +582,21 @@ func TestSlackHookExecuteFailure(t *testing.T) {
 	if err.Error() != expectedError {
 		t.Errorf("Error message mismatch: got %s, want %s", err.Error(), expectedError)
 	}
+}
+
+func newHTTPTestServer(t *testing.T, handler http.Handler) *httptest.Server {
+	t.Helper()
+
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("unable to start test server: %v", err)
+	}
+
+	server := &httptest.Server{
+		Listener: listener,
+		Config:   &http.Server{Handler: handler},
+	}
+	server.Start()
+	t.Cleanup(server.Close)
+	return server
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/felixgeelhaar/specular/internal/metrics"
 	"github.com/felixgeelhaar/specular/internal/provider"
 )
 
@@ -381,6 +382,8 @@ func (r *Router) RecordUsage(ctx context.Context, usage Usage) error {
 	// Store usage
 	r.usage = append(r.usage, usage)
 
+	recordUsageMetrics(usage)
+
 	return nil
 }
 
@@ -412,6 +415,27 @@ func (r *Router) GetUsageStats() map[string]interface{} {
 	stats["provider_usage"] = providerCounts
 
 	return stats
+}
+
+func recordUsageMetrics(usage Usage) {
+	m := metrics.GetDefault()
+	if m == nil {
+		return
+	}
+
+	providerLabel := string(usage.Provider)
+	successLabel := fmt.Sprintf("%t", usage.Success)
+
+	m.ProviderCalls.WithLabelValues(providerLabel, usage.Model, successLabel).Inc()
+	if usage.LatencyMs > 0 {
+		m.ProviderLatency.WithLabelValues(providerLabel, usage.Model).Observe(float64(usage.LatencyMs) / 1000.0)
+	}
+	if usage.Tokens > 0 {
+		m.ProviderCost.WithLabelValues(providerLabel, usage.Model, "total").Add(float64(usage.Tokens))
+	}
+	if !usage.Success {
+		m.ProviderErrors.WithLabelValues(providerLabel, usage.Model, "generation").Inc()
+	}
 }
 
 // Generate sends a prompt to the selected AI provider and returns a response

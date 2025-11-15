@@ -41,6 +41,12 @@ func TestDefaultGlobalConfig(t *testing.T) {
 	if config.Telemetry.Enabled {
 		t.Error("Telemetry should be disabled by default")
 	}
+	if config.Telemetry.Endpoint != "" {
+		t.Error("Telemetry endpoint should be empty by default")
+	}
+	if config.Telemetry.SampleRate != 1.0 {
+		t.Errorf("Telemetry sample rate = %.2f, want 1.0", config.Telemetry.SampleRate)
+	}
 }
 
 func TestGetNestedValue(t *testing.T) {
@@ -101,6 +107,16 @@ func TestGetNestedValue(t *testing.T) {
 			name: "telemetry.enabled",
 			key:  "telemetry.enabled",
 			want: "false",
+		},
+		{
+			name: "telemetry.endpoint",
+			key:  "telemetry.endpoint",
+			want: "",
+		},
+		{
+			name: "telemetry.sample_rate",
+			key:  "telemetry.sample_rate",
+			want: "1.00",
 		},
 		{
 			name:    "unknown key",
@@ -206,6 +222,22 @@ func TestSetNestedValue(t *testing.T) {
 			value: "true",
 			check: func(c *GlobalConfig) bool {
 				return c.Telemetry.Enabled == true
+			},
+		},
+		{
+			name:  "set telemetry.endpoint",
+			key:   "telemetry.endpoint",
+			value: "https://collector.example.com",
+			check: func(c *GlobalConfig) bool {
+				return c.Telemetry.Endpoint == "https://collector.example.com"
+			},
+		},
+		{
+			name:  "set telemetry.sample_rate",
+			key:   "telemetry.sample_rate",
+			value: "0.25",
+			check: func(c *GlobalConfig) bool {
+				return c.Telemetry.SampleRate == 0.25
 			},
 		},
 		{
@@ -365,6 +397,8 @@ func TestSaveAndLoadConfig(t *testing.T) {
 		Telemetry: TelemetryConfig{
 			Enabled:    true,
 			ShareUsage: true,
+			Endpoint:   "https://collector.example.com",
+			SampleRate: 0.5,
 		},
 	}
 

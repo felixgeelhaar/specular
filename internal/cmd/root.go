@@ -29,6 +29,9 @@ func Execute() error {
 
 // ExecuteContext runs the root command with the given context
 func ExecuteContext(ctx context.Context) error {
+	cleanup := setupObservability(ctx)
+	defer cleanup()
+
 	return rootCmd.ExecuteContext(ctx)
 }
 

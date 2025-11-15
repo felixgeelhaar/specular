@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -68,7 +67,7 @@ func TestNewAnthropicProvider(t *testing.T) {
 
 func TestAnthropicProvider_Generate(t *testing.T) {
 	// Create mock server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify request
 		if r.URL.Path != "/messages" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -173,7 +172,7 @@ func TestAnthropicProvider_Generate(t *testing.T) {
 
 func TestAnthropicProvider_Generate_WithSystemPrompt(t *testing.T) {
 	// Create mock server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Parse request
 		var req anthropicRequest
 		_ = json.NewDecoder(r.Body).Decode(&req)
@@ -255,7 +254,7 @@ func TestAnthropicProvider_Generate_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
 				w.Header().Set("Content-Type", "application/json")
 				_ = json.NewEncoder(w).Encode(tt.response)
@@ -287,7 +286,7 @@ func TestAnthropicProvider_Generate_Error(t *testing.T) {
 
 func TestAnthropicProvider_Stream(t *testing.T) {
 	// Create mock SSE server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify streaming is requested
 		var req anthropicRequest
 		_ = json.NewDecoder(r.Body).Decode(&req)
@@ -490,7 +489,7 @@ func TestAnthropicProvider_IsAvailable(t *testing.T) {
 
 func TestAnthropicProvider_Health(t *testing.T) {
 	// Mock successful health check
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/messages" {
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(anthropicResponse{
@@ -523,7 +522,7 @@ func TestAnthropicProvider_Health(t *testing.T) {
 
 func TestAnthropicProvider_Health_Error(t *testing.T) {
 	// Mock failed health check
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(anthropicResponse{
 			Error: &anthropicError{
