@@ -3,7 +3,7 @@
 ## Parameters
 
 - **Licensor**: Felix Geelhaar
-- **Licensed Work**: Specular (all versions)
+- **Licensed Work**: Specular v1.0.0 and later
   - The Licensed Work is © 2025 Felix Geelhaar
 - **Additional Use Grant**: You may use the Licensed Work for any purpose except providing a commercial AI-assisted specification, plan generation, or build service to third parties that competes with Specular's commercial offerings.
 - **Change Date**: Two years from the date of each release
@@ -123,7 +123,7 @@ A: AGPL requires you to open-source modifications if you run the software as a s
 
 | Version | Release Date | Change Date | Status |
 |---------|--------------|-------------|--------|
-| All versions | 2025-11-15 (BSL adoption) | 2027-11-15 | BSL 1.1 → Apache 2.0 |
+| v1.0.0+ | 2025-11-15 (BSL adoption) | 2027-11-15 | BSL 1.1 → Apache 2.0 |
 
 **Note**: All versions of Specular (past, current, and future) are now licensed under BSL 1.1 as of 2025-11-15. Since the project is in early development with no production users, this retroactive licensing change ensures consistent IP protection from the start.
 
