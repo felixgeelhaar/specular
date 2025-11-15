@@ -89,7 +89,7 @@ You MAY NOT use the Licensed Work for:
 ### Need a Commercial License?
 
 If your use case is prohibited under this license, please contact us for commercial licensing options:
-- Email: [your-email@example.com]
+- Email: felix@felixgeelhaar.de
 - Website: https://github.com/felixgeelhaar/specular
 
 ---
@@ -123,10 +123,9 @@ A: AGPL requires you to open-source modifications if you run the software as a s
 
 | Version | Release Date | Change Date | Status |
 |---------|--------------|-------------|--------|
-| v1.6.0 | 2025-06-01 (planned) | 2027-06-01 | BSL 1.1 → Apache 2.0 |
-| v1.5.0 | 2025-01-15 | 2027-01-15 | BSL 1.1 → Apache 2.0 |
+| All versions | 2025-01-15 (BSL adoption) | 2027-01-15 | BSL 1.1 → Apache 2.0 |
 
-Note: Earlier versions (v1.0.0 - v1.4.0) were released under MIT License and remain under MIT License.
+**Note**: All versions of Specular (past, current, and future) are now licensed under BSL 1.1 as of 2025-01-15. Since the project is in early development with no production users, this retroactive licensing change ensures consistent IP protection from the start.
 
 ---
 
@@ -154,10 +153,11 @@ limitations under the License.
 
 ## History
 
-- **2025-01-15**: Transitioned from MIT License to Business Source License 1.1
-  - Versions v1.0.0 - v1.4.0 remain under MIT License
-  - Versions v1.5.0 and later use Business Source License 1.1
-- **Previous**: MIT License (permissive, allows any use including commercial)
+- **2025-01-15**: Adopted Business Source License 1.1 for all versions (retroactive)
+  - All versions (v1.0.0+) now under BSL 1.1
+  - Retroactive licensing change made possible due to pre-production status (no users affected)
+  - Ensures consistent IP protection from inception
+- **Previous (development only)**: MIT License during initial development
 
 ---
 

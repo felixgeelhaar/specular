@@ -4414,11 +4414,11 @@ Specular is licensed under the Business Source License 1.1, which provides sourc
 
 ### Automatic Open Source Conversion
 
-After 2 years from each release, the code automatically becomes **Apache License 2.0** (fully open source).
+After 2 years, the code automatically becomes **Apache License 2.0** (fully open source).
 
-- v1.5.0 (2025-01-15) → Apache 2.0 on 2027-01-15
-- v1.6.0 (2025-06-01) → Apache 2.0 on 2027-06-01
-- Earlier versions (v1.0.0 - v1.4.0) remain under MIT License
+- **All versions** → Apache 2.0 on 2027-01-15 (2 years from BSL adoption)
+
+**Note**: BSL 1.1 was adopted retroactively for all versions on 2025-01-15, which is permissible since the project is in early development with no production users.
 
 ### Why BSL?
 
@@ -4429,7 +4429,7 @@ We chose BSL to:
 4. **Build sustainably** while keeping the code transparent
 
 **For full license details**, see [LICENSE](LICENSE) file.
-**For commercial licensing**, contact [your-email@example.com]
+**For commercial licensing**, contact felix@felixgeelhaar.de
 
 ## Contributing
 
