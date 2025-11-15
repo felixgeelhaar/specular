@@ -1,5 +1,5 @@
-{"time":"2025-11-15T22:17:32.429679+01:00","level":"INFO","msg":"Logging initialized","level":"debug","format":"json"}
-{"time":"2025-11-15T22:17:32.429961+01:00","level":"INFO","msg":"File logging enabled","path":"/Users/felixgeelhaar/.specular/logs/specular.log"}
+{"time":"2025-11-15T22:21:42.268433+01:00","level":"INFO","msg":"Logging initialized","level":"debug","format":"json"}
+{"time":"2025-11-15T22:21:42.268889+01:00","level":"INFO","msg":"File logging enabled","path":"/Users/felixgeelhaar/.specular/logs/specular.log"}
 # bash completion for specular                             -*- shell-script -*-
 
 __specular_debug()

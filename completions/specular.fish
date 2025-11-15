@@ -1,5 +1,5 @@
-{"time":"2025-11-15T22:17:32.459007+01:00","level":"INFO","msg":"Logging initialized","level":"debug","format":"json"}
-{"time":"2025-11-15T22:17:32.45913+01:00","level":"INFO","msg":"File logging enabled","path":"/Users/felixgeelhaar/.specular/logs/specular.log"}
+{"time":"2025-11-15T22:21:42.293285+01:00","level":"INFO","msg":"Logging initialized","level":"debug","format":"json"}
+{"time":"2025-11-15T22:21:42.293397+01:00","level":"INFO","msg":"File logging enabled","path":"/Users/felixgeelhaar/.specular/logs/specular.log"}
 # fish completion for specular                             -*- shell-script -*-
 
 function __specular_debug
