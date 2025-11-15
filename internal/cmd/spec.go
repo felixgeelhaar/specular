@@ -16,8 +16,10 @@ import (
 	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/ux"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var specCmd = &cobra.Command{
@@ -31,6 +33,12 @@ var specGenerateCmd = &cobra.Command{
 	Short: "Generate spec from PRD markdown",
 	Long:  `Convert a Product Requirements Document (PRD) in markdown format into a structured specification using AI.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Start distributed tracing span for spec generate command
+		ctx, span := telemetry.StartCommandSpan(cmd.Context(), "spec.generate")
+		defer span.End()
+
+		startTime := time.Now()
+
 		defaults := ux.NewPathDefaults()
 		in := cmd.Flags().Lookup("in").Value.String()
 		out := cmd.Flags().Lookup("out").Value.String()
@@ -53,6 +61,13 @@ var specGenerateCmd = &cobra.Command{
 		if !cmd.Flags().Changed("config") {
 			configPath = defaults.ProvidersFile()
 		}
+
+		// Record span attributes
+		span.SetAttributes(
+			attribute.String("prd_file", in),
+			attribute.String("spec_file", out),
+			attribute.String("config_file", configPath),
+		)
 
 		fmt.Printf("Generating spec from PRD: %s\n", in)
 
@@ -99,20 +114,29 @@ var specGenerateCmd = &cobra.Command{
 		// Create PRD parser (router handles provider access internally)
 		parser := prd.NewParser(r)
 
-		// Parse PRD to spec
-		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		// Parse PRD to spec with timeout context
+		parseCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
 		defer cancel()
 
 		fmt.Println("Parsing PRD with AI (this may take 30-60 seconds)...")
-		productSpec, err := parser.ParsePRD(ctx, string(prdContent))
+		productSpec, err := parser.ParsePRD(parseCtx, string(prdContent))
 		if err != nil {
+			telemetry.RecordError(span, err)
 			return ux.FormatError(err, "parsing PRD with AI")
 		}
 
 		// Save spec
 		if saveErr := spec.SaveSpec(productSpec, out); saveErr != nil {
+			telemetry.RecordError(span, saveErr)
 			return ux.FormatError(saveErr, "saving spec file")
 		}
+
+		// Record success with metrics
+		duration := time.Since(startTime)
+		telemetry.RecordSuccess(span,
+			attribute.Int("features_count", len(productSpec.Features)),
+			attribute.Int64("duration_ms", duration.Milliseconds()),
+		)
 
 		fmt.Printf("✓ Generated spec with %d features\n", len(productSpec.Features))
 		fmt.Printf("✓ Saved to: %s\n", out)
