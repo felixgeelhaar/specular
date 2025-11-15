@@ -20,8 +20,10 @@ import (
 	"github.com/felixgeelhaar/specular/internal/profiles"
 	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/router"
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/trace"
 	"github.com/felixgeelhaar/specular/internal/tui"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var autoCmd = &cobra.Command{
@@ -88,6 +90,10 @@ Examples:
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Start distributed tracing span for auto command
+		ctx, span := telemetry.StartCommandSpan(cmd.Context(), "auto")
+		defer span.End()
+
 		// Parse flags
 		listProfiles, _ := cmd.Flags().GetBool("list-profiles")
 		profileName, _ := cmd.Flags().GetString("profile")
@@ -199,6 +205,18 @@ Examples:
 		// Merge profile with CLI overrides
 		effectiveProfile := profiles.MergeWithCLIFlags(profile, cliFlags)
 
+		// Record span attributes for observability
+		span.SetAttributes(
+			attribute.String("goal", goal),
+			attribute.String("profile", profileName),
+			attribute.Int("max_steps", effectiveProfile.Safety.MaxSteps),
+			attribute.Float64("max_cost_usd", effectiveProfile.Safety.MaxCostUSD),
+			attribute.Bool("dry_run", dryRun),
+			attribute.Bool("require_approval", effectiveProfile.Approvals.Interactive),
+			attribute.Bool("tui_enabled", useTUI),
+			attribute.Bool("trace_enabled", enableTrace),
+		)
+
 		if verbose {
 			fmt.Fprintf(os.Stderr, "Effective config: max_steps=%d, timeout=%s, max_cost=$%.2f\n",
 				effectiveProfile.Safety.MaxSteps,
@@ -284,11 +302,24 @@ Examples:
 		}
 
 		// Execute workflow
-		result, err := orchestrator.Execute(cmd.Context())
+		result, err := orchestrator.Execute(ctx)
 		if err != nil {
+			telemetry.RecordError(span, err)
 			recordAutoMetrics(result, err)
 			return fmt.Errorf("auto mode failed: %w", err)
 		}
+
+		// Record success with result metrics
+		attrs := []attribute.KeyValue{
+			attribute.Int64("duration_ms", result.Duration.Milliseconds()),
+		}
+		if result.AutoOutput != nil {
+			attrs = append(attrs,
+				attribute.String("status", result.AutoOutput.Status),
+				attribute.Int("steps_count", len(result.AutoOutput.Steps)),
+			)
+		}
+		telemetry.RecordSuccess(span, attrs...)
 		recordAutoMetrics(result, nil)
 
 		// Generate attestation if enabled
