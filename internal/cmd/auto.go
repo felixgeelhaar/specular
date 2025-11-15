@@ -731,7 +731,7 @@ func init() {
 	autoCmd.AddCommand(autoExplainCmd)
 
 	// Profile flags
-	autoCmd.Flags().StringP("profile", "p", "", "Profile to use (default, ci, strict, or custom)")
+	autoCmd.Flags().StringP("profile", "p", "default", "Profile to use (default, ci, strict, or custom)")
 	autoCmd.Flags().Bool("list-profiles", false, "List available profiles and exit")
 
 	// Execution flags
@@ -739,25 +739,26 @@ func init() {
 	autoCmd.Flags().Bool("no-approval", false, "Skip approval gate (auto-approve plan)")
 	autoCmd.Flags().String("resume", "", "Resume from checkpoint (e.g., auto-1762811730)")
 	autoCmd.Flags().StringP("output", "o", "", "Output directory to save spec and plan files")
-	autoCmd.Flags().Bool("save-patches", false, "Save patches for each step to enable rollback")
+	autoCmd.Flags().Bool("save-patches", false, "Save patches for each step to enable rollback (default: profile-based)")
 	autoCmd.Flags().Bool("attest", false, "Generate cryptographic attestation of workflow execution")
 
 	// Safety limit flags (override profile settings)
-	autoCmd.Flags().Float64("max-cost", 0, "Maximum cost in USD for entire workflow (overrides profile)")
-	autoCmd.Flags().Float64("max-cost-per-task", 0, "Maximum cost in USD per task (overrides profile)")
-	autoCmd.Flags().Int("max-retries", 0, "Maximum retries per failed task (overrides profile)")
-	autoCmd.Flags().Int("max-steps", 0, "Maximum number of workflow steps (overrides profile)")
-	autoCmd.Flags().Int("timeout", 0, "Timeout in minutes for entire workflow (overrides profile)")
+	// When set to 0, uses profile defaults: max-cost=$5, max-cost-per-task=$0.50, max-retries=3, max-steps=12, timeout=25m (default profile)
+	autoCmd.Flags().Float64("max-cost", 0, "Maximum cost in USD for entire workflow (0 = use profile default)")
+	autoCmd.Flags().Float64("max-cost-per-task", 0, "Maximum cost in USD per task (0 = use profile default)")
+	autoCmd.Flags().Int("max-retries", 0, "Maximum retries per failed task (0 = use profile default)")
+	autoCmd.Flags().Int("max-steps", 0, "Maximum number of workflow steps (0 = use profile default)")
+	autoCmd.Flags().Int("timeout", 0, "Timeout in minutes for entire workflow (0 = use profile default)")
 
 	// Output flags
 	autoCmd.Flags().BoolP("verbose", "v", false, "Enable verbose output")
-	autoCmd.Flags().Bool("json", false, "Output results in JSON format (for CI/CD integration)")
-	autoCmd.Flags().Bool("tui", false, "Enable interactive TUI mode")
-	autoCmd.Flags().Bool("trace", false, "Enable detailed trace logging to ~/.specular/logs")
+	autoCmd.Flags().Bool("json", false, "Output results in JSON format (for CI/CD integration, default: profile-based)")
+	autoCmd.Flags().Bool("tui", false, "Enable interactive TUI mode (default: profile-based)")
+	autoCmd.Flags().Bool("trace", false, "Enable detailed trace logging to ~/.specular/logs (default: profile-based)")
 
 	// Scope filtering flags
 	autoCmd.Flags().StringSliceP("scope", "s", []string{}, "Filter execution scope (can be used multiple times)")
-	autoCmd.Flags().Bool("include-dependencies", true, "Include dependencies of scoped tasks")
+	autoCmd.Flags().Bool("include-dependencies", true, "Include dependencies of scoped tasks (default: true)")
 
 	rootCmd.AddCommand(autoCmd)
 }
