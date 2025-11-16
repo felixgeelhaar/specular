@@ -3,7 +3,7 @@ package router
 import (
 	"time"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/provider"
 )
 
@@ -89,7 +89,7 @@ type Usage struct {
 	CostUSD   float64       `json:"cost_usd"`
 	LatencyMs int           `json:"latency_ms"`
 	Timestamp time.Time     `json:"timestamp"`
-	TaskID    domain.TaskID `json:"task_id,omitempty"`
+	TaskID    types.TaskID `json:"task_id,omitempty"`
 	Success   bool          `json:"success"`
 }
 
@@ -123,7 +123,7 @@ type GenerateRequest struct {
 	ContextSize int                `json:"context_size,omitempty"` // Estimated context in tokens
 
 	// Metadata
-	TaskID domain.TaskID `json:"task_id,omitempty"`
+	TaskID types.TaskID `json:"task_id,omitempty"`
 }
 
 // GenerateResponse represents the response from AI generation

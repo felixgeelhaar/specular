@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
@@ -24,11 +24,11 @@ func TestPlanFeatureFiltering(t *testing.T) {
 				Product: "Test Product",
 				Features: []spec.Feature{
 					{
-						ID:    domain.FeatureID("feat-1"),
+						ID:    types.FeatureID("feat-1"),
 						Title: "Feature 1",
 					},
 					{
-						ID:    domain.FeatureID("feat-2"),
+						ID:    types.FeatureID("feat-2"),
 						Title: "Feature 2",
 					},
 				},
@@ -43,11 +43,11 @@ func TestPlanFeatureFiltering(t *testing.T) {
 				Product: "Test Product",
 				Features: []spec.Feature{
 					{
-						ID:    domain.FeatureID("feat-1"),
+						ID:    types.FeatureID("feat-1"),
 						Title: "Feature 1",
 					},
 					{
-						ID:    domain.FeatureID("feat-2"),
+						ID:    types.FeatureID("feat-2"),
 						Title: "Feature 2",
 					},
 				},
@@ -62,7 +62,7 @@ func TestPlanFeatureFiltering(t *testing.T) {
 				Product: "Test Product",
 				Features: []spec.Feature{
 					{
-						ID:    domain.FeatureID("feat-1"),
+						ID:    types.FeatureID("feat-1"),
 						Title: "Feature 1",
 					},
 				},
@@ -128,13 +128,13 @@ func TestPlanExplainTaskLookup(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:        domain.TaskID("task-1"),
-						FeatureID: domain.FeatureID("feat-1"),
+						ID:        types.TaskID("task-1"),
+						FeatureID: types.FeatureID("feat-1"),
 						Skill:     "go-backend",
 					},
 					{
-						ID:        domain.TaskID("task-2"),
-						FeatureID: domain.FeatureID("feat-1"),
+						ID:        types.TaskID("task-2"),
+						FeatureID: types.FeatureID("feat-1"),
 						Skill:     "ui-react",
 					},
 				},
@@ -147,8 +147,8 @@ func TestPlanExplainTaskLookup(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:        domain.TaskID("task-1"),
-						FeatureID: domain.FeatureID("feat-1"),
+						ID:        types.TaskID("task-1"),
+						FeatureID: types.FeatureID("feat-1"),
 						Skill:     "go-backend",
 					},
 				},
@@ -201,7 +201,7 @@ func TestPlanDriftDetection(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           domain.TaskID("task-1"),
+						ID:           types.TaskID("task-1"),
 						ExpectedHash: "abc123",
 					},
 				},
@@ -214,7 +214,7 @@ func TestPlanDriftDetection(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           domain.TaskID("task-1"),
+						ID:           types.TaskID("task-1"),
 						ExpectedHash: "abc123",
 					},
 				},

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 // createBenchmarkSpec creates a YAML spec file with the specified number of features
@@ -229,15 +229,15 @@ func createTestProductSpec(numFeatures int) *ProductSpec {
 	features := make([]Feature, numFeatures)
 
 	for i := 0; i < numFeatures; i++ {
-		priority := domain.Priority("P0")
+		priority := types.Priority("P0")
 		if i%3 == 1 {
-			priority = domain.Priority("P1")
+			priority = types.Priority("P1")
 		} else if i%3 == 2 {
-			priority = domain.Priority("P2")
+			priority = types.Priority("P2")
 		}
 
 		features[i] = Feature{
-			ID:       domain.FeatureID(fmt.Sprintf("feat-%03d", i+1)),
+			ID:       types.FeatureID(fmt.Sprintf("feat-%03d", i+1)),
 			Title:    fmt.Sprintf("Feature %d", i+1),
 			Desc:     fmt.Sprintf("Description for feature %d with some additional text to make it realistic", i+1),
 			Priority: priority,

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"gopkg.in/yaml.v3"
@@ -85,7 +85,7 @@ Return ONLY the YAML, no explanations or markdown code blocks.`
 		Priority:     "P0",
 		Temperature:  0.3, // Lower temperature for structured output
 		MaxTokens:    2000,
-		TaskID:       domain.TaskID("goal-parse"),
+		TaskID:       types.TaskID("goal-parse"),
 	}
 
 	resp, err := p.router.Generate(ctx, req)
@@ -117,7 +117,7 @@ Return ONLY the YAML, no explanations or markdown code blocks.`
 
 	// Validate feature IDs
 	for i, feature := range productSpec.Features {
-		if _, err := domain.NewFeatureID(feature.ID.String()); err != nil {
+		if _, err := types.NewFeatureID(feature.ID.String()); err != nil {
 			return nil, fmt.Errorf("invalid feature ID '%s' at index %d: %w\n"+
 				"Feature IDs must be lowercase letters, numbers, and hyphens only",
 				feature.ID.String(), i, err)

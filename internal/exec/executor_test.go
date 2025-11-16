@@ -4,7 +4,7 @@ import (
 	osexec "os/exec"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/policy"
 )
@@ -23,7 +23,7 @@ func TestCheckDependencies(t *testing.T) {
 			name: "no dependencies",
 			task: plan.Task{
 				ID:        "task-1",
-				DependsOn: []domain.TaskID{},
+				DependsOn: []types.TaskID{},
 			},
 			result: &ExecutionResult{
 				TaskResults: make(map[string]*Result),
@@ -34,7 +34,7 @@ func TestCheckDependencies(t *testing.T) {
 			name: "dependency completed successfully",
 			task: plan.Task{
 				ID:        "task-2",
-				DependsOn: []domain.TaskID{domain.TaskID("task-1")},
+				DependsOn: []types.TaskID{types.TaskID("task-1")},
 			},
 			result: &ExecutionResult{
 				TaskResults: map[string]*Result{
@@ -47,7 +47,7 @@ func TestCheckDependencies(t *testing.T) {
 			name: "dependency not yet executed",
 			task: plan.Task{
 				ID:        "task-2",
-				DependsOn: []domain.TaskID{domain.TaskID("task-1")},
+				DependsOn: []types.TaskID{types.TaskID("task-1")},
 			},
 			result: &ExecutionResult{
 				TaskResults: make(map[string]*Result),
@@ -59,7 +59,7 @@ func TestCheckDependencies(t *testing.T) {
 			name: "dependency failed",
 			task: plan.Task{
 				ID:        "task-2",
-				DependsOn: []domain.TaskID{domain.TaskID("task-1")},
+				DependsOn: []types.TaskID{types.TaskID("task-1")},
 			},
 			result: &ExecutionResult{
 				TaskResults: map[string]*Result{
@@ -73,7 +73,7 @@ func TestCheckDependencies(t *testing.T) {
 			name: "multiple dependencies all succeeded",
 			task: plan.Task{
 				ID:        "task-3",
-				DependsOn: []domain.TaskID{domain.TaskID("task-1"), domain.TaskID("task-2")},
+				DependsOn: []types.TaskID{types.TaskID("task-1"), types.TaskID("task-2")},
 			},
 			result: &ExecutionResult{
 				TaskResults: map[string]*Result{
@@ -87,7 +87,7 @@ func TestCheckDependencies(t *testing.T) {
 			name: "multiple dependencies one failed",
 			task: plan.Task{
 				ID:        "task-3",
-				DependsOn: []domain.TaskID{domain.TaskID("task-1"), domain.TaskID("task-2")},
+				DependsOn: []types.TaskID{types.TaskID("task-1"), types.TaskID("task-2")},
 			},
 			result: &ExecutionResult{
 				TaskResults: map[string]*Result{
@@ -257,13 +257,13 @@ func TestExecute_DryRun(t *testing.T) {
 				ID:        "task-1",
 				Skill:     "go-backend",
 				Priority:  "P0",
-				DependsOn: []domain.TaskID{},
+				DependsOn: []types.TaskID{},
 			},
 			{
 				ID:        "task-2",
 				Skill:     "testing",
 				Priority:  "P1",
-				DependsOn: []domain.TaskID{domain.TaskID("task-1")},
+				DependsOn: []types.TaskID{types.TaskID("task-1")},
 			},
 		},
 	}
@@ -309,7 +309,7 @@ func TestExecute_PolicyViolation(t *testing.T) {
 				ID:        "task-1",
 				Skill:     "ui-react", // Maps to node:20, which is not in allowlist
 				Priority:  "P0",
-				DependsOn: []domain.TaskID{},
+				DependsOn: []types.TaskID{},
 			},
 		},
 	}
@@ -350,13 +350,13 @@ func TestExecute_DependencyFailure(t *testing.T) {
 				ID:        "task-1",
 				Skill:     "go-backend",
 				Priority:  "P0",
-				DependsOn: []domain.TaskID{},
+				DependsOn: []types.TaskID{},
 			},
 			{
 				ID:        "task-2",
 				Skill:     "testing",
 				Priority:  "P1",
-				DependsOn: []domain.TaskID{domain.TaskID("task-1")},
+				DependsOn: []types.TaskID{types.TaskID("task-1")},
 			},
 		},
 	}
@@ -416,7 +416,7 @@ func TestExecute_WithImagePull(t *testing.T) {
 				ID:        "task-pull",
 				Skill:     "infra", // Uses alpine:latest
 				Priority:  "P0",
-				DependsOn: []domain.TaskID{},
+				DependsOn: []types.TaskID{},
 			},
 		},
 	}

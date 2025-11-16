@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
@@ -13,10 +13,10 @@ func TestGenerate(t *testing.T) {
 		Product: "Test Product",
 		Features: []spec.Feature{
 			{
-				ID:       domain.FeatureID("feat-001"),
+				ID:       types.FeatureID("feat-001"),
 				Title:    "User Authentication API",
 				Desc:     "JWT-based authentication",
-				Priority: domain.Priority("P0"),
+				Priority: types.Priority("P0"),
 				API: []spec.API{
 					{Method: "POST", Path: "/api/login"},
 				},
@@ -24,18 +24,18 @@ func TestGenerate(t *testing.T) {
 				Trace:   []string{"PRD-001"},
 			},
 			{
-				ID:       domain.FeatureID("feat-002"),
+				ID:       types.FeatureID("feat-002"),
 				Title:    "User Profile UI",
 				Desc:     "React component for user profile",
-				Priority: domain.Priority("P1"),
+				Priority: types.Priority("P1"),
 				Success:  []string{"Profile displays correctly"},
 				Trace:    []string{"PRD-002"},
 			},
 			{
-				ID:       domain.FeatureID("feat-003"),
+				ID:       types.FeatureID("feat-003"),
 				Title:    "Docker Deployment",
 				Desc:     "Containerize the application",
-				Priority: domain.Priority("P2"),
+				Priority: types.Priority("P2"),
 				Success:  []string{"App runs in Docker"},
 				Trace:    []string{"PRD-003"},
 			},
@@ -44,10 +44,10 @@ func TestGenerate(t *testing.T) {
 
 	testLock := &spec.SpecLock{
 		Version: "1.0",
-		Features: map[domain.FeatureID]spec.LockedFeature{
-			domain.FeatureID("feat-001"): {Hash: "hash001"},
-			domain.FeatureID("feat-002"): {Hash: "hash002"},
-			domain.FeatureID("feat-003"): {Hash: "hash003"},
+		Features: map[types.FeatureID]spec.LockedFeature{
+			types.FeatureID("feat-001"): {Hash: "hash001"},
+			types.FeatureID("feat-002"): {Hash: "hash002"},
+			types.FeatureID("feat-003"): {Hash: "hash003"},
 		},
 	}
 
@@ -209,23 +209,23 @@ func TestValidateDependencies(t *testing.T) {
 		{
 			name: "valid dependencies",
 			tasks: []Task{
-				{ID: domain.TaskID("task-001"), DependsOn: []domain.TaskID{}},
-				{ID: domain.TaskID("task-002"), DependsOn: []domain.TaskID{domain.TaskID("task-001")}},
+				{ID: types.TaskID("task-001"), DependsOn: []types.TaskID{}},
+				{ID: types.TaskID("task-002"), DependsOn: []types.TaskID{types.TaskID("task-001")}},
 			},
 			wantErr: false,
 		},
 		{
 			name: "non-existent dependency",
 			tasks: []Task{
-				{ID: domain.TaskID("task-001"), DependsOn: []domain.TaskID{domain.TaskID("task-999")}},
+				{ID: types.TaskID("task-001"), DependsOn: []types.TaskID{types.TaskID("task-999")}},
 			},
 			wantErr: true,
 		},
 		{
 			name: "forward dependency",
 			tasks: []Task{
-				{ID: domain.TaskID("task-001"), DependsOn: []domain.TaskID{domain.TaskID("task-002")}},
-				{ID: domain.TaskID("task-002"), DependsOn: []domain.TaskID{}},
+				{ID: types.TaskID("task-001"), DependsOn: []types.TaskID{types.TaskID("task-002")}},
+				{ID: types.TaskID("task-002"), DependsOn: []types.TaskID{}},
 			},
 			wantErr: true,
 		},

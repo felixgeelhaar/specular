@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
@@ -173,7 +173,7 @@ func (s *Scope) FilterPlan(execPlan *plan.Plan, productSpec *spec.ProductSpec) *
 	}
 
 	// Phase 1: Find directly matching tasks
-	matchedTasks := make(map[domain.TaskID]bool)
+	matchedTasks := make(map[types.TaskID]bool)
 	for _, task := range execPlan.Tasks {
 		if s.MatchesTask(task, productSpec) {
 			matchedTasks[task.ID] = true
@@ -199,8 +199,8 @@ func (s *Scope) FilterPlan(execPlan *plan.Plan, productSpec *spec.ProductSpec) *
 }
 
 // expandDependencies recursively includes all dependencies of matched tasks.
-func (s *Scope) expandDependencies(execPlan *plan.Plan, matched map[domain.TaskID]bool) map[domain.TaskID]bool {
-	expanded := make(map[domain.TaskID]bool)
+func (s *Scope) expandDependencies(execPlan *plan.Plan, matched map[types.TaskID]bool) map[types.TaskID]bool {
+	expanded := make(map[types.TaskID]bool)
 	for id := range matched {
 		expanded[id] = true
 	}
@@ -269,7 +269,7 @@ func (s *Scope) EstimateImpact(execPlan *plan.Plan, productSpec *spec.ProductSpe
 		return total, total
 	}
 
-	matchedTasks := make(map[domain.TaskID]bool)
+	matchedTasks := make(map[types.TaskID]bool)
 	for _, task := range execPlan.Tasks {
 		if s.MatchesTask(task, productSpec) {
 			matchedTasks[task.ID] = true

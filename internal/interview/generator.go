@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
@@ -118,10 +118,10 @@ func (e *Engine) buildFeatures() []spec.Feature {
 		}
 
 		feature := spec.Feature{
-			ID:       domain.FeatureID(fmt.Sprintf("feat-%03d", i+1)),
+			ID:       types.FeatureID(fmt.Sprintf("feat-%03d", i+1)),
 			Title:    strings.TrimSpace(featureName),
 			Desc:     fmt.Sprintf("Implement %s functionality", featureName),
-			Priority: domain.Priority(priority),
+			Priority: types.Priority(priority),
 			Success:  []string{fmt.Sprintf("%s is implemented and functional", featureName)},
 			Trace:    []string{},
 		}
@@ -136,10 +136,10 @@ func (e *Engine) buildFeatures() []spec.Feature {
 	if e.isYes("auth-required") {
 		authType := e.getAnswer("auth-type", "auth-method")
 		feature := spec.Feature{
-			ID:       domain.FeatureID(fmt.Sprintf("feat-%03d", len(features)+1)),
+			ID:       types.FeatureID(fmt.Sprintf("feat-%03d", len(features)+1)),
 			Title:    "User Authentication",
 			Desc:     "Implement user authentication and session management",
-			Priority: domain.Priority("P0"),
+			Priority: types.Priority("P0"),
 			API: []spec.API{
 				{
 					Path:   "/api/auth/login",
@@ -163,10 +163,10 @@ func (e *Engine) buildFeatures() []spec.Feature {
 	if e.isYes("config-file") {
 		configFormat := e.getAnswer("config-format")
 		feature := spec.Feature{
-			ID:       domain.FeatureID(fmt.Sprintf("feat-%03d", len(features)+1)),
+			ID:       types.FeatureID(fmt.Sprintf("feat-%03d", len(features)+1)),
 			Title:    "Configuration Management",
 			Desc:     "Manage application configuration from file",
-			Priority: domain.Priority("P1"),
+			Priority: types.Priority("P1"),
 			Success: []string{
 				fmt.Sprintf("Configuration loaded from %s file", configFormat),
 				"Default configuration provided",
@@ -259,21 +259,21 @@ func (e *Engine) buildMilestones() []spec.Milestone {
 			Name:        "MVP Launch",
 			TargetDate:  "4 weeks",
 			Description: "Core features functional and tested",
-			FeatureIDs:  []domain.FeatureID{}, // Filled in during plan generation
+			FeatureIDs:  []types.FeatureID{}, // Filled in during plan generation
 		},
 		{
 			ID:          "m2",
 			Name:        "Beta Release",
 			TargetDate:  "8 weeks",
 			Description: "All P0 and P1 features complete",
-			FeatureIDs:  []domain.FeatureID{},
+			FeatureIDs:  []types.FeatureID{},
 		},
 		{
 			ID:          "m3",
 			Name:        "Production Ready",
 			TargetDate:  "12 weeks",
 			Description: "Full feature set with security and monitoring",
-			FeatureIDs:  []domain.FeatureID{},
+			FeatureIDs:  []types.FeatureID{},
 		},
 	}
 }

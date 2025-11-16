@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
@@ -56,7 +56,7 @@ func (g *DefaultPlanGenerator) Generate(ctx context.Context, s *spec.ProductSpec
 		}
 
 		task := Task{
-			ID:           domain.TaskID(fmt.Sprintf("task-%03d", i+1)),
+			ID:           types.TaskID(fmt.Sprintf("task-%03d", i+1)),
 			FeatureID:    feature.ID,
 			ExpectedHash: lockedFeature.Hash,
 			DependsOn:    g.determineDependencies(feature, s.Features, i),
@@ -82,27 +82,27 @@ func (g *DefaultPlanGenerator) Generate(ctx context.Context, s *spec.ProductSpec
 }
 
 // determineDependencies identifies task dependencies based on priority and trace
-func (g *DefaultPlanGenerator) determineDependencies(feature spec.Feature, allFeatures []spec.Feature, currentIndex int) []domain.TaskID {
-	var deps []domain.TaskID
+func (g *DefaultPlanGenerator) determineDependencies(feature spec.Feature, allFeatures []spec.Feature, currentIndex int) []types.TaskID {
+	var deps []types.TaskID
 
 	// P0 features have no dependencies
-	if feature.Priority == domain.Priority("P0") {
+	if feature.Priority == types.Priority("P0") {
 		return deps
 	}
 
 	// P1 and P2 depend on all P0 features that came before
 	for i := 0; i < currentIndex; i++ {
-		if allFeatures[i].Priority == domain.Priority("P0") {
-			taskID := domain.TaskID(fmt.Sprintf("task-%03d", i+1))
+		if allFeatures[i].Priority == types.Priority("P0") {
+			taskID := types.TaskID(fmt.Sprintf("task-%03d", i+1))
 			deps = append(deps, taskID)
 		}
 	}
 
 	// If this is P2, also depend on P1 features
-	if feature.Priority == domain.Priority("P2") {
+	if feature.Priority == types.Priority("P2") {
 		for i := 0; i < currentIndex; i++ {
-			if allFeatures[i].Priority == domain.Priority("P1") {
-				taskID := domain.TaskID(fmt.Sprintf("task-%03d", i+1))
+			if allFeatures[i].Priority == types.Priority("P1") {
+				taskID := types.TaskID(fmt.Sprintf("task-%03d", i+1))
 				deps = append(deps, taskID)
 			}
 		}
@@ -230,7 +230,7 @@ func Generate(ctx context.Context, s *spec.ProductSpec, opts GenerateOptions) (*
 // Package-level wrappers for helper functions (for backwards compatibility with tests)
 
 // determineDependencies identifies task dependencies based on priority and trace
-func determineDependencies(feature spec.Feature, allFeatures []spec.Feature, currentIndex int) []domain.TaskID {
+func determineDependencies(feature spec.Feature, allFeatures []spec.Feature, currentIndex int) []types.TaskID {
 	return defaultGenerator.determineDependencies(feature, allFeatures, currentIndex)
 }
 

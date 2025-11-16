@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 )
 
@@ -22,18 +22,18 @@ func TestBuildFeatureFiltering(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:        domain.TaskID("task-1"),
-						FeatureID: domain.FeatureID("feat-1"),
+						ID:        types.TaskID("task-1"),
+						FeatureID: types.FeatureID("feat-1"),
 						Skill:     "go-backend",
 					},
 					{
-						ID:        domain.TaskID("task-2"),
-						FeatureID: domain.FeatureID("feat-2"),
+						ID:        types.TaskID("task-2"),
+						FeatureID: types.FeatureID("feat-2"),
 						Skill:     "ui-react",
 					},
 					{
-						ID:        domain.TaskID("task-3"),
-						FeatureID: domain.FeatureID("feat-1"),
+						ID:        types.TaskID("task-3"),
+						FeatureID: types.FeatureID("feat-1"),
 						Skill:     "go-backend",
 					},
 				},
@@ -47,12 +47,12 @@ func TestBuildFeatureFiltering(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:        domain.TaskID("task-1"),
-						FeatureID: domain.FeatureID("feat-1"),
+						ID:        types.TaskID("task-1"),
+						FeatureID: types.FeatureID("feat-1"),
 					},
 					{
-						ID:        domain.TaskID("task-2"),
-						FeatureID: domain.FeatureID("feat-2"),
+						ID:        types.TaskID("task-2"),
+						FeatureID: types.FeatureID("feat-2"),
 					},
 				},
 			},
@@ -65,8 +65,8 @@ func TestBuildFeatureFiltering(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:        domain.TaskID("task-1"),
-						FeatureID: domain.FeatureID("feat-1"),
+						ID:        types.TaskID("task-1"),
+						FeatureID: types.FeatureID("feat-1"),
 					},
 				},
 			},

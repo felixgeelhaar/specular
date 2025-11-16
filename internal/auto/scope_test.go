@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
@@ -313,9 +313,9 @@ func TestFilterPlan(t *testing.T) {
 	t.Run("filters plan with dependencies", func(t *testing.T) {
 		execPlan := &plan.Plan{
 			Tasks: []plan.Task{
-				{ID: "task-1", FeatureID: "feat-1", DependsOn: []domain.TaskID{}},
-				{ID: "task-2", FeatureID: "feat-2", DependsOn: []domain.TaskID{"task-1"}},
-				{ID: "task-3", FeatureID: "feat-3", DependsOn: []domain.TaskID{"task-2"}},
+				{ID: "task-1", FeatureID: "feat-1", DependsOn: []types.TaskID{}},
+				{ID: "task-2", FeatureID: "feat-2", DependsOn: []types.TaskID{"task-1"}},
+				{ID: "task-3", FeatureID: "feat-3", DependsOn: []types.TaskID{"task-2"}},
 			},
 		}
 
@@ -328,7 +328,7 @@ func TestFilterPlan(t *testing.T) {
 			t.Errorf("expected 2 tasks, got %d", len(filtered.Tasks))
 		}
 
-		taskIDs := make(map[domain.TaskID]bool)
+		taskIDs := make(map[types.TaskID]bool)
 		for _, task := range filtered.Tasks {
 			taskIDs[task.ID] = true
 		}
@@ -347,10 +347,10 @@ func TestFilterPlan(t *testing.T) {
 	t.Run("filters plan with multiple dependencies", func(t *testing.T) {
 		execPlan := &plan.Plan{
 			Tasks: []plan.Task{
-				{ID: "task-1", FeatureID: "feat-1", DependsOn: []domain.TaskID{}},
-				{ID: "task-2", FeatureID: "feat-1", DependsOn: []domain.TaskID{}},
-				{ID: "task-3", FeatureID: "feat-2", DependsOn: []domain.TaskID{"task-1", "task-2"}},
-				{ID: "task-4", FeatureID: "feat-3", DependsOn: []domain.TaskID{}},
+				{ID: "task-1", FeatureID: "feat-1", DependsOn: []types.TaskID{}},
+				{ID: "task-2", FeatureID: "feat-1", DependsOn: []types.TaskID{}},
+				{ID: "task-3", FeatureID: "feat-2", DependsOn: []types.TaskID{"task-1", "task-2"}},
+				{ID: "task-4", FeatureID: "feat-3", DependsOn: []types.TaskID{}},
 			},
 		}
 
@@ -363,7 +363,7 @@ func TestFilterPlan(t *testing.T) {
 			t.Errorf("expected 3 tasks, got %d", len(filtered.Tasks))
 		}
 
-		taskIDs := make(map[domain.TaskID]bool)
+		taskIDs := make(map[types.TaskID]bool)
 		for _, task := range filtered.Tasks {
 			taskIDs[task.ID] = true
 		}
@@ -415,7 +415,7 @@ func TestFilterPlan(t *testing.T) {
 			t.Errorf("expected 2 tasks, got %d", len(filtered.Tasks))
 		}
 
-		taskIDs := make(map[domain.TaskID]bool)
+		taskIDs := make(map[types.TaskID]bool)
 		for _, task := range filtered.Tasks {
 			taskIDs[task.ID] = true
 		}
@@ -430,13 +430,13 @@ func TestExpandDependencies(t *testing.T) {
 	t.Run("expands single level dependencies", func(t *testing.T) {
 		execPlan := &plan.Plan{
 			Tasks: []plan.Task{
-				{ID: "task-1", DependsOn: []domain.TaskID{}},
-				{ID: "task-2", DependsOn: []domain.TaskID{"task-1"}},
+				{ID: "task-1", DependsOn: []types.TaskID{}},
+				{ID: "task-2", DependsOn: []types.TaskID{"task-1"}},
 			},
 		}
 
 		scope := &Scope{}
-		matched := map[domain.TaskID]bool{"task-2": true}
+		matched := map[types.TaskID]bool{"task-2": true}
 		expanded := scope.expandDependencies(execPlan, matched)
 
 		if !expanded["task-1"] {
@@ -450,14 +450,14 @@ func TestExpandDependencies(t *testing.T) {
 	t.Run("expands multi-level dependencies", func(t *testing.T) {
 		execPlan := &plan.Plan{
 			Tasks: []plan.Task{
-				{ID: "task-1", DependsOn: []domain.TaskID{}},
-				{ID: "task-2", DependsOn: []domain.TaskID{"task-1"}},
-				{ID: "task-3", DependsOn: []domain.TaskID{"task-2"}},
+				{ID: "task-1", DependsOn: []types.TaskID{}},
+				{ID: "task-2", DependsOn: []types.TaskID{"task-1"}},
+				{ID: "task-3", DependsOn: []types.TaskID{"task-2"}},
 			},
 		}
 
 		scope := &Scope{}
-		matched := map[domain.TaskID]bool{"task-3": true}
+		matched := map[types.TaskID]bool{"task-3": true}
 		expanded := scope.expandDependencies(execPlan, matched)
 
 		if len(expanded) != 3 {
@@ -472,15 +472,15 @@ func TestExpandDependencies(t *testing.T) {
 	t.Run("handles diamond dependencies", func(t *testing.T) {
 		execPlan := &plan.Plan{
 			Tasks: []plan.Task{
-				{ID: "task-1", DependsOn: []domain.TaskID{}},
-				{ID: "task-2", DependsOn: []domain.TaskID{"task-1"}},
-				{ID: "task-3", DependsOn: []domain.TaskID{"task-1"}},
-				{ID: "task-4", DependsOn: []domain.TaskID{"task-2", "task-3"}},
+				{ID: "task-1", DependsOn: []types.TaskID{}},
+				{ID: "task-2", DependsOn: []types.TaskID{"task-1"}},
+				{ID: "task-3", DependsOn: []types.TaskID{"task-1"}},
+				{ID: "task-4", DependsOn: []types.TaskID{"task-2", "task-3"}},
 			},
 		}
 
 		scope := &Scope{}
-		matched := map[domain.TaskID]bool{"task-4": true}
+		matched := map[types.TaskID]bool{"task-4": true}
 		expanded := scope.expandDependencies(execPlan, matched)
 
 		if len(expanded) != 4 {
@@ -488,7 +488,7 @@ func TestExpandDependencies(t *testing.T) {
 		}
 
 		for i := 1; i <= 4; i++ {
-			taskID := domain.TaskID(fmt.Sprintf("task-%d", i))
+			taskID := types.TaskID(fmt.Sprintf("task-%d", i))
 			if !expanded[taskID] {
 				t.Errorf("expected %s to be included", taskID)
 			}
@@ -573,9 +573,9 @@ func TestEstimateImpact(t *testing.T) {
 	t.Run("estimates impact with dependencies", func(t *testing.T) {
 		execPlan := &plan.Plan{
 			Tasks: []plan.Task{
-				{ID: "task-1", FeatureID: "feat-1", DependsOn: []domain.TaskID{}},
-				{ID: "task-2", FeatureID: "feat-2", DependsOn: []domain.TaskID{"task-1"}},
-				{ID: "task-3", FeatureID: "feat-3", DependsOn: []domain.TaskID{}},
+				{ID: "task-1", FeatureID: "feat-1", DependsOn: []types.TaskID{}},
+				{ID: "task-2", FeatureID: "feat-2", DependsOn: []types.TaskID{"task-1"}},
+				{ID: "task-3", FeatureID: "feat-3", DependsOn: []types.TaskID{}},
 			},
 		}
 

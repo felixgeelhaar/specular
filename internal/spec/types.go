@@ -1,6 +1,6 @@
 package spec
 
-import "github.com/felixgeelhaar/specular/internal/domain"
+import "github.com/felixgeelhaar/specular/pkg/specular/types"
 
 // ProductSpec represents the complete product specification
 type ProductSpec struct {
@@ -14,14 +14,14 @@ type ProductSpec struct {
 
 // Feature represents a single feature in the product spec
 type Feature struct {
-	ID       domain.FeatureID `json:"id"`
-	Title    string           `json:"title"`
-	Desc     string           `json:"desc"`
-	Priority domain.Priority  `json:"priority"` // P0, P1, P2
-	API      []API            `json:"api,omitempty"`
-	Success  []string         `json:"success"`
-	Trace    []string         `json:"trace"`
-	Refs     []string         `json:"refs,omitempty"`
+	ID       types.FeatureID `json:"id"`
+	Title    string          `json:"title"`
+	Desc     string          `json:"desc"`
+	Priority types.Priority  `json:"priority"` // P0, P1, P2
+	API      []API           `json:"api,omitempty"`
+	Success  []string        `json:"success"`
+	Trace    []string        `json:"trace"`
+	Refs     []string        `json:"refs,omitempty"`
 }
 
 // API represents an API endpoint definition
@@ -44,7 +44,7 @@ type NonFunctional struct {
 type Milestone struct {
 	ID          string             `yaml:"id" json:"id"`
 	Name        string             `yaml:"name" json:"name"`
-	FeatureIDs  []domain.FeatureID `yaml:"feature_ids" json:"feature_ids"`
+	FeatureIDs  []types.FeatureID  `yaml:"feature_ids" json:"feature_ids"`
 	TargetDate  string             `yaml:"target_date,omitempty" json:"target_date,omitempty"`
 	Description string             `yaml:"description,omitempty" json:"description,omitempty"`
 }
@@ -52,7 +52,7 @@ type Milestone struct {
 // SpecLock represents the canonical, hashed specification snapshot
 type SpecLock struct {
 	Version  string                             `json:"version"`
-	Features map[domain.FeatureID]LockedFeature `json:"features"`
+	Features map[types.FeatureID]LockedFeature  `json:"features"`
 }
 
 // LockedFeature represents a feature with its hash and generated artifacts

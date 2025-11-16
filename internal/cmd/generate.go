@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/router"
 )
@@ -125,7 +125,7 @@ The router will automatically select the best model based on complexity, budget,
 			Temperature:  temperature,
 			MaxTokens:    maxTokens,
 			ContextSize:  estimatedTokens,
-			TaskID:       domain.TaskID(fmt.Sprintf("cli-generate-%d", time.Now().Unix())),
+			TaskID:       types.TaskID(fmt.Sprintf("cli-generate-%d", time.Now().Unix())),
 		}
 
 		// Generate

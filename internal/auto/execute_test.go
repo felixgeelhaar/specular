@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
@@ -18,7 +18,7 @@ func createTestProductSpec() *spec.ProductSpec {
 		Goals:   []string{"Build a test product"},
 		Features: []spec.Feature{
 			{
-				ID:       domain.FeatureID("test-feature"),
+				ID:       types.FeatureID("test-feature"),
 				Title:    "Test Feature",
 				Desc:     "Test feature description",
 				Priority: "P0",
@@ -33,8 +33,8 @@ func createTestPlan() *plan.Plan {
 	return &plan.Plan{
 		Tasks: []plan.Task{
 			{
-				ID:        domain.TaskID("test-task-1"),
-				FeatureID: domain.FeatureID("test-feature"),
+				ID:        types.TaskID("test-task-1"),
+				FeatureID: types.FeatureID("test-feature"),
 				Skill:     "test-skill",
 				Priority:  "P0",
 			},

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"gopkg.in/yaml.v3"
@@ -32,7 +32,7 @@ func TestSaveOutputFiles(t *testing.T) {
 
 	specLock := &spec.SpecLock{
 		Version: "1.0.0",
-		Features: map[domain.FeatureID]spec.LockedFeature{
+		Features: map[types.FeatureID]spec.LockedFeature{
 			"feat-1": {
 				Hash: "abc123",
 			},
@@ -254,7 +254,7 @@ func TestGeneratePlan(t *testing.T) {
 
 	specLock := &spec.SpecLock{
 		Version: "1.0.0",
-		Features: map[domain.FeatureID]spec.LockedFeature{
+		Features: map[types.FeatureID]spec.LockedFeature{
 			"feat-1": {
 				Hash: "abc123",
 			},
@@ -314,7 +314,7 @@ func TestGeneratePlan_MultipleFeatures(t *testing.T) {
 
 	specLock := &spec.SpecLock{
 		Version: "1.0.0",
-		Features: map[domain.FeatureID]spec.LockedFeature{
+		Features: map[types.FeatureID]spec.LockedFeature{
 			"feat-1": {Hash: "abc123"},
 			"feat-2": {Hash: "def456"},
 		},
@@ -334,7 +334,7 @@ func TestGeneratePlan_MultipleFeatures(t *testing.T) {
 	}
 
 	// Verify tasks were created for both features
-	featureTaskCount := make(map[domain.FeatureID]int)
+	featureTaskCount := make(map[types.FeatureID]int)
 	for _, task := range execPlan.Tasks {
 		featureTaskCount[task.FeatureID]++
 	}
@@ -356,7 +356,7 @@ func TestGeneratePlan_EmptySpec(t *testing.T) {
 
 	specLock := &spec.SpecLock{
 		Version:  "1.0.0",
-		Features: map[domain.FeatureID]spec.LockedFeature{},
+		Features: map[types.FeatureID]spec.LockedFeature{},
 	}
 
 	o := &Orchestrator{}

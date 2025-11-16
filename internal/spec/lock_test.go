@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 func TestGenerateSpecLock(t *testing.T) {
@@ -197,13 +197,13 @@ func TestSaveSpecLock(t *testing.T) {
 			name: "complete lock",
 			lock: &SpecLock{
 				Version: "1.0.0",
-				Features: map[domain.FeatureID]LockedFeature{
-					domain.FeatureID("feat-001"): {
+				Features: map[types.FeatureID]LockedFeature{
+					types.FeatureID("feat-001"): {
 						Hash:        "abc123",
 						OpenAPIPath: ".specular/openapi/feat-001.yaml",
 						TestPaths:   []string{".specular/tests/feat-001_test.go"},
 					},
-					domain.FeatureID("feat-002"): {
+					types.FeatureID("feat-002"): {
 						Hash:        "def456",
 						OpenAPIPath: ".specular/openapi/feat-002.yaml",
 						TestPaths:   []string{".specular/tests/feat-002_test.go"},
@@ -216,7 +216,7 @@ func TestSaveSpecLock(t *testing.T) {
 			name: "empty lock",
 			lock: &SpecLock{
 				Version:  "0.1.0",
-				Features: make(map[domain.FeatureID]LockedFeature),
+				Features: make(map[types.FeatureID]LockedFeature),
 			},
 			wantErr: false,
 		},
@@ -273,8 +273,8 @@ func TestSaveSpecLock_DirectoryCreation(t *testing.T) {
 
 	lock := &SpecLock{
 		Version: "1.0.0",
-		Features: map[domain.FeatureID]LockedFeature{
-			domain.FeatureID("feat-001"): {
+		Features: map[types.FeatureID]LockedFeature{
+			types.FeatureID("feat-001"): {
 				Hash:        "abc123",
 				OpenAPIPath: ".specular/openapi/feat-001.yaml",
 				TestPaths:   []string{".specular/tests/feat-001_test.go"},
@@ -337,7 +337,7 @@ func TestLoadSpecLock(t *testing.T) {
 					t.Errorf("Features length = %d, want 2", len(lock.Features))
 				}
 
-				if locked, ok := lock.Features[domain.FeatureID("feat-001")]; !ok {
+				if locked, ok := lock.Features[types.FeatureID("feat-001")]; !ok {
 					t.Error("feat-001 not found")
 				} else {
 					if locked.Hash != "abc123def456" {
@@ -351,7 +351,7 @@ func TestLoadSpecLock(t *testing.T) {
 					}
 				}
 
-				if locked, ok := lock.Features[domain.FeatureID("feat-002")]; !ok {
+				if locked, ok := lock.Features[types.FeatureID("feat-002")]; !ok {
 					t.Error("feat-002 not found")
 				} else {
 					if len(locked.TestPaths) != 2 {
@@ -485,8 +485,8 @@ func TestSpecLock_RoundTrip(t *testing.T) {
 func TestSaveSpecLock_WriteError(t *testing.T) {
 	lock := &SpecLock{
 		Version: "1.0.0",
-		Features: map[domain.FeatureID]LockedFeature{
-			domain.FeatureID("feat-001"): {
+		Features: map[types.FeatureID]LockedFeature{
+			types.FeatureID("feat-001"): {
 				Hash:        "test-hash",
 				OpenAPIPath: ".specular/openapi/feat-001.yaml",
 				TestPaths:   []string{".specular/tests/feat-001_test.go"},
@@ -512,8 +512,8 @@ func TestSaveSpecLock_ReadOnlyFile(t *testing.T) {
 
 	lock := &SpecLock{
 		Version: "1.0.0",
-		Features: map[domain.FeatureID]LockedFeature{
-			domain.FeatureID("feat-001"): {
+		Features: map[types.FeatureID]LockedFeature{
+			types.FeatureID("feat-001"): {
 				Hash:        "test-hash",
 				OpenAPIPath: ".specular/openapi/feat-001.yaml",
 				TestPaths:   []string{".specular/tests/feat-001_test.go"},

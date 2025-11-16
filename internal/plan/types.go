@@ -1,6 +1,6 @@
 package plan
 
-import "github.com/felixgeelhaar/specular/internal/domain"
+import "github.com/felixgeelhaar/specular/pkg/specular/types"
 
 // Plan represents the execution plan as a DAG of tasks
 type Plan struct {
@@ -9,12 +9,12 @@ type Plan struct {
 
 // Task represents a single unit of work in the plan
 type Task struct {
-	ID           domain.TaskID    `json:"id"`
-	FeatureID    domain.FeatureID `json:"feature_id"`
+	ID           types.TaskID    `json:"id"`
+	FeatureID    types.FeatureID `json:"feature_id"`
 	ExpectedHash string           `json:"expected_hash"` // Links to SpecLock feature hash
-	DependsOn    []domain.TaskID  `json:"depends_on"`
+	DependsOn    []types.TaskID  `json:"depends_on"`
 	Skill        string           `json:"skill"`      // go-backend, ui-react, infra, etc.
-	Priority     domain.Priority  `json:"priority"`   // P0, P1, P2
+	Priority     types.Priority  `json:"priority"`   // P0, P1, P2
 	ModelHint    string           `json:"model_hint"` // long-context, agentic, codegen, etc.
 	Estimate     int              `json:"estimate"`   // Estimated complexity/time
 }

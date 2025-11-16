@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
@@ -13,13 +13,13 @@ import (
 func createTestData(numFeatures int, driftRatio float64) (*spec.SpecLock, *plan.Plan) {
 	lock := &spec.SpecLock{
 		Version:  "1.0",
-		Features: make(map[domain.FeatureID]spec.LockedFeature),
+		Features: make(map[types.FeatureID]spec.LockedFeature),
 	}
 
 	tasks := make([]plan.Task, numFeatures)
 
 	for i := 0; i < numFeatures; i++ {
-		featureID := domain.FeatureID(fmt.Sprintf("feat-%03d", i+1))
+		featureID := types.FeatureID(fmt.Sprintf("feat-%03d", i+1))
 		correctHash := fmt.Sprintf("hash%03d", i+1)
 
 		// Add to lock
@@ -37,12 +37,12 @@ func createTestData(numFeatures int, driftRatio float64) (*spec.SpecLock, *plan.
 
 		// Add to plan
 		tasks[i] = plan.Task{
-			ID:           domain.TaskID(fmt.Sprintf("task-%03d", i+1)),
+			ID:           types.TaskID(fmt.Sprintf("task-%03d", i+1)),
 			FeatureID:    featureID,
 			ExpectedHash: taskHash,
-			DependsOn:    []domain.TaskID{},
+			DependsOn:    []types.TaskID{},
 			Skill:        "go-backend",
-			Priority:     domain.Priority("P0"),
+			Priority:     types.Priority("P0"),
 		}
 	}
 
@@ -174,12 +174,12 @@ func BenchmarkDetectPlanDrift_HighDriftRatio(b *testing.B) {
 func BenchmarkDetectPlanDrift_MissingTasks(b *testing.B) {
 	lock := &spec.SpecLock{
 		Version: "1.0",
-		Features: map[domain.FeatureID]spec.LockedFeature{
-			domain.FeatureID("feat-001"): {Hash: "abc123"},
-			domain.FeatureID("feat-002"): {Hash: "def456"},
-			domain.FeatureID("feat-003"): {Hash: "ghi789"},
-			domain.FeatureID("feat-004"): {Hash: "jkl012"},
-			domain.FeatureID("feat-005"): {Hash: "mno345"},
+		Features: map[types.FeatureID]spec.LockedFeature{
+			types.FeatureID("feat-001"): {Hash: "abc123"},
+			types.FeatureID("feat-002"): {Hash: "def456"},
+			types.FeatureID("feat-003"): {Hash: "ghi789"},
+			types.FeatureID("feat-004"): {Hash: "jkl012"},
+			types.FeatureID("feat-005"): {Hash: "mno345"},
 		},
 	}
 
@@ -187,13 +187,13 @@ func BenchmarkDetectPlanDrift_MissingTasks(b *testing.B) {
 	p := &plan.Plan{
 		Tasks: []plan.Task{
 			{
-				ID:           domain.TaskID("task-001"),
-				FeatureID:    domain.FeatureID("feat-001"),
+				ID:           types.TaskID("task-001"),
+				FeatureID:    types.FeatureID("feat-001"),
 				ExpectedHash: "abc123",
 			},
 			{
-				ID:           domain.TaskID("task-002"),
-				FeatureID:    domain.FeatureID("feat-002"),
+				ID:           types.TaskID("task-002"),
+				FeatureID:    types.FeatureID("feat-002"),
 				ExpectedHash: "def456",
 			},
 		},

@@ -3,18 +3,18 @@ package auto
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 )
 
 func TestCountTasksByPriority(t *testing.T) {
 	tasks := []plan.Task{
-		{Priority: domain.PriorityP0},
-		{Priority: domain.PriorityP0},
-		{Priority: domain.PriorityP1},
-		{Priority: domain.PriorityP1},
-		{Priority: domain.PriorityP1},
-		{Priority: domain.PriorityP2},
+		{Priority: types.PriorityP0},
+		{Priority: types.PriorityP0},
+		{Priority: types.PriorityP1},
+		{Priority: types.PriorityP1},
+		{Priority: types.PriorityP1},
+		{Priority: types.PriorityP2},
 	}
 
 	p0, p1, p2 := countTasksByPriority(tasks)
@@ -41,9 +41,9 @@ func TestCountTasksByPriority_Empty(t *testing.T) {
 
 func TestCountTasksByPriority_SinglePriority(t *testing.T) {
 	tasks := []plan.Task{
-		{Priority: domain.PriorityP0},
-		{Priority: domain.PriorityP0},
-		{Priority: domain.PriorityP0},
+		{Priority: types.PriorityP0},
+		{Priority: types.PriorityP0},
+		{Priority: types.PriorityP0},
 	}
 
 	p0, p1, p2 := countTasksByPriority(tasks)
@@ -117,14 +117,14 @@ func TestCountTasksBySkill_AllEmptySkills(t *testing.T) {
 
 func TestGetPriorityColor(t *testing.T) {
 	tests := []struct {
-		priority domain.Priority
+		priority types.Priority
 		expected string
 	}{
-		{domain.PriorityP0, "1"},          // Red
-		{domain.PriorityP1, "3"},          // Yellow
-		{domain.PriorityP2, "2"},          // Green
-		{domain.Priority("P3"), "8"},      // Gray (default)
-		{domain.Priority("invalid"), "8"}, // Gray (default)
+		{types.PriorityP0, "1"},          // Red
+		{types.PriorityP1, "3"},          // Yellow
+		{types.PriorityP2, "2"},          // Green
+		{types.Priority("P3"), "8"},      // Gray (default)
+		{types.Priority("invalid"), "8"}, // Gray (default)
 	}
 
 	for _, tt := range tests {

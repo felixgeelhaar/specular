@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
@@ -153,11 +153,11 @@ func (m approvalModel) View() string {
 func countTasksByPriority(tasks []plan.Task) (p0, p1, p2 int) {
 	for _, task := range tasks {
 		switch task.Priority {
-		case domain.PriorityP0:
+		case types.PriorityP0:
 			p0++
-		case domain.PriorityP1:
+		case types.PriorityP1:
 			p1++
-		case domain.PriorityP2:
+		case types.PriorityP2:
 			p2++
 		}
 	}
@@ -176,13 +176,13 @@ func countTasksBySkill(tasks []plan.Task) map[string]int {
 }
 
 // getPriorityColor returns the ANSI color code for a priority level
-func getPriorityColor(priority domain.Priority) string {
+func getPriorityColor(priority types.Priority) string {
 	switch priority {
-	case domain.PriorityP0:
+	case types.PriorityP0:
 		return "1" // Red
-	case domain.PriorityP1:
+	case types.PriorityP1:
 		return "3" // Yellow
-	case domain.PriorityP2:
+	case types.PriorityP2:
 		return "2" // Green
 	default:
 		return "8" // Gray

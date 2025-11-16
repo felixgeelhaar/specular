@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
@@ -23,7 +23,7 @@ func TestSpecApproveValidation(t *testing.T) {
 				Product: "Test Product",
 				Features: []spec.Feature{
 					{
-						ID:    domain.FeatureID("feat-1"),
+						ID:    types.FeatureID("feat-1"),
 						Title: "Feature 1",
 						Desc:  "Description",
 					},
@@ -37,7 +37,7 @@ func TestSpecApproveValidation(t *testing.T) {
 				Product: "",
 				Features: []spec.Feature{
 					{
-						ID:    domain.FeatureID("feat-1"),
+						ID:    types.FeatureID("feat-1"),
 						Title: "Feature 1",
 					},
 				},
@@ -93,18 +93,18 @@ func TestSpecDiffFeatureComparison(t *testing.T) {
 			name: "no differences",
 			featuresA: map[string]spec.Feature{
 				"feat-1": {
-					ID:       domain.FeatureID("feat-1"),
+					ID:       types.FeatureID("feat-1"),
 					Title:    "Feature 1",
 					Desc:     "Description 1",
-					Priority: domain.PriorityP0,
+					Priority: types.PriorityP0,
 				},
 			},
 			featuresB: map[string]spec.Feature{
 				"feat-1": {
-					ID:       domain.FeatureID("feat-1"),
+					ID:       types.FeatureID("feat-1"),
 					Title:    "Feature 1",
 					Desc:     "Description 1",
-					Priority: domain.PriorityP0,
+					Priority: types.PriorityP0,
 				},
 			},
 			wantAdded:    0,
@@ -115,17 +115,17 @@ func TestSpecDiffFeatureComparison(t *testing.T) {
 			name: "feature added",
 			featuresA: map[string]spec.Feature{
 				"feat-1": {
-					ID:    domain.FeatureID("feat-1"),
+					ID:    types.FeatureID("feat-1"),
 					Title: "Feature 1",
 				},
 			},
 			featuresB: map[string]spec.Feature{
 				"feat-1": {
-					ID:    domain.FeatureID("feat-1"),
+					ID:    types.FeatureID("feat-1"),
 					Title: "Feature 1",
 				},
 				"feat-2": {
-					ID:    domain.FeatureID("feat-2"),
+					ID:    types.FeatureID("feat-2"),
 					Title: "Feature 2",
 				},
 			},
@@ -137,17 +137,17 @@ func TestSpecDiffFeatureComparison(t *testing.T) {
 			name: "feature removed",
 			featuresA: map[string]spec.Feature{
 				"feat-1": {
-					ID:    domain.FeatureID("feat-1"),
+					ID:    types.FeatureID("feat-1"),
 					Title: "Feature 1",
 				},
 				"feat-2": {
-					ID:    domain.FeatureID("feat-2"),
+					ID:    types.FeatureID("feat-2"),
 					Title: "Feature 2",
 				},
 			},
 			featuresB: map[string]spec.Feature{
 				"feat-1": {
-					ID:    domain.FeatureID("feat-1"),
+					ID:    types.FeatureID("feat-1"),
 					Title: "Feature 1",
 				},
 			},
@@ -159,18 +159,18 @@ func TestSpecDiffFeatureComparison(t *testing.T) {
 			name: "feature modified",
 			featuresA: map[string]spec.Feature{
 				"feat-1": {
-					ID:       domain.FeatureID("feat-1"),
+					ID:       types.FeatureID("feat-1"),
 					Title:    "Feature 1",
 					Desc:     "Old description",
-					Priority: domain.PriorityP0,
+					Priority: types.PriorityP0,
 				},
 			},
 			featuresB: map[string]spec.Feature{
 				"feat-1": {
-					ID:       domain.FeatureID("feat-1"),
+					ID:       types.FeatureID("feat-1"),
 					Title:    "Feature 1 Updated",
 					Desc:     "New description",
-					Priority: domain.PriorityP1,
+					Priority: types.PriorityP1,
 				},
 			},
 			wantAdded:    0,
@@ -181,23 +181,23 @@ func TestSpecDiffFeatureComparison(t *testing.T) {
 			name: "multiple changes",
 			featuresA: map[string]spec.Feature{
 				"feat-1": {
-					ID:    domain.FeatureID("feat-1"),
+					ID:    types.FeatureID("feat-1"),
 					Title: "Feature 1",
 					Desc:  "Desc 1",
 				},
 				"feat-2": {
-					ID:    domain.FeatureID("feat-2"),
+					ID:    types.FeatureID("feat-2"),
 					Title: "Feature 2",
 				},
 			},
 			featuresB: map[string]spec.Feature{
 				"feat-1": {
-					ID:    domain.FeatureID("feat-1"),
+					ID:    types.FeatureID("feat-1"),
 					Title: "Feature 1 Updated",
 					Desc:  "New desc",
 				},
 				"feat-3": {
-					ID:    domain.FeatureID("feat-3"),
+					ID:    types.FeatureID("feat-3"),
 					Title: "Feature 3",
 				},
 			},

@@ -3,7 +3,7 @@ package drift
 import (
 	"fmt"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
@@ -15,7 +15,7 @@ func DetectPlanDrift(lock *spec.SpecLock, p *plan.Plan) []Finding {
 	// Check each task in the plan
 	for _, task := range p.Tasks {
 		// Verify feature exists in SpecLock
-		lockedFeature, exists := lock.Features[domain.FeatureID(task.FeatureID)]
+		lockedFeature, exists := lock.Features[types.FeatureID(task.FeatureID)]
 		if !exists {
 			findings = append(findings, Finding{
 				Code:      "UNKNOWN_FEATURE",

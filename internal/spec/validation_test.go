@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 func TestFeature_Validate(t *testing.T) {
@@ -268,7 +268,7 @@ func TestProductSpec_Validate(t *testing.T) {
 			{
 				ID:         "milestone-1",
 				Name:       "Milestone 1",
-				FeatureIDs: []domain.FeatureID{domain.FeatureID("feature-1")},
+				FeatureIDs: []types.FeatureID{types.FeatureID("feature-1")},
 			},
 		},
 	}
@@ -397,7 +397,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "Milestone 1",
-				FeatureIDs: []domain.FeatureID{domain.FeatureID("feature-1"), domain.FeatureID("feature-2")},
+				FeatureIDs: []types.FeatureID{types.FeatureID("feature-1"), types.FeatureID("feature-2")},
 			},
 			wantErr: false,
 		},
@@ -406,7 +406,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:          "milestone-1",
 				Name:        "Milestone 1",
-				FeatureIDs:  []domain.FeatureID{domain.FeatureID("feature-1")},
+				FeatureIDs:  []types.FeatureID{types.FeatureID("feature-1")},
 				TargetDate:  "2024-12-31",
 				Description: "Q4 milestone",
 			},
@@ -417,7 +417,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "",
 				Name:       "Milestone",
-				FeatureIDs: []domain.FeatureID{domain.FeatureID("feature-1")},
+				FeatureIDs: []types.FeatureID{types.FeatureID("feature-1")},
 			},
 			wantErr: true,
 			errMsg:  "ID cannot be empty",
@@ -427,7 +427,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "",
-				FeatureIDs: []domain.FeatureID{domain.FeatureID("feature-1")},
+				FeatureIDs: []types.FeatureID{types.FeatureID("feature-1")},
 			},
 			wantErr: true,
 			errMsg:  "name cannot be empty",
@@ -437,7 +437,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "Milestone",
-				FeatureIDs: []domain.FeatureID{},
+				FeatureIDs: []types.FeatureID{},
 			},
 			wantErr: true,
 			errMsg:  "at least one feature",
@@ -447,7 +447,7 @@ func TestMilestone_Validate(t *testing.T) {
 			milestone: Milestone{
 				ID:         "milestone-1",
 				Name:       "Milestone",
-				FeatureIDs: []domain.FeatureID{domain.FeatureID("Feature-1")},
+				FeatureIDs: []types.FeatureID{types.FeatureID("Feature-1")},
 			},
 			wantErr: true,
 			errMsg:  "feature ID at index 0 is invalid",

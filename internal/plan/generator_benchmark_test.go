@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
 
 // createTestSpec creates a ProductSpec with the specified number of features
 func createTestSpec(numFeatures int) (*spec.ProductSpec, *spec.SpecLock) {
 	features := make([]spec.Feature, numFeatures)
-	lockedFeatures := make(map[domain.FeatureID]spec.LockedFeature)
+	lockedFeatures := make(map[types.FeatureID]spec.LockedFeature)
 
 	for i := 0; i < numFeatures; i++ {
-		featureID := domain.FeatureID(fmt.Sprintf("feat-%03d", i+1))
+		featureID := types.FeatureID(fmt.Sprintf("feat-%03d", i+1))
 
 		// Alternate priorities to create dependency chains
-		var priority domain.Priority
+		var priority types.Priority
 		switch i % 3 {
 		case 0:
 			priority = "P0"

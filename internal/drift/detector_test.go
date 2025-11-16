@@ -3,7 +3,7 @@ package drift
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/domain"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 )
@@ -21,8 +21,8 @@ func TestDetectPlanDrift(t *testing.T) {
 			name: "no drift",
 			lock: &spec.SpecLock{
 				Version: "1.0",
-				Features: map[domain.FeatureID]spec.LockedFeature{
-					domain.FeatureID("feat-001"): {
+				Features: map[types.FeatureID]spec.LockedFeature{
+					types.FeatureID("feat-001"): {
 						Hash:        "abc123",
 						OpenAPIPath: ".specular/openapi/feat-001.yaml",
 						TestPaths:   []string{".specular/tests/feat-001_test.go"},
@@ -32,12 +32,12 @@ func TestDetectPlanDrift(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           domain.TaskID("task-001"),
-						FeatureID:    domain.FeatureID("feat-001"),
+						ID:           types.TaskID("task-001"),
+						FeatureID:    types.FeatureID("feat-001"),
 						ExpectedHash: "abc123",
-						DependsOn:    []domain.TaskID{},
+						DependsOn:    []types.TaskID{},
 						Skill:        "go-backend",
-						Priority:     domain.Priority("P0"),
+						Priority:     types.Priority("P0"),
 					},
 				},
 			},
@@ -49,8 +49,8 @@ func TestDetectPlanDrift(t *testing.T) {
 			name: "hash mismatch",
 			lock: &spec.SpecLock{
 				Version: "1.0",
-				Features: map[domain.FeatureID]spec.LockedFeature{
-					domain.FeatureID("feat-001"): {
+				Features: map[types.FeatureID]spec.LockedFeature{
+					types.FeatureID("feat-001"): {
 						Hash:        "abc123",
 						OpenAPIPath: ".specular/openapi/feat-001.yaml",
 						TestPaths:   []string{".specular/tests/feat-001_test.go"},
@@ -60,12 +60,12 @@ func TestDetectPlanDrift(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           domain.TaskID("task-001"),
-						FeatureID:    domain.FeatureID("feat-001"),
+						ID:           types.TaskID("task-001"),
+						FeatureID:    types.FeatureID("feat-001"),
 						ExpectedHash: "xyz789", // Mismatch!
-						DependsOn:    []domain.TaskID{},
+						DependsOn:    []types.TaskID{},
 						Skill:        "go-backend",
-						Priority:     domain.Priority("P0"),
+						Priority:     types.Priority("P0"),
 					},
 				},
 			},
@@ -77,17 +77,17 @@ func TestDetectPlanDrift(t *testing.T) {
 			name: "unknown feature",
 			lock: &spec.SpecLock{
 				Version:  "1.0",
-				Features: map[domain.FeatureID]spec.LockedFeature{},
+				Features: map[types.FeatureID]spec.LockedFeature{},
 			},
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           domain.TaskID("task-001"),
-						FeatureID:    domain.FeatureID("feat-999"), // Unknown!
+						ID:           types.TaskID("task-001"),
+						FeatureID:    types.FeatureID("feat-999"), // Unknown!
 						ExpectedHash: "abc123",
-						DependsOn:    []domain.TaskID{},
+						DependsOn:    []types.TaskID{},
 						Skill:        "go-backend",
-						Priority:     domain.Priority("P0"),
+						Priority:     types.Priority("P0"),
 					},
 				},
 			},
@@ -99,13 +99,13 @@ func TestDetectPlanDrift(t *testing.T) {
 			name: "missing task",
 			lock: &spec.SpecLock{
 				Version: "1.0",
-				Features: map[domain.FeatureID]spec.LockedFeature{
-					domain.FeatureID("feat-001"): {
+				Features: map[types.FeatureID]spec.LockedFeature{
+					types.FeatureID("feat-001"): {
 						Hash:        "abc123",
 						OpenAPIPath: ".specular/openapi/feat-001.yaml",
 						TestPaths:   []string{".specular/tests/feat-001_test.go"},
 					},
-					domain.FeatureID("feat-002"): {
+					types.FeatureID("feat-002"): {
 						Hash:        "def456",
 						OpenAPIPath: ".specular/openapi/feat-002.yaml",
 						TestPaths:   []string{".specular/tests/feat-002_test.go"},
@@ -115,12 +115,12 @@ func TestDetectPlanDrift(t *testing.T) {
 			plan: &plan.Plan{
 				Tasks: []plan.Task{
 					{
-						ID:           domain.TaskID("task-001"),
-						FeatureID:    domain.FeatureID("feat-001"),
+						ID:           types.TaskID("task-001"),
+						FeatureID:    types.FeatureID("feat-001"),
 						ExpectedHash: "abc123",
-						DependsOn:    []domain.TaskID{},
+						DependsOn:    []types.TaskID{},
 						Skill:        "go-backend",
-						Priority:     domain.Priority("P0"),
+						Priority:     types.Priority("P0"),
 					},
 					// feat-002 is missing!
 				},
@@ -163,10 +163,10 @@ func TestDetectPlanDrift(t *testing.T) {
 
 func TestGenerateReport(t *testing.T) {
 	planDrift := []Finding{
-		{Code: "HASH_MISMATCH", FeatureID: domain.FeatureID("feat-001"), Severity: "error"},
+		{Code: "HASH_MISMATCH", FeatureID: types.FeatureID("feat-001"), Severity: "error"},
 	}
 	codeDrift := []Finding{
-		{Code: "API_MISMATCH", FeatureID: domain.FeatureID("feat-002"), Severity: "warning"},
+		{Code: "API_MISMATCH", FeatureID: types.FeatureID("feat-002"), Severity: "warning"},
 	}
 	infraDrift := []Finding{
 		{Code: "POLICY_VIOLATION", Severity: "info"},
