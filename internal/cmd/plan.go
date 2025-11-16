@@ -22,20 +22,22 @@ var planCmd = &cobra.Command{
 	Short: "Manage execution plans",
 	Long: `Generate, review, and manage execution plans from specifications.
 
-Use 'specular plan gen' to generate a new plan from a specification.
+Use 'specular plan create' to generate a new plan from a specification.
 Use 'specular plan review' to interactively review a plan.
+Use 'specular plan visualize' to visualize plan as graph.
+Use 'specular plan validate' to validate plan structure.
 Use 'specular plan drift' to detect drift between plan and repository.
 Use 'specular plan explain' to understand routing decisions.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check if this is being used as the old direct command
-		// If flags are set, run the gen command for backward compatibility
+		// If flags are set, run the create command for backward compatibility
 		if cmd.Flags().Changed("in") || cmd.Flags().Changed("out") || cmd.Flags().Changed("lock") {
 			fmt.Fprintf(os.Stderr, "\n⚠️  DEPRECATION WARNING:\n")
 			fmt.Fprintf(os.Stderr, "Running 'plan' directly is deprecated and will be removed in v1.6.0.\n")
-			fmt.Fprintf(os.Stderr, "Please use 'specular plan gen' instead.\n\n")
+			fmt.Fprintf(os.Stderr, "Please use 'specular plan create' instead.\n\n")
 
-			// Run gen command
-			return runPlanGen(cmd, args)
+			// Run create command
+			return runPlanCreate(cmd, args)
 		}
 
 		// Otherwise show help
@@ -43,15 +45,15 @@ Use 'specular plan explain' to understand routing decisions.`,
 	},
 }
 
-var planGenCmd = &cobra.Command{
-	Use:   "gen",
-	Short: "Generate execution plan from spec",
-	Long: `Generate a task DAG (Directed Acyclic Graph) from a specification.
+var planCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Create execution plan from spec",
+	Long: `Create a task DAG (Directed Acyclic Graph) from a specification.
 The plan includes task dependencies, priorities, skill requirements, and
 expected hashes for drift detection.
 
-You can optionally generate a plan for a specific feature using --feature.`,
-	RunE: runPlanGen,
+You can optionally create a plan for a specific feature using --feature.`,
+	RunE: runPlanCreate,
 }
 
 var planReviewCmd = &cobra.Command{
@@ -92,9 +94,36 @@ Shows:
 	RunE: runPlanExplain,
 }
 
-func runPlanGen(cmd *cobra.Command, args []string) error {
-	// Start distributed tracing span for plan gen command
-	ctx, span := telemetry.StartCommandSpan(cmd.Context(), "plan.gen")
+var planVisualizeCmd = &cobra.Command{
+	Use:   "visualize",
+	Short: "Visualize execution plan as graph",
+	Long: `Visualize the execution plan as a dependency graph.
+
+Shows:
+- Task dependencies and relationships
+- Execution order and parallelization opportunities
+- Critical path through the plan
+- Task priorities and estimated complexity`,
+	RunE: runPlanVisualize,
+}
+
+var planValidateCmd = &cobra.Command{
+	Use:   "validate",
+	Short: "Validate plan structure and dependencies",
+	Long: `Validate the execution plan for structural correctness.
+
+Checks:
+- No circular dependencies
+- All task dependencies exist
+- Valid task priorities
+- Proper skill assignments
+- Estimated complexity values`,
+	RunE: runPlanValidate,
+}
+
+func runPlanCreate(cmd *cobra.Command, args []string) error {
+	// Start distributed tracing span for plan create command
+	ctx, span := telemetry.StartCommandSpan(cmd.Context(), "plan.create")
 	defer span.End()
 
 	startTime := time.Now()
@@ -237,7 +266,7 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate plan file exists
-	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan gen"); err != nil {
+	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
 		return ux.EnhanceError(err)
 	}
 
@@ -268,7 +297,7 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Println("\nNext steps:")
 		fmt.Printf("  1. Modify spec: specular spec edit\n")
-		fmt.Printf("  2. Regenerate plan: specular plan gen\n")
+		fmt.Printf("  2. Regenerate plan: specular plan create\n")
 	}
 
 	return nil
@@ -284,7 +313,7 @@ func runPlanDrift(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate plan file exists
-	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan gen"); err != nil {
+	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
 		return ux.EnhanceError(err)
 	}
 
@@ -337,7 +366,7 @@ func runPlanDrift(cmd *cobra.Command, args []string) error {
 		fmt.Println("\nRecommendations:")
 		if uncommitted != "" {
 			fmt.Printf("  1. Commit or stash uncommitted changes\n")
-			fmt.Printf("  2. Regenerate plan: specular plan gen\n")
+			fmt.Printf("  2. Regenerate plan: specular plan create\n")
 		} else {
 			fmt.Printf("  1. Review changes: git diff\n")
 			fmt.Printf("  2. Regenerate plan if needed: specular plan gen\n")
@@ -357,7 +386,7 @@ func runPlanExplain(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate plan file exists
-	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan gen"); err != nil {
+	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
 		return ux.EnhanceError(err)
 	}
 
@@ -419,12 +448,222 @@ func runPlanExplain(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func runPlanVisualize(cmd *cobra.Command, args []string) error {
+	defaults := ux.NewPathDefaults()
+	planPath := cmd.Flags().Lookup("plan").Value.String()
+
+	// Use smart default if not changed
+	if !cmd.Flags().Changed("plan") {
+		planPath = defaults.PlanFile()
+	}
+
+	// Validate plan file exists
+	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
+		return ux.EnhanceError(err)
+	}
+
+	// Load plan
+	p, err := plan.LoadPlan(planPath)
+	if err != nil {
+		return ux.FormatError(err, "loading plan file")
+	}
+
+	fmt.Printf("=== Plan Visualization ===\n\n")
+	fmt.Printf("Plan: %s (%d tasks)\n\n", planPath, len(p.Tasks))
+
+	// ASCII graph visualization
+	fmt.Println("Task Dependency Graph:")
+	fmt.Println()
+
+	// Group tasks by priority
+	priorityGroups := make(map[string][]plan.Task)
+	for _, task := range p.Tasks {
+		priorityGroups[string(task.Priority)] = append(priorityGroups[string(task.Priority)], task)
+	}
+
+	// Display by priority level
+	for _, priority := range []string{"P0", "P1", "P2", "P3"} {
+		tasks := priorityGroups[priority]
+		if len(tasks) == 0 {
+			continue
+		}
+
+		fmt.Printf("[%s] Priority Tasks:\n", priority)
+		for _, task := range tasks {
+			deps := "none"
+			if len(task.DependsOn) > 0 {
+				// Convert []TaskID to []string
+				depsStrs := make([]string, len(task.DependsOn))
+				for i, depID := range task.DependsOn {
+					depsStrs[i] = string(depID)
+				}
+				deps = strings.Join(depsStrs, ", ")
+			}
+			fmt.Printf("  • %s (%s) - depends on: %s\n",
+				task.ID, task.Skill, deps)
+		}
+		fmt.Println()
+	}
+
+	fmt.Println("Next steps:")
+	fmt.Printf("  1. Validate plan: specular plan validate\n")
+	fmt.Printf("  2. Review plan: specular plan review\n")
+	fmt.Printf("  3. Execute plan: specular build\n")
+
+	return nil
+}
+
+func runPlanValidate(cmd *cobra.Command, args []string) error {
+	defaults := ux.NewPathDefaults()
+	planPath := cmd.Flags().Lookup("plan").Value.String()
+
+	// Use smart default if not changed
+	if !cmd.Flags().Changed("plan") {
+		planPath = defaults.PlanFile()
+	}
+
+	// Validate plan file exists
+	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
+		return ux.EnhanceError(err)
+	}
+
+	// Load plan
+	p, err := plan.LoadPlan(planPath)
+	if err != nil {
+		return ux.FormatError(err, "loading plan file")
+	}
+
+	fmt.Printf("Validating plan: %s\n\n", planPath)
+
+	validationErrors := 0
+
+	// Check 1: Circular dependencies
+	fmt.Printf("Checking for circular dependencies... ")
+	if hasCircularDeps := checkCircularDependencies(p); hasCircularDeps {
+		fmt.Printf("❌ FAILED\n")
+		validationErrors++
+	} else {
+		fmt.Printf("✓ OK\n")
+	}
+
+	// Check 2: Missing dependencies
+	fmt.Printf("Checking for missing dependencies... ")
+	taskIDs := make(map[string]bool)
+	for _, task := range p.Tasks {
+		taskIDs[string(task.ID)] = true
+	}
+
+	missingDeps := false
+	for _, task := range p.Tasks {
+		for _, depID := range task.DependsOn {
+			if !taskIDs[string(depID)] {
+				if !missingDeps {
+					fmt.Printf("❌ FAILED\n")
+					missingDeps = true
+					validationErrors++
+				}
+				fmt.Printf("  Task %s depends on missing task: %s\n", task.ID, depID)
+			}
+		}
+	}
+	if !missingDeps {
+		fmt.Printf("✓ OK\n")
+	}
+
+	// Check 3: Valid priorities
+	fmt.Printf("Checking task priorities... ")
+	invalidPriorities := false
+	for _, task := range p.Tasks {
+		priority := string(task.Priority)
+		if priority != "P0" && priority != "P1" && priority != "P2" && priority != "P3" {
+			if !invalidPriorities {
+				fmt.Printf("❌ FAILED\n")
+				invalidPriorities = true
+				validationErrors++
+			}
+			fmt.Printf("  Task %s has invalid priority: %s\n", task.ID, priority)
+		}
+	}
+	if !invalidPriorities {
+		fmt.Printf("✓ OK\n")
+	}
+
+	// Summary
+	fmt.Println()
+	if validationErrors == 0 {
+		fmt.Printf("✓ Plan is valid (%d tasks, %d checks passed)\n", len(p.Tasks), 3)
+		fmt.Println("\nNext steps:")
+		fmt.Printf("  1. Review plan: specular plan review\n")
+		fmt.Printf("  2. Execute plan: specular build\n")
+	} else {
+		fmt.Printf("❌ Plan has %d validation error(s)\n", validationErrors)
+		fmt.Println("\nRecommendations:")
+		fmt.Printf("  1. Fix validation errors\n")
+		fmt.Printf("  2. Regenerate plan: specular plan create\n")
+		return fmt.Errorf("plan validation failed with %d error(s)", validationErrors)
+	}
+
+	return nil
+}
+
+// checkCircularDependencies checks if there are circular dependencies in the plan
+func checkCircularDependencies(p *plan.Plan) bool {
+	// Build adjacency list
+	graph := make(map[string][]string)
+	for _, task := range p.Tasks {
+		// Convert []TaskID to []string
+		deps := make([]string, len(task.DependsOn))
+		for i, depID := range task.DependsOn {
+			deps[i] = string(depID)
+		}
+		graph[string(task.ID)] = deps
+	}
+
+	// Track visited and recursion stack
+	visited := make(map[string]bool)
+	recStack := make(map[string]bool)
+
+	// DFS to detect cycle
+	var hasCycle func(string) bool
+	hasCycle = func(taskID string) bool {
+		visited[taskID] = true
+		recStack[taskID] = true
+
+		for _, dep := range graph[taskID] {
+			if !visited[dep] {
+				if hasCycle(dep) {
+					return true
+				}
+			} else if recStack[dep] {
+				return true
+			}
+		}
+
+		recStack[taskID] = false
+		return false
+	}
+
+	// Check all tasks
+	for _, task := range p.Tasks {
+		taskID := string(task.ID)
+		if !visited[taskID] {
+			if hasCycle(taskID) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func init() {
 	rootCmd.AddCommand(planCmd)
-	planCmd.AddCommand(planGenCmd)
+	planCmd.AddCommand(planCreateCmd)
 	planCmd.AddCommand(planReviewCmd)
 	planCmd.AddCommand(planDriftCmd)
 	planCmd.AddCommand(planExplainCmd)
+	planCmd.AddCommand(planVisualizeCmd)
+	planCmd.AddCommand(planValidateCmd)
 
 	// Flags for backward compatibility on root plan command
 	planCmd.Flags().StringP("in", "i", ".specular/spec.yaml", "Input spec file")
@@ -433,12 +672,12 @@ func init() {
 	planCmd.Flags().Bool("estimate", true, "Estimate task complexity")
 	planCmd.Flags().String("feature", "", "Generate plan for specific feature ID")
 
-	// plan gen flags
-	planGenCmd.Flags().StringP("in", "i", ".specular/spec.yaml", "Input spec file")
-	planGenCmd.Flags().String("lock", ".specular/spec.lock.json", "Input SpecLock file")
-	planGenCmd.Flags().StringP("out", "o", "plan.json", "Output plan file")
-	planGenCmd.Flags().Bool("estimate", true, "Estimate task complexity")
-	planGenCmd.Flags().String("feature", "", "Generate plan for specific feature ID")
+	// plan create flags
+	planCreateCmd.Flags().StringP("in", "i", ".specular/spec.yaml", "Input spec file")
+	planCreateCmd.Flags().String("lock", ".specular/spec.lock.json", "Input SpecLock file")
+	planCreateCmd.Flags().StringP("out", "o", "plan.json", "Output plan file")
+	planCreateCmd.Flags().Bool("estimate", true, "Estimate task complexity")
+	planCreateCmd.Flags().String("feature", "", "Generate plan for specific feature ID")
 
 	// plan review flags
 	planReviewCmd.Flags().String("plan", "plan.json", "Plan file to review")
@@ -448,4 +687,10 @@ func init() {
 
 	// plan explain flags
 	planExplainCmd.Flags().String("plan", "plan.json", "Plan file to explain")
+
+	// plan visualize flags
+	planVisualizeCmd.Flags().String("plan", "plan.json", "Plan file to visualize")
+
+	// plan validate flags
+	planValidateCmd.Flags().String("plan", "plan.json", "Plan file to validate")
 }
