@@ -57,9 +57,22 @@ specular/
 │   ├── fixtures/         # Test fixtures and data
 │   └── integration/      # Integration test suites
 ├── examples/              # Example configurations and use cases
+│   ├── api-service/      # REST API service example
+│   ├── web-app/          # Web application example
+│   ├── cicd-github-actions/ # GitHub Actions CI/CD example
+│   ├── registry-publishing/ # Container registry publishing
+│   ├── team-approval/    # Multi-team approval workflow
+│   ├── auto.profiles.yaml # Autonomous mode profile examples
+│   └── README.md         # Examples documentation
 ├── scripts/               # Build, release, and utility scripts
+│   └── postinstall.sh    # Post-installation setup script
 ├── packaging/             # Distribution packaging
+│   ├── aur/              # Arch User Repository packaging
+│   └── DISTRIBUTION_GUIDE.md # Distribution guidelines
 ├── completions/           # Shell completions (bash, zsh, fish)
+│   ├── specular.bash     # Bash completion (96KB)
+│   ├── specular.fish     # Fish completion (10KB)
+│   └── _specular         # Zsh completion (8KB)
 ├── .github/               # GitHub-specific files
 │   ├── workflows/        # CI/CD workflows
 │   ├── actions/          # Custom GitHub Actions
@@ -171,6 +184,66 @@ Each provider implements the `ProviderClient` interface:
 - **gemini-cli**: Google Gemini
 - **ollama**: Local models
 - **codex-cli**: Codex CLI integration
+
+### `examples/` - Usage Examples & Use Cases
+
+Comprehensive examples demonstrating Specular workflows:
+
+- **`api-service/`**: REST API service specification and build
+- **`web-app/`**: Full-stack web application example
+- **`cicd-github-actions/`**: GitHub Actions CI/CD integration
+- **`registry-publishing/`**: Container registry publishing workflow
+- **`team-approval/`**: Multi-team approval and governance
+- **`auto.profiles.yaml`**: Autonomous mode configuration examples
+- **`README.md`**: Examples documentation and guides
+
+Each example includes:
+- Sample specification files (`.specular/spec.yaml`)
+- Provider routing configuration (`.specular/router.yaml`)
+- Policy definitions (`.specular/policy.yaml`)
+- Expected outputs and traces
+
+### `completions/` - Shell Auto-Completion
+
+Shell completion scripts for enhanced CLI usability:
+
+- **`specular.bash`** (96KB): Comprehensive Bash completion with subcommand and flag suggestions
+- **`specular.fish`** (10KB): Fish shell completion
+- **`_specular`** (8KB): Zsh completion
+
+Generated automatically from Cobra command definitions during build.
+
+### `scripts/` - Build & Distribution Scripts
+
+Automation scripts for build, release, and installation:
+
+- **`postinstall.sh`**: Post-installation configuration script
+  - Sets up shell completions
+  - Configures default provider settings
+  - Creates `.specular/` directory structure
+
+Additional scripts may include:
+- Release automation
+- Package verification
+- Installation testing
+
+### `packaging/` - Distribution Packaging
+
+Platform-specific packaging configurations:
+
+- **`aur/`**: Arch User Repository (AUR) package definition
+  - PKGBUILD file for Arch Linux
+  - Package metadata
+- **`DISTRIBUTION_GUIDE.md`**: Distribution guidelines and best practices
+  - Package maintainer instructions
+  - Platform-specific requirements
+  - Version compatibility matrix
+
+Future packaging targets:
+- Homebrew formula (automated via GoReleaser)
+- Snap package
+- Flatpak manifest
+- Chocolatey package (Windows)
 
 ## Design Patterns
 
