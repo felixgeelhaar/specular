@@ -7,9 +7,9 @@ import (
 // TestEvalScenarioValidation tests the scenario validation logic in eval run
 func TestEvalScenarioValidation(t *testing.T) {
 	tests := []struct {
-		name        string
-		scenario    string
-		wantValid   bool
+		name      string
+		scenario  string
+		wantValid bool
 	}{
 		{
 			name:      "valid smoke scenario",

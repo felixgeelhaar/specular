@@ -121,11 +121,11 @@ type RuntimeInfo struct {
 }
 
 type ProviderState struct {
-	Available bool   `json:"available"`        // Is provider available
-	Type      string `json:"type"`             // "cli", "api", "local"
-	Version   string `json:"version"`          // Provider version
-	APIKey    bool   `json:"api_key_set"`      // Is API key set
-	KeyName   string `json:"key_name"`         // Environment variable name
+	Available bool   `json:"available"`   // Is provider available
+	Type      string `json:"type"`        // "cli", "api", "local"
+	Version   string `json:"version"`     // Provider version
+	APIKey    bool   `json:"api_key_set"` // Is API key set
+	KeyName   string `json:"key_name"`    // Environment variable name
 }
 
 type GitInfo struct {

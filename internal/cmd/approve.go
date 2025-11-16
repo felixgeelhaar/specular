@@ -14,13 +14,13 @@ import (
 
 // Approval represents a governance approval signature
 type Approval struct {
-	Artifact    string    `json:"artifact"`     // spec, plan, or bundle
-	Path        string    `json:"path"`         // file path
-	Hash        string    `json:"hash"`         // SHA256 hash of content
-	ApprovedBy  string    `json:"approved_by"`  // user/email
-	ApprovedAt  time.Time `json:"approved_at"`  // timestamp
-	Comment     string    `json:"comment"`      // optional comment
-	Environment string    `json:"environment"`  // dev, staging, prod
+	Artifact    string    `json:"artifact"`    // spec, plan, or bundle
+	Path        string    `json:"path"`        // file path
+	Hash        string    `json:"hash"`        // SHA256 hash of content
+	ApprovedBy  string    `json:"approved_by"` // user/email
+	ApprovedAt  time.Time `json:"approved_at"` // timestamp
+	Comment     string    `json:"comment"`     // optional comment
+	Environment string    `json:"environment"` // dev, staging, prod
 }
 
 var approveCmd = &cobra.Command{

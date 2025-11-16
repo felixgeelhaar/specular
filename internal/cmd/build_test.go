@@ -10,11 +10,11 @@ import (
 // TestBuildFeatureFiltering tests the feature filtering logic in build run
 func TestBuildFeatureFiltering(t *testing.T) {
 	tests := []struct {
-		name       string
-		plan       *plan.Plan
-		featureID  string
-		wantTasks  int
-		wantErr    bool
+		name        string
+		plan        *plan.Plan
+		featureID   string
+		wantTasks   int
+		wantErr     bool
 		errContains string
 	}{
 		{
@@ -215,10 +215,10 @@ func TestBuildVerifyChecks(t *testing.T) {
 // TestBuildManifestLookup tests the most recent manifest finding logic
 func TestBuildManifestLookup(t *testing.T) {
 	tests := []struct {
-		name           string
-		manifests      []string
-		wantLatest     string
-		wantFound      bool
+		name       string
+		manifests  []string
+		wantLatest string
+		wantFound  bool
 	}{
 		{
 			name: "single manifest",
@@ -276,10 +276,10 @@ func TestBuildManifestLookup(t *testing.T) {
 // TestBuildApproveValidation tests the approval validation logic
 func TestBuildApproveValidation(t *testing.T) {
 	tests := []struct {
-		name          string
+		name           string
 		manifestExists bool
-		wantErr       bool
-		errContains   string
+		wantErr        bool
+		errContains    string
 	}{
 		{
 			name:           "manifest exists",

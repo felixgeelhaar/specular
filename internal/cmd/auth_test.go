@@ -200,9 +200,9 @@ func TestAuthCommand(t *testing.T) {
 func TestAuthCredentialsStruct(t *testing.T) {
 	// Create a sample credentials to verify struct works
 	creds := AuthCredentials{
-		User:      "alice@example.com",
-		Token:     "token_abc123",
-		Registry:  "https://registry.example.com",
+		User:     "alice@example.com",
+		Token:    "token_abc123",
+		Registry: "https://registry.example.com",
 	}
 
 	// Verify fields are accessible

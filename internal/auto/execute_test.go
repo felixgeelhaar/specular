@@ -45,8 +45,8 @@ func createTestPlan() *plan.Plan {
 // TestResult_Structure tests the Result struct initialization
 func TestResult_Structure(t *testing.T) {
 	result := &Result{
-		Success: true,
-		Errors:  []error{},
+		Success:  true,
+		Errors:   []error{},
 		Duration: 5 * time.Second,
 	}
 
