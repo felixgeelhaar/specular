@@ -4,9 +4,33 @@
 
 # Specular
 
-**AI-Native Spec and Build Assistant**
+**AI-Native Spec and Build Assistant with Governance**
 
 A Go-based CLI tool that enables spec-first, policy-enforced software development using AI. Transform natural language product requirements into structured specifications, executable plans, and production-ready code while maintaining traceability and enforcing organizational guardrails.
+
+## Why Specular?
+
+Most teams are adopting AI for ideation, planning, code generation, and automation. But they lack:
+
+- **Governance** for what AI may do and how decisions are made
+- **Policy enforcement** across providers and environments
+- **Drift detection** between requirements, plans, and implementation
+- **Cost and risk controls** for AI usage
+- **Auditable artifacts** with cryptographic integrity
+- **Reproducible workflows** from spec to production
+
+**Specular solves this** by providing:
+
+✅ **Spec-First Development**: Transform requirements into formal specifications with AI-assisted interview mode
+✅ **Governance & Policy**: Enterprise-grade policy engine with cryptographic approvals and bundle workflows
+✅ **Multi-Provider AI**: Intelligent routing across local (Ollama) and cloud (OpenAI, Anthropic, Gemini) models
+✅ **Drift Detection**: Continuous validation of spec → plan → code alignment with SARIF reporting
+✅ **Docker Sandboxing**: Secure isolated execution with resource limits and image allowlisting
+✅ **Autonomous Mode**: Checkpoint/resume for long-running workflows with full state preservation
+✅ **Audit & Compliance**: Cryptographic attestations, trace logging, and approval workflows
+
+> **Specular is the control plane and audit layer for AI-driven development.**
+> It replaces "wild west prompting" with structured, governed, policy-compliant workflows.
 
 ## Quick Links
 
