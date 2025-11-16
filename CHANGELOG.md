@@ -7,18 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-11-16
+
+### Added
+
+- **Public SDK**: Domain types (FeatureID, TaskID, Priority) now available in `pkg/specular/types/` for external integrations
+  - Enables third-party tools to use Specular's type system
+  - Comprehensive test coverage with property-based tests
+  - Full API documentation and validation rules
+
 ### Changed
 
-- **SDK Architecture**: Migrated domain types (FeatureID, TaskID, Priority) from `internal/domain/` to public SDK (`pkg/specular/types/`)
+- **SDK Architecture**: Migrated domain types from `internal/domain/` to public SDK (`pkg/specular/types/`)
   - Established one-way dependency: internal packages now import from SDK
   - Eliminated 201 lines of duplicate code
   - Net reduction of 198 lines across 40 files
+  - Single source of truth for core domain types
 - **CI/CD**: Updated GitHub Actions and integration tests to use Go 1.22 for compatibility
 
 ### Documentation
 
 - **ARCHITECTURE.md**: Expanded with detailed directory structure and component descriptions
 - **OPEN_SOURCE_PRACTICES.md**: Added comprehensive best practices documentation for contributing
+- **SDK README**: Complete documentation for public SDK usage
 
 ### Fixed
 
@@ -27,8 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Statistics
 
-- 7 commits since v1.0.0
+- 8 commits since v1.0.0
 - 40 files modified in SDK migration
+- 849 lines of production SDK code
 - Zero breaking changes - fully backward compatible
 
 ## [1.5.0] - 2025-01-15
@@ -391,9 +403,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew formula for macOS/Linux
 - DEB/RPM packages for Linux distributions
 
-[unreleased]: https://github.com/felixgeelhaar/specular/compare/v1.4.0...HEAD
+[unreleased]: https://github.com/felixgeelhaar/specular/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/felixgeelhaar/specular/compare/v1.0.0...v1.1.0
+[1.5.0]: https://github.com/felixgeelhaar/specular/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/felixgeelhaar/specular/compare/v1.2.0...v1.4.0
 [1.2.0]: https://github.com/felixgeelhaar/specular/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/felixgeelhaar/specular/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/felixgeelhaar/specular/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/felixgeelhaar/specular/releases/tag/v1.0.0
