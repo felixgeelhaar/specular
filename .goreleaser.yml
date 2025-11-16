@@ -65,7 +65,7 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
-      - '^chore:'
+      - '^chore(?!\(release\)):'  # Exclude chore commits except chore(release):
       - '^ci:'
       - Merge pull request
       - Merge branch
