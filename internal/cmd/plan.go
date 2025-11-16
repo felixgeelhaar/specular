@@ -431,6 +431,7 @@ func init() {
 	planCmd.Flags().String("lock", ".specular/spec.lock.json", "Input SpecLock file")
 	planCmd.Flags().StringP("out", "o", "plan.json", "Output plan file")
 	planCmd.Flags().Bool("estimate", true, "Estimate task complexity")
+	planCmd.Flags().String("feature", "", "Generate plan for specific feature ID")
 
 	// plan gen flags
 	planGenCmd.Flags().StringP("in", "i", ".specular/spec.yaml", "Input spec file")
