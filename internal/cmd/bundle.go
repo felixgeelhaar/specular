@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/spf13/cobra"
@@ -39,9 +40,9 @@ var (
 	buildGovLevel  string
 )
 
-var bundleBuildCmd = &cobra.Command{
-	Use:   "build [output]",
-	Short: "Build a governance bundle",
+var bundleCreateCmd = &cobra.Command{
+	Use:   "create [output]",
+	Short: "Create a governance bundle",
 	Long: `Create a governance bundle from project files.
 
 Bundles package:
@@ -58,57 +59,67 @@ The bundle includes:
 - Optional Sigstore attestation
 
 Examples:
-  # Build bundle from current directory
-  specular bundle build my-app-v1.0.0.sbundle.tgz
+  # Create bundle from current directory
+  specular bundle create my-app-v1.0.0.sbundle.tgz
 
-  # Build with specific files
-  specular bundle build --spec spec.yaml --lock spec.lock.json bundle.sbundle.tgz
+  # Create with specific files
+  specular bundle create --spec spec.yaml --lock spec.lock.json bundle.sbundle.tgz
 
-  # Build with policies
-  specular bundle build --policy policies/security.yaml --policy policies/compliance.yaml bundle.sbundle.tgz
+  # Create with policies
+  specular bundle create --policy policies/security.yaml --policy policies/compliance.yaml bundle.sbundle.tgz
 
-  # Build with governance level
-  specular bundle build --governance-level L3 bundle.sbundle.tgz`,
+  # Create with governance level
+  specular bundle create --governance-level L3 bundle.sbundle.tgz`,
 	Args: cobra.MaximumNArgs(1),
-	RunE: runBundleBuild,
+	RunE: runBundleCreate,
 }
 
-// Bundle verify command flags
+// Bundle gate command flags
 var (
-	verifyStrict      bool
-	verifyApprovals   bool
-	verifyAttestation bool
-	verifyPolicy      string
-	verifyTrustedKeys []string
-	verifyOffline     bool
+	gateStrict      bool
+	gateApprovals   bool
+	gateAttestation bool
+	gatePolicy      string
+	gateTrustedKeys []string
+	gateOffline     bool
 )
 
-var bundleVerifyCmd = &cobra.Command{
-	Use:   "verify <bundle>",
-	Short: "Verify a governance bundle",
-	Long: `Verify the integrity and signatures of a governance bundle.
+var bundleGateCmd = &cobra.Command{
+	Use:   "gate <bundle>",
+	Short: "Verify and gate a governance bundle",
+	Long: `Verify the integrity and governance compliance of a bundle.
 
-Verification checks:
+Gate checks:
 - Manifest structure and completeness
 - File checksums (SHA-256)
-- Required approvals (if --require-approvals)
-- Cryptographic attestation (if --verify-attestation)
-- Policy compliance (if --policy specified)
+- Required approvals
+- Cryptographic attestation
+- Policy compliance
+- Provider allowlist
+- Drift detection
+
+Exit codes:
+  0  - OK (bundle passed all checks)
+  20 - Policy violation
+  30 - Drift detected
+  40 - Missing required approval
+  50 - Forbidden provider
+  60 - Evaluation failure
 
 Examples:
-  # Basic verification
-  specular bundle verify my-app-v1.0.0.sbundle.tgz
+  # Basic gate check
+  specular bundle gate my-app-v1.0.0.sbundle.tgz
 
   # Strict mode (fail on any error)
-  specular bundle verify --strict bundle.sbundle.tgz
+  specular bundle gate --strict bundle.sbundle.tgz
 
   # Require approvals
-  specular bundle verify --require-approvals bundle.sbundle.tgz
+  specular bundle gate --require-approvals bundle.sbundle.tgz
 
   # Verify attestation
-  specular bundle verify --verify-attestation bundle.sbundle.tgz`,
+  specular bundle gate --verify-attestation bundle.sbundle.tgz`,
 	Args: cobra.ExactArgs(1),
-	RunE: runBundleVerify,
+	RunE: runBundleGate,
 }
 
 // Bundle apply command flags
@@ -481,7 +492,7 @@ func displayBundleDetails(output, attestFmt string, includeAttest bool) {
 	}
 }
 
-func runBundleBuild(cmd *cobra.Command, args []string) error {
+func runBundleCreate(cmd *cobra.Command, args []string) error {
 	defaults := ux.NewPathDefaults()
 	output := determineOutputPathAndDefaults(cmd, args, defaults)
 	metadata := parseMetadataFlags(buildMetadata)
@@ -538,7 +549,7 @@ func runBundleBuild(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runBundleVerify(cmd *cobra.Command, args []string) error {
+func runBundleGate(cmd *cobra.Command, args []string) error {
 	bundlePath := args[0]
 
 	// Check bundle exists
@@ -546,16 +557,16 @@ func runBundleVerify(cmd *cobra.Command, args []string) error {
 		return ux.FormatError(err, "bundle not found")
 	}
 
-	fmt.Printf("Verifying bundle: %s\n\n", bundlePath)
+	fmt.Printf("Running governance gate checks on: %s\n\n", bundlePath)
 
 	// Create validator
 	opts := bundle.VerifyOptions{
-		Strict:             verifyStrict,
-		RequireApprovals:   verifyApprovals,
-		RequireAttestation: verifyAttestation,
-		PolicyPath:         verifyPolicy,
-		TrustPublicKeys:    verifyTrustedKeys,
-		AllowOffline:       verifyOffline,
+		Strict:             gateStrict,
+		RequireApprovals:   gateApprovals,
+		RequireAttestation: gateAttestation,
+		PolicyPath:         gatePolicy,
+		TrustPublicKeys:    gateTrustedKeys,
+		AllowOffline:       gateOffline,
 	}
 
 	validator := bundle.NewValidator(opts)
@@ -563,14 +574,15 @@ func runBundleVerify(cmd *cobra.Command, args []string) error {
 	// Verify bundle
 	result, err := validator.Verify(bundlePath)
 	if err != nil {
-		return ux.FormatError(err, "verification failed")
+		fmt.Printf("✗ Gate check FAILED: %v\n", err)
+		os.Exit(60) // Evaluation failure
 	}
 
 	// Display results
 	if result.Valid {
-		fmt.Println("✓ Bundle verification PASSED")
+		fmt.Println("✓ Bundle gate check PASSED")
 	} else {
-		fmt.Println("✗ Bundle verification FAILED")
+		fmt.Println("✗ Bundle gate check FAILED")
 	}
 
 	fmt.Println()
@@ -605,11 +617,34 @@ func runBundleVerify(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Determine exit code based on failure type
 	if !result.Valid {
 		fmt.Println()
-		return fmt.Errorf("bundle validation failed with %d errors", len(result.Errors))
+
+		// Check for specific failure types and return appropriate exit codes
+		for _, err := range result.Errors {
+			switch err.Code {
+			case "POLICY_VIOLATION", "POLICY_COMPLIANCE_FAILED":
+				fmt.Println("Exit code: 20 (Policy violation)")
+				os.Exit(20)
+			case "DRIFT_DETECTED":
+				fmt.Println("Exit code: 30 (Drift detected)")
+				os.Exit(30)
+			case "MISSING_APPROVAL", "APPROVAL_FAILED":
+				fmt.Println("Exit code: 40 (Missing approval)")
+				os.Exit(40)
+			case "FORBIDDEN_PROVIDER", "PROVIDER_NOT_ALLOWED":
+				fmt.Println("Exit code: 50 (Forbidden provider)")
+				os.Exit(50)
+			}
+		}
+
+		// Default failure exit code
+		fmt.Println("Exit code: 60 (Evaluation failure)")
+		os.Exit(60)
 	}
 
+	// Success
 	return nil
 }
 
@@ -1183,27 +1218,281 @@ func formatValidationStatus(valid bool) string {
 	return "✗ FAIL"
 }
 
-func init() {
-	// Bundle build flags
-	bundleBuildCmd.Flags().StringVarP(&buildOutput, "output", "o", "", "Output bundle path (default: bundle.sbundle.tgz)")
-	bundleBuildCmd.Flags().StringVar(&buildSpec, "spec", "", "Path to spec.yaml (default: .specular/spec.yaml)")
-	bundleBuildCmd.Flags().StringVar(&buildLock, "lock", "", "Path to spec.lock.json (default: .specular/spec.lock.json)")
-	bundleBuildCmd.Flags().StringVar(&buildRouting, "routing", "", "Path to routing.yaml (default: .specular/routing.yaml)")
-	bundleBuildCmd.Flags().StringSliceVarP(&buildPolicies, "policy", "p", nil, "Policy files to include (can be specified multiple times)")
-	bundleBuildCmd.Flags().StringSliceVarP(&buildInclude, "include", "i", nil, "Additional files/directories to include")
-	bundleBuildCmd.Flags().StringSliceVarP(&buildApprovals, "require-approval", "a", nil, "Required approval roles (e.g., pm, lead, security)")
-	bundleBuildCmd.Flags().BoolVar(&buildAttest, "attest", false, "Generate Sigstore attestation")
-	bundleBuildCmd.Flags().StringVar(&buildAttestFmt, "attest-format", "sigstore", "Attestation format (sigstore, in-toto, slsa)")
-	bundleBuildCmd.Flags().StringSliceVarP(&buildMetadata, "metadata", "m", nil, "Bundle metadata (key=value)")
-	bundleBuildCmd.Flags().StringVarP(&buildGovLevel, "governance-level", "g", "", "Governance maturity level (L1-L4)")
+// Bundle inspect command flags
+var (
+	inspectJSON bool
+)
 
-	// Bundle verify flags
-	bundleVerifyCmd.Flags().BoolVar(&verifyStrict, "strict", false, "Fail on any error")
-	bundleVerifyCmd.Flags().BoolVar(&verifyApprovals, "require-approvals", false, "Verify all required approvals are present")
-	bundleVerifyCmd.Flags().BoolVar(&verifyAttestation, "verify-attestation", false, "Verify cryptographic attestation")
-	bundleVerifyCmd.Flags().StringVar(&verifyPolicy, "policy", "", "Verify against policy file")
-	bundleVerifyCmd.Flags().StringSliceVar(&verifyTrustedKeys, "trusted-key", nil, "Trusted public keys for signature verification")
-	bundleVerifyCmd.Flags().BoolVar(&verifyOffline, "offline", false, "Allow offline verification")
+var bundleInspectCmd = &cobra.Command{
+	Use:   "inspect <bundle>",
+	Short: "Inspect bundle contents and metadata",
+	Long: `Display detailed information about a governance bundle.
+
+Shows:
+- Bundle metadata (ID, version, schema, created date)
+- Governance level
+- Included files with checksums
+- Approvals and signatures
+- Attestation status
+- Policy compliance
+
+Examples:
+  # Inspect bundle with human-readable output
+  specular bundle inspect my-app-v1.0.0.sbundle.tgz
+
+  # Inspect with JSON output
+  specular bundle inspect --json bundle.sbundle.tgz`,
+	Args: cobra.ExactArgs(1),
+	RunE: runBundleInspect,
+}
+
+// Bundle list command flags
+var (
+	listDir  string
+	listJSON bool
+)
+
+var bundleListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List available governance bundles",
+	Long: `List governance bundles in a directory.
+
+Shows:
+- Bundle ID
+- Creation date
+- File size
+- Governance level
+- Approval status
+
+By default, lists bundles in .specular/bundles/ directory.
+
+Examples:
+  # List bundles in default directory
+  specular bundle list
+
+  # List bundles in specific directory
+  specular bundle list --dir /path/to/bundles
+
+  # List with JSON output
+  specular bundle list --json`,
+	Args: cobra.NoArgs,
+	RunE: runBundleList,
+}
+
+func runBundleInspect(cmd *cobra.Command, args []string) error {
+	bundlePath := args[0]
+
+	// Check bundle exists
+	if _, err := os.Stat(bundlePath); os.IsNotExist(err) {
+		return ux.FormatError(err, "bundle not found")
+	}
+
+	// Load bundle
+	fmt.Printf("Inspecting bundle: %s\n\n", bundlePath)
+
+	bundleData, err := bundle.LoadBundle(bundlePath)
+	if err != nil {
+		return ux.FormatError(err, "loading bundle")
+	}
+
+	// JSON output
+	if inspectJSON {
+		output, marshalErr := json.MarshalIndent(bundleData, "", "  ")
+		if marshalErr != nil {
+			return ux.FormatError(marshalErr, "marshaling bundle data")
+		}
+		fmt.Println(string(output))
+		return nil
+	}
+
+	// Human-readable output
+	fmt.Println("=== Bundle Metadata ===")
+	fmt.Printf("ID:               %s\n", bundleData.Manifest.ID)
+	fmt.Printf("Version:          %s\n", bundleData.Manifest.Version)
+	fmt.Printf("Schema:           %s\n", bundleData.Manifest.Schema)
+	fmt.Printf("Created:          %s\n", bundleData.Manifest.Created.Format("2006-01-02 15:04:05"))
+	if bundleData.Manifest.GovernanceLevel != "" {
+		fmt.Printf("Governance Level: %s\n", bundleData.Manifest.GovernanceLevel)
+	}
+	if bundleData.Manifest.Integrity.Digest != "" {
+		fmt.Printf("Integrity Digest: %s\n", bundleData.Manifest.Integrity.Digest)
+	}
+	fmt.Println()
+
+	// Files
+	if len(bundleData.Manifest.Files) > 0 {
+		fmt.Printf("=== Files (%d) ===\n", len(bundleData.Manifest.Files))
+		for _, file := range bundleData.Manifest.Files {
+			fmt.Printf("  %s\n", file.Path)
+			fmt.Printf("    Size:     %d bytes\n", file.Size)
+			fmt.Printf("    Checksum: %s\n", file.Checksum)
+		}
+		fmt.Println()
+	}
+
+	// Approvals
+	if len(bundleData.Approvals) > 0 {
+		fmt.Printf("=== Approvals (%d) ===\n", len(bundleData.Approvals))
+		for _, approval := range bundleData.Approvals {
+			fmt.Printf("  Role: %s\n", approval.Role)
+			fmt.Printf("    User:      %s\n", approval.User)
+			fmt.Printf("    Signed At: %s\n", approval.SignedAt.Format("2006-01-02 15:04:05"))
+			fmt.Printf("    Signature: %s\n", approval.SignatureType)
+			if approval.Comment != "" {
+				fmt.Printf("    Comment:   %s\n", approval.Comment)
+			}
+			fmt.Println()
+		}
+	} else {
+		fmt.Println("=== Approvals ===")
+		fmt.Println("No approvals")
+		fmt.Println()
+	}
+
+	// Attestation
+	if bundleData.Attestation != nil {
+		fmt.Println("=== Attestation ===")
+		fmt.Printf("Format:    %s\n", bundleData.Attestation.Format)
+		fmt.Printf("Timestamp: %s\n", bundleData.Attestation.Timestamp.Format("2006-01-02 15:04:05"))
+		fmt.Println()
+	}
+
+	// Metadata
+	if len(bundleData.Manifest.Metadata) > 0 {
+		fmt.Println("=== Custom Metadata ===")
+		for key, value := range bundleData.Manifest.Metadata {
+			fmt.Printf("  %s: %s\n", key, value)
+		}
+		fmt.Println()
+	}
+
+	return nil
+}
+
+func runBundleList(cmd *cobra.Command, args []string) error {
+	// Determine bundle directory
+	bundleDir := listDir
+	if bundleDir == "" {
+		bundleDir = filepath.Join(".specular", "bundles")
+	}
+
+	// Check if directory exists
+	if _, err := os.Stat(bundleDir); os.IsNotExist(err) {
+		fmt.Printf("No bundles directory found: %s\n", bundleDir)
+		fmt.Println("\nRun 'specular governance init' to create the governance workspace.")
+		return nil
+	}
+
+	// Read directory entries
+	entries, err := os.ReadDir(bundleDir)
+	if err != nil {
+		return ux.FormatError(err, "reading bundles directory")
+	}
+
+	// Filter for bundle files (.sbundle.tgz or .tar)
+	type BundleInfo struct {
+		Path      string    `json:"path"`
+		Name      string    `json:"name"`
+		Size      int64     `json:"size"`
+		Modified  time.Time `json:"modified"`
+		BundleID  string    `json:"bundle_id,omitempty"`
+		GovLevel  string    `json:"governance_level,omitempty"`
+		Approvals int       `json:"approvals"`
+	}
+
+	var bundles []BundleInfo
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".sbundle.tgz") && !strings.HasSuffix(name, ".tar") {
+			continue
+		}
+
+		bundlePath := filepath.Join(bundleDir, name)
+		info, err := os.Stat(bundlePath)
+		if err != nil {
+			continue
+		}
+
+		bundleInfo := BundleInfo{
+			Path:     bundlePath,
+			Name:     name,
+			Size:     info.Size(),
+			Modified: info.ModTime(),
+		}
+
+		// Try to load bundle metadata (non-fatal if it fails)
+		if bundleData, loadErr := bundle.LoadBundle(bundlePath); loadErr == nil {
+			bundleInfo.BundleID = bundleData.Manifest.ID
+			bundleInfo.GovLevel = bundleData.Manifest.GovernanceLevel
+			bundleInfo.Approvals = len(bundleData.Approvals)
+		}
+
+		bundles = append(bundles, bundleInfo)
+	}
+
+	if len(bundles) == 0 {
+		fmt.Printf("No bundles found in: %s\n", bundleDir)
+		return nil
+	}
+
+	// JSON output
+	if listJSON {
+		output, marshalErr := json.MarshalIndent(bundles, "", "  ")
+		if marshalErr != nil {
+			return ux.FormatError(marshalErr, "marshaling bundle list")
+		}
+		fmt.Println(string(output))
+		return nil
+	}
+
+	// Human-readable output
+	fmt.Printf("=== Bundles in %s ===\n\n", bundleDir)
+
+	for _, b := range bundles {
+		fmt.Printf("📦 %s\n", b.Name)
+		if b.BundleID != "" {
+			fmt.Printf("   ID:         %s\n", b.BundleID)
+		}
+		fmt.Printf("   Size:       %.2f MB\n", float64(b.Size)/(1024*1024))
+		fmt.Printf("   Modified:   %s\n", b.Modified.Format("2006-01-02 15:04:05"))
+		if b.GovLevel != "" {
+			fmt.Printf("   Gov Level:  %s\n", b.GovLevel)
+		}
+		fmt.Printf("   Approvals:  %d\n", b.Approvals)
+		fmt.Println()
+	}
+
+	fmt.Printf("Total: %d bundle(s)\n", len(bundles))
+
+	return nil
+}
+
+func init() {
+	// Bundle create flags
+	bundleCreateCmd.Flags().StringVarP(&buildOutput, "output", "o", "", "Output bundle path (default: bundle.sbundle.tgz)")
+	bundleCreateCmd.Flags().StringVar(&buildSpec, "spec", "", "Path to spec.yaml (default: .specular/spec.yaml)")
+	bundleCreateCmd.Flags().StringVar(&buildLock, "lock", "", "Path to spec.lock.json (default: .specular/spec.lock.json)")
+	bundleCreateCmd.Flags().StringVar(&buildRouting, "routing", "", "Path to routing.yaml (default: .specular/routing.yaml)")
+	bundleCreateCmd.Flags().StringSliceVarP(&buildPolicies, "policy", "p", nil, "Policy files to include (can be specified multiple times)")
+	bundleCreateCmd.Flags().StringSliceVarP(&buildInclude, "include", "i", nil, "Additional files/directories to include")
+	bundleCreateCmd.Flags().StringSliceVarP(&buildApprovals, "require-approval", "a", nil, "Required approval roles (e.g., pm, lead, security)")
+	bundleCreateCmd.Flags().BoolVar(&buildAttest, "attest", false, "Generate Sigstore attestation")
+	bundleCreateCmd.Flags().StringVar(&buildAttestFmt, "attest-format", "sigstore", "Attestation format (sigstore, in-toto, slsa)")
+	bundleCreateCmd.Flags().StringSliceVarP(&buildMetadata, "metadata", "m", nil, "Bundle metadata (key=value)")
+	bundleCreateCmd.Flags().StringVarP(&buildGovLevel, "governance-level", "g", "", "Governance maturity level (L1-L4)")
+
+	// Bundle gate flags
+	bundleGateCmd.Flags().BoolVar(&gateStrict, "strict", false, "Fail on any error")
+	bundleGateCmd.Flags().BoolVar(&gateApprovals, "require-approvals", false, "Verify all required approvals are present")
+	bundleGateCmd.Flags().BoolVar(&gateAttestation, "verify-attestation", false, "Verify cryptographic attestation")
+	bundleGateCmd.Flags().StringVar(&gatePolicy, "policy", "", "Verify against policy file")
+	bundleGateCmd.Flags().StringSliceVar(&gateTrustedKeys, "trusted-key", nil, "Trusted public keys for signature verification")
+	bundleGateCmd.Flags().BoolVar(&gateOffline, "offline", false, "Allow offline verification")
 
 	// Bundle apply flags
 	bundleApplyCmd.Flags().StringVarP(&applyTargetDir, "target-dir", "t", "", "Target directory (default: current directory)")
@@ -1242,9 +1531,18 @@ func init() {
 	bundleDiffCmd.Flags().BoolVar(&diffJSON, "json", false, "Output diff as JSON")
 	bundleDiffCmd.Flags().BoolVarP(&diffQuiet, "quiet", "q", false, "Quiet mode - only exit code (0=identical, 2=different)")
 
+	// Bundle inspect flags
+	bundleInspectCmd.Flags().BoolVar(&inspectJSON, "json", false, "Output bundle data as JSON")
+
+	// Bundle list flags
+	bundleListCmd.Flags().StringVarP(&listDir, "dir", "d", "", "Directory to list bundles from (default: .specular/bundles)")
+	bundleListCmd.Flags().BoolVar(&listJSON, "json", false, "Output bundle list as JSON")
+
 	// Register subcommands
-	bundleCmd.AddCommand(bundleBuildCmd)
-	bundleCmd.AddCommand(bundleVerifyCmd)
+	bundleCmd.AddCommand(bundleCreateCmd)
+	bundleCmd.AddCommand(bundleGateCmd)
+	bundleCmd.AddCommand(bundleInspectCmd)
+	bundleCmd.AddCommand(bundleListCmd)
 	bundleCmd.AddCommand(bundleApplyCmd)
 	bundleCmd.AddCommand(bundlePushCmd)
 	bundleCmd.AddCommand(bundlePullCmd)
