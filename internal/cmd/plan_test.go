@@ -3,20 +3,20 @@ package cmd
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 // TestPlanFeatureFiltering tests the feature filtering logic in plan gen
 func TestPlanFeatureFiltering(t *testing.T) {
 	tests := []struct {
-		name           string
-		spec           *spec.ProductSpec
-		featureID      string
-		wantFeatures   int
-		wantErr        bool
-		errContains    string
+		name         string
+		spec         *spec.ProductSpec
+		featureID    string
+		wantFeatures int
+		wantErr      bool
+		errContains  string
 	}{
 		{
 			name: "filter to single feature",

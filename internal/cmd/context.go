@@ -113,6 +113,8 @@ type ContextReport struct {
 	CI        *CIInfo                  `json:"ci,omitempty"`
 }
 
+// RuntimeInfo describes the availability and status of a container runtime
+// like Docker or Podman on the system.
 type RuntimeInfo struct {
 	Type      string `json:"type"`      // "docker", "podman", or ""
 	Version   string `json:"version"`   // Runtime version
@@ -120,6 +122,8 @@ type RuntimeInfo struct {
 	Running   bool   `json:"running"`   // Is daemon running
 }
 
+// ProviderState describes the configuration and availability status of an AI
+// provider (e.g., Ollama, OpenAI, Anthropic, Google Gemini).
 type ProviderState struct {
 	Available bool   `json:"available"`   // Is provider available
 	Type      string `json:"type"`        // "cli", "api", "local"
@@ -128,6 +132,8 @@ type ProviderState struct {
 	KeyName   string `json:"key_name"`    // Environment variable name
 }
 
+// GitInfo contains information about the Git repository status in the current
+// working directory, including branch name and uncommitted changes.
 type GitInfo struct {
 	Initialized bool   `json:"initialized"`
 	Branch      string `json:"branch,omitempty"`
@@ -135,6 +141,8 @@ type GitInfo struct {
 	Uncommitted int    `json:"uncommitted"`
 }
 
+// CIInfo contains information about CI/CD environment detection, including
+// the detected CI system name if running in a CI environment.
 type CIInfo struct {
 	Detected bool   `json:"detected"`
 	Name     string `json:"name,omitempty"`

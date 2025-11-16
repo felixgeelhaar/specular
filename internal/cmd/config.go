@@ -100,11 +100,15 @@ type GlobalConfig struct {
 	Telemetry TelemetryConfig  `yaml:"telemetry,omitempty"`
 }
 
+// ProviderDefaults specifies the default and preferred AI providers for command
+// execution in order of user preference.
 type ProviderDefaults struct {
 	Default    string   `yaml:"default,omitempty"`
 	Preference []string `yaml:"preference,omitempty"`
 }
 
+// CommandDefaults provides default options for all Specular commands including
+// output format, color settings, verbosity, and workspace directory location.
 type CommandDefaults struct {
 	Format      string `yaml:"format,omitempty"` // "text", "json", "yaml"
 	NoColor     bool   `yaml:"no_color,omitempty"`
@@ -112,18 +116,24 @@ type CommandDefaults struct {
 	SpecularDir string `yaml:"specular_dir,omitempty"` // Default .specular
 }
 
+// BudgetLimits enforces spending and performance constraints on AI provider
+// usage, including daily costs, per-request costs, and latency thresholds.
 type BudgetLimits struct {
 	MaxCostPerDay     float64 `yaml:"max_cost_per_day,omitempty"`
 	MaxCostPerRequest float64 `yaml:"max_cost_per_request,omitempty"`
 	MaxLatencyMs      int     `yaml:"max_latency_ms,omitempty"`
 }
 
+// LoggingConfig defines logging behavior including verbosity level, file output
+// options, and log directory location.
 type LoggingConfig struct {
 	Level      string `yaml:"level,omitempty"`       // "debug", "info", "warn", "error"
 	EnableFile bool   `yaml:"enable_file,omitempty"` // Log to file
 	LogDir     string `yaml:"log_dir,omitempty"`     // Default ~/.specular/logs
 }
 
+// TelemetryConfig controls telemetry collection and reporting behavior,
+// including whether usage data is collected and sent to an external endpoint.
 type TelemetryConfig struct {
 	Enabled    bool    `yaml:"enabled,omitempty"`
 	ShareUsage bool    `yaml:"share_usage,omitempty"`

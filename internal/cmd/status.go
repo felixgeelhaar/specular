@@ -40,22 +40,22 @@ Examples:
 
 // StatusReport represents the complete project status
 type StatusReport struct {
-	Timestamp   string               `json:"timestamp"`
-	Environment EnvironmentStatus    `json:"environment"`
-	Project     ProjectStatus        `json:"project"`
-	Spec        SpecStatus           `json:"spec"`
-	Plan        PlanStatus           `json:"plan"`
-	LastBuild   *BuildStatus         `json:"last_build,omitempty"`
-	Issues      []string             `json:"issues,omitempty"`
-	Warnings    []string             `json:"warnings,omitempty"`
-	NextSteps   []string             `json:"next_steps,omitempty"`
-	Healthy     bool                 `json:"healthy"`
+	Timestamp   string            `json:"timestamp"`
+	Environment EnvironmentStatus `json:"environment"`
+	Project     ProjectStatus     `json:"project"`
+	Spec        SpecStatus        `json:"spec"`
+	Plan        PlanStatus        `json:"plan"`
+	LastBuild   *BuildStatus      `json:"last_build,omitempty"`
+	Issues      []string          `json:"issues,omitempty"`
+	Warnings    []string          `json:"warnings,omitempty"`
+	NextSteps   []string          `json:"next_steps,omitempty"`
+	Healthy     bool              `json:"healthy"`
 }
 
 type EnvironmentStatus struct {
-	Runtime   string   `json:"runtime"`    // "docker", "podman", or "none"
-	Providers []string `json:"providers"`  // Available AI providers
-	APIKeys   int      `json:"api_keys"`   // Number of configured API keys
+	Runtime   string   `json:"runtime"`   // "docker", "podman", or "none"
+	Providers []string `json:"providers"` // Available AI providers
+	APIKeys   int      `json:"api_keys"`  // Number of configured API keys
 	Healthy   bool     `json:"healthy"`
 }
 
@@ -168,10 +168,10 @@ func buildProjectStatus(ctx *detect.Context) ProjectStatus {
 	cwd, _ := os.Getwd()
 
 	project := ProjectStatus{
-		Directory:   filepath.Base(cwd),
-		GitRepo:     ctx.Git.Initialized,
-		GitBranch:   ctx.Git.Branch,
-		GitDirty:    ctx.Git.Dirty,
+		Directory: filepath.Base(cwd),
+		GitRepo:   ctx.Git.Initialized,
+		GitBranch: ctx.Git.Branch,
+		GitDirty:  ctx.Git.Dirty,
 	}
 
 	// Check if .specular directory exists

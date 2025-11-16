@@ -92,9 +92,9 @@ func TestBuildEnvironmentStatus(t *testing.T) {
 
 func TestBuildProjectStatus(t *testing.T) {
 	tests := []struct {
-		name        string
-		ctx         *detect.Context
-		wantGitRepo bool
+		name         string
+		ctx          *detect.Context
+		wantGitRepo  bool
 		wantGitDirty bool
 	}{
 		{

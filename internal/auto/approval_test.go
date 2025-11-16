@@ -3,8 +3,8 @@ package auto
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 func TestCountTasksByPriority(t *testing.T) {

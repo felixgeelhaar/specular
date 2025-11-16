@@ -3,8 +3,8 @@ package cmd
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 // TestBuildFeatureFiltering tests the feature filtering logic in build run

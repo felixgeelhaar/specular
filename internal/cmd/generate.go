@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/router"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 var generateCmd = &cobra.Command{

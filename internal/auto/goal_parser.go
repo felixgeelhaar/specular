@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"gopkg.in/yaml.v3"
 )
 
