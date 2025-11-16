@@ -67,3 +67,4 @@ RELEASE_PLAN*.md
 docs/tech_design.md
 docs/adr/
 AGENTS.md
+completions/
