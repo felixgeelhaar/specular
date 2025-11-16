@@ -65,7 +65,8 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
-      - '^chore(?!\(release\)):'  # Exclude chore commits except chore(release):
+      # Note: Not filtering chore commits to include chore(release): in changelog
+      # If needed, can filter specific chore types: '^chore\(deps\):', '^chore\(ci\):'
       - '^ci:'
       - Merge pull request
       - Merge branch
