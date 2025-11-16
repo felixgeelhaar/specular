@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **SDK Architecture**: Migrated domain types (FeatureID, TaskID, Priority) from `internal/domain/` to public SDK (`pkg/specular/types/`)
+  - Established one-way dependency: internal packages now import from SDK
+  - Eliminated 201 lines of duplicate code
+  - Net reduction of 198 lines across 40 files
+- **CI/CD**: Updated GitHub Actions and integration tests to use Go 1.22 for compatibility
+
+### Documentation
+
+- **ARCHITECTURE.md**: Expanded with detailed directory structure and component descriptions
+- **OPEN_SOURCE_PRACTICES.md**: Added comprehensive best practices documentation for contributing
+
+### Fixed
+
+- **Build**: Removed example workflow and applied consistent code formatting
+- **.gitignore**: Properly respect .gitignore for docs/adr/ directory
+
+### Statistics
+
+- 7 commits since v1.0.0
+- 40 files modified in SDK migration
+- Zero breaking changes - fully backward compatible
+
 ## [1.5.0] - 2025-01-15
 
 ### Added
