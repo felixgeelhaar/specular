@@ -2,86 +2,53 @@ package cmd
 
 import (
 	"testing"
+	"time"
 )
 
-// TestApproveCommand tests the approve command configuration
-func TestApproveCommand(t *testing.T) {
-	// Check command configuration
-	if approveCmd.Use != "approve [artifact]" {
-		t.Errorf("approve Use = %q, want %q", approveCmd.Use, "approve [artifact]")
-	}
-
-	if approveCmd.Short == "" {
-		t.Error("approve Short description is empty")
-	}
-
-	// Check Args is set (requires exactly 1 arg)
-	if approveCmd.Args == nil {
-		t.Error("approve command should have Args validator")
-	}
-}
-
-// TestApproveFlags tests that approve has correct flags
-func TestApproveFlags(t *testing.T) {
-	// Check flags
-	if approveCmd.Flags().Lookup("file") == nil {
-		t.Error("flag 'file' not found on approve command")
-	}
-	if approveCmd.Flags().Lookup("approver") == nil {
-		t.Error("flag 'approver' not found on approve command")
-	}
-	if approveCmd.Flags().Lookup("comment") == nil {
-		t.Error("flag 'comment' not found on approve command")
-	}
-	if approveCmd.Flags().Lookup("env") == nil {
-		t.Error("flag 'env' not found on approve command")
-	}
-}
-
-// TestApproveArtifactTypes tests artifact type validation
-func TestApproveArtifactTypes(t *testing.T) {
-	// The approve command should accept spec, plan, and bundle
-	// This test verifies the command structure is correct for validation
-	if approveCmd.Args == nil {
-		t.Fatal("approve command should have Args validator")
-	}
-
-	// Verify Use message indicates artifact types
-	expectedUse := "approve [artifact]"
-	if approveCmd.Use != expectedUse {
-		t.Errorf("approve Use = %q, want %q", approveCmd.Use, expectedUse)
-	}
-}
-
-// TestApprovalStruct tests the Approval struct definition
-func TestApprovalStruct(t *testing.T) {
+// TestApprovalRecord tests the ApprovalRecord struct definition
+func TestApprovalRecord(t *testing.T) {
 	// Create a sample approval to verify struct works
-	approval := Approval{
-		Artifact:    "spec",
-		Path:        "/path/to/spec.yaml",
-		Hash:        "abc123",
-		ApprovedBy:  "alice@example.com",
-		Comment:     "Looks good",
-		Environment: "prod",
+	now := time.Now()
+	approval := ApprovalRecord{
+		Version:      "1.0",
+		Type:         "bundle",
+		ResourceID:   "bundle-abc123",
+		ResourceHash: "sha256:def456",
+		ApprovedBy:   "alice@example.com",
+		ApprovedAt:   now,
+		Message:      "Approved for production",
+		Metadata: map[string]string{
+			"environment": "prod",
+			"reviewer":    "bob",
+		},
 	}
 
 	// Verify fields are accessible
-	if approval.Artifact != "spec" {
-		t.Errorf("Artifact = %q, want %q", approval.Artifact, "spec")
+	if approval.Version != "1.0" {
+		t.Errorf("Version = %q, want %q", approval.Version, "1.0")
 	}
-	if approval.Path != "/path/to/spec.yaml" {
-		t.Errorf("Path = %q, want %q", approval.Path, "/path/to/spec.yaml")
+	if approval.Type != "bundle" {
+		t.Errorf("Type = %q, want %q", approval.Type, "bundle")
 	}
-	if approval.Hash != "abc123" {
-		t.Errorf("Hash = %q, want %q", approval.Hash, "abc123")
+	if approval.ResourceID != "bundle-abc123" {
+		t.Errorf("ResourceID = %q, want %q", approval.ResourceID, "bundle-abc123")
+	}
+	if approval.ResourceHash != "sha256:def456" {
+		t.Errorf("ResourceHash = %q, want %q", approval.ResourceHash, "sha256:def456")
 	}
 	if approval.ApprovedBy != "alice@example.com" {
 		t.Errorf("ApprovedBy = %q, want %q", approval.ApprovedBy, "alice@example.com")
 	}
-	if approval.Comment != "Looks good" {
-		t.Errorf("Comment = %q, want %q", approval.Comment, "Looks good")
+	if !approval.ApprovedAt.Equal(now) {
+		t.Errorf("ApprovedAt = %v, want %v", approval.ApprovedAt, now)
 	}
-	if approval.Environment != "prod" {
-		t.Errorf("Environment = %q, want %q", approval.Environment, "prod")
+	if approval.Message != "Approved for production" {
+		t.Errorf("Message = %q, want %q", approval.Message, "Approved for production")
+	}
+	if len(approval.Metadata) != 2 {
+		t.Errorf("Metadata length = %d, want %d", len(approval.Metadata), 2)
+	}
+	if approval.Metadata["environment"] != "prod" {
+		t.Errorf("Metadata[environment] = %q, want %q", approval.Metadata["environment"], "prod")
 	}
 }

@@ -113,11 +113,11 @@ func TestDetectClaude(t *testing.T) {
 // TestDetectProviderWithCLI tests the generic provider detection function
 func TestDetectProviderWithCLI(t *testing.T) {
 	tests := []struct {
-		name       string
-		cliName    string
+		name         string
+		cliName      string
 		providerName string
-		envVar     string
-		shouldSkip func() bool
+		envVar       string
+		shouldSkip   func() bool
 	}{
 		{
 			name:         "openai",

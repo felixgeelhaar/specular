@@ -7,23 +7,23 @@ type Flag string
 
 const (
 	// Free tier features (always enabled in public builds)
-	FlagBasicSpec       Flag = "basic_spec"        // Basic spec generation
-	FlagBasicPlan       Flag = "basic_plan"        // Basic plan generation
-	FlagLocalExec       Flag = "local_exec"        // Local Docker execution
-	FlagBasicPolicy     Flag = "basic_policy"      // Basic policy enforcement
-	FlagCheckpoint      Flag = "checkpoint"        // Checkpoint/resume functionality
-	FlagPatchGeneration Flag = "patch_generation"  // Patch generation
+	FlagBasicSpec       Flag = "basic_spec"       // Basic spec generation
+	FlagBasicPlan       Flag = "basic_plan"       // Basic plan generation
+	FlagLocalExec       Flag = "local_exec"       // Local Docker execution
+	FlagBasicPolicy     Flag = "basic_policy"     // Basic policy enforcement
+	FlagCheckpoint      Flag = "checkpoint"       // Checkpoint/resume functionality
+	FlagPatchGeneration Flag = "patch_generation" // Patch generation
 
 	// Enterprise features (disabled in public builds, enabled in platform builds)
-	FlagMultiTenancy    Flag = "multi_tenancy"     // Multi-tenant architecture
-	FlagSSOAuth         Flag = "sso_auth"          // SSO/SAML authentication
-	FlagRBAC            Flag = "rbac"              // Role-based access control
-	FlagWebDashboard    Flag = "web_dashboard"     // Web UI dashboard
-	FlagPlatformAPI     Flag = "platform_api"      // Platform API server
-	FlagAdvancedPolicy  Flag = "advanced_policy"   // Enterprise policy engine v2
-	FlagIntegrations    Flag = "integrations"      // Enterprise integrations (Slack, Jira, etc.)
-	FlagAnalytics       Flag = "analytics"         // Usage analytics and reporting
-	FlagAuditLog        Flag = "audit_log"         // Comprehensive audit logging
+	FlagMultiTenancy     Flag = "multi_tenancy"     // Multi-tenant architecture
+	FlagSSOAuth          Flag = "sso_auth"          // SSO/SAML authentication
+	FlagRBAC             Flag = "rbac"              // Role-based access control
+	FlagWebDashboard     Flag = "web_dashboard"     // Web UI dashboard
+	FlagPlatformAPI      Flag = "platform_api"      // Platform API server
+	FlagAdvancedPolicy   Flag = "advanced_policy"   // Enterprise policy engine v2
+	FlagIntegrations     Flag = "integrations"      // Enterprise integrations (Slack, Jira, etc.)
+	FlagAnalytics        Flag = "analytics"         // Usage analytics and reporting
+	FlagAuditLog         Flag = "audit_log"         // Comprehensive audit logging
 	FlagHighAvailability Flag = "high_availability" // HA and disaster recovery
 )
 

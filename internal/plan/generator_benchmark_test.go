@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 // createTestSpec creates a ProductSpec with the specified number of features

@@ -110,10 +110,24 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 	policyFile := cmd.Flags().Lookup("policy").Value.String()
 	dryRun := cmd.Flags().Lookup("dry-run").Value.String() == "true"
 	manifestDir := cmd.Flags().Lookup("manifest-dir").Value.String()
-	resume := cmd.Flags().Lookup("resume").Value.String() == "true"
-	checkpointDir := cmd.Flags().Lookup("checkpoint-dir").Value.String()
-	checkpointID := cmd.Flags().Lookup("checkpoint-id").Value.String()
-	featureID := cmd.Flags().Lookup("feature").Value.String()
+
+	// These flags might not exist if called from root buildCmd for backward compatibility
+	resume := false
+	if flag := cmd.Flags().Lookup("resume"); flag != nil {
+		resume = flag.Value.String() == "true"
+	}
+	checkpointDir := ""
+	if flag := cmd.Flags().Lookup("checkpoint-dir"); flag != nil {
+		checkpointDir = flag.Value.String()
+	}
+	checkpointID := ""
+	if flag := cmd.Flags().Lookup("checkpoint-id"); flag != nil {
+		checkpointID = flag.Value.String()
+	}
+	featureID := ""
+	if flag := cmd.Flags().Lookup("feature"); flag != nil {
+		featureID = flag.Value.String()
+	}
 
 	// Use smart defaults if not changed
 	if !cmd.Flags().Changed("plan") {
@@ -125,7 +139,10 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 	if !cmd.Flags().Changed("manifest-dir") {
 		manifestDir = defaults.ManifestDir()
 	}
-	if !cmd.Flags().Changed("checkpoint-dir") {
+	// Only check checkpoint-dir if flag exists (backward compatibility)
+	if cmd.Flags().Lookup("checkpoint-dir") != nil && !cmd.Flags().Changed("checkpoint-dir") {
+		checkpointDir = defaults.CheckpointDir()
+	} else if checkpointDir == "" {
 		checkpointDir = defaults.CheckpointDir()
 	}
 
@@ -249,13 +266,23 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 	}
 
 	// Initialize image cache
-	verbose := cmd.Flags().Lookup("verbose").Value.String() == "true"
-	enableCache := cmd.Flags().Lookup("enable-cache").Value.String() == "true"
-	cacheDir := cmd.Flags().Lookup("cache-dir").Value.String()
-	cacheMaxAgeStr := cmd.Flags().Lookup("cache-max-age").Value.String()
-	cacheMaxAge, parseErr := time.ParseDuration(cacheMaxAgeStr)
-	if parseErr != nil {
-		cacheMaxAge = 7 * 24 * time.Hour // default
+	verbose := false
+	if flag := cmd.Flags().Lookup("verbose"); flag != nil {
+		verbose = flag.Value.String() == "true"
+	}
+	enableCache := false
+	if flag := cmd.Flags().Lookup("enable-cache"); flag != nil {
+		enableCache = flag.Value.String() == "true"
+	}
+	cacheDir := ""
+	if flag := cmd.Flags().Lookup("cache-dir"); flag != nil {
+		cacheDir = flag.Value.String()
+	}
+	cacheMaxAge := 7 * 24 * time.Hour // default
+	if flag := cmd.Flags().Lookup("cache-max-age"); flag != nil {
+		if age, parseErr := time.ParseDuration(flag.Value.String()); parseErr == nil {
+			cacheMaxAge = age
+		}
 	}
 
 	var imageCache *execpkg.ImageCache
@@ -331,7 +358,10 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  2. Approve build: specular build approve\n")
 
 	// Clean up checkpoint on success unless user wants to keep it
-	keepCheckpoint := cmd.Flags().Lookup("keep-checkpoint").Value.String() == "true"
+	keepCheckpoint := false
+	if flag := cmd.Flags().Lookup("keep-checkpoint"); flag != nil {
+		keepCheckpoint = flag.Value.String() == "true"
+	}
 	if !keepCheckpoint {
 		if deleteErr := checkpointMgr.Delete(checkpointID); deleteErr != nil {
 			fmt.Printf("Warning: failed to delete checkpoint: %v\n", deleteErr)

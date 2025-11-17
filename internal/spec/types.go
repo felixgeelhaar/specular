@@ -42,17 +42,17 @@ type NonFunctional struct {
 
 // Milestone represents a development milestone
 type Milestone struct {
-	ID          string             `yaml:"id" json:"id"`
-	Name        string             `yaml:"name" json:"name"`
-	FeatureIDs  []types.FeatureID  `yaml:"feature_ids" json:"feature_ids"`
-	TargetDate  string             `yaml:"target_date,omitempty" json:"target_date,omitempty"`
-	Description string             `yaml:"description,omitempty" json:"description,omitempty"`
+	ID          string            `yaml:"id" json:"id"`
+	Name        string            `yaml:"name" json:"name"`
+	FeatureIDs  []types.FeatureID `yaml:"feature_ids" json:"feature_ids"`
+	TargetDate  string            `yaml:"target_date,omitempty" json:"target_date,omitempty"`
+	Description string            `yaml:"description,omitempty" json:"description,omitempty"`
 }
 
 // SpecLock represents the canonical, hashed specification snapshot
 type SpecLock struct {
-	Version  string                             `json:"version"`
-	Features map[types.FeatureID]LockedFeature  `json:"features"`
+	Version  string                            `json:"version"`
+	Features map[types.FeatureID]LockedFeature `json:"features"`
 }
 
 // LockedFeature represents a feature with its hash and generated artifacts

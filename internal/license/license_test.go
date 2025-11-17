@@ -39,7 +39,7 @@ func TestHasFeature(t *testing.T) {
 		{"pro does not have sso.saml", TierPro, "sso.saml", false},
 
 		// Enterprise tier features
-		{"enterprise has spec.generate", TierEnterprise, "spec.generate", true}, // inherited from free
+		{"enterprise has spec.generate", TierEnterprise, "spec.generate", true},     // inherited from free
 		{"enterprise has governance.init", TierEnterprise, "governance.init", true}, // inherited from pro
 		{"enterprise has governance.rbac", TierEnterprise, "governance.rbac", true},
 		{"enterprise has sso.saml", TierEnterprise, "sso.saml", true},

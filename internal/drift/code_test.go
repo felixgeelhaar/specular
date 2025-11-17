@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 func TestDetectCodeDrift(t *testing.T) {

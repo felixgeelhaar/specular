@@ -4,9 +4,9 @@ import (
 	osexec "os/exec"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/policy"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 func TestCheckDependencies(t *testing.T) {

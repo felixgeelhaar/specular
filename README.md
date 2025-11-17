@@ -43,29 +43,44 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 
 ---
 
-## What's New in v1.0.0
+## What's New in v1.2.0
 
-🎉 **Official Release with Open-Core Model**
+🎉 **Governance-First CLI Redesign**
 
-### Business Source License 1.1
+### ADR-0010: Governance-First CLI Architecture
 
-- **Source-Available IP Protection**: BSL 1.1 license with automatic Apache 2.0 conversion after 2 years
-- **Open-Core Architecture**: Public CLI with extensible SDK for community and enterprise integration
-- **Clear Use Rights**: Permits internal use, consulting, education; prohibits competing SaaS
+Specular v1.2.0 implements a comprehensive governance-first CLI redesign, restructuring commands around governance, policy, and approval workflows while maintaining full backward compatibility.
 
-### Public SDK (`pkg/specular/`)
+### New Governance Commands
 
-- **Type-Safe Domain Models**: Value objects for features, tasks, priorities with validation
-- **Provider Plugin System**: Universal interface for AI provider integration
-- **Feature Flags**: Edition-based feature differentiation (free vs enterprise)
-- **Platform API Client**: Stub for future enterprise platform integration
+- **`governance init`**: Initialize .specular workspace with governance structure (approvals/, bundles/, traces/)
+- **`governance doctor`**: Comprehensive governance health checks for workspace, policies, providers
+- **`governance status`**: Display current governance workflow status with pending approvals
+- **`doctor`**: Unified system health check across all components
 
-### Production Features
+### Policy Management & Approval Workflows
 
-- **Autonomous Mode**: Checkpoint/resume capabilities with full state preservation
-- **Policy Engine**: Enterprise-grade governance with cryptographic approval workflows
-- **Docker Sandboxing**: Secure isolated execution environment
-- **Drift Detection**: Multi-level drift tracking (plan, code, infrastructure)
+- **`policy init/validate/approve/list/diff`**: Full policy lifecycle management with templates and audit trails
+- **`approval approve/list/pending`**: Role-based approval workflows for plans, builds, and drift
+- **Cryptographic Attestations**: ECDSA P-256 signatures for build artifacts and policy changes
+
+### Enhanced Command Structure
+
+- **Plan Commands**: `plan create/visualize/validate/review/explain` (replaces `plan gen`)
+- **Build Commands**: `build run/verify/approve/explain` (structured execution and verification)
+- **Bundle Commands**: `bundle create/gate/inspect/list` (quality gates and artifact management)
+- **Drift Commands**: `drift check/approve` (promoted from `plan drift`)
+- **Provider Commands**: `provider add/remove/doctor` (dynamic provider management)
+
+### Backward Compatibility
+
+All deprecated command forms remain functional with deprecation warnings:
+- `plan` → `plan create` (with warning)
+- `build` → `build run` (with warning)
+- `bundle build` → `bundle create` (with warning)
+- `bundle verify` → `bundle gate` (with warning)
+- `plan drift` → `drift check` (with warning)
+- `provider health` → `provider doctor` (with warning)
 
 [View Full Changelog](CHANGELOG.md)
 
@@ -85,13 +100,14 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 - **Drift Detection**: Multi-level drift detection (plan, code, infrastructure)
 - **Docker-Only Sandbox**: Secure isolated execution environment
 
-### Advanced Features (v1.4.0+)
+### Advanced Features
 
-- **Evaluation Framework**: Comprehensive testing with scenario-based evaluation, model comparison, and quality scoring
-- **Autonomous Mode**: Checkpoint/resume capabilities for long-running sessions with full state preservation
-- **Routing Intelligence**: Provider selection optimization with cost tracking and task-type routing explanations
-- **Governance & Policies**: Enterprise-grade policy management with cryptographic approval workflows
-- **Authentication**: Secure credential management with token lifecycle and expiration tracking
+- **Governance Workflows** (v1.2.0): Enterprise-grade governance with workspace initialization, health checks, and status monitoring
+- **Policy Management** (v1.2.0): Full policy lifecycle with init, validate, approve, list, and diff commands
+- **Approval Workflows** (v1.2.0): Role-based approvals for plans, builds, and drift with audit trails
+- **Cryptographic Attestations** (v1.2.0): ECDSA P-256 signatures for build artifacts and policy changes
+- **Autonomous Mode** (v1.0.0): Checkpoint/resume capabilities for long-running sessions with full state preservation
+- **Routing Intelligence** (v1.0.0): Provider selection optimization with cost tracking and task-type routing
 
 ### Testing & Quality Assurance
 
@@ -214,45 +230,47 @@ The AI provider system enables flexible integration with multiple AI providers (
 ### Quick Setup
 
 ```bash
-# 1. Initialize provider configuration
-./specular provider init
+# 1. Add an AI provider (example: Anthropic)
+specular provider add anthropic --api-key $ANTHROPIC_API_KEY
 
-# 2. Edit .specular/providers.yaml to enable desired providers
-#    - For local Ollama: set ollama.enabled = true (requires ollama installed)
-#    - For OpenAI: set openai.enabled = true and OPENAI_API_KEY env var
-#    - For Anthropic: set anthropic.enabled = true and ANTHROPIC_API_KEY env var
-#    - For Gemini: set gemini.enabled = true and GEMINI_API_KEY env var
+# Or add other providers:
+# specular provider add openai --api-key $OPENAI_API_KEY
+# specular provider add gemini --api-key $GEMINI_API_KEY
+# specular provider add ollama  # For local Ollama (requires ollama installed)
 
-# 3. List configured providers
-./specular provider list
+# 2. List configured providers
+specular provider list
 
-# 4. Check provider health
-./specular provider health
+# 3. Check provider health
+specular provider doctor
+
+# 4. Set default provider
+specular provider set-default anthropic
 ```
 
 ### Generate Command Examples
 
 ```bash
 # Simple generation with automatic model selection
-./specular generate "What is 2 + 2?"
+specular generate "What is 2 + 2?"
 
 # Fast response with model hint
-./specular generate "Count from 1 to 10" --model-hint fast
+specular generate "Count from 1 to 10" --model-hint fast
 
 # Code generation with appropriate model
-./specular generate "Write a Go function to reverse a string" --model-hint codegen
+specular generate "Write a Go function to reverse a string" --model-hint codegen
 
 # High complexity task with P0 priority (uses most capable model)
-./specular generate "Explain microservices architecture" --complexity 8 --priority P0
+specular generate "Explain microservices architecture" --complexity 8 --priority P0
 
 # With system prompt and temperature control
-./specular generate "Tell me a story" \
+specular generate "Tell me a story" \
   --system "You are a creative writer. Keep responses concise." \
   --temperature 0.9 \
   --max-tokens 500
 
 # Verbose mode shows metadata (model, tokens, cost, latency)
-./specular generate "What is Go?" --model-hint fast --verbose
+specular generate "What is Go?" --model-hint fast --verbose
 
 # Example verbose output:
 # Go is a statically typed, compiled programming language...
@@ -282,27 +300,30 @@ The router automatically selects the best model based on your hints:
 
 ```bash
 # List all configured providers with status
-./specular provider list
+specular provider list
 
 # Example output:
 # NAME         TYPE   ENABLED   SOURCE    VERSION
 # ----         ----   -------   ------    -------
 # ollama       cli    yes       local     1.0.0
-# openai       api    no        builtin   1.0.0
-# anthropic    api    no        builtin   1.0.0
+# openai       api    yes       builtin   1.0.0
+# anthropic    api    yes       builtin   1.0.0
 # gemini       api    no        builtin   1.0.0
 # claude-cli   cli    no        local     1.0.0
 
-# Check health of all enabled providers
-./specular provider health
+# Check health of all configured providers
+specular provider doctor
 
 # Check specific provider
-./specular provider health ollama
+specular provider doctor ollama
 
 # Example output:
 # PROVIDER   STATUS      MESSAGE
 # --------   ------      -------
 # ollama     ✅ HEALTHY   Executable provider: ./providers/ollama/ollama-provider
+
+# Remove a provider
+specular provider remove gemini
 ```
 
 ### Provider Configuration
@@ -360,58 +381,123 @@ For detailed provider documentation, see [internal/provider/README.md](internal/
 
 ## Quick Start
 
-### Option 1: Generate spec with interview mode
+### Step 1: Initialize Governance Workspace
+
+Specular uses a governance-first approach. Start by initializing your workspace:
 
 ```bash
-# List available presets
-specular interview --list
+# Initialize governance workspace structure
+specular governance init
 
-# Run interactive TUI interview (recommended - uses cli-tool preset as example)
-specular interview --preset cli-tool --out .specular/spec.yaml --tui
-
-# Or run non-interactive interview
-specular interview --preset cli-tool --out .specular/spec.yaml
-
-# Review the generated spec
-cat .specular/spec.yaml
+# This creates:
+# .specular/approvals/  - Approval records for plans, builds, drift
+# .specular/bundles/    - Build bundles with metadata
+# .specular/traces/     - Execution trace logs
+# .specular/policies.yaml   - Policy configuration
+# .specular/providers.yaml  - Provider configuration
 ```
 
-### Option 2: Use example spec
+### Step 2: Configure AI Providers
+
+Add an AI provider to generate specifications and plans:
 
 ```bash
-# Use the example spec to get started
-cp .specular/spec.yaml.example .specular/spec.yaml
-cp .specular/policy.yaml.example .specular/policy.yaml
+# Check available providers
+specular provider list
+
+# Add a provider (example: Anthropic)
+specular provider add anthropic --api-key $ANTHROPIC_API_KEY
+
+# Verify provider health
+specular provider doctor
+
+# Set as default provider
+specular provider set-default anthropic
+```
+
+### Step 3: Generate Specification
+
+Create a specification using interview mode:
+
+```bash
+# List available presets (web-app, api-service, cli-tool, microservice, data-pipeline)
+specular interview --list
+
+# Run interactive TUI interview (recommended)
+specular interview --preset cli-tool --out .specular/spec.yaml --tui
+
+# Review the generated specification
+cat .specular/spec.yaml
 
 # Validate the specification
 specular spec validate --in .specular/spec.yaml
 
-# Generate SpecLock with blake3 hashes
+# Generate SpecLock with blake3 hashes for drift detection
 specular spec lock --in .specular/spec.yaml --out .specular/spec.lock.json
-
-# Build execution plan from spec
-specular plan --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
-
-# Execute build with policy enforcement (dry-run)
-specular build --plan plan.json --policy .specular/policy.yaml --dry-run
-
-# Run drift detection (plan + code + infrastructure)
-specular eval --plan plan.json --lock .specular/spec.lock.json --spec .specular/spec.yaml \
-  --policy .specular/policy.yaml --report drift.sarif
-
-# With all drift detection options
-specular eval --plan plan.json --lock .specular/spec.lock.json --spec .specular/spec.yaml \
-  --policy .specular/policy.yaml --api-spec api/openapi.yaml \
-  --ignore "*.test.go" --ignore "vendor/**" \
-  --report drift.sarif --fail-on-drift
-
-# Run the full end-to-end test
-./test-e2e.sh
 ```
 
-### Working Features (v1.1.0)
+### Step 4: Create Execution Plan
 
-✅ **Interactive TUI Mode** (v1.1.0)
+Generate an execution plan from your specification:
+
+```bash
+# Create execution plan from spec
+specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
+
+# Visualize task dependencies
+specular plan visualize --in plan.json
+
+# Validate plan structure
+specular plan validate --in plan.json
+```
+
+### Step 5: Execute with Policy Enforcement
+
+Run the build in a sandboxed Docker environment:
+
+```bash
+# Execute build with policy enforcement (dry-run first)
+specular build run --plan plan.json --policy .specular/policies.yaml --dry-run
+
+# Run actual build
+specular build run --plan plan.json --policy .specular/policies.yaml
+
+# Verify build quality gates
+specular build verify --bundle .specular/bundles/latest.tar
+
+# Approve build for deployment
+specular build approve --bundle .specular/bundles/latest.tar
+```
+
+### Step 6: Detect and Manage Drift
+
+Monitor drift between spec, plan, and implementation:
+
+```bash
+# Run drift detection (plan + code + infrastructure)
+specular drift check --plan plan.json --lock .specular/spec.lock.json \
+  --spec .specular/spec.yaml --policy .specular/policies.yaml \
+  --report drift.sarif
+
+# Approve detected drift with justification
+specular drift approve --report drift.sarif --justification "Approved architectural change"
+```
+
+### Alternative: Quick Example Workflow
+
+If you prefer to start with example files:
+
+```bash
+# Use example files
+cp .specular/spec.yaml.example .specular/spec.yaml
+cp .specular/policy.yaml.example .specular/policies.yaml
+
+# Follow Steps 4-6 above with the example spec
+```
+
+### Core Features
+
+✅ **Interactive TUI Mode**
 - Beautiful terminal UI powered by bubbletea
 - Real-time progress tracking with progress bars
 - Visual question navigation
@@ -420,7 +506,7 @@ specular eval --plan plan.json --lock .specular/spec.lock.json --spec .specular/
 - Strict and non-strict validation modes
 - Seamless integration with interview command (`--tui` flag)
 
-✅ **Enhanced Error System** (v1.1.0)
+✅ **Enhanced Error System**
 - Structured errors with hierarchical error codes (CATEGORY-NNN format)
 - 8 error categories: SPEC, POLICY, PLAN, INTERVIEW, PROVIDER, EXEC, DRIFT, IO
 - Actionable suggestions for every error
@@ -429,7 +515,7 @@ specular eval --plan plan.json --lock .specular/spec.lock.json --spec .specular/
 - Go 1.13+ error wrapping support for `errors.Is()` and `errors.As()`
 - Beautiful formatted error messages with bullet points
 
-✅ **CLI Provider Protocol** (v1.1.0)
+✅ **CLI Provider Protocol**
 - Language-agnostic JSON-based stdin/stdout protocol
 - Three required commands: generate, stream, health
 - Support for streaming with newline-delimited JSON (NDJSON)

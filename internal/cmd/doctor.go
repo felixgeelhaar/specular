@@ -40,18 +40,29 @@ Examples:
 
 // DoctorReport represents the complete health check report
 type DoctorReport struct {
-	Docker    *DoctorCheck            `json:"docker"`
-	Podman    *DoctorCheck            `json:"podman,omitempty"`
-	Providers map[string]*DoctorCheck `json:"providers"`
-	Spec      *DoctorCheck            `json:"spec"`
-	Lock      *DoctorCheck            `json:"lock"`
-	Policy    *DoctorCheck            `json:"policy"`
-	Router    *DoctorCheck            `json:"router"`
-	Git       *DoctorCheck            `json:"git"`
-	Issues    []string                `json:"issues"`
-	Warnings  []string                `json:"warnings"`
-	NextSteps []string                `json:"next_steps"`
-	Healthy   bool                    `json:"healthy"`
+	Docker     *DoctorCheck            `json:"docker"`
+	Podman     *DoctorCheck            `json:"podman,omitempty"`
+	Providers  map[string]*DoctorCheck `json:"providers"`
+	Spec       *DoctorCheck            `json:"spec"`
+	Lock       *DoctorCheck            `json:"lock"`
+	Policy     *DoctorCheck            `json:"policy"`
+	Router     *DoctorCheck            `json:"router"`
+	Git        *DoctorCheck            `json:"git"`
+	Governance *GovernanceChecks       `json:"governance,omitempty"`
+	Issues     []string                `json:"issues"`
+	Warnings   []string                `json:"warnings"`
+	NextSteps  []string                `json:"next_steps"`
+	Healthy    bool                    `json:"healthy"`
+}
+
+// GovernanceChecks represents governance-specific health checks
+type GovernanceChecks struct {
+	Workspace *DoctorCheck `json:"workspace"`
+	Policies  *DoctorCheck `json:"policies"`
+	Providers *DoctorCheck `json:"providers_config"`
+	Bundles   *DoctorCheck `json:"bundles"`
+	Approvals *DoctorCheck `json:"approvals"`
+	Traces    *DoctorCheck `json:"traces"`
 }
 
 // DoctorCheck represents a single health check result
@@ -94,6 +105,9 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 
 	// Check Git
 	checkGit(ctx, report)
+
+	// Check governance
+	checkGovernance(report)
 
 	// Generate next steps
 	generateNextSteps(report)
@@ -408,6 +422,157 @@ func checkGit(ctx *detect.Context, report *DoctorReport) {
 	}
 }
 
+func checkGovernance(report *DoctorReport) {
+	gov := &GovernanceChecks{}
+	report.Governance = gov
+
+	// Check .specular workspace
+	if _, err := os.Stat(".specular"); err == nil {
+		// Check subdirectories
+		hasApprovals := false
+		hasBundles := false
+		hasTraces := false
+
+		if _, err := os.Stat(".specular/approvals"); err == nil {
+			hasApprovals = true
+		}
+		if _, err := os.Stat(".specular/bundles"); err == nil {
+			hasBundles = true
+		}
+		if _, err := os.Stat(".specular/traces"); err == nil {
+			hasTraces = true
+		}
+
+		status := "ok"
+		message := "Governance workspace initialized"
+		if !hasApprovals || !hasBundles || !hasTraces {
+			status = "warning"
+			message = "Governance workspace partially configured"
+		}
+
+		gov.Workspace = &DoctorCheck{
+			Name:    "Workspace",
+			Status:  status,
+			Message: message,
+			Details: map[string]interface{}{
+				"approvals": hasApprovals,
+				"bundles":   hasBundles,
+				"traces":    hasTraces,
+			},
+		}
+	} else {
+		gov.Workspace = &DoctorCheck{
+			Name:    "Workspace",
+			Status:  "missing",
+			Message: "Governance workspace not initialized",
+		}
+		report.NextSteps = append(report.NextSteps, "Initialize governance with 'specular governance init'")
+	}
+
+	// Check policies.yaml
+	if _, err := os.Stat(".specular/policies.yaml"); err == nil {
+		gov.Policies = &DoctorCheck{
+			Name:    "Policies",
+			Status:  "ok",
+			Message: "Policies configuration exists",
+			Details: map[string]interface{}{
+				"path": ".specular/policies.yaml",
+			},
+		}
+	} else {
+		gov.Policies = &DoctorCheck{
+			Name:    "Policies",
+			Status:  "missing",
+			Message: "Policies configuration not found",
+		}
+		if gov.Workspace != nil && gov.Workspace.Status != "missing" {
+			report.Warnings = append(report.Warnings, "Governance workspace exists but policies.yaml is missing")
+		}
+	}
+
+	// Check providers.yaml (governance-specific)
+	if _, err := os.Stat(".specular/providers.yaml"); err == nil {
+		gov.Providers = &DoctorCheck{
+			Name:    "Providers Config",
+			Status:  "ok",
+			Message: "Providers configuration exists",
+			Details: map[string]interface{}{
+				"path": ".specular/providers.yaml",
+			},
+		}
+	} else {
+		gov.Providers = &DoctorCheck{
+			Name:    "Providers Config",
+			Status:  "missing",
+			Message: "Providers configuration not found",
+		}
+	}
+
+	// Check bundles directory
+	if entries, err := os.ReadDir(".specular/bundles"); err == nil {
+		bundleCount := 0
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				bundleCount++
+			}
+		}
+
+		status := "ok"
+		message := fmt.Sprintf("%d bundles found", bundleCount)
+		if bundleCount == 0 {
+			status = "warning"
+			message = "No bundles created yet"
+		}
+
+		gov.Bundles = &DoctorCheck{
+			Name:    "Bundles",
+			Status:  status,
+			Message: message,
+			Details: map[string]interface{}{
+				"count": bundleCount,
+			},
+		}
+	}
+
+	// Check approvals directory
+	if entries, err := os.ReadDir(".specular/approvals"); err == nil {
+		approvalCount := 0
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				approvalCount++
+			}
+		}
+
+		gov.Approvals = &DoctorCheck{
+			Name:    "Approvals",
+			Status:  "ok",
+			Message: fmt.Sprintf("%d approval records", approvalCount),
+			Details: map[string]interface{}{
+				"count": approvalCount,
+			},
+		}
+	}
+
+	// Check traces directory
+	if entries, err := os.ReadDir(".specular/traces"); err == nil {
+		traceCount := 0
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				traceCount++
+			}
+		}
+
+		gov.Traces = &DoctorCheck{
+			Name:    "Traces",
+			Status:  "ok",
+			Message: fmt.Sprintf("%d trace files", traceCount),
+			Details: map[string]interface{}{
+				"count": traceCount,
+			},
+		}
+	}
+}
+
 func generateNextSteps(report *DoctorReport) {
 	// Add logical next steps based on current state
 	if report.Spec == nil || report.Spec.Status == "missing" {
@@ -455,6 +620,7 @@ func outputText(report *DoctorReport) error {
 	printAIProviders(report)
 	printProjectStructure(report)
 	printGitRepository(report)
+	printGovernance(report)
 	printIssues(report)
 	printWarnings(report)
 	printNextSteps(report)
@@ -518,6 +684,35 @@ func printGitRepository(report *DoctorReport) {
 		printCheck(report.Git)
 		fmt.Println()
 	}
+}
+
+// printGovernance prints governance checks
+func printGovernance(report *DoctorReport) {
+	if report.Governance == nil {
+		return
+	}
+
+	fmt.Println("Governance:")
+	gov := report.Governance
+	if gov.Workspace != nil {
+		printCheck(gov.Workspace)
+	}
+	if gov.Policies != nil {
+		printCheck(gov.Policies)
+	}
+	if gov.Providers != nil {
+		printCheck(gov.Providers)
+	}
+	if gov.Bundles != nil {
+		printCheck(gov.Bundles)
+	}
+	if gov.Approvals != nil {
+		printCheck(gov.Approvals)
+	}
+	if gov.Traces != nil {
+		printCheck(gov.Traces)
+	}
+	fmt.Println()
 }
 
 // printIssues prints issues if any exist

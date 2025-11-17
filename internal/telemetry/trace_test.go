@@ -395,9 +395,9 @@ func TestRecordMetrics(t *testing.T) {
 
 	// Record metrics
 	metrics := map[string]int64{
-		"lines_of_code":   1234,
-		"files_modified":  5,
-		"tests_added":     12,
+		"lines_of_code":  1234,
+		"files_modified": 5,
+		"tests_added":    12,
 	}
 	RecordMetrics(span, metrics)
 

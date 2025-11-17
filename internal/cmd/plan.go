@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -26,7 +25,6 @@ Use 'specular plan create' to generate a new plan from a specification.
 Use 'specular plan review' to interactively review a plan.
 Use 'specular plan visualize' to visualize plan as graph.
 Use 'specular plan validate' to validate plan structure.
-Use 'specular plan drift' to detect drift between plan and repository.
 Use 'specular plan explain' to understand routing decisions.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check if this is being used as the old direct command
@@ -67,18 +65,6 @@ The TUI allows you to:
 - Modify task priorities
 - Approve or reject the plan`,
 	RunE: runPlanReview,
-}
-
-var planDriftCmd = &cobra.Command{
-	Use:   "drift",
-	Short: "Detect drift between plan and repository",
-	Long: `Compare the current repository state with the execution plan to detect drift.
-
-Drift detection checks:
-- File hashes vs expected hashes in plan
-- Missing or extra files
-- Uncommitted changes that may affect the plan`,
-	RunE: runPlanDrift,
 }
 
 var planExplainCmd = &cobra.Command{
@@ -298,79 +284,6 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 		fmt.Println("\nNext steps:")
 		fmt.Printf("  1. Modify spec: specular spec edit\n")
 		fmt.Printf("  2. Regenerate plan: specular plan create\n")
-	}
-
-	return nil
-}
-
-func runPlanDrift(cmd *cobra.Command, args []string) error {
-	defaults := ux.NewPathDefaults()
-	planPath := cmd.Flags().Lookup("plan").Value.String()
-
-	// Use smart default if not changed
-	if !cmd.Flags().Changed("plan") {
-		planPath = defaults.PlanFile()
-	}
-
-	// Validate plan file exists
-	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
-		return ux.EnhanceError(err)
-	}
-
-	// Load plan
-	p, err := plan.LoadPlan(planPath)
-	if err != nil {
-		return ux.FormatError(err, "loading plan file")
-	}
-
-	fmt.Printf("Detecting drift for plan: %s\n\n", planPath)
-
-	// Get git status to check for uncommitted changes
-	gitCmd := exec.Command("git", "status", "--porcelain")
-	output, err := gitCmd.Output()
-	if err != nil {
-		fmt.Printf("⚠️  Warning: Could not check git status: %v\n", err)
-	}
-
-	uncommitted := strings.TrimSpace(string(output))
-	if uncommitted != "" {
-		lines := strings.Split(uncommitted, "\n")
-		fmt.Printf("⚠️  Uncommitted changes detected (%d files):\n", len(lines))
-		for i, line := range lines {
-			if i < 5 {
-				fmt.Printf("  %s\n", line)
-			}
-		}
-		if len(lines) > 5 {
-			fmt.Printf("  ... and %d more\n", len(lines)-5)
-		}
-		fmt.Println()
-	}
-
-	// Check for task drift (simplified - would need actual implementation)
-	driftCount := 0
-	for _, task := range p.Tasks {
-		// In a real implementation, we would:
-		// 1. Check if files for this task have changed
-		// 2. Compare file hashes with expected hashes
-		// 3. Report any mismatches
-		_ = task // Placeholder
-	}
-
-	if driftCount == 0 && uncommitted == "" {
-		fmt.Printf("✓ No drift detected\n")
-		fmt.Printf("  All tasks align with current repository state\n")
-	} else {
-		fmt.Printf("⚠️  Drift detected\n")
-		fmt.Printf("  %d task(s) may be affected by changes\n", driftCount)
-		fmt.Println("\nRecommendations:")
-		if uncommitted != "" {
-			fmt.Printf("  1. Commit or stash uncommitted changes\n")
-			fmt.Printf("  2. Regenerate plan: specular plan create\n")
-		} else {
-			fmt.Printf("  1. Review changes: git diff\n")
-			fmt.Printf("  2. Regenerate plan if needed: specular plan gen\n")
-		}
 	}
 
 	return nil
@@ -660,7 +573,6 @@ func init() {
 	rootCmd.AddCommand(planCmd)
 	planCmd.AddCommand(planCreateCmd)
 	planCmd.AddCommand(planReviewCmd)
-	planCmd.AddCommand(planDriftCmd)
 	planCmd.AddCommand(planExplainCmd)
 	planCmd.AddCommand(planVisualizeCmd)
 	planCmd.AddCommand(planValidateCmd)
@@ -681,9 +593,6 @@ func init() {
 
 	// plan review flags
 	planReviewCmd.Flags().String("plan", "plan.json", "Plan file to review")
-
-	// plan drift flags
-	planDriftCmd.Flags().String("plan", "plan.json", "Plan file to check for drift")
 
 	// plan explain flags
 	planExplainCmd.Flags().String("plan", "plan.json", "Plan file to explain")

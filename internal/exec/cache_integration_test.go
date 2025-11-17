@@ -352,9 +352,9 @@ func TestPrewarmImagesWithErrors(t *testing.T) {
 
 	// Mix of valid and invalid images
 	mixedImages := []string{
-		"alpine:latest", // Valid
+		"alpine:latest",             // Valid
 		"invalid:nonexistent:image", // Invalid
-		"busybox:latest", // Valid
+		"busybox:latest",            // Valid
 	}
 
 	t.Logf("Prewarming with mixed valid/invalid images")

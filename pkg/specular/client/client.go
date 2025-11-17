@@ -11,8 +11,9 @@ import (
 // This allows the free CLI to optionally call the enterprise platform for advanced features.
 //
 // Usage:
-//   client := client.New("https://platform.specular.io", apiKey)
-//   spec, err := client.GenerateSpec(ctx, request)
+//
+//	client := client.New("https://platform.specular.io", apiKey)
+//	spec, err := client.GenerateSpec(ctx, request)
 //
 // Note: This client is currently a stub. Full implementation will be added in v2.0
 // when the enterprise platform (specular-platform/) is created.

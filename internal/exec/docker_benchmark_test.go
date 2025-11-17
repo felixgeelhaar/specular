@@ -50,9 +50,9 @@ func BenchmarkBuildDockerArgs_WithEnv(b *testing.B) {
 		Image:  "node:18",
 		Cmd:    []string{"npm", "test"},
 		Env: map[string]string{
-			"NODE_ENV":    "test",
-			"CI":          "true",
-			"API_KEY":     "test-key",
+			"NODE_ENV":     "test",
+			"CI":           "true",
+			"API_KEY":      "test-key",
 			"DATABASE_URL": "postgres://localhost:5432/test",
 		},
 	}
@@ -231,17 +231,17 @@ func BenchmarkBuildDockerArgs_Parallel(b *testing.B) {
 // BenchmarkBuildDockerArgs_Realistic benchmarks a realistic production scenario
 func BenchmarkBuildDockerArgs_Realistic(b *testing.B) {
 	step := Step{
-		ID:     "task-build-api",
-		Runner: "docker",
-		Image:  "golang:1.21-alpine",
-		Cmd:    []string{"go", "build", "-o", "/app/bin/api", "./cmd/api"},
+		ID:      "task-build-api",
+		Runner:  "docker",
+		Image:   "golang:1.21-alpine",
+		Cmd:     []string{"go", "build", "-o", "/app/bin/api", "./cmd/api"},
 		Workdir: "/Users/developer/projects/microservices/api-gateway",
 		Env: map[string]string{
-			"CGO_ENABLED":  "0",
-			"GOOS":         "linux",
-			"GOARCH":       "amd64",
-			"GO111MODULE":  "on",
-			"GOFLAGS":      "-mod=readonly",
+			"CGO_ENABLED":   "0",
+			"GOOS":          "linux",
+			"GOARCH":        "amd64",
+			"GO111MODULE":   "on",
+			"GOFLAGS":       "-mod=readonly",
 			"BUILD_VERSION": "1.2.3",
 		},
 		Network: "none",

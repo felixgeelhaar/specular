@@ -350,9 +350,9 @@ func TestGenerateAttestationNoKeyError(t *testing.T) {
 // TestNewAttestationVerifier tests verifier initialization
 func TestNewAttestationVerifier(t *testing.T) {
 	tests := []struct {
-		name     string
-		opts     AttestationVerificationOptions
-		wantURL  string
+		name    string
+		opts    AttestationVerificationOptions
+		wantURL string
 	}{
 		{
 			name:    "defaults applied",
@@ -409,9 +409,9 @@ func TestVerifyAttestation(t *testing.T) {
 
 	// Now verify the attestation
 	tests := []struct {
-		name       string
-		opts       AttestationVerificationOptions
-		wantErr    bool
+		name        string
+		opts        AttestationVerificationOptions
+		wantErr     bool
 		errContains string
 	}{
 		{

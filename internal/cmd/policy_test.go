@@ -9,8 +9,11 @@ import (
 // TestPolicySubcommands tests that all policy subcommands are registered
 func TestPolicySubcommands(t *testing.T) {
 	subcommands := map[string]bool{
-		"new":   false,
-		"apply": false,
+		"init":     false,
+		"validate": false,
+		"approve":  false,
+		"list":     false,
+		"diff":     false,
 	}
 
 	for _, cmd := range policyCmd.Commands() {
@@ -26,104 +29,98 @@ func TestPolicySubcommands(t *testing.T) {
 	}
 }
 
-// TestPolicyNewFlags tests that policy new has correct flags
-func TestPolicyNewFlags(t *testing.T) {
-	// Find new subcommand
-	var newCmd *cobra.Command
+// TestPolicyInitFlags tests that policy init has correct flags
+func TestPolicyInitFlags(t *testing.T) {
+	// Find init subcommand
+	var initCmd *cobra.Command
 	for _, cmd := range policyCmd.Commands() {
-		if cmd.Name() == "new" {
-			newCmd = cmd
+		if cmd.Name() == "init" {
+			initCmd = cmd
 			break
 		}
 	}
 
-	if newCmd == nil {
-		t.Fatal("new subcommand not found")
+	if initCmd == nil {
+		t.Fatal("init subcommand not found")
 	}
 
 	// Check flags
-	if newCmd.Flags().Lookup("output") == nil {
-		t.Error("flag 'output' not found on policy new command")
-	}
-	if newCmd.Flags().Lookup("strict") == nil {
-		t.Error("flag 'strict' not found on policy new command")
-	}
-	if newCmd.Flags().Lookup("force") == nil {
-		t.Error("flag 'force' not found on policy new command")
+	if initCmd.Flags().Lookup("template") == nil {
+		t.Error("flag 'template' not found on policy init command")
 	}
 }
 
-// TestPolicyApplyFlags tests that policy apply has correct flags
-func TestPolicyApplyFlags(t *testing.T) {
-	// Find apply subcommand
-	var applyCmd *cobra.Command
+// TestPolicyValidateFlags tests that policy validate has correct flags
+func TestPolicyValidateFlags(t *testing.T) {
+	// Find validate subcommand
+	var validateCmd *cobra.Command
 	for _, cmd := range policyCmd.Commands() {
-		if cmd.Name() == "apply" {
-			applyCmd = cmd
+		if cmd.Name() == "validate" {
+			validateCmd = cmd
 			break
 		}
 	}
 
-	if applyCmd == nil {
-		t.Fatal("apply subcommand not found")
+	if validateCmd == nil {
+		t.Fatal("validate subcommand not found")
 	}
 
 	// Check flags
-	if applyCmd.Flags().Lookup("file") == nil {
-		t.Error("flag 'file' not found on policy apply command")
+	if validateCmd.Flags().Lookup("strict") == nil {
+		t.Error("flag 'strict' not found on policy validate command")
 	}
-	if applyCmd.Flags().Lookup("target") == nil {
-		t.Error("flag 'target' not found on policy apply command")
+	if validateCmd.Flags().Lookup("json") == nil {
+		t.Error("flag 'json' not found on policy validate command")
 	}
 }
 
-// TestPolicyNewCommand tests the policy new command configuration
-func TestPolicyNewCommand(t *testing.T) {
-	// Find new subcommand
-	var newCmd *cobra.Command
+// TestPolicyInitCommand tests the policy init command configuration
+func TestPolicyInitCommand(t *testing.T) {
+	// Find init subcommand
+	var initCmd *cobra.Command
 	for _, cmd := range policyCmd.Commands() {
-		if cmd.Name() == "new" {
-			newCmd = cmd
+		if cmd.Name() == "init" {
+			initCmd = cmd
 			break
 		}
 	}
 
-	if newCmd == nil {
-		t.Fatal("new subcommand not found")
+	if initCmd == nil {
+		t.Fatal("init subcommand not found")
 	}
 
 	// Check command configuration
-	if newCmd.Use != "new" {
-		t.Errorf("new Use = %q, want %q", newCmd.Use, "new")
+	if initCmd.Use != "init" {
+		t.Errorf("init Use = %q, want %q", initCmd.Use, "init")
 	}
 
-	if newCmd.Short == "" {
-		t.Error("new Short description is empty")
+	if initCmd.Short == "" {
+		t.Error("init Short description is empty")
 	}
 }
 
-// TestPolicyApplyCommand tests the policy apply command configuration
-func TestPolicyApplyCommand(t *testing.T) {
-	// Find apply subcommand
-	var applyCmd *cobra.Command
+// TestPolicyValidateCommand tests the policy validate command configuration
+func TestPolicyValidateCommand(t *testing.T) {
+	// Find validate subcommand
+	var validateCmd *cobra.Command
 	for _, cmd := range policyCmd.Commands() {
-		if cmd.Name() == "apply" {
-			applyCmd = cmd
+		if cmd.Name() == "validate" {
+			validateCmd = cmd
 			break
 		}
 	}
 
-	if applyCmd == nil {
-		t.Fatal("apply subcommand not found")
+	if validateCmd == nil {
+		t.Fatal("validate subcommand not found")
 	}
 
 	// Check command configuration
-	if applyCmd.Use != "apply" {
-		t.Errorf("apply Use = %q, want %q", applyCmd.Use, "apply")
+	if validateCmd.Use != "validate" {
+		t.Errorf("validate Use = %q, want %q", validateCmd.Use, "validate")
 	}
 
-	if applyCmd.Short == "" {
-		t.Error("apply Short description is empty")
+	if validateCmd.Short == "" {
+		t.Error("validate Short description is empty")
 	}
 }
 

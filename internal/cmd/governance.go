@@ -236,7 +236,7 @@ func runGovernanceDoctor(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("Running governance environment checks...\n")
+	fmt.Println("Running governance environment checks...")
 
 	// Check 1: Workspace exists
 	fmt.Print("📁 Checking governance workspace... ")
@@ -292,7 +292,7 @@ func runGovernanceStatus(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("=== Governance Status ===\n")
+	fmt.Println("=== Governance Status ===")
 
 	// Workspace location
 	workspacePath, _ := filepath.Abs(".specular")

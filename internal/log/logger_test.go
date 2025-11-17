@@ -331,13 +331,13 @@ func TestWithError(t *testing.T) {
 
 func TestLogError(t *testing.T) {
 	tests := []struct {
-		name         string
-		err          error
-		wantCode     string
-		wantMessage  string
-		wantSuggs    bool
-		wantDocs     bool
-		wantCause    bool
+		name        string
+		err         error
+		wantCode    string
+		wantMessage string
+		wantSuggs   bool
+		wantDocs    bool
+		wantCause   bool
 	}{
 		{
 			name:        "basic error",
@@ -455,9 +455,9 @@ func TestContextMethods(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name   string
-		logFn  func()
-		level  string
+		name  string
+		logFn func()
+		level string
 	}{
 		{
 			name:  "DebugContext",

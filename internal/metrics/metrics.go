@@ -13,10 +13,10 @@ type Metrics struct {
 	CommandErrors     *prometheus.CounterVec
 
 	// Provider operation metrics
-	ProviderCalls     *prometheus.CounterVec
-	ProviderLatency   *prometheus.HistogramVec
-	ProviderErrors    *prometheus.CounterVec
-	ProviderCost      *prometheus.CounterVec
+	ProviderCalls   *prometheus.CounterVec
+	ProviderLatency *prometheus.HistogramVec
+	ProviderErrors  *prometheus.CounterVec
+	ProviderCost    *prometheus.CounterVec
 
 	// Spec generation metrics
 	SpecGenerations *prometheus.CounterVec
@@ -43,7 +43,7 @@ type Metrics struct {
 	CacheMisses       *prometheus.CounterVec
 
 	// Policy check metrics
-	PolicyChecks    *prometheus.CounterVec
+	PolicyChecks     *prometheus.CounterVec
 	PolicyViolations *prometheus.CounterVec
 	PolicyDuration   *prometheus.HistogramVec
 

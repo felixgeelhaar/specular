@@ -3,8 +3,8 @@ package router
 import (
 	"time"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/provider"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 // Provider represents an AI provider (Anthropic, OpenAI, etc.)
@@ -83,14 +83,14 @@ type RoutingResult struct {
 
 // Usage represents AI model usage tracking
 type Usage struct {
-	Model     string        `json:"model"`
-	Provider  Provider      `json:"provider"`
-	Tokens    int           `json:"tokens"`
-	CostUSD   float64       `json:"cost_usd"`
-	LatencyMs int           `json:"latency_ms"`
-	Timestamp time.Time     `json:"timestamp"`
+	Model     string       `json:"model"`
+	Provider  Provider     `json:"provider"`
+	Tokens    int          `json:"tokens"`
+	CostUSD   float64      `json:"cost_usd"`
+	LatencyMs int          `json:"latency_ms"`
+	Timestamp time.Time    `json:"timestamp"`
 	TaskID    types.TaskID `json:"task_id,omitempty"`
-	Success   bool          `json:"success"`
+	Success   bool         `json:"success"`
 }
 
 // Budget tracks spending against limits

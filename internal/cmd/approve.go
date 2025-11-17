@@ -74,13 +74,13 @@ Exit codes:
 
 // ApprovalRecord represents a governance approval record
 type ApprovalRecord struct {
-	Version      string    `yaml:"version"`
-	Type         string    `yaml:"type"` // "bundle", "drift", "policy", "plan"
-	ResourceID   string    `yaml:"resource_id"`
-	ResourceHash string    `yaml:"resource_hash,omitempty"`
-	ApprovedBy   string    `yaml:"approved_by"`
-	ApprovedAt   time.Time `yaml:"approved_at"`
-	Message      string    `yaml:"message,omitempty"`
+	Version      string            `yaml:"version"`
+	Type         string            `yaml:"type"` // "bundle", "drift", "policy", "plan"
+	ResourceID   string            `yaml:"resource_id"`
+	ResourceHash string            `yaml:"resource_hash,omitempty"`
+	ApprovedBy   string            `yaml:"approved_by"`
+	ApprovedAt   time.Time         `yaml:"approved_at"`
+	Message      string            `yaml:"message,omitempty"`
 	Metadata     map[string]string `yaml:"metadata,omitempty"`
 }
 
@@ -181,7 +181,7 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Println("=== Approval Records ===\n")
+	fmt.Println("=== Approval Records ===")
 
 	approvalsByType := make(map[string][]ApprovalRecord)
 
@@ -239,7 +239,7 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("=== Pending Approvals ===\n")
+	fmt.Println("=== Pending Approvals ===")
 
 	hasPending := false
 

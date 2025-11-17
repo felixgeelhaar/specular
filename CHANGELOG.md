@@ -7,6 +7,106 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-11-17
+
+### Major Changes
+
+This release implements **ADR-0010: Governance-First CLI Redesign**, restructuring the CLI around governance, policy, and approval workflows while maintaining full backward compatibility.
+
+### Added
+
+- **Governance Commands** (NEW)
+  - `governance init` - Initialize .specular workspace with governance structure
+  - `governance doctor` - Comprehensive governance health checks
+  - `governance status` - Display governance workflow status
+  - Workspace structure: approvals/, bundles/, traces/, policies.yaml, providers.yaml
+
+- **Policy Management Commands** (NEW)
+  - `policy init` - Initialize policy configuration with templates
+  - `policy validate` - Validate policies with strict mode support
+  - `policy approve` - Approve policy changes with audit trail
+  - `policy list` - List all policies with metadata
+  - `policy diff` - Compare policy versions
+
+- **Approval Workflow Commands** (NEW)
+  - `approval approve` - Approve plans, builds, or drifts with role verification
+  - `approval list` - List all approval records with filtering
+  - `approval pending` - Show pending approvals requiring action
+
+- **Bundle Command Enhancements**
+  - `bundle create` - Create bundles (replaces `bundle build`)
+  - `bundle gate` - Quality gate checks (replaces `bundle verify`)
+  - `bundle inspect` - Inspect bundle contents
+  - `bundle list` - List all bundles with metadata
+  - Backward compatibility: `bundle build` and `bundle verify` still work
+
+- **Plan Command Enhancements**
+  - `plan create` - Generate plans (replaces `plan gen`)
+  - `plan visualize` - Visualize task dependencies
+  - `plan validate` - Validate plan structure
+  - Backward compatibility: `plan gen` still works with deprecation warning
+
+- **Drift Commands** (PROMOTED)
+  - `drift check` - Run drift detection (promoted from `plan drift`)
+  - `drift approve` - Approve detected drift
+  - Backward compatibility: `plan drift` still works
+
+- **Provider Enhancements**
+  - `provider add` - Add providers dynamically (ollama, anthropic, openai, claude-code, gemini-cli, codex-cli, copilot-cli)
+  - `provider remove` - Remove providers from configuration
+  - `provider doctor` - Health checks (renamed from `provider health`)
+  - Backward compatibility: `provider health` still works as alias
+
+- **Unified Doctor Command**
+  - Top-level `doctor` command with comprehensive system health checks
+  - Governance health checks: workspace, policies, providers config, bundles, approvals, traces
+  - Container runtime, AI providers, git, and project validation
+  - JSON/YAML output support for automation
+
+### Changed
+
+- **CLI Structure**: Reorganized commands around governance workflows
+  - Build commands: `build run`, `build verify`, `build approve`, `build explain`
+  - Plan commands now use `create` instead of `gen` as primary command
+  - Bundle commands use idiomatic names (`create`, `gate` instead of `build`, `verify`)
+  - Provider commands enhanced with add/remove capabilities
+
+- **Command Naming**: More idiomatic and consistent across the CLI
+  - `gen` → `create` (for plan generation)
+  - `build` → `create` (for bundle creation)
+  - `verify` → `gate` (for quality gates)
+  - `health` → `doctor` (for diagnostics)
+
+- **Deprecation Warnings**: Added helpful deprecation messages for renamed commands
+  - Commands show migration path to new structure
+  - All deprecated commands remain functional with backward compatibility
+
+### Fixed
+
+- **Backward Compatibility**: Fixed nil pointer dereferences when using deprecated command forms
+  - Safely handle missing flags on root commands
+  - Proper default values for optional flags
+  - Tested with comprehensive E2E test suite (9/10 passing)
+
+- **Build Command**: Fixed nil pointer bugs in `runBuildRun` for flags: resume, checkpoint-dir, checkpoint-id, feature, verbose, enable-cache, cache-dir, cache-max-age, keep-checkpoint
+
+### Documentation
+
+- **ADR-0010**: Complete governance-first CLI redesign specification
+- **CLI Reference**: Updated for new command structure (pending)
+- **Migration Guide**: Backward compatibility and migration paths documented
+
+### Statistics
+
+- 12 new governance/policy/approval commands
+- 7 enhanced provider commands
+- 5 refactored build commands
+- 5 refactored plan commands
+- 4 refactored bundle commands
+- Full backward compatibility maintained
+- 9/10 E2E tests passing
+- All unit tests passing
+
 ## [1.1.0] - 2025-11-16
 
 ### Added

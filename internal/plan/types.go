@@ -11,10 +11,10 @@ type Plan struct {
 type Task struct {
 	ID           types.TaskID    `json:"id"`
 	FeatureID    types.FeatureID `json:"feature_id"`
-	ExpectedHash string           `json:"expected_hash"` // Links to SpecLock feature hash
+	ExpectedHash string          `json:"expected_hash"` // Links to SpecLock feature hash
 	DependsOn    []types.TaskID  `json:"depends_on"`
-	Skill        string           `json:"skill"`      // go-backend, ui-react, infra, etc.
+	Skill        string          `json:"skill"`      // go-backend, ui-react, infra, etc.
 	Priority     types.Priority  `json:"priority"`   // P0, P1, P2
-	ModelHint    string           `json:"model_hint"` // long-context, agentic, codegen, etc.
-	Estimate     int              `json:"estimate"`   // Estimated complexity/time
+	ModelHint    string          `json:"model_hint"` // long-context, agentic, codegen, etc.
+	Estimate     int             `json:"estimate"`   // Estimated complexity/time
 }

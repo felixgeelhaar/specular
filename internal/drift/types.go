@@ -4,11 +4,11 @@ import "github.com/felixgeelhaar/specular/pkg/specular/types"
 
 // Finding represents a drift detection finding
 type Finding struct {
-	Code      string           `json:"code"` // UNKNOWN_FEATURE, HASH_MISMATCH, etc.
+	Code      string          `json:"code"` // UNKNOWN_FEATURE, HASH_MISMATCH, etc.
 	FeatureID types.FeatureID `json:"feature_id"`
-	Message   string           `json:"message"`
-	Severity  string           `json:"severity"` // error, warning, info
-	Location  string           `json:"location,omitempty"`
+	Message   string          `json:"message"`
+	Severity  string          `json:"severity"` // error, warning, info
+	Location  string          `json:"location,omitempty"`
 }
 
 // Report represents a complete drift detection report

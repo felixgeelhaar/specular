@@ -3,9 +3,9 @@ package drift
 import (
 	"fmt"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 // DetectPlanDrift compares a plan against the SpecLock to find mismatches

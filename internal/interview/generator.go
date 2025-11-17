@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 // generateSpec converts interview answers to a ProductSpec

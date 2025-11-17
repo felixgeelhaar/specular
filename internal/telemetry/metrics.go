@@ -31,9 +31,9 @@ var (
 // Metrics holds all registered OpenTelemetry metrics
 type Metrics struct {
 	// Command metrics
-	CommandCounter       metric.Int64Counter
-	CommandDuration      metric.Float64Histogram
-	CommandErrorCounter  metric.Int64Counter
+	CommandCounter      metric.Int64Counter
+	CommandDuration     metric.Float64Histogram
+	CommandErrorCounter metric.Int64Counter
 
 	// Provider metrics
 	ProviderCallCounter  metric.Int64Counter

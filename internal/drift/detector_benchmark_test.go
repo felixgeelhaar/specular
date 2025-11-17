@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 // createTestData creates a SpecLock and Plan with the specified number of features

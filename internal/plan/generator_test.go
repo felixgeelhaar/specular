@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/pkg/specular/types"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
 func TestGenerate(t *testing.T) {

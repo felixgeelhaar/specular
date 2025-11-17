@@ -337,7 +337,7 @@ func runSpecNew(cmd *cobra.Command, args []string) error {
 	}
 
 	// Otherwise, run interview mode
-	return runSpecInterviewMode(cmd, out)
+	return runInterviewInternal(cmd)
 }
 
 func runSpecGenerateFromPRD(prdFile, out string) error {
@@ -413,27 +413,6 @@ func runSpecGenerateFromPRD(prdFile, out string) error {
 	fmt.Printf("✓ Saved to: %s\n", out)
 
 	return nil
-}
-
-func runSpecInterviewMode(cmd *cobra.Command, out string) error {
-	// Reuse interview command logic by constructing temporary command
-	// This allows us to reuse all the interview functionality
-	interviewCmd.Flags().Set("out", out)
-	if cmd.Flags().Changed("preset") {
-		interviewCmd.Flags().Set("preset", cmd.Flags().Lookup("preset").Value.String())
-	}
-	if cmd.Flags().Changed("strict") {
-		interviewCmd.Flags().Set("strict", cmd.Flags().Lookup("strict").Value.String())
-	}
-	if cmd.Flags().Changed("tui") {
-		interviewCmd.Flags().Set("tui", cmd.Flags().Lookup("tui").Value.String())
-	}
-	if cmd.Flags().Changed("list") {
-		interviewCmd.Flags().Set("list", cmd.Flags().Lookup("list").Value.String())
-	}
-
-	// Call runInterview from interview.go (but without deprecation warning for this use)
-	return runInterviewInternal(cmd)
 }
 
 func runInterviewInternal(cmd *cobra.Command) error {

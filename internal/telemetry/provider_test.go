@@ -250,11 +250,11 @@ func TestConcurrentInitProvider(t *testing.T) {
 
 // Mock exporter for testing circuit breaker and retry logic
 type mockExporter struct {
-	mu            sync.Mutex
-	callCount     int
-	shouldFail    bool
-	failureCount  int
-	maxFailures   int
+	mu           sync.Mutex
+	callCount    int
+	shouldFail   bool
+	failureCount int
+	maxFailures  int
 }
 
 func newMockExporter(shouldFail bool, maxFailures int) *mockExporter {

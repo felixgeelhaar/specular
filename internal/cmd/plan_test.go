@@ -255,19 +255,19 @@ func TestBackwardCompatibilityFlags(t *testing.T) {
 
 // TestPlanGenFlags tests that plan gen has all required flags
 func TestPlanGenFlags(t *testing.T) {
-	if planGenCmd.Flags().Lookup("in") == nil {
+	if planCreateCmd.Flags().Lookup("in") == nil {
 		t.Error("flag 'in' not found on plan gen command")
 	}
-	if planGenCmd.Flags().Lookup("out") == nil {
+	if planCreateCmd.Flags().Lookup("out") == nil {
 		t.Error("flag 'out' not found on plan gen command")
 	}
-	if planGenCmd.Flags().Lookup("lock") == nil {
+	if planCreateCmd.Flags().Lookup("lock") == nil {
 		t.Error("flag 'lock' not found on plan gen command")
 	}
-	if planGenCmd.Flags().Lookup("feature") == nil {
+	if planCreateCmd.Flags().Lookup("feature") == nil {
 		t.Error("flag 'feature' not found on plan gen command")
 	}
-	if planGenCmd.Flags().Lookup("estimate") == nil {
+	if planCreateCmd.Flags().Lookup("estimate") == nil {
 		t.Error("flag 'estimate' not found on plan gen command")
 	}
 }
@@ -275,10 +275,11 @@ func TestPlanGenFlags(t *testing.T) {
 // TestPlanSubcommands tests that all plan subcommands are registered
 func TestPlanSubcommands(t *testing.T) {
 	subcommands := map[string]bool{
-		"gen":     false,
-		"review":  false,
-		"drift":   false,
-		"explain": false,
+		"create":    false,
+		"review":    false,
+		"explain":   false,
+		"visualize": false,
+		"validate":  false,
 	}
 
 	for _, cmd := range planCmd.Commands() {

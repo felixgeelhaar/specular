@@ -131,7 +131,7 @@ type PolicyFile struct {
 
 // PolicyWorkflows defines workflow approval requirements
 type PolicyWorkflows struct {
-	RequireApprovalFor   []string `yaml:"require_approval_for"`
+	RequireApprovalFor    []string `yaml:"require_approval_for"`
 	RequireAttestationFor []string `yaml:"require_attestation_for,omitempty"`
 }
 
