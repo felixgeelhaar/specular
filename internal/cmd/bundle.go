@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/bundle"
+	"github.com/felixgeelhaar/specular/internal/license"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
@@ -550,6 +551,12 @@ func runBundleCreate(cmd *cobra.Command, args []string) error {
 }
 
 func runBundleGate(cmd *cobra.Command, args []string) error {
+	// Check license - bundle gate requires Pro tier
+	if err := license.RequireFeature("bundle.gate", license.TierPro); err != nil {
+		license.DisplayUpgradeMessage(err, "bundle gate")
+		return err
+	}
+
 	bundlePath := args[0]
 
 	// Check bundle exists
@@ -1280,6 +1287,12 @@ Examples:
 }
 
 func runBundleInspect(cmd *cobra.Command, args []string) error {
+	// Check license - bundle inspect requires Pro tier
+	if err := license.RequireFeature("bundle.inspect", license.TierPro); err != nil {
+		license.DisplayUpgradeMessage(err, "bundle inspect")
+		return err
+	}
+
 	bundlePath := args[0]
 
 	// Check bundle exists
@@ -1370,6 +1383,12 @@ func runBundleInspect(cmd *cobra.Command, args []string) error {
 }
 
 func runBundleList(cmd *cobra.Command, args []string) error {
+	// Check license - bundle list requires Pro tier
+	if err := license.RequireFeature("bundle.list", license.TierPro); err != nil {
+		license.DisplayUpgradeMessage(err, "bundle list")
+		return err
+	}
+
 	// Determine bundle directory
 	bundleDir := listDir
 	if bundleDir == "" {
