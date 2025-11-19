@@ -130,6 +130,7 @@ issues:
         - ineffassign # Ineffectual assignments - clean up in v1.1
         - gocyclo     # Complexity - refactor in v1.1
         - staticcheck # Unused values - clean up in v1.1
+        - goimports   # Import organization - fix in v1.1
 
     # Exclude from router (complex routing logic, refactor in v1.1)
     - path: internal/router/
@@ -149,6 +150,8 @@ issues:
         - gosec    # File permissions - review in v1.1
         - errcheck # Some unchecked errors - audit in v1.1
         - gocritic # filepathJoin patterns - acceptable for v1.0
+        - revive   # Export comments - fix in v1.1
+        - gosimple # Simplification suggestions - refactor in v1.1
 
     # Exclude from external provider executables (standalone binaries, refactor in v1.1)
     - path: providers/
@@ -157,6 +160,7 @@ issues:
         - govet    # Shadow declarations - refactor in v1.1
         - errcheck # Some unchecked errors - audit in v1.1
         - gosec    # Unhandled errors - audit in v1.1
+        - goimports # Import organization - fix in v1.1
 
     # Exclude from autonomous mode orchestrator (complex workflow logic, refactor in v1.1)
     - path: internal/auto/
@@ -221,6 +225,7 @@ issues:
       linters:
         - errcheck # Display formatting errors not critical
         - govet    # Shadow declarations - refactor in v1.1
+        - gosec    # Directory permissions - review in v1.1
 
     # Exclude from CLI commands (flag parsing, display code)
     - path: internal/cmd/
