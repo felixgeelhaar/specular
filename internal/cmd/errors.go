@@ -96,7 +96,7 @@ func CheckpointNotFoundError(checkpointID string) error {
 func FileNotFoundError(filePath string, suggestions ...string) error {
 	defaultSuggestions := []string{
 		fmt.Sprintf("Check if file exists: ls -l %s", filePath),
-		fmt.Sprintf("Verify the path is correct"),
+		"Verify the path is correct",
 	}
 
 	allSuggestions := append(defaultSuggestions, suggestions...)

@@ -7,20 +7,20 @@ import (
 
 // Session represents a platform AI session
 type Session struct {
-	ID             string                 `json:"id"`
-	ProjectID      string                 `json:"project_id"`
-	UserID         string                 `json:"user_id"`
-	Title          string                 `json:"title"`
-	Status         string                 `json:"status"`
-	Provider       string                 `json:"provider"`
-	Model          string                 `json:"model"`
-	MessageCount   int                    `json:"message_count"`
-	TokensUsed     int                    `json:"tokens_used"`
-	EstimatedCost  float64                `json:"estimated_cost"`
-	Context        map[string]interface{} `json:"context"`
-	Tags           []string               `json:"tags"`
-	CreatedAt      time.Time              `json:"created_at"`
-	UpdatedAt      time.Time              `json:"updated_at"`
+	ID            string                 `json:"id"`
+	ProjectID     string                 `json:"project_id"`
+	UserID        string                 `json:"user_id"`
+	Title         string                 `json:"title"`
+	Status        string                 `json:"status"`
+	Provider      string                 `json:"provider"`
+	Model         string                 `json:"model"`
+	MessageCount  int                    `json:"message_count"`
+	TokensUsed    int                    `json:"tokens_used"`
+	EstimatedCost float64                `json:"estimated_cost"`
+	Context       map[string]interface{} `json:"context"`
+	Tags          []string               `json:"tags"`
+	CreatedAt     time.Time              `json:"created_at"`
+	UpdatedAt     time.Time              `json:"updated_at"`
 }
 
 // Message represents a message in a session

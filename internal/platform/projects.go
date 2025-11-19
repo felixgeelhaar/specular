@@ -7,14 +7,14 @@ import (
 
 // Project represents a platform project
 type Project struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	OwnerID     string    `json:"owner_id"`
-	Status      string    `json:"status"`
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	OwnerID     string                 `json:"owner_id"`
+	Status      string                 `json:"status"`
 	Metadata    map[string]interface{} `json:"metadata"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
 // CreateProjectRequest represents a request to create a project

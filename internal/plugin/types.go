@@ -155,10 +155,10 @@ type ValidatorIssue struct {
 
 // NotifierRequest is sent to notifier plugins
 type NotifierRequest struct {
-	Action  string                 `json:"action"`
-	Event   string                 `json:"event"`
-	Data    map[string]interface{} `json:"data"`
-	Config  map[string]interface{} `json:"config,omitempty"`
+	Action string                 `json:"action"`
+	Event  string                 `json:"event"`
+	Data   map[string]interface{} `json:"data"`
+	Config map[string]interface{} `json:"config,omitempty"`
 }
 
 // NotifierResponse is returned from notifier plugins

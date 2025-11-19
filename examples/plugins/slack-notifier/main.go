@@ -46,8 +46,8 @@ type SlackMessage struct {
 }
 
 type SlackBlock struct {
-	Type string      `json:"type"`
-	Text *BlockText  `json:"text,omitempty"`
+	Type   string      `json:"type"`
+	Text   *BlockText  `json:"text,omitempty"`
 	Fields []BlockText `json:"fields,omitempty"`
 }
 

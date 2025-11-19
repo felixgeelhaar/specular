@@ -149,6 +149,7 @@ type CIInfo struct {
 }
 
 // convertToReport converts detect.Context to ContextReport
+// nolint:unused // Reserved for future JSON output support
 func convertToReport(ctx *detect.Context) *ContextReport {
 	report := &ContextReport{
 		Providers: make(map[string]ProviderState),

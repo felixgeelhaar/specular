@@ -116,7 +116,6 @@ Examples:
 	},
 }
 
-
 func init() {
 	// Add subcommands
 	authCmd.AddCommand(authLoginCmd)

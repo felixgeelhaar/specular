@@ -13,7 +13,7 @@ func main() {
 	// Create a new platform client
 	client := platform.NewClient("http://localhost:8000")
 
-	fmt.Println("=== Specular Platform Integration Demo ===\n")
+	fmt.Println("=== Specular Platform Integration Demo ===")
 
 	// Step 1: Register or login
 	fmt.Println("1. Authenticating user...")
