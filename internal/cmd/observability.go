@@ -40,7 +40,7 @@ func setupLogging(cfg *GlobalConfig) func() {
 
 	level := getLogLevel(cfg)
 	format := getLogFormat()
-	loggerOutput, logPath, fileCleanup := configureLogOutput(cfg)
+	loggerOutput, _, fileCleanup := configureLogOutput(cfg)
 
 	logger := log.New(log.Config{
 		Level:          log.ParseLevel(level),
@@ -53,13 +53,8 @@ func setupLogging(cfg *GlobalConfig) func() {
 
 	log.SetDefaultLogger(logger)
 
-	logger.Info("Logging initialized",
-		"level", level,
-		"format", format,
-	)
-	if logPath != "" {
-		logger.Info("File logging enabled", "path", logPath)
-	}
+	// Note: We intentionally don't log initialization to stdout
+	// as it clutters the user experience. File logging captures this if enabled.
 
 	return fileCleanup
 }
@@ -175,7 +170,12 @@ func getLogFormat() string {
 
 func configureLogOutput(cfg *GlobalConfig) (log.Output, string, func()) {
 	var writers []io.Writer
-	writers = append(writers, os.Stdout)
+
+	// Only write to stdout if explicitly requested via environment variable
+	// This keeps the CLI output clean by default
+	if os.Getenv("SPECULAR_LOG_STDOUT") == "true" {
+		writers = append(writers, os.Stdout)
+	}
 
 	var file *os.File
 	var filePath string
@@ -194,6 +194,11 @@ func configureLogOutput(cfg *GlobalConfig) (log.Output, string, func()) {
 				writers = append(writers, f)
 			}
 		}
+	}
+
+	// If no writers configured (no stdout, no file), default to discard
+	if len(writers) == 0 {
+		writers = append(writers, io.Discard)
 	}
 
 	output := log.NewOutput(io.MultiWriter(writers...))

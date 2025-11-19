@@ -10,16 +10,17 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "specular",
 	Short: "AI-Native Spec and Build Assistant",
-	Long: `
-  ╔══════════════════════════════════════════════════════════════╗
-  ║                      [ specular ]                            ║
-  ║            AI-Native Spec and Build Assistant                ║
-  ╚══════════════════════════════════════════════════════════════╝
+	Long: `╔══════════════════════════════════════════════════════════════╗
+║                      [ specular ]                            ║
+║            AI-Native Spec and Build Assistant                ║
+╚══════════════════════════════════════════════════════════════╝
 
 specular is a CLI tool that enables spec-first, policy-enforced software
 development using AI. It transforms natural language product requirements into
 structured specifications, executable plans, and production-ready code while
 maintaining traceability and enforcing organizational guardrails.`,
+	SilenceUsage:  true, // Don't show usage on errors - it's noise
+	SilenceErrors: true, // main.go handles error printing
 }
 
 // Execute runs the root command
