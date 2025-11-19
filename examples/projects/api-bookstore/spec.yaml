@@ -1,0 +1,116 @@
+# Specular Product Specification - Bookstore API
+# Template: api-service
+# Example project for specular demonstration
+
+product:
+  name: "Bookstore API"
+  description: "RESTful API service for managing a bookstore inventory with books, authors, and categories"
+  goals:
+    - "Provide CRUD operations for book management"
+    - "Enable book search and filtering"
+    - "Support author and category associations"
+  tech_stack:
+    language: "Go"
+    framework: "Chi router"
+    database: "PostgreSQL"
+    runtime: "Go 1.22"
+
+features:
+  - id: "feat-001"
+    title: "Book Management"
+    description: "CRUD operations for books"
+    priority: "P0"
+    api:
+      - method: "GET"
+        path: "/api/books"
+        query_params:
+          page: "number"
+          limit: "number"
+          author: "string"
+          category: "string"
+        response:
+          books: "array"
+          total: "number"
+      - method: "POST"
+        path: "/api/books"
+        request_body:
+          title: "string"
+          isbn: "string"
+          author_id: "string"
+          category_id: "string"
+          price: "number"
+        response:
+          id: "string"
+      - method: "GET"
+        path: "/api/books/{id}"
+        response:
+          book: "object"
+      - method: "PUT"
+        path: "/api/books/{id}"
+        request_body:
+          title: "string"
+          price: "number"
+      - method: "DELETE"
+        path: "/api/books/{id}"
+    acceptance:
+      - "Books can be created, read, updated, and deleted"
+      - "ISBN must be unique"
+      - "Soft delete preserves history"
+    trace:
+      - "internal/handlers/books.go"
+      - "internal/repository/books.go"
+
+  - id: "feat-002"
+    title: "Author Profiles"
+    description: "Manage author information and bibliography"
+    priority: "P0"
+    api:
+      - method: "GET"
+        path: "/api/authors"
+        response:
+          authors: "array"
+      - method: "GET"
+        path: "/api/authors/{id}"
+        response:
+          author: "object"
+          books: "array"
+    acceptance:
+      - "Author profile includes name, bio, and photo"
+      - "Bibliography lists all books by author"
+    trace:
+      - "internal/handlers/authors.go"
+
+  - id: "feat-003"
+    title: "Search and Filter"
+    description: "Full-text search across books"
+    priority: "P1"
+    api:
+      - method: "GET"
+        path: "/api/search"
+        query_params:
+          q: "string"
+          type: "string"
+        response:
+          results: "array"
+    acceptance:
+      - "Search by title, author, ISBN"
+      - "Results ranked by relevance"
+      - "Response time < 100ms"
+    trace:
+      - "internal/search/search.go"
+
+non_functional:
+  performance:
+    - "API response < 100ms p95"
+    - "Support 500 req/sec"
+  security:
+    - "JWT authentication required"
+    - "Rate limiting: 100 req/min per user"
+  observability:
+    - "Structured JSON logging"
+    - "Prometheus metrics endpoint"
+
+milestones:
+  - name: "Beta"
+    features: ["feat-001", "feat-002", "feat-003"]
+    date: "2025-01-30"

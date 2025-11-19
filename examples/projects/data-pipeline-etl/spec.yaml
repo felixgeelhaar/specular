@@ -1,0 +1,111 @@
+# Specular Product Specification - Analytics ETL Pipeline
+# Template: data-pipeline
+# Example project for specular demonstration
+
+product:
+  name: "Analytics ETL Pipeline"
+  description: "Batch ETL pipeline for extracting, transforming, and loading data into analytics warehouse"
+  goals:
+    - "Extract data from multiple sources daily"
+    - "Apply business rules and transformations"
+    - "Load clean data into warehouse for analytics"
+  tech_stack:
+    language: "Python"
+    framework: "Apache Airflow"
+    database: "PostgreSQL + Snowflake"
+    runtime: "Python 3.11"
+
+features:
+  - id: "feat-001"
+    title: "Data Extraction"
+    description: "Extract data from source databases and APIs"
+    priority: "P0"
+    sources:
+      - name: "sales_db"
+        type: "PostgreSQL"
+        tables: ["orders", "customers", "products"]
+      - name: "marketing_api"
+        type: "REST API"
+        endpoints: ["/campaigns", "/conversions"]
+    acceptance:
+      - "Extracts incremental data based on updated_at"
+      - "Handles API pagination automatically"
+      - "Retries on transient failures (3 attempts)"
+    trace:
+      - "dags/extract/sales_db.py"
+      - "dags/extract/marketing_api.py"
+
+  - id: "feat-002"
+    title: "Data Transformation"
+    description: "Clean, validate, and transform data"
+    priority: "P0"
+    transformations:
+      - name: "customer_360"
+        inputs: ["customers", "orders"]
+        output: "dim_customer"
+        rules:
+          - "Deduplicate by email"
+          - "Calculate lifetime value"
+          - "Standardize addresses"
+      - name: "sales_facts"
+        inputs: ["orders", "products"]
+        output: "fact_sales"
+        rules:
+          - "Convert currency to USD"
+          - "Apply regional tax rules"
+    acceptance:
+      - "Data quality checks pass (nulls, types, ranges)"
+      - "Transformation completes within SLA (2 hours)"
+      - "Failed records logged to dead letter queue"
+    trace:
+      - "dags/transform/customer_360.py"
+      - "dags/transform/sales_facts.py"
+
+  - id: "feat-003"
+    title: "Data Loading"
+    description: "Load transformed data to Snowflake warehouse"
+    priority: "P0"
+    targets:
+      - name: "snowflake"
+        schema: "analytics"
+        tables: ["dim_customer", "fact_sales", "dim_product"]
+    acceptance:
+      - "Upsert based on primary keys"
+      - "Maintain SCD Type 2 for dimensions"
+      - "Atomic transactions per table"
+    trace:
+      - "dags/load/snowflake.py"
+
+  - id: "feat-004"
+    title: "Monitoring and Alerts"
+    description: "Track pipeline health and data quality"
+    priority: "P1"
+    alerts:
+      - condition: "pipeline_failure"
+        channel: "slack"
+      - condition: "data_quality_below_threshold"
+        channel: "email"
+    acceptance:
+      - "Alert within 5 minutes of failure"
+      - "Dashboard shows pipeline lineage"
+      - "Metrics include row counts, duration, errors"
+    trace:
+      - "dags/monitoring/alerts.py"
+
+non_functional:
+  performance:
+    - "Full pipeline completes in < 4 hours"
+    - "Incremental runs in < 30 minutes"
+  reliability:
+    - "Idempotent runs (safe to retry)"
+    - "Automatic backfill support"
+    - "Data lineage tracking"
+  observability:
+    - "Airflow UI for DAG monitoring"
+    - "Prometheus metrics for SLAs"
+    - "Data catalog integration"
+
+milestones:
+  - name: "Production"
+    features: ["feat-001", "feat-002", "feat-003", "feat-004"]
+    date: "2025-02-28"

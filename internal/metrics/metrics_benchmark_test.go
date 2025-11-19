@@ -107,14 +107,13 @@ func BenchmarkMetricsParallel(b *testing.B) {
 	})
 }
 
-// BenchmarkDefaultMetricsInit benchmarks default metrics initialization
-func BenchmarkDefaultMetricsInit(b *testing.B) {
+// BenchmarkMetricsInit benchmarks metrics initialization with fresh registry
+func BenchmarkMetricsInit(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		Reset() // Clear previous initialization
-		_ = InitDefault()
+		_, _ = NewRegistry()
 	}
 }
 

@@ -1,0 +1,104 @@
+# Specular Product Specification - Order Service
+# Template: microservice
+# Example project for specular demonstration
+
+product:
+  name: "Order Service"
+  description: "Microservice for order processing in an e-commerce platform with event-driven architecture"
+  goals:
+    - "Process customer orders reliably"
+    - "Publish events to message queue"
+    - "Coordinate with inventory service"
+  tech_stack:
+    language: "Go"
+    framework: "gRPC + HTTP"
+    database: "PostgreSQL"
+    message_queue: "RabbitMQ"
+    runtime: "Go 1.22"
+
+features:
+  - id: "feat-001"
+    title: "Order Creation"
+    description: "Create new orders with validation"
+    priority: "P0"
+    api:
+      - method: "POST"
+        path: "/api/orders"
+        request_body:
+          customer_id: "string"
+          items: "array"
+          shipping_address: "object"
+        response:
+          order_id: "string"
+          status: "string"
+    events:
+      - name: "order.created"
+        payload:
+          order_id: "string"
+          customer_id: "string"
+          total: "number"
+    acceptance:
+      - "Order ID is UUID v4"
+      - "Validates item availability before accepting"
+      - "Publishes event within 100ms"
+    trace:
+      - "internal/orders/create.go"
+      - "internal/events/publisher.go"
+
+  - id: "feat-002"
+    title: "Order Status Management"
+    description: "Track and update order status through lifecycle"
+    priority: "P0"
+    api:
+      - method: "GET"
+        path: "/api/orders/{id}"
+        response:
+          order: "object"
+          status_history: "array"
+      - method: "PATCH"
+        path: "/api/orders/{id}/status"
+        request_body:
+          status: "string"
+          reason: "string"
+    acceptance:
+      - "Status transitions are validated (pending->confirmed->shipped->delivered)"
+      - "All transitions are logged with timestamp"
+      - "Invalid transitions return 422"
+    trace:
+      - "internal/orders/status.go"
+
+  - id: "feat-003"
+    title: "Inventory Integration"
+    description: "Communicate with inventory service via gRPC"
+    priority: "P0"
+    grpc:
+      - service: "InventoryService"
+        method: "ReserveItems"
+        request:
+          items: "array"
+        response:
+          reservation_id: "string"
+    acceptance:
+      - "Reserve inventory atomically"
+      - "Compensate on order cancellation"
+      - "Circuit breaker for service failures"
+    trace:
+      - "internal/inventory/client.go"
+
+non_functional:
+  performance:
+    - "Order creation < 200ms p95"
+    - "Event publishing < 50ms"
+  reliability:
+    - "At-least-once delivery guarantee"
+    - "Idempotent order creation"
+    - "Saga rollback on failure"
+  observability:
+    - "Distributed tracing with OpenTelemetry"
+    - "Prometheus metrics"
+    - "Structured logging with correlation ID"
+
+milestones:
+  - name: "Production"
+    features: ["feat-001", "feat-002", "feat-003"]
+    date: "2025-02-15"

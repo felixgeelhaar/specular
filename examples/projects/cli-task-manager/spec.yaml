@@ -1,0 +1,207 @@
+# Specular Specification for Task Manager CLI
+# This spec defines the application requirements for autonomous implementation
+
+version: "1.0"
+name: task-cli
+description: A command-line task management application
+
+# Technology stack
+stack:
+  language: go
+  framework: cobra
+  config: viper
+  storage: json-file
+
+# Application modules
+modules:
+  - name: cmd
+    description: CLI commands and entry point
+    components:
+      - name: root
+        type: command
+        description: Root command with global flags
+        flags:
+          - name: config
+            type: string
+            description: Config file path
+          - name: verbose
+            type: bool
+            description: Enable verbose output
+
+      - name: add
+        type: command
+        description: Add a new task
+        args:
+          - name: title
+            required: true
+        flags:
+          - name: priority
+            type: string
+            default: medium
+            options: [low, medium, high]
+          - name: due
+            type: string
+            description: Due date (YYYY-MM-DD)
+
+      - name: list
+        type: command
+        description: List tasks
+        flags:
+          - name: all
+            type: bool
+            description: Include completed tasks
+          - name: priority
+            type: string
+            description: Filter by priority
+
+      - name: complete
+        type: command
+        description: Mark task as complete
+        args:
+          - name: id
+            type: int
+            required: true
+
+      - name: delete
+        type: command
+        description: Delete a task
+        args:
+          - name: id
+            type: int
+            required: true
+
+      - name: config
+        type: command
+        description: Configuration management
+        subcommands:
+          - name: show
+            description: Show current configuration
+          - name: set
+            description: Set a configuration value
+            args:
+              - name: key
+                required: true
+              - name: value
+                required: true
+
+      - name: completion
+        type: command
+        description: Generate shell completions
+        args:
+          - name: shell
+            options: [bash, zsh, fish, powershell]
+
+  - name: task
+    description: Task domain model
+    components:
+      - name: Task
+        type: struct
+        fields:
+          - name: ID
+            type: int
+          - name: Title
+            type: string
+            validation: required,min=1,max=200
+          - name: Description
+            type: string
+          - name: Priority
+            type: Priority
+          - name: Status
+            type: Status
+          - name: DueDate
+            type: "*time.Time"
+          - name: CreatedAt
+            type: time.Time
+          - name: CompletedAt
+            type: "*time.Time"
+
+      - name: Priority
+        type: enum
+        values: [low, medium, high]
+
+      - name: Status
+        type: enum
+        values: [pending, in_progress, completed]
+
+  - name: config
+    description: Configuration management
+    components:
+      - name: Config
+        type: struct
+        fields:
+          - name: Storage
+            type: StorageConfig
+          - name: Defaults
+            type: DefaultsConfig
+          - name: Display
+            type: DisplayConfig
+
+      - name: StorageConfig
+        type: struct
+        fields:
+          - name: Path
+            type: string
+            default: ~/.task-cli/tasks.json
+
+      - name: DefaultsConfig
+        type: struct
+        fields:
+          - name: Priority
+            type: string
+            default: medium
+
+      - name: DisplayConfig
+        type: struct
+        fields:
+          - name: Colors
+            type: bool
+            default: true
+          - name: DateFormat
+            type: string
+            default: "2006-01-02"
+
+  - name: storage
+    description: Storage layer
+    components:
+      - name: Storage
+        type: interface
+        methods:
+          - name: List
+            returns: "[]Task, error"
+          - name: Get
+            params: [id int]
+            returns: "*Task, error"
+          - name: Create
+            params: [task *Task]
+            returns: error
+          - name: Update
+            params: [task *Task]
+            returns: error
+          - name: Delete
+            params: [id int]
+            returns: error
+
+      - name: FileStorage
+        type: struct
+        implements: Storage
+        description: JSON file-based storage with atomic writes
+
+# Quality requirements
+quality:
+  test_coverage: 80
+  linting: golangci-lint
+  security: gosec
+
+# Build configuration
+build:
+  binary: task-cli
+  ldflags:
+    - "-s -w"
+    - "-X main.version={{.Version}}"
+  targets:
+    - os: linux
+      arch: [amd64, arm64]
+    - os: darwin
+      arch: [amd64, arm64]
+    - os: windows
+      arch: [amd64]

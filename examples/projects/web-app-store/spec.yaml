@@ -1,0 +1,138 @@
+# Specular Product Specification - E-commerce Store
+# Template: web-app
+# Example project for specular demonstration
+
+product:
+  name: "E-commerce Store"
+  description: "A modern e-commerce platform with product catalog, shopping cart, and secure checkout"
+  goals:
+    - "Enable customers to browse and purchase products online"
+    - "Provide secure payment processing"
+    - "Support inventory management for sellers"
+  target_users:
+    - "Online shoppers"
+    - "Store administrators"
+  tech_stack:
+    language: "TypeScript"
+    framework: "Next.js"
+    database: "PostgreSQL"
+    runtime: "Node.js 20"
+
+features:
+  - id: "feat-001"
+    title: "User Authentication"
+    description: "Secure user registration, login, and session management"
+    priority: "P0"
+    api:
+      - method: "POST"
+        path: "/api/auth/register"
+        request_body:
+          email: "string"
+          password: "string"
+        response:
+          user_id: "string"
+          token: "string"
+      - method: "POST"
+        path: "/api/auth/login"
+        request_body:
+          email: "string"
+          password: "string"
+        response:
+          token: "string"
+    acceptance:
+      - "Users can register with email and password"
+      - "Passwords are hashed using bcrypt"
+      - "JWT tokens expire after 24 hours"
+    trace:
+      - "src/auth/register.ts"
+      - "src/auth/login.ts"
+
+  - id: "feat-002"
+    title: "Product Catalog"
+    description: "Browse, search, and filter products with categories"
+    priority: "P0"
+    api:
+      - method: "GET"
+        path: "/api/products"
+        query_params:
+          category: "string"
+          search: "string"
+          page: "number"
+        response:
+          products: "array"
+          total: "number"
+      - method: "GET"
+        path: "/api/products/{id}"
+        response:
+          product: "object"
+    acceptance:
+      - "Products display with images, name, price, and description"
+      - "Search returns results within 200ms"
+      - "Pagination works with 20 items per page"
+    trace:
+      - "src/products/list.ts"
+      - "src/products/detail.ts"
+
+  - id: "feat-003"
+    title: "Shopping Cart"
+    description: "Add, remove, and modify items in cart"
+    priority: "P0"
+    api:
+      - method: "POST"
+        path: "/api/cart/items"
+        request_body:
+          product_id: "string"
+          quantity: "number"
+      - method: "DELETE"
+        path: "/api/cart/items/{id}"
+      - method: "GET"
+        path: "/api/cart"
+        response:
+          items: "array"
+          total: "number"
+    acceptance:
+      - "Cart persists across sessions for logged-in users"
+      - "Cart shows real-time total calculation"
+      - "Stock availability is validated"
+    trace:
+      - "src/cart/cart.ts"
+
+  - id: "feat-004"
+    title: "Checkout Flow"
+    description: "Complete purchase with payment processing"
+    priority: "P0"
+    api:
+      - method: "POST"
+        path: "/api/orders"
+        request_body:
+          cart_id: "string"
+          payment_method: "string"
+          shipping_address: "object"
+        response:
+          order_id: "string"
+          status: "string"
+    acceptance:
+      - "Integrates with Stripe for payments"
+      - "Sends order confirmation email"
+      - "Reduces inventory on successful purchase"
+    trace:
+      - "src/checkout/checkout.ts"
+      - "src/payments/stripe.ts"
+
+non_functional:
+  performance:
+    - "Page load time < 3 seconds"
+    - "API response time < 500ms p95"
+    - "Support 1000 concurrent users"
+  security:
+    - "HTTPS only"
+    - "OWASP Top 10 compliance"
+    - "PCI DSS compliant payment handling"
+  availability:
+    - "99.9% uptime SLA"
+    - "Automated failover"
+
+milestones:
+  - name: "MVP"
+    features: ["feat-001", "feat-002", "feat-003", "feat-004"]
+    date: "2025-01-15"
