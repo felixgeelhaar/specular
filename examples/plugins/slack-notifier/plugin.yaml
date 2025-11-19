@@ -1,0 +1,39 @@
+name: slack-notifier
+version: 1.0.0
+description: Send Specular notifications to Slack channels
+author: Specular Team
+license: MIT
+homepage: https://github.com/felixgeelhaar/specular
+
+type: notifier
+entrypoint: ./slack-notifier
+
+min_specular_version: "1.6.0"
+
+capabilities:
+  - notifications
+  - slack
+
+config:
+  - name: webhook_url
+    type: string
+    description: Slack Incoming Webhook URL
+    required: true
+    secret: true
+
+  - name: channel
+    type: string
+    description: Override default channel (optional)
+    required: false
+
+  - name: username
+    type: string
+    description: Bot username to display
+    required: false
+    default: Specular
+
+  - name: icon_emoji
+    type: string
+    description: Emoji to use as bot icon
+    required: false
+    default: ":robot_face:"

@@ -1,0 +1,53 @@
+# Specular Plugin Manifest
+# This file describes your plugin and its configuration.
+
+name: my-plugin                        # Unique plugin identifier
+version: 1.0.0                         # Semantic version
+description: A template plugin         # Short description
+author: Your Name                      # Your name or organization
+license: MIT                           # SPDX license identifier
+homepage: https://github.com/you/repo  # Plugin homepage or repository
+
+# Plugin type (choose one):
+# - provider: AI model provider
+# - validator: Policy validation
+# - formatter: Output formatting
+# - hook: Event hooks
+# - notifier: Notifications (Slack, email, etc.)
+type: notifier
+
+# Path to the plugin executable (relative to plugin directory)
+entrypoint: ./plugin
+
+# Minimum Specular version required (optional)
+min_specular_version: "1.6.0"
+
+# Plugin capabilities (optional, used for discovery)
+capabilities:
+  - example
+
+# Configuration options that users can set
+config:
+  - name: api_key
+    type: string
+    description: API key for authentication
+    required: true
+    secret: true                       # Marks as sensitive data
+
+  - name: endpoint
+    type: string
+    description: API endpoint URL
+    required: false
+    default: https://api.example.com
+
+  - name: timeout
+    type: int
+    description: Request timeout in seconds
+    required: false
+    default: 30
+
+  - name: enabled
+    type: bool
+    description: Enable this plugin
+    required: false
+    default: true
