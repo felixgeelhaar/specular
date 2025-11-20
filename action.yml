@@ -1,314 +1,248 @@
-name: 'Specular - AI-Native Spec and Build Assistant'
-description: 'Spec-first, policy-enforced software development with AI assistance'
+name: 'Specular CI'
+description: 'AI-Native Spec and Build Assistant with policy enforcement for CI/CD'
 author: 'Felix Geelhaar'
-
 branding:
   icon: 'check-circle'
   color: 'blue'
 
 inputs:
-  command:
-    description: 'Specular command to run (spec, plan, build, eval, drift)'
-    required: true
-
-  # Spec generation inputs
-  prd-file:
-    description: 'Path to Product Requirements Document (for spec command)'
+  version:
+    description: 'Version of Specular to use (default: latest)'
     required: false
-    default: 'PRD.md'
+    default: 'latest'
+
+  command:
+    description: 'Specular command to run (drift, eval, build, plan)'
+    required: true
 
   spec-file:
     description: 'Path to spec file'
     required: false
     default: '.specular/spec.yaml'
 
-  # Plan generation inputs
   plan-file:
     description: 'Path to plan file'
     required: false
     default: 'plan.json'
 
-  # Policy inputs
   policy-file:
     description: 'Path to policy file'
     required: false
     default: '.specular/policy.yaml'
 
-  # Build inputs
-  dry-run:
-    description: 'Run build in dry-run mode (show what would be executed)'
+  fail-on:
+    description: 'Comma-separated list of conditions to fail on (drift,lint,test,security)'
     required: false
-    default: 'false'
+    default: 'drift,test,security'
 
-  # Eval/Drift inputs
-  fail-on-drift:
-    description: 'Fail the workflow if drift is detected'
+  sarif-output:
+    description: 'Path to SARIF output file for GitHub Code Scanning'
+    required: false
+    default: 'specular-results.sarif'
+
+  upload-sarif:
+    description: 'Upload SARIF results to GitHub Code Scanning'
     required: false
     default: 'true'
 
-  report-file:
-    description: 'Path to SARIF report output'
-    required: false
-    default: 'drift.sarif'
-
-  # AI Provider configuration
   anthropic-api-key:
-    description: 'Anthropic API key for Claude models'
+    description: 'Anthropic API key for AI providers'
     required: false
 
   openai-api-key:
-    description: 'OpenAI API key for GPT models'
+    description: 'OpenAI API key for AI providers'
     required: false
 
-  gemini-api-key:
-    description: 'Google Gemini API key'
+  google-api-key:
+    description: 'Google API key for AI providers'
     required: false
 
-  # Advanced options
-  project-root:
-    description: 'Project root directory'
+  additional-args:
+    description: 'Additional arguments to pass to Specular command'
     required: false
-    default: '.'
-
-  checkpoint-resume:
-    description: 'Resume from previous checkpoint if available'
-    required: false
-    default: 'false'
-
-  verbose:
-    description: 'Enable verbose output'
-    required: false
-    default: 'false'
-
-  enable-cache:
-    description: 'Enable Docker image caching (speeds up subsequent runs)'
-    required: false
-    default: 'true'
-
-  cache-dir:
-    description: 'Directory for image cache'
-    required: false
-    default: '.specular/cache'
+    default: ''
 
 outputs:
-  status:
-    description: 'Execution status (success, failed, drift-detected)'
+  result:
+    description: 'Result of the Specular command execution (success/failure)'
 
-  report-path:
-    description: 'Path to generated SARIF report (if applicable)'
+  drift-count:
+    description: 'Number of drift violations detected'
 
-  summary:
-    description: 'Execution summary'
+  test-count:
+    description: 'Number of test failures'
+
+  security-count:
+    description: 'Number of security issues found'
+
+  sarif-file:
+    description: 'Path to generated SARIF file'
 
 runs:
   using: 'composite'
   steps:
-    - name: Check Docker availability
+    - name: Install Specular
       shell: bash
       run: |
-        if ! command -v docker &> /dev/null; then
-          echo "::error::Docker is required but not installed"
-          exit 1
+        if [ "${{ inputs.version }}" == "latest" ]; then
+          VERSION=$(curl -s https://api.github.com/repos/felixgeelhaar/specular/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+        else
+          VERSION="${{ inputs.version }}"
         fi
-        docker --version
 
-    - name: Restore Docker Image Cache
-      if: inputs.enable-cache == 'true'
-      uses: actions/cache/restore@v3
-      id: docker-cache
-      with:
-        path: ${{ inputs.cache-dir }}
-        key: specular-docker-images-${{ runner.os }}-${{ hashFiles('**/plan.json', '.specular/spec.yaml') }}
-        restore-keys: |
-          specular-docker-images-${{ runner.os }}-
+        echo "Installing Specular $VERSION..."
 
-    - name: Import Cached Docker Images
-      if: inputs.enable-cache == 'true' && steps.docker-cache.outputs.cache-hit == 'true'
+        # Detect platform
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+
+        case "$ARCH" in
+          x86_64) ARCH="amd64" ;;
+          aarch64|arm64) ARCH="arm64" ;;
+        esac
+
+        # Download and install
+        DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/download/${VERSION}/specular_${VERSION#v}_${OS}_${ARCH}.tar.gz"
+
+        echo "Downloading from: $DOWNLOAD_URL"
+        curl -sL "$DOWNLOAD_URL" | tar xz -C /tmp
+        sudo mv /tmp/specular /usr/local/bin/
+        sudo chmod +x /usr/local/bin/specular
+
+        # Install completions
+        if [ -d /tmp/completions ]; then
+          mkdir -p ~/.local/share/bash-completion/completions
+          cp /tmp/completions/specular.bash ~/.local/share/bash-completion/completions/specular 2>/dev/null || true
+        fi
+
+        specular version
+
+    - name: Setup AI Provider Credentials
       shell: bash
       run: |
-        if [ -d "${{ inputs.cache-dir }}" ]; then
-          echo "Importing cached Docker images..."
-          specular prewarm --import "${{ inputs.cache-dir }}" --verbose
+        mkdir -p ~/.specular
+
+        # Create provider config
+        cat > ~/.specular/config.yaml <<'INNEREOF'
+        providers:
+        INNEREOF
+
+        if [ -n "${{ inputs.anthropic-api-key }}" ]; then
+          cat >> ~/.specular/config.yaml <<'INNEREOF'
+          anthropic:
+            api_key: ${{ inputs.anthropic-api-key }}
+        INNEREOF
         fi
 
-    - name: Setup Specular
-      shell: bash
-      run: |
-        # Download or use cached Specular binary
-        if [ ! -f "$HOME/.specular/bin/specular" ]; then
-          echo "Downloading Specular..."
-          mkdir -p "$HOME/.specular/bin"
-
-          # Determine platform
-          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-          ARCH=$(uname -m)
-
-          if [ "$ARCH" = "x86_64" ]; then
-            ARCH="amd64"
-          elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-            ARCH="arm64"
-          fi
-
-          # For now, build from source (future: download release)
-          cd ${{ github.action_path }}
-          make build
-          cp specular "$HOME/.specular/bin/"
+        if [ -n "${{ inputs.openai-api-key }}" ]; then
+          cat >> ~/.specular/config.yaml <<'INNEREOF'
+          openai:
+            api_key: ${{ inputs.openai-api-key }}
+        INNEREOF
         fi
 
-        # Add to PATH
-        echo "$HOME/.specular/bin" >> $GITHUB_PATH
-
-    - name: Configure AI Providers
-      shell: bash
-      env:
-        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
-        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
-        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
-      run: |
-        if [ -n "$ANTHROPIC_API_KEY" ]; then
-          echo "ANTHROPIC_API_KEY configured"
-          echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> $GITHUB_ENV
-        fi
-
-        if [ -n "$OPENAI_API_KEY" ]; then
-          echo "OPENAI_API_KEY configured"
-          echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> $GITHUB_ENV
-        fi
-
-        if [ -n "$GEMINI_API_KEY" ]; then
-          echo "GEMINI_API_KEY configured"
-          echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> $GITHUB_ENV
+        if [ -n "${{ inputs.google-api-key }}" ]; then
+          cat >> ~/.specular/config.yaml <<'INNEREOF'
+          google:
+            api_key: ${{ inputs.google-api-key }}
+        INNEREOF
         fi
 
     - name: Run Specular Command
-      shell: bash
       id: specular
+      shell: bash
       run: |
-        cd "${{ inputs.project-root }}"
+        set +e  # Don't exit on error, we'll handle it
 
-        # Build command based on inputs
-        CMD="specular ${{ inputs.command }}"
+        COMMAND="${{ inputs.command }}"
+        ARGS="${{ inputs.additional-args }}"
 
-        case "${{ inputs.command }}" in
-          spec)
-            CMD="$CMD generate --in ${{ inputs.prd-file }} --out ${{ inputs.spec-file }}"
-            ;;
+        case "$COMMAND" in
+          drift)
+            OUTPUT_FILE="${{ inputs.sarif-output }}"
+            specular drift detect \
+              --spec "${{ inputs.spec-file }}" \
+              --plan "${{ inputs.plan-file }}" \
+              --format sarif \
+              --output "$OUTPUT_FILE" \
+              $ARGS
+            EXIT_CODE=$?
 
-          plan)
-            CMD="$CMD generate --spec ${{ inputs.spec-file }} --policy ${{ inputs.policy-file }} --out ${{ inputs.plan-file }}"
-            ;;
-
-          build)
-            CMD="$CMD --plan ${{ inputs.plan-file }} --policy ${{ inputs.policy-file }}"
-            if [ "${{ inputs.dry-run }}" = "true" ]; then
-              CMD="$CMD --dry-run"
-            fi
-            if [ "${{ inputs.checkpoint-resume }}" = "true" ]; then
-              CMD="$CMD --resume"
+            # Parse SARIF for metrics
+            if [ -f "$OUTPUT_FILE" ]; then
+              DRIFT_COUNT=$(jq '.runs[0].results | length' "$OUTPUT_FILE" 2>/dev/null || echo "0")
+              echo "drift-count=$DRIFT_COUNT" >> $GITHUB_OUTPUT
+              echo "sarif-file=$OUTPUT_FILE" >> $GITHUB_OUTPUT
             fi
             ;;
 
           eval)
-            CMD="$CMD --spec ${{ inputs.spec-file }} --plan ${{ inputs.plan-file }} --policy ${{ inputs.policy-file }} --report ${{ inputs.report-file }}"
-            if [ "${{ inputs.fail-on-drift }}" = "true" ]; then
-              CMD="$CMD --fail-on-drift"
-            fi
-            if [ "${{ inputs.checkpoint-resume }}" = "true" ]; then
-              CMD="$CMD --resume"
-            fi
+            specular eval run \
+              --plan "${{ inputs.plan-file }}" \
+              --policy "${{ inputs.policy-file }}" \
+              --fail-on "${{ inputs.fail-on }}" \
+              $ARGS
+            EXIT_CODE=$?
             ;;
 
-          drift)
-            CMD="specular eval --spec ${{ inputs.spec-file }} --plan ${{ inputs.plan-file }} --report ${{ inputs.report-file }}"
-            if [ "${{ inputs.fail-on-drift }}" = "true" ]; then
-              CMD="$CMD --fail-on-drift"
-            fi
+          build)
+            specular build run \
+              --plan "${{ inputs.plan-file }}" \
+              --policy "${{ inputs.policy-file }}" \
+              $ARGS
+            EXIT_CODE=$?
             ;;
-        esac
 
-        if [ "${{ inputs.verbose }}" = "true" ]; then
-          CMD="$CMD --verbose"
-        fi
-
-        echo "Executing: $CMD"
-
-        # Execute command and capture status
-        if eval "$CMD"; then
-          echo "status=success" >> $GITHUB_OUTPUT
-          echo "::notice::Specular command completed successfully"
-        else
-          EXIT_CODE=$?
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "status=success" >> $GITHUB_OUTPUT
-          else
-            echo "status=failed" >> $GITHUB_OUTPUT
-            echo "::error::Specular command failed with exit code $EXIT_CODE"
-            exit $EXIT_CODE
-          fi
-        fi
-
-        # Set outputs
-        if [ -f "${{ inputs.report-file }}" ]; then
-          echo "report-path=${{ inputs.report-file }}" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Export Docker Images to Cache
-      if: inputs.enable-cache == 'true' && success()
-      shell: bash
-      run: |
-        # Export commonly used images for next run
-        echo "Exporting Docker images to cache..."
-        mkdir -p "${{ inputs.cache-dir }}"
-
-        # Determine which images to export based on command
-        case "${{ inputs.command }}" in
-          build|spec|plan)
-            IMAGES="golang:1.22 node:20 alpine:latest"
+          plan)
+            specular plan create \
+              --in "${{ inputs.spec-file }}" \
+              --out "${{ inputs.plan-file }}" \
+              $ARGS
+            EXIT_CODE=$?
             ;;
+
           *)
-            IMAGES="alpine:latest"
+            echo "Unknown command: $COMMAND"
+            echo "Supported commands: drift, eval, build, plan"
+            exit 1
             ;;
         esac
 
-        # Export if images exist locally
-        for IMAGE in $IMAGES; do
-          if docker image inspect "$IMAGE" &>/dev/null; then
-            specular prewarm "$IMAGE" --export "${{ inputs.cache-dir }}" --verbose || true
-          fi
-        done
+        # Set result output
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "result=success" >> $GITHUB_OUTPUT
+        else
+          echo "result=failure" >> $GITHUB_OUTPUT
+        fi
 
-    - name: Save Docker Image Cache
-      if: inputs.enable-cache == 'true' && success()
-      uses: actions/cache/save@v3
-      with:
-        path: ${{ inputs.cache-dir }}
-        key: specular-docker-images-${{ runner.os }}-${{ hashFiles('**/plan.json', '.specular/spec.yaml') }}
+        exit $EXIT_CODE
 
-    - name: Upload SARIF Report
-      if: inputs.command == 'eval' || inputs.command == 'drift'
+    - name: Upload SARIF Results
+      if: inputs.upload-sarif == 'true' && steps.specular.outputs.sarif-file != ''
       uses: github/codeql-action/upload-sarif@v3
-      continue-on-error: true
       with:
-        sarif_file: ${{ inputs.report-file }}
-        category: specular-drift-detection
+        sarif_file: ${{ steps.specular.outputs.sarif-file }}
+        category: specular-${{ inputs.command }}
+      continue-on-error: true
 
-    - name: Summary
+    - name: Generate Job Summary
       if: always()
       shell: bash
       run: |
-        echo "## Specular Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## Specular CI Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Command:** ${{ inputs.command }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Status:** ${{ steps.specular.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Command**: ${{ inputs.command }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Result**: ${{ steps.specular.outputs.result }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
 
-        if [ "${{ inputs.command }}" = "eval" ] || [ "${{ inputs.command }}" = "drift" ]; then
-          if [ -f "${{ inputs.report-file }}" ]; then
-            echo "**Report:** ${{ inputs.report-file }}" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -n "${{ steps.specular.outputs.drift-count }}" ]; then
+          echo "**Drift Violations**: ${{ steps.specular.outputs.drift-count }}" >> $GITHUB_STEP_SUMMARY
+        fi
 
-            # Parse SARIF for summary
-            TOTAL=$(jq '.runs[0].results | length' "${{ inputs.report-file }}" 2>/dev/null || echo "0")
-            echo "**Total Findings:** $TOTAL" >> $GITHUB_STEP_SUMMARY
-          fi
+        if [ -n "${{ steps.specular.outputs.test-count }}" ]; then
+          echo "**Test Failures**: ${{ steps.specular.outputs.test-count }}" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        if [ -n "${{ steps.specular.outputs.security-count }}" ]; then
+          echo "**Security Issues**: ${{ steps.specular.outputs.security-count }}" >> $GITHUB_STEP_SUMMARY
         fi
