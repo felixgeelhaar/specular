@@ -337,11 +337,145 @@ func (m *Manager) SetConfig(name string, config map[string]interface{}) error {
 
 // Install installs a plugin from a path or URL
 func (m *Manager) Install(source string) error {
-	// TODO: Implement plugin installation from:
-	// - Local directory
-	// - GitHub repository
-	// - Plugin registry
-	return fmt.Errorf("plugin installation not yet implemented")
+	// Determine source type
+	if strings.HasPrefix(source, "github.com/") || strings.HasPrefix(source, "https://github.com/") {
+		return m.installFromGitHub(source)
+	}
+
+	// Assume local directory
+	return m.installFromLocal(source)
+}
+
+// installFromLocal installs a plugin from a local directory
+func (m *Manager) installFromLocal(sourcePath string) error {
+	// Resolve absolute path
+	absPath, err := filepath.Abs(sourcePath)
+	if err != nil {
+		return fmt.Errorf("resolve path: %w", err)
+	}
+
+	// Verify source exists and is a directory
+	info, err := os.Stat(absPath)
+	if err != nil {
+		return fmt.Errorf("source path: %w", err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("source must be a directory")
+	}
+
+	// Find manifest file
+	manifestPath := filepath.Join(absPath, "plugin.yaml")
+	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+		manifestPath = filepath.Join(absPath, "plugin.json")
+		if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+			return fmt.Errorf("no plugin.yaml or plugin.json found in %s", absPath)
+		}
+	}
+
+	// Load and validate manifest
+	plugin, err := m.loadPlugin(absPath, manifestPath)
+	if err != nil {
+		return fmt.Errorf("invalid plugin: %w", err)
+	}
+
+	// Get user plugin directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("get home directory: %w", err)
+	}
+	pluginDir := filepath.Join(homeDir, ".specular", "plugins")
+
+	// Create plugin directory if needed
+	if err := os.MkdirAll(pluginDir, 0750); err != nil {
+		return fmt.Errorf("create plugin directory: %w", err)
+	}
+
+	// Destination path
+	destPath := filepath.Join(pluginDir, plugin.Manifest.Name)
+
+	// Check if plugin already exists
+	if _, err := os.Stat(destPath); err == nil {
+		return fmt.Errorf("plugin %s already installed (use 'specular plugin uninstall %s' first)",
+			plugin.Manifest.Name, plugin.Manifest.Name)
+	}
+
+	// Copy plugin directory
+	if err := copyDir(absPath, destPath); err != nil {
+		return fmt.Errorf("copy plugin: %w", err)
+	}
+
+	fmt.Printf("✓ Installed plugin: %s v%s\n", plugin.Manifest.Name, plugin.Manifest.Version)
+	fmt.Printf("  Path: %s\n", destPath)
+
+	return nil
+}
+
+// installFromGitHub installs a plugin from a GitHub repository
+func (m *Manager) installFromGitHub(source string) error {
+	// Parse GitHub URL
+	repo := strings.TrimPrefix(source, "https://github.com/")
+	repo = strings.TrimPrefix(repo, "github.com/")
+	repo = strings.TrimSuffix(repo, ".git")
+
+	if !strings.Contains(repo, "/") {
+		return fmt.Errorf("invalid GitHub repository format (expected: github.com/user/repo)")
+	}
+
+	// Create temporary directory for cloning
+	tmpDir, err := os.MkdirTemp("", "specular-plugin-*")
+	if err != nil {
+		return fmt.Errorf("create temp directory: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Clone repository
+	fmt.Printf("Cloning %s...\n", repo)
+	cloneURL := fmt.Sprintf("https://github.com/%s.git", repo)
+
+	cmd := exec.Command("git", "clone", "--depth", "1", cloneURL, tmpDir)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("git clone failed: %w\nOutput: %s", err, output)
+	}
+
+	// Install from cloned directory
+	return m.installFromLocal(tmpDir)
+}
+
+// copyDir recursively copies a directory
+func copyDir(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Calculate destination path
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(dst, relPath)
+
+		// Skip .git directory
+		if info.IsDir() && info.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		if info.IsDir() {
+			return os.MkdirAll(destPath, 0750)
+		}
+
+		// Copy file
+		return copyFile(path, destPath, info.Mode())
+	})
+}
+
+// copyFile copies a single file
+func copyFile(src, dst string, mode os.FileMode) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, mode)
 }
 
 // Uninstall removes a plugin
