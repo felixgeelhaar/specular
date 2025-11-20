@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Interactive Plan Review TUI**
+  - Full BubbleTea-based terminal UI for reviewing execution plans
+  - Two-view system: list view for overview, detail view for task inspection
+  - Vim-style navigation (j/k, h/l, enter, esc)
+  - Approve/reject workflow with rejection reason prompt
+  - Auto-approve empty plans for convenience
+  - Styled with lipgloss for professional appearance
+  - Comprehensive test suite with 11 tests
+
+- **Platform API Client v2.0**
+  - Production-grade HTTP client for Specular Platform integration
+  - Configurable retry logic with exponential backoff
+  - Smart retry strategy: retries 5xx errors, fails fast on 4xx
+  - Context propagation for request cancellation
+  - Structured APIError type with request ID tracking
+  - Three endpoints: Health, GenerateSpec, GeneratePlan
+  - Comprehensive test suite with 14 tests including retry scenarios
+
+- **Plugin System Enhancements**
+  - Plugin installation from local directories
+  - Plugin installation from GitHub repositories
+  - Automatic dependency resolution
+
+- **Build System Improvements**
+  - ImageCache support in autonomous mode executor
+  - Manifest loading and validation for build approval
+  - Plan task counting and build manifest loading
+  - Actual version tracking from builds instead of hardcoded values
+
+- **License & Documentation**
+  - PRO tier gates for bundle commands
+  - Step-by-step tutorial guides for PRO features
+  - Tutorial documentation for advanced workflows
+
+### Fixed
+
+- **Security**: Updated golang.org/x/crypto from v0.43.0 to v0.45.0 (fixes 2 moderate CVEs)
+- **Concurrency**: Resolved race condition in DefaultLogger
+- **Code Quality**: Fixed import grouping and type assertions in TUI code
+- **Linting**: Resolved golangci-lint errors (errcheck, govet shadow, goimports)
+- **Policy**: Implemented policy hash change detection for approval workflow
+
+### Changed
+
+- **Build Artifacts**: Added specular build artifacts to .gitignore
+
 ## [1.2.0] - 2025-11-17
 
 ### Major Changes
