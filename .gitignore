@@ -6,6 +6,8 @@
 *.dylib
 /ai-dev
 /specular
+/specular-*
+test_register.sh
 
 # Test binary, built with `go test -c`
 *.test
