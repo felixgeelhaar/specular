@@ -140,6 +140,7 @@ type Evaluator interface {
 type Engine struct {
 	policyStore  PolicyStore
 	attrResolver AttributeResolver
+	auditLogger  AuditLogger
 }
 
 // NewEngine creates a new authorization engine.
@@ -160,6 +161,9 @@ func NewEngine(policyStore PolicyStore, attrResolver AttributeResolver) *Engine 
 // 5. If any policy has effect: allow and all conditions pass → ALLOW
 // 6. Otherwise → DENY
 func (e *Engine) Evaluate(ctx context.Context, req *AuthorizationRequest) (*Decision, error) {
+	// Start timing for audit log
+	startTime := time.Now()
+
 	// Default deny
 	decision := &Decision{
 		Allowed:   false,
@@ -171,12 +175,14 @@ func (e *Engine) Evaluate(ctx context.Context, req *AuthorizationRequest) (*Deci
 	// Get organization ID from session
 	if req.Subject == nil {
 		decision.Reason = "no authenticated subject"
+		e.logDecision(ctx, req, decision, time.Since(startTime))
 		return decision, nil
 	}
 
 	organizationID := req.Subject.OrganizationID
 	if organizationID == "" {
 		decision.Reason = "subject not associated with organization"
+		e.logDecision(ctx, req, decision, time.Since(startTime))
 		return decision, nil
 	}
 
@@ -239,6 +245,7 @@ func (e *Engine) Evaluate(ctx context.Context, req *AuthorizationRequest) (*Deci
 		decision.Allowed = false
 		decision.Reason = "access explicitly denied by policy"
 		decision.PolicyIDs = denyPolicies
+		e.logDecision(ctx, req, decision, time.Since(startTime))
 		return decision, nil
 	}
 
@@ -247,10 +254,12 @@ func (e *Engine) Evaluate(ctx context.Context, req *AuthorizationRequest) (*Deci
 		decision.Allowed = true
 		decision.Reason = "access granted by policy"
 		decision.PolicyIDs = allowPolicies
+		e.logDecision(ctx, req, decision, time.Since(startTime))
 		return decision, nil
 	}
 
 	// Default deny
+	e.logDecision(ctx, req, decision, time.Since(startTime))
 	return decision, nil
 }
 
@@ -517,4 +526,18 @@ func matchGlob(text, pattern string) bool {
 
 	// No wildcard - exact match
 	return text == pattern
+}
+
+// logDecision logs an authorization decision to the audit logger if configured.
+func (e *Engine) logDecision(ctx context.Context, req *AuthorizationRequest, decision *Decision, duration time.Duration) {
+	if e.auditLogger == nil {
+		return
+	}
+
+	entry := NewAuditEntry(req, decision, duration)
+	if err := e.auditLogger.LogDecision(ctx, entry); err != nil {
+		// Log error but don't fail the authorization request
+		// In production, you might want to send this to a monitoring system
+		// For now, we silently ignore audit logging errors
+	}
 }
