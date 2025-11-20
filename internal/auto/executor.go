@@ -93,12 +93,18 @@ func (te *TaskExecutor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionSt
 	// Set state in progress indicator
 	progressIndicator.SetState(cpState)
 
+	// Create image cache with sensible defaults
+	imageCache := exec.NewImageCache(".specular/cache", 7*24*time.Hour)
+	if err := imageCache.LoadManifest(); err != nil && te.config.Verbose {
+		fmt.Printf("Warning: failed to load cache manifest: %v\n", err)
+	}
+
 	// Create executor
 	executor := &exec.Executor{
 		Policy:      pol,
 		DryRun:      te.config.DryRun,
 		ManifestDir: ".specular/manifests",
-		ImageCache:  nil, // TODO: Add cache support
+		ImageCache:  imageCache,
 		Verbose:     te.config.Verbose,
 	}
 
