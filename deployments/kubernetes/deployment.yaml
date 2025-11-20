@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: specular
+  labels:
+    app: specular
+    version: v2.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime deployments
+  selector:
+    matchLabels:
+      app: specular
+  template:
+    metadata:
+      labels:
+        app: specular
+        version: v2.0
+    spec:
+      containers:
+      - name: specular
+        image: specular:latest  # Replace with your image
+        imagePullPolicy: IfNotPresent
+
+        # Command to run the server
+        command: ["specular", "serve"]
+        args:
+          - "--port=8080"
+          - "--address=0.0.0.0"
+          - "--shutdown-timeout=30s"
+          - "--read-timeout=10s"
+          - "--write-timeout=10s"
+          - "--idle-timeout=60s"
+
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+
+        # Environment variables
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+
+        # Resource limits for production
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+        # Startup probe - Allows slow-starting containers more time to initialize
+        # Kubernetes won't check liveness/readiness until startup succeeds
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 12  # 12 * 5s = 60s max startup time
+
+        # Liveness probe - Determines if the container is alive
+        # If this fails, Kubernetes will restart the container
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3  # Restart after 3 consecutive failures
+
+        # Readiness probe - Determines if the container is ready to serve traffic
+        # If this fails, Kubernetes removes the pod from service endpoints
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 2  # Remove from service after 2 consecutive failures
+
+        # Graceful shutdown configuration
+        lifecycle:
+          preStop:
+            exec:
+              # Give the pod time to drain connections before termination
+              command: ["sh", "-c", "sleep 15"]
+
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+
+      # Termination grace period - Time to wait before forcefully killing the pod
+      # Should be greater than shutdown-timeout + preStop sleep
+      terminationGracePeriodSeconds: 60
+
+      # Security context for the pod
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
