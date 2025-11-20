@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -508,34 +509,58 @@ func runBuildApprove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no build manifests found\n\nRun 'specular build run' first")
 	}
 
-	// Get most recent directory
-	var latestDir string
+	// Get most recent manifest file (JSON)
+	var latestManifest string
 	var latestTime time.Time
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
 			continue
 		}
-		info, _ := entry.Info()
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
 		if info.ModTime().After(latestTime) {
 			latestTime = info.ModTime()
-			latestDir = entry.Name()
+			latestManifest = filepath.Join(manifestDir, entry.Name())
 		}
 	}
 
-	if latestDir == "" {
+	if latestManifest == "" {
 		return fmt.Errorf("no valid build manifests found")
 	}
 
-	manifestPath := filepath.Join(manifestDir, latestDir)
-	fmt.Printf("Approving build: %s\n", latestDir)
-	fmt.Printf("Manifest: %s\n\n", manifestPath)
+	// Load and validate manifest
+	data, err := os.ReadFile(latestManifest)
+	if err != nil {
+		return fmt.Errorf("failed to read manifest: %w", err)
+	}
 
-	// TODO: Load and validate manifest
-	// For now, create approval marker
+	var manifest execpkg.RunManifest
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return fmt.Errorf("failed to parse manifest: %w", err)
+	}
 
-	approvalFile := filepath.Join(manifestPath, "approved")
+	// Display manifest details
+	fmt.Printf("Approving build step: %s\n", manifest.StepID)
+	fmt.Printf("Manifest: %s\n", latestManifest)
+	fmt.Printf("Timestamp: %s\n", manifest.Timestamp.Format(time.RFC3339))
+	fmt.Printf("Exit code: %d\n", manifest.ExitCode)
+	fmt.Printf("Duration: %s\n\n", manifest.Duration)
+
+	// Validate manifest - check if build was successful
+	if manifest.ExitCode != 0 {
+		return fmt.Errorf("cannot approve build: step %s failed with exit code %d", manifest.StepID, manifest.ExitCode)
+	}
+
+	// Create approval marker next to manifest
+	approvalFile := latestManifest + ".approved"
 	approvalData := fmt.Sprintf("Approved at: %s\n", time.Now().Format(time.RFC3339))
-	approvalData += fmt.Sprintf("Manifest: %s\n", latestDir)
+	approvalData += fmt.Sprintf("Manifest: %s\n", filepath.Base(latestManifest))
+	approvalData += fmt.Sprintf("Step ID: %s\n", manifest.StepID)
+	approvalData += fmt.Sprintf("Exit code: %d\n", manifest.ExitCode)
 
 	if err := os.WriteFile(approvalFile, []byte(approvalData), 0644); err != nil {
 		return fmt.Errorf("failed to create approval marker: %w", err)
