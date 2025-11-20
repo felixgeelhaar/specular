@@ -77,10 +77,8 @@ func (s *InMemoryPolicyStore) CreatePolicy(ctx context.Context, policy *Policy) 
 		policy.Version = 1
 	}
 
-	// Set default enabled
-	if !policy.Enabled {
-		policy.Enabled = true
-	}
+	// Note: Enabled field is used as-is from the input policy
+	// Default Go zero value for bool is false, so if not explicitly set, it will be disabled
 
 	// Store policy
 	s.policies[policy.ID] = policy

@@ -348,7 +348,14 @@ func (e *Engine) evaluateConditions(conditions []Condition, subjectAttrs, resour
 	// All conditions must pass (AND logic)
 	for _, condition := range conditions {
 		attrValue := e.resolveAttribute(condition.Attribute, subjectAttrs, resourceAttrs, env)
-		if !e.evaluateOperator(condition.Operator, attrValue, condition.Value) {
+
+		// Resolve value if it's an attribute reference (e.g., $subject.organization_id)
+		conditionValue := condition.Value
+		if strValue, ok := conditionValue.(string); ok && len(strValue) > 0 && strValue[0] == '$' {
+			conditionValue = e.resolveAttribute(strValue, subjectAttrs, resourceAttrs, env)
+		}
+
+		if !e.evaluateOperator(condition.Operator, attrValue, conditionValue) {
 			return false, nil
 		}
 	}
