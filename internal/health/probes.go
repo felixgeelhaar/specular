@@ -61,11 +61,11 @@ func (pm *ProbeManager) Version() string {
 
 // ProbeResult represents a Kubernetes probe check result.
 type ProbeResult struct {
-	Status    Status                 `json:"status"`
-	Version   string                 `json:"version,omitempty"`
-	Uptime    string                 `json:"uptime,omitempty"`
-	Checks    map[string]*Result     `json:"checks,omitempty"`
-	Timestamp time.Time              `json:"timestamp"`
+	Status    Status             `json:"status"`
+	Version   string             `json:"version,omitempty"`
+	Uptime    string             `json:"uptime,omitempty"`
+	Checks    map[string]*Result `json:"checks,omitempty"`
+	Timestamp time.Time          `json:"timestamp"`
 }
 
 // CheckLiveness performs a liveness probe check.

@@ -105,10 +105,10 @@ func (s *Server) Start() error {
 // Shutdown performs graceful shutdown of the HTTP server.
 //
 // It:
-//   1. Marks the server as shutting down (readiness probes will fail)
-//   2. Disables HTTP keep-alives to stop accepting new requests
-//   3. Waits for existing connections to drain (up to ShutdownTimeout)
-//   4. Forces closure of any remaining connections after timeout
+//  1. Marks the server as shutting down (readiness probes will fail)
+//  2. Disables HTTP keep-alives to stop accepting new requests
+//  3. Waits for existing connections to drain (up to ShutdownTimeout)
+//  4. Forces closure of any remaining connections after timeout
 //
 // This ensures zero-downtime deployments when used with Kubernetes rolling updates.
 func (s *Server) Shutdown(ctx context.Context) error {
@@ -132,6 +132,22 @@ func (s *Server) IsShuttingDown() bool {
 	return s.inShutdown.Load()
 }
 
+// writeProbeResponse is a helper function to write probe responses with consistent error handling.
+func (s *Server) writeProbeResponse(w http.ResponseWriter, result *health.ProbeResult, unhealthyStatus int) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Determine HTTP status code based on health status
+	if result.Status == health.StatusUnhealthy {
+		w.WriteHeader(unhealthyStatus)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+	}
+}
+
 // handleLiveness handles liveness probe requests.
 // GET /health/live
 //
@@ -150,14 +166,8 @@ func (s *Server) handleLiveness(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	result := s.probeManager.CheckLiveness(ctx)
 
-	// Liveness should pass even during shutdown (just degraded)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(result); err != nil {
-		// Log error but don't fail the probe
-		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
-	}
+	// Liveness should always return 200 (even during shutdown)
+	s.writeProbeResponse(w, result, http.StatusOK)
 }
 
 // handleReadiness handles readiness probe requests.
@@ -178,18 +188,8 @@ func (s *Server) handleReadiness(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	result := s.probeManager.CheckReadiness(ctx)
 
-	w.Header().Set("Content-Type", "application/json")
-
 	// Return 503 if not ready (shutting down or dependencies unhealthy)
-	if result.Status == health.StatusUnhealthy {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	} else {
-		w.WriteHeader(http.StatusOK)
-	}
-
-	if err := json.NewEncoder(w).Encode(result); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
-	}
+	s.writeProbeResponse(w, result, http.StatusServiceUnavailable)
 }
 
 // handleStartup handles startup probe requests.
@@ -211,16 +211,6 @@ func (s *Server) handleStartup(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	result := s.probeManager.CheckStartup(ctx)
 
-	w.Header().Set("Content-Type", "application/json")
-
 	// Return 503 if not yet initialized
-	if result.Status == health.StatusUnhealthy {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	} else {
-		w.WriteHeader(http.StatusOK)
-	}
-
-	if err := json.NewEncoder(w).Encode(result); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
-	}
+	s.writeProbeResponse(w, result, http.StatusServiceUnavailable)
 }

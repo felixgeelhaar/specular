@@ -407,4 +407,3 @@ func TestProbeWorkflow(t *testing.T) {
 		t.Error("startup probe should still pass during shutdown")
 	}
 }
-
