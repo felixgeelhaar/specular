@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
 	"github.com/felixgeelhaar/specular/internal/plan"
 )
 
@@ -299,7 +300,11 @@ func RunPlanReview(p *plan.Plan) (*PlanReviewResult, error) {
 	}
 
 	// Extract result from final model
-	m := finalModel.(planReviewModel)
+	m, ok := finalModel.(planReviewModel)
+	if !ok {
+		return nil, fmt.Errorf("unexpected model type: %T", finalModel)
+	}
+
 	if m.result != nil {
 		return m.result, nil
 	}
