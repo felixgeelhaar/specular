@@ -45,6 +45,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Step-by-step tutorial guides for PRO features
   - Tutorial documentation for advanced workflows
 
+- **GitHub Action for CI/CD Integration (M7)**
+  - Composite GitHub Action for seamless CI/CD integration
+  - Four commands: drift, eval, build, plan
+  - Multi-provider AI support (Anthropic, OpenAI, Google)
+  - Automatic SARIF upload to GitHub Code Scanning
+  - Platform auto-detection (Linux/macOS, AMD64/ARM64)
+  - Rich job summaries and PR comment integration
+  - Comprehensive documentation (.github/ACTION_README.md)
+  - Integration with existing example workflows
+
 ### Fixed
 
 - **Security**: Updated golang.org/x/crypto from v0.43.0 to v0.45.0 (fixes 2 moderate CVEs)
