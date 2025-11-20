@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
+	"github.com/felixgeelhaar/specular/internal/exec"
 	"github.com/felixgeelhaar/specular/internal/license"
 )
 
@@ -312,9 +313,45 @@ func checkPolicyChanges() (bool, error) {
 		return true, nil
 	}
 
-	// TODO: Check if policy hash has changed since last approval
-	// For now, we'll consider it not pending if any approval exists
-	return false, nil
+	// Check if policy hash has changed since last approval
+	currentHash, err := exec.HashFile(policiesPath)
+	if err != nil {
+		return false, fmt.Errorf("hash policies file: %w", err)
+	}
+
+	// Find the most recent policy approval
+	var latestApproval *ApprovalRecord
+	var latestTime time.Time
+	for _, entry := range entries {
+		if !strings.HasPrefix(entry.Name(), "policy-") {
+			continue
+		}
+
+		approvalPath := filepath.Join(approvalsDir, entry.Name())
+		data, err := os.ReadFile(approvalPath)
+		if err != nil {
+			continue
+		}
+
+		var approval ApprovalRecord
+		if err := yaml.Unmarshal(data, &approval); err != nil {
+			continue
+		}
+
+		if approval.ApprovedAt.After(latestTime) {
+			latestTime = approval.ApprovedAt
+			latestApproval = &approval
+		}
+	}
+
+	// If we found an approval, compare hashes
+	if latestApproval != nil {
+		// Policies have changed if hashes don't match
+		return latestApproval.ResourceHash != currentHash, nil
+	}
+
+	// No valid approval found, policies are pending
+	return true, nil
 }
 
 // checkPendingBundles checks for bundles that haven't been approved
