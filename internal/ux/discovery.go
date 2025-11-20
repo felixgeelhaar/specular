@@ -150,7 +150,7 @@ func EnsureSpecularDir() error {
 
 	// Create directory if it doesn't exist
 	if _, err := os.Stat(specularDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(specularDir, 0755); err != nil {
+		if err := os.MkdirAll(specularDir, 0750); err != nil {
 			return err
 		}
 	}
@@ -159,7 +159,7 @@ func EnsureSpecularDir() error {
 	subdirs := []string{"checkpoints", "runs", "cache", "logs"}
 	for _, subdir := range subdirs {
 		path := filepath.Join(specularDir, subdir)
-		if err := os.MkdirAll(path, 0755); err != nil {
+		if err := os.MkdirAll(path, 0750); err != nil {
 			return err
 		}
 	}

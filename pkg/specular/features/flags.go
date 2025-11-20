@@ -6,25 +6,39 @@ import "sync"
 type Flag string
 
 const (
-	// Free tier features (always enabled in public builds)
-	FlagBasicSpec       Flag = "basic_spec"       // Basic spec generation
-	FlagBasicPlan       Flag = "basic_plan"       // Basic plan generation
-	FlagLocalExec       Flag = "local_exec"       // Local Docker execution
-	FlagBasicPolicy     Flag = "basic_policy"     // Basic policy enforcement
-	FlagCheckpoint      Flag = "checkpoint"       // Checkpoint/resume functionality
-	FlagPatchGeneration Flag = "patch_generation" // Patch generation
+	// FlagBasicSpec enables basic spec generation (free tier feature, always enabled in public builds)
+	FlagBasicSpec Flag = "basic_spec"
+	// FlagBasicPlan enables basic plan generation
+	FlagBasicPlan Flag = "basic_plan"
+	// FlagLocalExec enables local Docker execution
+	FlagLocalExec Flag = "local_exec"
+	// FlagBasicPolicy enables basic policy enforcement
+	FlagBasicPolicy Flag = "basic_policy"
+	// FlagCheckpoint enables checkpoint/resume functionality
+	FlagCheckpoint Flag = "checkpoint"
+	// FlagPatchGeneration enables patch generation
+	FlagPatchGeneration Flag = "patch_generation"
 
-	// Enterprise features (disabled in public builds, enabled in platform builds)
-	FlagMultiTenancy     Flag = "multi_tenancy"     // Multi-tenant architecture
-	FlagSSOAuth          Flag = "sso_auth"          // SSO/SAML authentication
-	FlagRBAC             Flag = "rbac"              // Role-based access control
-	FlagWebDashboard     Flag = "web_dashboard"     // Web UI dashboard
-	FlagPlatformAPI      Flag = "platform_api"      // Platform API server
-	FlagAdvancedPolicy   Flag = "advanced_policy"   // Enterprise policy engine v2
-	FlagIntegrations     Flag = "integrations"      // Enterprise integrations (Slack, Jira, etc.)
-	FlagAnalytics        Flag = "analytics"         // Usage analytics and reporting
-	FlagAuditLog         Flag = "audit_log"         // Comprehensive audit logging
-	FlagHighAvailability Flag = "high_availability" // HA and disaster recovery
+	// FlagMultiTenancy enables multi-tenant architecture (enterprise feature, disabled in public builds)
+	FlagMultiTenancy Flag = "multi_tenancy"
+	// FlagSSOAuth enables SSO/SAML authentication
+	FlagSSOAuth Flag = "sso_auth"
+	// FlagRBAC enables role-based access control
+	FlagRBAC Flag = "rbac"
+	// FlagWebDashboard enables web UI dashboard
+	FlagWebDashboard Flag = "web_dashboard"
+	// FlagPlatformAPI enables platform API server
+	FlagPlatformAPI Flag = "platform_api"
+	// FlagAdvancedPolicy enables enterprise policy engine v2
+	FlagAdvancedPolicy Flag = "advanced_policy"
+	// FlagIntegrations enables enterprise integrations (Slack, Jira, etc.)
+	FlagIntegrations Flag = "integrations"
+	// FlagAnalytics enables usage analytics and reporting
+	FlagAnalytics Flag = "analytics"
+	// FlagAuditLog enables comprehensive audit logging
+	FlagAuditLog Flag = "audit_log"
+	// FlagHighAvailability enables HA and disaster recovery
+	FlagHighAvailability Flag = "high_availability"
 )
 
 var (
@@ -138,8 +152,10 @@ func GetAllFlags() map[Flag]bool {
 type Edition string
 
 const (
-	EditionFree       Edition = "free"       // Free CLI edition
-	EditionEnterprise Edition = "enterprise" // Enterprise platform edition
+	// EditionFree represents the free CLI edition
+	EditionFree Edition = "free"
+	// EditionEnterprise represents the enterprise platform edition
+	EditionEnterprise Edition = "enterprise"
 )
 
 // currentEdition stores the current edition

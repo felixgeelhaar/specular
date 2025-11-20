@@ -9,6 +9,8 @@ import (
 	"sync"
 )
 
+// TraceResolver provides functionality to resolve trace references for specs,
+// tests, and API documentation within a project workspace.
 type TraceResolver struct {
 	root      string
 	docIndex  map[string][]string
@@ -323,9 +325,7 @@ func trimTestAffixes(value string) string {
 		}
 	}
 	for _, prefix := range []string{"test_", "tests_", "spec_", "specs_"} {
-		if strings.HasPrefix(lower, prefix) {
-			lower = strings.TrimPrefix(lower, prefix)
-		}
+		lower = strings.TrimPrefix(lower, prefix)
 	}
 	return lower
 }

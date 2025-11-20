@@ -52,6 +52,8 @@ type StatusReport struct {
 	Healthy     bool              `json:"healthy"`
 }
 
+// EnvironmentStatus contains information about the environment setup including
+// container runtime and AI provider availability.
 type EnvironmentStatus struct {
 	Runtime   string   `json:"runtime"`   // "docker", "podman", or "none"
 	Providers []string `json:"providers"` // Available AI providers
@@ -59,6 +61,8 @@ type EnvironmentStatus struct {
 	Healthy   bool     `json:"healthy"`
 }
 
+// ProjectStatus contains information about the current project directory and
+// git repository status.
 type ProjectStatus struct {
 	Directory   string `json:"directory"`
 	Initialized bool   `json:"initialized"` // .specular directory exists
@@ -67,6 +71,8 @@ type ProjectStatus struct {
 	GitDirty    bool   `json:"git_dirty"`
 }
 
+// SpecStatus contains information about the product specification including
+// existence, lock status, and feature count.
 type SpecStatus struct {
 	Exists      bool      `json:"exists"`
 	Locked      bool      `json:"locked"`
@@ -75,12 +81,16 @@ type SpecStatus struct {
 	LastUpdated time.Time `json:"last_updated,omitempty"`
 }
 
+// PlanStatus contains information about the execution plan including task
+// count and last update timestamp.
 type PlanStatus struct {
 	Exists      bool      `json:"exists"`
 	Tasks       int       `json:"tasks"`
 	LastUpdated time.Time `json:"last_updated,omitempty"`
 }
 
+// BuildStatus contains information about the most recent build execution
+// including success status and duration.
 type BuildStatus struct {
 	Timestamp time.Time `json:"timestamp"`
 	Success   bool      `json:"success"`

@@ -13,8 +13,11 @@ import (
 type Tier string
 
 const (
-	TierFree       Tier = "free"
-	TierPro        Tier = "pro"
+	// TierFree represents the free tier with basic features
+	TierFree Tier = "free"
+	// TierPro represents the pro tier with advanced features
+	TierPro Tier = "pro"
+	// TierEnterprise represents the enterprise tier with all features
 	TierEnterprise Tier = "enterprise"
 )
 
