@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/detect"
+	"github.com/felixgeelhaar/specular/internal/exec"
+	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
@@ -229,17 +232,70 @@ func buildPlanStatus() PlanStatus {
 		status.Exists = true
 		status.LastUpdated = info.ModTime()
 
-		// TODO: Load plan.json to count tasks
-		// For now, we just know it exists
+		// Load plan.json to count tasks
+		if p, err := plan.LoadPlan(planPath); err == nil {
+			status.Tasks = len(p.Tasks)
+		}
 	}
 
 	return status
 }
 
 func getLastBuildStatus() *BuildStatus {
-	// TODO: Implement by checking .specular/runs/ directory for latest run manifest
-	// For now, return nil
-	return nil
+	defaults := ux.NewPathDefaults()
+	runsDir := filepath.Join(defaults.SpecularDir, "runs")
+
+	// Check if runs directory exists
+	if _, err := os.Stat(runsDir); os.IsNotExist(err) {
+		return nil
+	}
+
+	// Read directory to find manifest files
+	entries, err := os.ReadDir(runsDir)
+	if err != nil {
+		return nil
+	}
+
+	// Find the most recent manifest file
+	var latestManifest string
+	var latestTime time.Time
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		if info.ModTime().After(latestTime) {
+			latestTime = info.ModTime()
+			latestManifest = filepath.Join(runsDir, entry.Name())
+		}
+	}
+
+	if latestManifest == "" {
+		return nil
+	}
+
+	// Load the manifest
+	data, err := os.ReadFile(latestManifest)
+	if err != nil {
+		return nil
+	}
+
+	var manifest exec.RunManifest
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return nil
+	}
+
+	// Convert to BuildStatus
+	return &BuildStatus{
+		Timestamp: manifest.Timestamp,
+		Success:   manifest.ExitCode == 0,
+		Duration:  manifest.Duration,
+	}
 }
 
 func analyzeStatus(report *StatusReport) {
