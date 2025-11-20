@@ -43,44 +43,80 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 
 ---
 
-## What's New in v1.2.0
+## What's New in v1.6.0 🎉
 
-🎉 **Governance-First CLI Redesign**
+### 🚀 GitHub Action for CI/CD Integration
 
-### ADR-0010: Governance-First CLI Architecture
+Seamless integration with GitHub Actions for automated drift detection and policy enforcement:
 
-Specular v1.2.0 implements a comprehensive governance-first CLI redesign, restructuring commands around governance, policy, and approval workflows while maintaining full backward compatibility.
+```yaml
+- uses: felixgeelhaar/specular@v1
+  with:
+    command: drift
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
 
-### New Governance Commands
+**Key Features:**
+- Four commands: `drift`, `eval`, `build`, `plan`
+- Multi-provider AI support (Anthropic, OpenAI, Google)
+- Automatic SARIF upload to GitHub Code Scanning
+- Platform auto-detection (Linux/macOS, AMD64/ARM64)
+- Rich job summaries and PR comment integration
+- Comprehensive [Action documentation](.github/ACTION_README.md)
 
-- **`governance init`**: Initialize .specular workspace with governance structure (approvals/, bundles/, traces/)
-- **`governance doctor`**: Comprehensive governance health checks for workspace, policies, providers
-- **`governance status`**: Display current governance workflow status with pending approvals
-- **`doctor`**: Unified system health check across all components
+### 🎨 Interactive Plan Review TUI
 
-### Policy Management & Approval Workflows
+Full-featured terminal UI for reviewing execution plans before approval:
 
-- **`policy init/validate/approve/list/diff`**: Full policy lifecycle management with templates and audit trails
-- **`approval approve/list/pending`**: Role-based approval workflows for plans, builds, and drift
-- **Cryptographic Attestations**: ECDSA P-256 signatures for build artifacts and policy changes
+- **Two-view system**: List view for overview, detail view for task inspection
+- **Vim-style navigation**: j/k, h/l, Enter, Esc for efficient interaction
+- **Approve/reject workflow**: Rejection reason prompts with full audit trail
+- **Auto-approve**: Empty plans auto-approved for convenience
+- **Styled interface**: Professional appearance with lipgloss theming
+- **11 comprehensive tests**: Ensuring reliability across all scenarios
 
-### Enhanced Command Structure
+### 🌐 Platform API Client v2.0
 
-- **Plan Commands**: `plan create/visualize/validate/review/explain` (replaces `plan gen`)
-- **Build Commands**: `build run/verify/approve/explain` (structured execution and verification)
-- **Bundle Commands**: `bundle create/gate/inspect/list` (quality gates and artifact management)
-- **Drift Commands**: `drift check/approve` (promoted from `plan drift`)
-- **Provider Commands**: `provider add/remove/doctor` (dynamic provider management)
+Production-grade HTTP client for Specular Platform integration:
 
-### Backward Compatibility
+- **Configurable retry logic**: Exponential backoff with smart retry strategy
+- **Intelligent routing**: Retries 5xx errors, fails fast on 4xx
+- **Context propagation**: Request cancellation and timeout handling
+- **Structured errors**: APIError type with request ID tracking
+- **Three endpoints**: Health, GenerateSpec, GeneratePlan
+- **14 comprehensive tests**: Including retry scenarios and edge cases
 
-All deprecated command forms remain functional with deprecation warnings:
-- `plan` → `plan create` (with warning)
-- `build` → `build run` (with warning)
-- `bundle build` → `bundle create` (with warning)
-- `bundle verify` → `bundle gate` (with warning)
-- `plan drift` → `drift check` (with warning)
-- `provider health` → `provider doctor` (with warning)
+### 🔌 Plugin System Enhancements
+
+Extended plugin capabilities for maximum flexibility:
+
+- **Local installation**: Install plugins from directories
+- **GitHub installation**: Direct plugin installation from repositories
+- **Automatic resolution**: Dependency resolution for plugin chains
+- **Five plugin types**: Provider, validator, formatter, hook, notifier
+
+### 📦 Distribution & Availability
+
+**Homebrew Installation:**
+```bash
+brew tap felixgeelhaar/specular
+brew install specular
+```
+
+**Shell Completions:** Bash, Zsh, Fish completions included in all releases
+
+**Multi-platform Binaries:** Linux/macOS/Windows on AMD64/ARM64
+
+### 📚 Enhanced Documentation
+
+- **ACTION_README.md**: Complete GitHub Action integration guide (9.7KB)
+- **Tutorial guides**: Step-by-step PRO feature walkthroughs
+- **Advanced workflows**: Production-grade deployment patterns
+- **300KB+ docs**: Comprehensive coverage of all features
+
+---
+
+**Previous Release: v1.2.0** introduced governance-first CLI redesign with policy management, approval workflows, and backward-compatible command structure. [View details in CHANGELOG](CHANGELOG.md#120---2025-11-17).
 
 [View Full Changelog](CHANGELOG.md)
 
