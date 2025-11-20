@@ -155,7 +155,7 @@ func (c *Client) doSingleRequest(ctx context.Context, method, path string, reqBo
 	if err != nil {
 		return fmt.Errorf("executing request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // deferred close, error already handled via response reading
 
 	// Read response body
 	respBytes, err := io.ReadAll(resp.Body)
@@ -174,7 +174,7 @@ func (c *Client) doSingleRequest(ctx context.Context, method, path string, reqBo
 		var errResp struct {
 			Error string `json:"error"`
 		}
-		if err := json.Unmarshal(respBytes, &errResp); err == nil && errResp.Error != "" {
+		if unmarshalErr := json.Unmarshal(respBytes, &errResp); unmarshalErr == nil && errResp.Error != "" {
 			apiErr.Message = errResp.Error
 		} else {
 			apiErr.Message = string(respBytes)
@@ -185,7 +185,8 @@ func (c *Client) doSingleRequest(ctx context.Context, method, path string, reqBo
 
 	// Parse successful response
 	if respBody != nil {
-		if err := json.Unmarshal(respBytes, respBody); err != nil {
+		err = json.Unmarshal(respBytes, respBody)
+		if err != nil {
 			return fmt.Errorf("unmarshaling response body: %w", err)
 		}
 	}
