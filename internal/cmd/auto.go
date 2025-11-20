@@ -23,6 +23,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/trace"
 	"github.com/felixgeelhaar/specular/internal/tui"
+	"github.com/felixgeelhaar/specular/internal/version"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -778,8 +779,8 @@ func generateAttestation(result *auto.Result, config *auto.Config, outputDir str
 		return fmt.Errorf("failed to create signer: %w", err)
 	}
 
-	// Create generator (use a version string)
-	generator := attestation.NewGenerator(signer, "1.0.0") // TODO: Use actual version
+	// Create generator (use actual version from build)
+	generator := attestation.NewGenerator(signer, version.Version)
 
 	// Get plan and output JSON
 	var planJSON []byte
