@@ -33,10 +33,13 @@ func TestDefaultLogger(t *testing.T) {
 	// Save original default logger to restore later
 	originalLogger := defaultLogger
 	defer func() {
-		defaultLogger = originalLogger
+		SetDefaultLogger(originalLogger)
 	}()
 
 	t.Run("returns existing logger", func(t *testing.T) {
+		// Reset first to ensure clean state
+		resetDefaultLogger()
+
 		// Set a custom logger
 		customLogger := Production()
 		SetDefaultLogger(customLogger)
@@ -49,8 +52,8 @@ func TestDefaultLogger(t *testing.T) {
 	})
 
 	t.Run("creates new logger when nil", func(t *testing.T) {
-		// Reset default logger to nil
-		defaultLogger = nil
+		// Reset default logger to nil using helper
+		resetDefaultLogger()
 
 		// DefaultLogger should create and return a new logger
 		logger := DefaultLogger()
@@ -75,11 +78,11 @@ func TestDefaultLoggerConcurrency(t *testing.T) {
 	// Save original default logger to restore later
 	originalLogger := defaultLogger
 	defer func() {
-		defaultLogger = originalLogger
+		SetDefaultLogger(originalLogger)
 	}()
 
-	// Reset to nil
-	defaultLogger = nil
+	// Reset to nil using the helper function
+	resetDefaultLogger()
 
 	// Call DefaultLogger concurrently
 	const goroutines = 100
