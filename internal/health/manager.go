@@ -80,13 +80,15 @@ func (m *Manager) Check(ctx context.Context) map[string]*Result {
 			result := c.Check(checkCtx)
 			latency := time.Since(start)
 
-			// Set latency if not already set
-			if result.Latency == 0 {
-				result.Latency = latency
+			// Create a copy of the result to avoid modifying shared memory
+			// This prevents data races when multiple goroutines check the same checker
+			resultCopy := *result
+			if resultCopy.Latency == 0 {
+				resultCopy.Latency = latency
 			}
 
 			resultsMu.Lock()
-			results[c.Name()] = result
+			results[c.Name()] = &resultCopy
 			resultsMu.Unlock()
 		}(checker)
 	}
