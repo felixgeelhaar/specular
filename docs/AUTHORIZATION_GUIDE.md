@@ -1034,6 +1034,7 @@ specular audit stats --org org-123
 # Unsigned:         4 (0.03%)
 ```
 
+
 ## HashiCorp Vault Integration
 
 For enterprise deployments, Specular integrates with **HashiCorp Vault** to securely store ECDSA signing keys and other sensitive secrets. This integration provides centralized secret management, key rotation, and compliance with enterprise security standards.
