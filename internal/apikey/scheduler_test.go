@@ -135,12 +135,12 @@ func TestGetRotationStatus(t *testing.T) {
 
 	t.Run("rotation status structure", func(t *testing.T) {
 		status := &RotationStatus{
-			TotalKeys:         10,
-			ActiveKeys:        7,
-			RotatedKeys:       1,
-			RevokedKeys:       1,
-			ExpiredKeys:       1,
-			NeedingRotation:   2,
+			TotalKeys:       10,
+			ActiveKeys:      7,
+			RotatedKeys:     1,
+			RevokedKeys:     1,
+			ExpiredKeys:     1,
+			NeedingRotation: 2,
 			DaysUntilRotation: map[string]int{
 				"key-1": 5,
 				"key-2": 3,
@@ -222,33 +222,33 @@ func TestSchedulerLifecycle(t *testing.T) {
 
 func TestRotationTiming(t *testing.T) {
 	tests := []struct {
-		name        string
-		rotationTTL time.Duration
-		expiresIn   time.Duration
+		name         string
+		rotationTTL  time.Duration
+		expiresIn    time.Duration
 		shouldRotate bool
 	}{
 		{
-			name:        "rotate 7 days before - expires in 5 days",
-			rotationTTL: 7 * 24 * time.Hour,
-			expiresIn:   5 * 24 * time.Hour,
+			name:         "rotate 7 days before - expires in 5 days",
+			rotationTTL:  7 * 24 * time.Hour,
+			expiresIn:    5 * 24 * time.Hour,
 			shouldRotate: true,
 		},
 		{
-			name:        "rotate 7 days before - expires in 10 days",
-			rotationTTL: 7 * 24 * time.Hour,
-			expiresIn:   10 * 24 * time.Hour,
+			name:         "rotate 7 days before - expires in 10 days",
+			rotationTTL:  7 * 24 * time.Hour,
+			expiresIn:    10 * 24 * time.Hour,
 			shouldRotate: false,
 		},
 		{
-			name:        "rotate 30 days before - expires in 25 days",
-			rotationTTL: 30 * 24 * time.Hour,
-			expiresIn:   25 * 24 * time.Hour,
+			name:         "rotate 30 days before - expires in 25 days",
+			rotationTTL:  30 * 24 * time.Hour,
+			expiresIn:    25 * 24 * time.Hour,
 			shouldRotate: true,
 		},
 		{
-			name:        "rotate 1 day before - expires in 2 hours",
-			rotationTTL: 24 * time.Hour,
-			expiresIn:   2 * time.Hour,
+			name:         "rotate 1 day before - expires in 2 hours",
+			rotationTTL:  24 * time.Hour,
+			expiresIn:    2 * time.Hour,
 			shouldRotate: true,
 		},
 	}
@@ -272,12 +272,12 @@ func TestRotationTiming(t *testing.T) {
 
 func TestCleanupLogic(t *testing.T) {
 	tests := []struct {
-		name              string
-		keyStatus         Status
-		statusTime        time.Time
-		cleanupThreshold  time.Duration
-		now               time.Time
-		shouldCleanup     bool
+		name             string
+		keyStatus        Status
+		statusTime       time.Time
+		cleanupThreshold time.Duration
+		now              time.Time
+		shouldCleanup    bool
 	}{
 		{
 			name:             "cleanup revoked key after threshold",
@@ -409,8 +409,8 @@ func TestRotationStatusCalculation(t *testing.T) {
 	assert.Equal(t, 1, rotatedKeys)
 	assert.Equal(t, 1, revokedKeys)
 	assert.Equal(t, 1, expiredKeys)
-	assert.Equal(t, 1, needingRotation) // Only key-2 needs rotation
-	assert.Equal(t, 3, daysUntilRotation["key-1"]) // 10 - 7 = 3 days until rotation window
+	assert.Equal(t, 1, needingRotation)             // Only key-2 needs rotation
+	assert.Equal(t, 3, daysUntilRotation["key-1"])  // 10 - 7 = 3 days until rotation window
 	assert.Equal(t, -2, daysUntilRotation["key-2"]) // 5 - 7 = -2 (in rotation window)
 }
 
@@ -424,8 +424,8 @@ func TestSchedulerConfiguration(t *testing.T) {
 		{
 			name:          "aggressive rotation",
 			checkInterval: 15 * time.Minute,
-			gracePeriod:   1 * 24 * time.Hour,  // 1 day grace
-			rotationTTL:   3 * 24 * time.Hour,  // Rotate 3 days before expiry
+			gracePeriod:   1 * 24 * time.Hour, // 1 day grace
+			rotationTTL:   3 * 24 * time.Hour, // Rotate 3 days before expiry
 		},
 		{
 			name:          "conservative rotation",

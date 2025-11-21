@@ -44,9 +44,9 @@ func TestRequireAPIKey(t *testing.T) {
 		expectedBody   string
 	}{
 		{
-			name:           "valid API key",
-			authHeader:     "Bearer sk_valid_key",
-			orgIDHeader:    "org-123",
+			name:        "valid API key",
+			authHeader:  "Bearer sk_valid_key",
+			orgIDHeader: "org-123",
 			setupKey: &APIKey{
 				ID:             "key-123",
 				OrganizationID: "org-123",

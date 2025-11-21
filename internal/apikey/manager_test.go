@@ -13,7 +13,7 @@ import (
 
 // mockVaultClient provides a mock implementation of vault.Client for testing
 type mockVaultClient struct {
-	data map[string]map[string]interface{}
+	data     map[string]map[string]interface{}
 	metadata map[string]map[string]string
 }
 
@@ -241,9 +241,9 @@ func TestGenerateRandomString(t *testing.T) {
 		length       int
 		minStrLength int
 	}{
-		{"16 bytes", 16, 21},  // Base64 of 16 bytes = ~22 chars
-		{"32 bytes", 32, 42},  // Base64 of 32 bytes = ~43 chars
-		{"64 bytes", 64, 85},  // Base64 of 64 bytes = ~86 chars
+		{"16 bytes", 16, 21}, // Base64 of 16 bytes = ~22 chars
+		{"32 bytes", 32, 42}, // Base64 of 32 bytes = ~43 chars
+		{"64 bytes", 64, 85}, // Base64 of 64 bytes = ~86 chars
 	}
 
 	for _, tt := range tests {
