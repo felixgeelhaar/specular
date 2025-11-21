@@ -171,7 +171,7 @@ func TestDefaultAuditLogger_IncludeEnvironment(t *testing.T) {
 				t.Fatalf("failed to parse audit log JSON: %v", err)
 			}
 
-			hasEnv := logged.Environment != nil && len(logged.Environment) > 0
+			hasEnv := len(logged.Environment) > 0
 			if hasEnv != tt.expectEnv {
 				t.Errorf("expected environment=%v, got %v", tt.expectEnv, hasEnv)
 			}

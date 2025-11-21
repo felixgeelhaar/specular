@@ -106,8 +106,8 @@ func (h *PolicyHandlers) createPolicy(w http.ResponseWriter, r *http.Request) {
 		Enabled     bool        `json:"enabled"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request: %v", err))
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request: %v", decodeErr))
 		return
 	}
 
@@ -183,6 +183,8 @@ func (h *PolicyHandlers) getPolicy(w http.ResponseWriter, r *http.Request, polic
 }
 
 // updatePolicy updates an existing policy.
+//
+//nolint:gocyclo // Policy update requires validating multiple optional fields
 func (h *PolicyHandlers) updatePolicy(w http.ResponseWriter, r *http.Request, policyID string) {
 	ctx := r.Context()
 
@@ -208,18 +210,18 @@ func (h *PolicyHandlers) updatePolicy(w http.ResponseWriter, r *http.Request, po
 
 	// Parse update request
 	var req struct {
-		Name        *string      `json:"name,omitempty"`
-		Description *string      `json:"description,omitempty"`
-		Effect      *Effect      `json:"effect,omitempty"`
-		Principals  []Principal  `json:"principals,omitempty"`
-		Actions     []string     `json:"actions,omitempty"`
-		Resources   []string     `json:"resources,omitempty"`
-		Conditions  []Condition  `json:"conditions,omitempty"`
-		Enabled     *bool        `json:"enabled,omitempty"`
+		Name        *string     `json:"name,omitempty"`
+		Description *string     `json:"description,omitempty"`
+		Effect      *Effect     `json:"effect,omitempty"`
+		Principals  []Principal `json:"principals,omitempty"`
+		Actions     []string    `json:"actions,omitempty"`
+		Resources   []string    `json:"resources,omitempty"`
+		Conditions  []Condition `json:"conditions,omitempty"`
+		Enabled     *bool       `json:"enabled,omitempty"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request: %v", err))
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request: %v", decodeErr))
 		return
 	}
 
@@ -262,8 +264,8 @@ func (h *PolicyHandlers) updatePolicy(w http.ResponseWriter, r *http.Request, po
 	}
 
 	// Update policy
-	if err := h.policyStore.UpdatePolicy(ctx, existing); err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to update policy: %v", err))
+	if updateErr := h.policyStore.UpdatePolicy(ctx, existing); updateErr != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to update policy: %v", updateErr))
 		return
 	}
 
@@ -295,8 +297,8 @@ func (h *PolicyHandlers) deletePolicy(w http.ResponseWriter, r *http.Request, po
 	}
 
 	// Delete policy
-	if err := h.policyStore.DeletePolicy(ctx, policyID); err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to delete policy: %v", err))
+	if deleteErr := h.policyStore.DeletePolicy(ctx, policyID); deleteErr != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to delete policy: %v", deleteErr))
 		return
 	}
 
@@ -354,8 +356,8 @@ func (h *PolicyHandlers) handleSimulate(w http.ResponseWriter, r *http.Request) 
 		Environment map[string]interface{} `json:"environment"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request: %v", err))
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request: %v", decodeErr))
 		return
 	}
 
@@ -394,7 +396,7 @@ func (h *PolicyHandlers) handleSimulate(w http.ResponseWriter, r *http.Request) 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	json.NewEncoder(w).Encode(data) //nolint:errcheck,gosec // Response headers already sent
 }
 
 func writeError(w http.ResponseWriter, status int, message string) {

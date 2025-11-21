@@ -51,9 +51,9 @@ type AuditEntry struct {
 	PolicyIDs []string `json:"policy_ids,omitempty"`
 
 	// Request metadata
-	RequestID  string        `json:"request_id,omitempty"`
-	Duration   time.Duration `json:"duration_ms,omitempty"`
-	ErrorMsg   string        `json:"error,omitempty"`
+	RequestID string        `json:"request_id,omitempty"`
+	Duration  time.Duration `json:"duration_ms,omitempty"`
+	ErrorMsg  string        `json:"error,omitempty"`
 }
 
 // AuditLoggerConfig holds configuration for audit logging.
@@ -183,14 +183,14 @@ func (l *DefaultAuditLogger) Close() error {
 // NewAuditEntry creates an audit entry from an authorization request and decision.
 func NewAuditEntry(req *AuthorizationRequest, decision *Decision, duration time.Duration) *AuditEntry {
 	entry := &AuditEntry{
-		Timestamp:      decision.Timestamp,
-		Allowed:        decision.Allowed,
-		Reason:         decision.Reason,
-		Action:         req.Action,
-		ResourceType:   req.Resource.Type,
-		ResourceID:     req.Resource.ID,
-		PolicyIDs:      decision.PolicyIDs,
-		Duration:       duration,
+		Timestamp:    decision.Timestamp,
+		Allowed:      decision.Allowed,
+		Reason:       decision.Reason,
+		Action:       req.Action,
+		ResourceType: req.Resource.Type,
+		ResourceID:   req.Resource.ID,
+		PolicyIDs:    decision.PolicyIDs,
+		Duration:     duration,
 	}
 
 	// Extract subject information

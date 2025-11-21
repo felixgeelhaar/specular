@@ -10,7 +10,7 @@ import (
 // InMemoryPolicyStore provides an in-memory policy store for testing and development.
 type InMemoryPolicyStore struct {
 	mu       sync.RWMutex
-	policies map[string]*Policy // key: policy.ID
+	policies map[string]*Policy  // key: policy.ID
 	byOrg    map[string][]string // organizationID -> []policyID
 }
 
@@ -34,8 +34,8 @@ func (s *InMemoryPolicyStore) LoadPolicies(ctx context.Context, organizationID s
 
 	var policies []*Policy
 	for _, policyID := range policyIDs {
-		policy, ok := s.policies[policyID]
-		if !ok {
+		policy, found := s.policies[policyID]
+		if !found {
 			continue
 		}
 

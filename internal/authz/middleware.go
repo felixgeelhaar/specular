@@ -260,7 +260,7 @@ type ErrorResponse struct {
 func writeUnauthorizedError(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
-	json.NewEncoder(w).Encode(ErrorResponse{
+	json.NewEncoder(w).Encode(ErrorResponse{ //nolint:errcheck,gosec // Response headers already sent
 		Error:   "unauthorized",
 		Message: message,
 	})
@@ -270,7 +270,7 @@ func writeUnauthorizedError(w http.ResponseWriter, message string) {
 func writeForbiddenError(w http.ResponseWriter, decision *Decision) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
-	json.NewEncoder(w).Encode(ErrorResponse{
+	json.NewEncoder(w).Encode(ErrorResponse{ //nolint:errcheck,gosec // Response headers already sent
 		Error:   "forbidden",
 		Message: decision.Reason,
 		Details: decision.PolicyIDs,
@@ -281,7 +281,7 @@ func writeForbiddenError(w http.ResponseWriter, decision *Decision) {
 func writeInternalError(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusInternalServerError)
-	json.NewEncoder(w).Encode(ErrorResponse{
+	json.NewEncoder(w).Encode(ErrorResponse{ //nolint:errcheck,gosec // Response headers already sent
 		Error:   "internal_server_error",
 		Message: message,
 	})

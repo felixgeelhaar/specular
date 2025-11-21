@@ -11,15 +11,20 @@ import (
 type Effect string
 
 const (
+	// EffectAllow indicates that the policy allows the action.
 	EffectAllow Effect = "allow"
-	EffectDeny  Effect = "deny"
+	// EffectDeny indicates that the policy denies the action.
+	EffectDeny Effect = "deny"
 )
 
 // ConditionOperator represents operators for policy conditions.
 type ConditionOperator string
 
+// Condition operators for policy evaluation.
 const (
-	OperatorEquals              ConditionOperator = "equals"
+	// OperatorEquals checks if the attribute equals the specified value.
+	OperatorEquals ConditionOperator = "equals"
+	// OperatorNotEquals checks if the attribute does not equal the specified value.
 	OperatorNotEquals           ConditionOperator = "not_equals"
 	OperatorIn                  ConditionOperator = "in"
 	OperatorNotIn               ConditionOperator = "not_in"
@@ -35,8 +40,11 @@ const (
 // Role represents standard built-in roles (RBAC abstraction over ABAC).
 type Role string
 
+// Standard built-in roles for authorization.
 const (
-	RoleOwner  Role = "owner"  // Full control, can manage members
+	// RoleOwner has full control and can manage members.
+	RoleOwner Role = "owner" // Full control, can manage members
+	// RoleAdmin can approve, create, update, delete.
 	RoleAdmin  Role = "admin"  // Can approve, create, update, delete
 	RoleMember Role = "member" // Can create, update (not approve or delete)
 	RoleViewer Role = "viewer" // Read-only access
@@ -44,19 +52,19 @@ const (
 
 // Policy represents an ABAC authorization policy.
 type Policy struct {
-	ID             string         `json:"id"`
-	OrganizationID string         `json:"organization_id"`
-	Name           string         `json:"name"`
-	Description    string         `json:"description,omitempty"`
-	Version        int            `json:"version"`
-	Effect         Effect         `json:"effect"` // allow or deny
-	Principals     []Principal    `json:"principals"`
-	Actions        []string       `json:"actions"`     // e.g., ["plan:approve", "build:run"]
-	Resources      []string       `json:"resources"`   // e.g., ["plan:*", "build:123"]
-	Conditions     []Condition    `json:"conditions"`  // Optional conditions
-	Enabled        bool           `json:"enabled"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	ID             string      `json:"id"`
+	OrganizationID string      `json:"organization_id"`
+	Name           string      `json:"name"`
+	Description    string      `json:"description,omitempty"`
+	Version        int         `json:"version"`
+	Effect         Effect      `json:"effect"` // allow or deny
+	Principals     []Principal `json:"principals"`
+	Actions        []string    `json:"actions"`    // e.g., ["plan:approve", "build:run"]
+	Resources      []string    `json:"resources"`  // e.g., ["plan:*", "build:123"]
+	Conditions     []Condition `json:"conditions"` // Optional conditions
+	Enabled        bool        `json:"enabled"`
+	CreatedAt      time.Time   `json:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at"`
 }
 
 // Principal identifies who the policy applies to.
@@ -66,9 +74,9 @@ type Principal struct {
 	Scope string `json:"scope,omitempty"` // e.g., "organization", "team"
 
 	// For attribute-based principals
-	Attribute string      `json:"attribute,omitempty"` // e.g., "subject.department"
+	Attribute string            `json:"attribute,omitempty"` // e.g., "subject.department"
 	Operator  ConditionOperator `json:"operator,omitempty"`
-	Value     interface{} `json:"value,omitempty"`
+	Value     interface{}       `json:"value,omitempty"`
 }
 
 // Condition represents a policy condition that must be satisfied.
@@ -97,9 +105,9 @@ type AuthorizationRequest struct {
 
 // Decision represents the result of an authorization evaluation.
 type Decision struct {
-	Allowed   bool     `json:"allowed"`            // Whether access is granted
-	Reason    string   `json:"reason"`             // Human-readable explanation
-	PolicyIDs []string `json:"policy_ids"`         // Policies that contributed to decision
+	Allowed   bool      `json:"allowed"`    // Whether access is granted
+	Reason    string    `json:"reason"`     // Human-readable explanation
+	PolicyIDs []string  `json:"policy_ids"` // Policies that contributed to decision
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -160,6 +168,8 @@ func NewEngine(policyStore PolicyStore, attrResolver AttributeResolver) *Engine 
 // 4. If any policy has effect: deny → DENY (explicit deny wins)
 // 5. If any policy has effect: allow and all conditions pass → ALLOW
 // 6. Otherwise → DENY
+//
+//nolint:gocyclo // Authorization evaluation requires complex branching logic
 func (e *Engine) Evaluate(ctx context.Context, req *AuthorizationRequest) (*Decision, error) {
 	// Start timing for audit log
 	startTime := time.Now()
@@ -223,7 +233,8 @@ func (e *Engine) Evaluate(ctx context.Context, req *AuthorizationRequest) (*Deci
 		}
 
 		// Evaluate conditions
-		conditionsPassed, err := e.evaluateConditions(policy.Conditions, subjectAttrs, resourceAttrs, req.Environment)
+		var conditionsPassed bool
+		conditionsPassed, err = e.evaluateConditions(policy.Conditions, subjectAttrs, resourceAttrs, req.Environment)
 		if err != nil {
 			return nil, err
 		}
@@ -411,6 +422,8 @@ func (e *Engine) resolveAttribute(attrPath string, subjectAttrs, resourceAttrs A
 }
 
 // evaluateOperator evaluates a condition operator.
+//
+//nolint:gocyclo // Operator evaluation requires comprehensive type handling
 func (e *Engine) evaluateOperator(op ConditionOperator, left, right interface{}) bool {
 	switch op {
 	case OperatorEquals:
@@ -535,9 +548,7 @@ func (e *Engine) logDecision(ctx context.Context, req *AuthorizationRequest, dec
 	}
 
 	entry := NewAuditEntry(req, decision, duration)
-	if err := e.auditLogger.LogDecision(ctx, entry); err != nil {
-		// Log error but don't fail the authorization request
-		// In production, you might want to send this to a monitoring system
-		// For now, we silently ignore audit logging errors
-	}
+	// Explicitly ignore audit logging errors - we don't want audit failures to block authorization
+	// In production, you might want to send this to a monitoring system
+	e.auditLogger.LogDecision(ctx, entry) //nolint:errcheck,gosec // Audit errors should not block authorization
 }

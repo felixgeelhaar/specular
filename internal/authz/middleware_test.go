@@ -7,9 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/felixgeelhaar/specular/internal/auth"
 )
 
 func TestRequirePermission_Success(t *testing.T) {

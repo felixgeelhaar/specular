@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/specular/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/felixgeelhaar/specular/internal/auth"
 )
 
 func TestEngine_Evaluate_DefaultDeny(t *testing.T) {
@@ -237,10 +238,10 @@ func TestEngine_Evaluate_ConditionPasses(t *testing.T) {
 
 func TestEngine_Evaluate_WildcardActions(t *testing.T) {
 	tests := []struct {
-		name           string
-		policyAction   string
-		requestAction  string
-		shouldMatch    bool
+		name          string
+		policyAction  string
+		requestAction string
+		shouldMatch   bool
 	}{
 		{
 			name:          "exact match",
