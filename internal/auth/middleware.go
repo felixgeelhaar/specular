@@ -92,7 +92,7 @@ func (m *Middleware) writeAuthError(w http.ResponseWriter, err error) {
 		// Generic error
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "authentication_failed",
+			"error":   "authentication_failed",
 			"message": err.Error(),
 		})
 		return

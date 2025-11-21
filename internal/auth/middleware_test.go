@@ -13,10 +13,10 @@ import (
 
 func TestExtractTokenFromRequest(t *testing.T) {
 	tests := []struct {
-		name           string
-		setupRequest   func(*http.Request)
-		expectedToken  string
-		description    string
+		name          string
+		setupRequest  func(*http.Request)
+		expectedToken string
+		description   string
 	}{
 		{
 			name: "extract from Authorization header",

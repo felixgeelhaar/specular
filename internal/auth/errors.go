@@ -7,11 +7,11 @@ import (
 // Error codes for authentication failures
 const (
 	// Authentication errors
-	ErrInvalidCredentials = "AUTH_INVALID_CREDENTIALS"
+	ErrInvalidCredentials  = "AUTH_INVALID_CREDENTIALS"
 	ErrProviderUnavailable = "AUTH_PROVIDER_UNAVAILABLE"
-	ErrNoProviders        = "AUTH_NO_PROVIDERS"
-	ErrDuplicateProvider  = "AUTH_DUPLICATE_PROVIDER"
-	ErrProviderNotFound   = "AUTH_PROVIDER_NOT_FOUND"
+	ErrNoProviders         = "AUTH_NO_PROVIDERS"
+	ErrDuplicateProvider   = "AUTH_DUPLICATE_PROVIDER"
+	ErrProviderNotFound    = "AUTH_PROVIDER_NOT_FOUND"
 
 	// Session errors
 	ErrSessionExpired     = "AUTH_SESSION_EXPIRED"

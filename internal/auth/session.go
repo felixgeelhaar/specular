@@ -54,7 +54,7 @@ func NewSessionManager(signingKey []byte, issuer string) *SessionManager {
 	return &SessionManager{
 		signingKey:      signingKey,
 		issuer:          issuer,
-		tokenDuration:   1 * time.Hour,    // Access token: 1 hour
+		tokenDuration:   1 * time.Hour,      // Access token: 1 hour
 		refreshDuration: 7 * 24 * time.Hour, // Refresh token: 7 days
 	}
 }
