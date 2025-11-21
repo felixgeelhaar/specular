@@ -2177,3 +2177,66 @@ func FormatResource(resourceType, resourceID string) string
 **Need Help?**
 - [GitHub Issues](https://github.com/felixgeelhaar/specular/issues)
 - [Documentation](https://docs.specular.dev)
+
+## API Key Authentication
+
+### Overview
+
+API key authentication provides a secure, long-lived credential system for programmatic API access. Keys are stored in HashiCorp Vault with automatic rotation support.
+
+### Quick Start
+
+```go
+import "github.com/felixgeelhaar/specular/internal/apikey"
+
+// Initialize manager
+manager, err := apikey.NewManager(apikey.Config{
+    VaultClient: vaultClient,
+    Prefix:      "sk_",              // Default
+    TTL:         90 * 24 * time.Hour, // 90 days
+})
+
+// Create API key
+key, err := manager.CreateKey(ctx, "org-123", "user-456", 
+    "Production Key", []string{"read", "write"})
+fmt.Println("API Key:", key.Secret) // sk_...
+
+// Use in HTTP server
+middleware := apikey.NewMiddleware(manager)
+http.Handle("/api/resource", middleware.RequireAPIKey(handler))
+```
+
+### HTTP Authentication
+
+API keys use Bearer token authentication:
+
+```bash
+curl -H "Authorization: Bearer sk_dGVzdC1zZWNyZXQtZXhhbXBsZQ" \
+     -H "X-Organization-ID: org-123" \
+     https://api.example.com/resource
+```
+
+### Automatic Rotation
+
+```go
+// Start rotation scheduler
+scheduler, err := apikey.NewScheduler(apikey.SchedulerConfig{
+    Manager:       manager,
+    CheckInterval: 1 * time.Hour,      // Check hourly
+    GracePeriod:   7 * 24 * time.Hour, // 7 day grace period
+    RotationTTL:   7 * 24 * time.Hour, // Rotate 7 days before expiry
+})
+
+go scheduler.Start(ctx)
+```
+
+### Key Lifecycle
+
+```
+active → (rotate) → rotated → (grace period) → revoked → deleted
+         ↓
+      new active key
+```
+
+For complete details, see **ADR-0016: API Key Rotation Mechanism**.
+
