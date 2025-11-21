@@ -54,6 +54,18 @@ type Session struct {
 	// Email is the user's email address.
 	Email string
 
+	// OrganizationID is the user's organization identifier (required for ABAC).
+	OrganizationID string
+
+	// OrganizationRole is the user's role within the organization (required for ABAC).
+	OrganizationRole string
+
+	// TeamID is the user's team identifier (optional, for team-level ABAC).
+	TeamID *string
+
+	// TeamRole is the user's role within their team (optional, for team-level ABAC).
+	TeamRole *string
+
 	// Provider is the authentication provider that created this session.
 	// Examples: "okta_saml", "auth0_oidc", "legacy_jwt"
 	Provider string

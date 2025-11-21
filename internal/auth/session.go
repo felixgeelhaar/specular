@@ -20,6 +20,12 @@ type SessionClaims struct {
 	// Email is the user's email address
 	Email string `json:"email"`
 
+	// OrganizationID is the user's organization identifier (required for ABAC)
+	OrganizationID string `json:"organization_id"`
+
+	// OrganizationRole is the user's role within the organization (required for ABAC)
+	OrganizationRole string `json:"organization_role"`
+
 	// Provider is the authentication provider (okta_saml, auth0_oidc, legacy_jwt)
 	Provider string `json:"provider"`
 
