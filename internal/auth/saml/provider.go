@@ -20,6 +20,7 @@ import (
 
 	"github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
+
 	"github.com/felixgeelhaar/specular/internal/auth"
 )
 
@@ -116,9 +117,9 @@ func NewProvider(cfg *Config, sessionMgr *auth.SessionManager) (*Provider, error
 
 	// Parse SLO URL if provided
 	if cfg.SingleLogoutServiceURL != "" {
-		sloURL, err := url.Parse(cfg.SingleLogoutServiceURL)
-		if err != nil {
-			return nil, auth.WrapError(auth.ErrSAMLMetadataFailed, "invalid SLO URL", err, map[string]interface{}{
+		sloURL, sloErr := url.Parse(cfg.SingleLogoutServiceURL)
+		if sloErr != nil {
+			return nil, auth.WrapError(auth.ErrSAMLMetadataFailed, "invalid SLO URL", sloErr, map[string]interface{}{
 				"slo_url": cfg.SingleLogoutServiceURL,
 			})
 		}
@@ -370,7 +371,8 @@ func fetchIDPMetadata(metadataURL string) (*saml.EntityDescriptor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch metadata: %w", err)
 	}
-	defer resp.Body.Close()
+	//nolint:errcheck // Deferred close, error not critical
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("metadata request failed with status: %d", resp.StatusCode)

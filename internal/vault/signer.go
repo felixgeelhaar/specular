@@ -50,7 +50,7 @@ type SignerConfig struct {
 	AutoGenerate bool
 }
 
-// NewVaultSigner creates a new Vault-backed signer.
+// NewSigner creates a new Vault-backed signer.
 func (c *Client) NewSigner(ctx context.Context, cfg SignerConfig) (*VaultSigner, error) {
 	if cfg.KeyPath == "" {
 		return nil, fmt.Errorf("key path is required")
@@ -76,8 +76,8 @@ func (c *Client) NewSigner(ctx context.Context, cfg SignerConfig) (*VaultSigner,
 	if err != nil {
 		if cfg.AutoGenerate {
 			// Generate new key
-			if err := signer.GenerateKey(ctx); err != nil {
-				return nil, fmt.Errorf("failed to generate key: %w", err)
+			if genErr := signer.GenerateKey(ctx); genErr != nil {
+				return nil, fmt.Errorf("failed to generate key: %w", genErr)
 			}
 		} else {
 			return nil, fmt.Errorf("key not found at %s and auto-generate is disabled: %w", cfg.KeyPath, err)
@@ -121,8 +121,8 @@ func (s *VaultSigner) GenerateKey(ctx context.Context) error {
 		"identity":  s.identity,
 	}
 
-	if err := s.client.KV().PutWithMetadata(ctx, s.keyPath, data, metadata); err != nil {
-		return fmt.Errorf("failed to store key in Vault: %w", err)
+	if storeErr := s.client.KV().PutWithMetadata(ctx, s.keyPath, data, metadata); storeErr != nil {
+		return fmt.Errorf("failed to store key in Vault: %w", storeErr)
 	}
 
 	// Update cache

@@ -126,6 +126,8 @@ func NewClient(cfg Config) (*Client, error) {
 }
 
 // createHTTPClient creates an HTTP client with TLS configuration.
+//
+//nolint:gocyclo // Complex TLS configuration logic
 func createHTTPClient(tlsCfg *TLSConfig) (*http.Client, error) {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -161,8 +163,8 @@ func createHTTPClient(tlsCfg *TLSConfig) (*http.Client, error) {
 					}
 
 					certPath := fmt.Sprintf("%s/%s", tlsCfg.CAPath, entry.Name())
-					cert, err := os.ReadFile(certPath)
-					if err != nil {
+					cert, certErr := os.ReadFile(certPath)
+					if certErr != nil {
 						continue // Skip files we can't read
 					}
 					caCertPool.AppendCertsFromPEM(cert)
@@ -234,7 +236,8 @@ func (c *Client) renewToken(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to renew token: %w", err)
 	}
-	defer resp.Body.Close()
+	//nolint:errcheck // Deferred close, error not critical
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("token renewal failed with status %d", resp.StatusCode)
@@ -270,7 +273,8 @@ func (c *Client) Health(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("health check failed: %w", err)
 	}
-	defer resp.Body.Close()
+	//nolint:errcheck // Deferred close, error not critical
+	defer func() { _ = resp.Body.Close() }()
 
 	// Vault health endpoint returns 200 for healthy, 429 for standby, 5xx for errors
 	if resp.StatusCode >= 500 {

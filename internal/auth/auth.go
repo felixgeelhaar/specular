@@ -151,11 +151,11 @@ func (m *Manager) Authenticate(ctx context.Context, req *http.Request) (*Session
 		session, err := provider.Authenticate(ctx, req)
 		if err == nil {
 			// Store session for later validation
-			if err := m.sessionStore.Store(ctx, session.UserID, session); err != nil {
+			if storeErr := m.sessionStore.Store(ctx, session.UserID, session); storeErr != nil {
 				return nil, NewError(ErrSessionStoreFailed, "failed to store session", map[string]interface{}{
 					"provider": name,
 					"user_id":  session.UserID,
-					"error":    err.Error(),
+					"error":    storeErr.Error(),
 				})
 			}
 			return session, nil
@@ -205,8 +205,8 @@ func (m *Manager) ValidateSession(ctx context.Context, token string) (*Session, 
 		})
 	}
 
-	if err := provider.ValidateSession(ctx, session); err != nil {
-		return nil, err
+	if validateErr := provider.ValidateSession(ctx, session); validateErr != nil {
+		return nil, validateErr
 	}
 
 	return session, nil
@@ -231,10 +231,10 @@ func (m *Manager) RefreshSession(ctx context.Context, session *Session) (*Sessio
 	}
 
 	// Update session store with new session
-	if err := m.sessionStore.Store(ctx, newSession.UserID, newSession); err != nil {
+	if storeErr := m.sessionStore.Store(ctx, newSession.UserID, newSession); storeErr != nil {
 		return nil, NewError(ErrSessionStoreFailed, "failed to store refreshed session", map[string]interface{}{
 			"user_id": newSession.UserID,
-			"error":   err.Error(),
+			"error":   storeErr.Error(),
 		})
 	}
 

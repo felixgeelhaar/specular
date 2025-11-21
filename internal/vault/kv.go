@@ -32,7 +32,7 @@ type KV struct {
 	client *Client
 }
 
-// NewKV creates a new KV v2 client.
+// KV creates a new KV v2 client.
 func (c *Client) KV() *KV {
 	return &KV{client: c}
 }
@@ -82,10 +82,11 @@ func (kv *KV) PutWithMetadata(ctx context.Context, path string, data map[string]
 	if err != nil {
 		return fmt.Errorf("failed to write secret: %w", err)
 	}
-	defer resp.Body.Close()
+	//nolint:errcheck // Deferred close, error not critical
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body) //nolint:errcheck // Error body read, ignore errors
 		return fmt.Errorf("failed to write secret (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -126,14 +127,15 @@ func (kv *KV) GetVersion(ctx context.Context, path string, version int) (*Secret
 	if err != nil {
 		return nil, fmt.Errorf("failed to read secret: %w", err)
 	}
-	defer resp.Body.Close()
+	//nolint:errcheck // Deferred close, error not critical
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("secret not found at path: %s", path)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body) //nolint:errcheck // Error body read, ignore errors
 		return nil, fmt.Errorf("failed to read secret (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -142,8 +144,8 @@ func (kv *KV) GetVersion(ctx context.Context, path string, version int) (*Secret
 		Data *Secret `json:"data"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode secret response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&response); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode secret response: %w", decodeErr)
 	}
 
 	if response.Data == nil {
@@ -159,6 +161,8 @@ func (kv *KV) Delete(ctx context.Context, path string) error {
 }
 
 // DeleteVersions soft-deletes specific versions of a secret.
+//
+//nolint:dupl // Similar operations on different endpoints
 func (kv *KV) DeleteVersions(ctx context.Context, path string, versions []int) error {
 	// KV v2 API path format: /v1/{mount}/delete/{path}
 	url := fmt.Sprintf("%s/v1/%s/delete/%s", kv.client.address, kv.client.mountPath, path)
@@ -183,10 +187,11 @@ func (kv *KV) DeleteVersions(ctx context.Context, path string, versions []int) e
 	if err != nil {
 		return fmt.Errorf("failed to delete secret: %w", err)
 	}
-	defer resp.Body.Close()
+	//nolint:errcheck // Deferred close, error not critical
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body) //nolint:errcheck // Error body read, ignore errors
 		return fmt.Errorf("failed to delete secret (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -194,6 +199,8 @@ func (kv *KV) DeleteVersions(ctx context.Context, path string, versions []int) e
 }
 
 // Destroy permanently deletes specific versions of a secret (cannot be recovered).
+//
+//nolint:dupl // Similar operations on different endpoints
 func (kv *KV) Destroy(ctx context.Context, path string, versions []int) error {
 	// KV v2 API path format: /v1/{mount}/destroy/{path}
 	url := fmt.Sprintf("%s/v1/%s/destroy/%s", kv.client.address, kv.client.mountPath, path)
@@ -218,10 +225,11 @@ func (kv *KV) Destroy(ctx context.Context, path string, versions []int) error {
 	if err != nil {
 		return fmt.Errorf("failed to destroy secret: %w", err)
 	}
-	defer resp.Body.Close()
+	//nolint:errcheck // Deferred close, error not critical
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body) //nolint:errcheck // Error body read, ignore errors
 		return fmt.Errorf("failed to destroy secret (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -244,14 +252,15 @@ func (kv *KV) List(ctx context.Context, path string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list secrets: %w", err)
 	}
-	defer resp.Body.Close()
+	//nolint:errcheck // Deferred close, error not critical
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return []string{}, nil // Empty list for non-existent paths
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body) //nolint:errcheck // Error body read, ignore errors
 		return nil, fmt.Errorf("failed to list secrets (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -262,8 +271,8 @@ func (kv *KV) List(ctx context.Context, path string) ([]string, error) {
 		} `json:"data"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode list response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&response); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode list response: %w", decodeErr)
 	}
 
 	return response.Data.Keys, nil
@@ -285,14 +294,15 @@ func (kv *KV) GetMetadata(ctx context.Context, path string) (*SecretMetadata, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to read metadata: %w", err)
 	}
-	defer resp.Body.Close()
+	//nolint:errcheck // Deferred close, error not critical
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("secret not found at path: %s", path)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body) //nolint:errcheck // Error body read, ignore errors
 		return nil, fmt.Errorf("failed to read metadata (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -301,8 +311,8 @@ func (kv *KV) GetMetadata(ctx context.Context, path string) (*SecretMetadata, er
 		Data *SecretMetadata `json:"data"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode metadata response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&response); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode metadata response: %w", decodeErr)
 	}
 
 	return response.Data, nil

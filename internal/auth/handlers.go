@@ -63,8 +63,8 @@ func (h *Handlers) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Initiate login (redirects to IdP)
-	if err := initiator.InitiateLogin(w, r); err != nil {
-		h.writeAuthError(w, err)
+	if initiateErr := initiator.InitiateLogin(w, r); initiateErr != nil {
+		h.writeAuthError(w, initiateErr)
 		return
 	}
 }
@@ -110,9 +110,9 @@ func (h *Handlers) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Store session
-	if err := h.sessionStore.Store(r.Context(), session.UserID, session); err != nil {
+	if storeErr := h.sessionStore.Store(r.Context(), session.UserID, session); storeErr != nil {
 		h.writeError(w, http.StatusInternalServerError, "AUTH_SESSION_STORE_FAILED", "failed to store session", map[string]interface{}{
-			"error": err.Error(),
+			"error": storeErr.Error(),
 		})
 		return
 	}
@@ -251,7 +251,7 @@ func (h *Handlers) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update session in store
-	if err := h.sessionStore.Store(r.Context(), newSession.UserID, newSession); err != nil {
+	if storeErr := h.sessionStore.Store(r.Context(), newSession.UserID, newSession); storeErr != nil {
 		h.writeError(w, http.StatusInternalServerError, "AUTH_SESSION_STORE_FAILED", "failed to store session", nil)
 		return
 	}
@@ -304,7 +304,7 @@ func (h *Handlers) writeAuthError(w http.ResponseWriter, err error) {
 	if !ok {
 		// Generic error
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
+		_ = json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck // Error response, ignore encoding errors
 			"error":   "authentication_failed",
 			"message": err.Error(),
 		})
@@ -321,7 +321,7 @@ func (h *Handlers) writeAuthError(w http.ResponseWriter, err error) {
 	}
 
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{ //nolint:errcheck // Error response, ignore encoding errors
 		"error":   authErr.Code,
 		"message": authErr.Message,
 		"context": authErr.Context,
@@ -332,7 +332,7 @@ func (h *Handlers) writeAuthError(w http.ResponseWriter, err error) {
 func (h *Handlers) writeError(w http.ResponseWriter, statusCode int, code, message string, context map[string]interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{ //nolint:errcheck // Error response, ignore encoding errors
 		"error":   code,
 		"message": message,
 		"context": context,
