@@ -52,10 +52,10 @@ func NewAuditVerifier(opts ...VerifierOption) *AuditVerifier {
 
 // VerificationResult contains the result of verifying an audit entry.
 type VerificationResult struct {
-	Valid    bool      `json:"valid"`
-	Entry    *AuditEntry `json:"entry"`
-	Reason   string    `json:"reason,omitempty"`
-	VerifiedAt time.Time `json:"verified_at"`
+	Valid      bool        `json:"valid"`
+	Entry      *AuditEntry `json:"entry"`
+	Reason     string      `json:"reason,omitempty"`
+	VerifiedAt time.Time   `json:"verified_at"`
 }
 
 // Verify checks the cryptographic signature on an audit entry.
@@ -180,11 +180,11 @@ func (v *AuditVerifier) recreateSignedData(entry *AuditEntry) ([]byte, error) {
 
 // VerificationSummary provides statistics about a batch verification.
 type VerificationSummary struct {
-	Total       int       `json:"total"`
-	Valid       int       `json:"valid"`
-	Invalid     int       `json:"invalid"`
-	Unsigned    int       `json:"unsigned"`
-	VerifiedAt  time.Time `json:"verified_at"`
+	Total      int       `json:"total"`
+	Valid      int       `json:"valid"`
+	Invalid    int       `json:"invalid"`
+	Unsigned   int       `json:"unsigned"`
+	VerifiedAt time.Time `json:"verified_at"`
 }
 
 // Summarize creates a summary of verification results.
