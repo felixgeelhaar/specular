@@ -110,13 +110,13 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	client := &Client{
-		address:       cfg.Address,
-		token:         token,
-		mountPath:     cfg.MountPath,
-		namespace:     cfg.Namespace,
-		httpClient:    httpClient,
-		tokenTTL:      cfg.TokenTTL,
-		stopRenewal:   make(chan struct{}),
+		address:     cfg.Address,
+		token:       token,
+		mountPath:   cfg.MountPath,
+		namespace:   cfg.Namespace,
+		httpClient:  httpClient,
+		tokenTTL:    cfg.TokenTTL,
+		stopRenewal: make(chan struct{}),
 	}
 
 	// Start automatic token renewal

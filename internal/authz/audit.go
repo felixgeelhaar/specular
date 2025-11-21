@@ -59,7 +59,7 @@ type AuditEntry struct {
 
 	// Cryptographic signature (ECDSA P-256)
 	// These fields provide tamper-proof audit trails by signing the entry
-	Signature string `json:"signature,omitempty"` // Base64-encoded ECDSA signature
+	Signature string `json:"signature,omitempty"`  // Base64-encoded ECDSA signature
 	PublicKey string `json:"public_key,omitempty"` // Base64-encoded public key for verification
 	SignedBy  string `json:"signed_by,omitempty"`  // Identity/email of the signer
 }
