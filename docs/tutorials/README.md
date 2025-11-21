@@ -9,6 +9,7 @@ Step-by-step guides to learn Specular's spec-first development workflow.
 | [Quick Start](./01-quick-start.md) | 5 min | Your first spec in 5 minutes |
 | [Full Workflow](./02-full-workflow.md) | 20 min | Complete spec → plan → build → eval |
 | [Using Templates](./03-using-templates.md) | 10 min | Jump-start with project templates |
+| [Authorization](./08-authorization.md) | 20 min | Implement access control for your application |
 
 ## PRO Feature Tutorials
 
