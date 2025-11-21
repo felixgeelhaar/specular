@@ -2,7 +2,9 @@ package authz
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -54,6 +56,12 @@ type AuditEntry struct {
 	RequestID string        `json:"request_id,omitempty"`
 	Duration  time.Duration `json:"duration_ms,omitempty"`
 	ErrorMsg  string        `json:"error,omitempty"`
+
+	// Cryptographic signature (ECDSA P-256)
+	// These fields provide tamper-proof audit trails by signing the entry
+	Signature string `json:"signature,omitempty"`  // Base64-encoded ECDSA signature
+	PublicKey string `json:"public_key,omitempty"` // Base64-encoded public key for verification
+	SignedBy  string `json:"signed_by,omitempty"`  // Identity/email of the signer
 }
 
 // AuditLoggerConfig holds configuration for audit logging.
@@ -293,6 +301,119 @@ func (l *InMemoryAuditLogger) Close() error {
 func WithAuditLogger(engine *Engine, logger AuditLogger) *Engine {
 	engine.auditLogger = logger
 	return engine
+}
+
+// Signer defines the interface for signing audit entries.
+type Signer interface {
+	// Sign generates a signature for the data.
+	Sign(data []byte) (signature []byte, publicKey []byte, err error)
+
+	// Identity returns the identity of the signer.
+	Identity() string
+}
+
+// SignedAuditLogger wraps an AuditLogger and adds cryptographic signatures
+// to each audit entry using ECDSA P-256.
+type SignedAuditLogger struct {
+	wrapped AuditLogger
+	signer  Signer
+}
+
+// NewSignedAuditLogger creates a new signed audit logger that wraps
+// an existing logger and signs each entry.
+func NewSignedAuditLogger(wrapped AuditLogger, signer Signer) *SignedAuditLogger {
+	return &SignedAuditLogger{
+		wrapped: wrapped,
+		signer:  signer,
+	}
+}
+
+// LogDecision signs the audit entry and then logs it using the wrapped logger.
+func (l *SignedAuditLogger) LogDecision(ctx context.Context, entry *AuditEntry) error {
+	// Sign the entry
+	if err := l.signEntry(entry); err != nil {
+		// If signing fails, log error but continue with unsigned entry
+		// to ensure audit trail is not lost
+		log.Printf("audit: failed to sign entry: %v", err)
+	}
+
+	// Pass to wrapped logger
+	return l.wrapped.LogDecision(ctx, entry)
+}
+
+// Close closes both the signed logger and the wrapped logger.
+func (l *SignedAuditLogger) Close() error {
+	return l.wrapped.Close()
+}
+
+// signEntry signs an audit entry by computing a signature over its canonical JSON.
+func (l *SignedAuditLogger) signEntry(entry *AuditEntry) error {
+	// Clear signature fields to create canonical data
+	entry.Signature = ""
+	entry.PublicKey = ""
+	entry.SignedBy = ""
+
+	// Serialize to canonical JSON
+	data, err := json.MarshalIndent(entry, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal entry: %w", err)
+	}
+
+	// Sign the data
+	signature, publicKey, err := l.signer.Sign(data)
+	if err != nil {
+		return fmt.Errorf("failed to sign: %w", err)
+	}
+
+	// Encode signature and public key as base64
+	entry.Signature = encodeBase64(signature)
+	entry.PublicKey = encodeBase64(publicKey)
+	entry.SignedBy = l.signer.Identity()
+
+	return nil
+}
+
+// encodeBase64 encodes bytes to base64 string.
+func encodeBase64(data []byte) string {
+	return base64.StdEncoding.EncodeToString(data)
+}
+
+// decodeBase64 decodes a base64 string to bytes.
+func decodeBase64(encoded string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(encoded)
+}
+
+// ECDSASigner defines the interface for ECDSA signing compatible with attestation.EphemeralSigner.
+type ECDSASigner interface {
+	// Sign generates a signature for the data.
+	Sign(data []byte) (signature []byte, publicKey []byte, err error)
+
+	// Identity returns the identity of the signer.
+	Identity() string
+}
+
+// SignerAdapter adapts an attestation.EphemeralSigner to the Signer interface.
+type SignerAdapter struct {
+	identity   string
+	signerFunc func([]byte) ([]byte, []byte, error)
+}
+
+// NewSignerAdapter creates a new signer adapter.
+func NewSignerAdapter(identity string, signerFunc func([]byte) ([]byte, []byte, error)) *SignerAdapter {
+	return &SignerAdapter{
+		identity:   identity,
+		signerFunc: signerFunc,
+	}
+}
+
+// Sign generates a signature for the data.
+func (a *SignerAdapter) Sign(data []byte) (signature []byte, publicKey []byte, err error) {
+	return a.signerFunc(data)
+}
+
+// Identity returns the identity of the signer.
+func (a *SignerAdapter) Identity() string {
+	return a.identity
 }
 
 // Update Engine struct to include audit logger (this will be added to authz.go)
