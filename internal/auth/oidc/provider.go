@@ -16,8 +16,9 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/felixgeelhaar/specular/internal/auth"
 	"golang.org/x/oauth2"
+
+	"github.com/felixgeelhaar/specular/internal/auth"
 )
 
 // Config holds OAuth2/OIDC client configuration.
@@ -319,9 +320,9 @@ func (p *Provider) HandleCallback(w http.ResponseWriter, r *http.Request) (*auth
 
 	// Create refresh token if available
 	if token.RefreshToken != "" {
-		refreshToken, err := p.sessionManager.CreateRefreshToken(ctx, session)
-		if err != nil {
-			return nil, err
+		refreshToken, refreshErr := p.sessionManager.CreateRefreshToken(ctx, session)
+		if refreshErr != nil {
+			return nil, refreshErr
 		}
 		session.RefreshToken = refreshToken
 	}

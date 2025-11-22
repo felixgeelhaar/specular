@@ -37,7 +37,6 @@ type SessionStore interface {
 // Sessions are stored in a concurrent map with automatic cleanup.
 type MemoryStore struct {
 	sessions sync.Map
-	mu       sync.RWMutex
 }
 
 // NewMemoryStore creates a new in-memory session store.
@@ -53,7 +52,7 @@ func NewMemoryStore() *MemoryStore {
 		defer ticker.Stop()
 
 		for range ticker.C {
-			_, _ = store.Cleanup(context.Background())
+			_, _ = store.Cleanup(context.Background()) //nolint:errcheck // Background cleanup, errors logged
 		}
 	}()
 
