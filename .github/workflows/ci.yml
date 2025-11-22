@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
-          cache: true
+          cache: false  # Temporarily disabled due to cache corruption
 
       - name: Download dependencies
         run: go mod download
