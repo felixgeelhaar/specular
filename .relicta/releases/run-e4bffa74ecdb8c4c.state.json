@@ -1,0 +1,20 @@
+{
+  "run_id": "run-e4bffa74ecdb8c4c",
+  "state": "planned",
+  "head_sha": "94b1b337b46a54e69ea7b8f427f5f1696b776d9b",
+  "plan_hash": "7992c233172493d0f19df31bbf261e7864c0bc7b00144b1a4b63b0c776f9fb82",
+  "version_next": "1.7.0",
+  "steps": {},
+  "history": [
+    {
+      "At": "2026-01-02T15:39:31.836656+01:00",
+      "From": "draft",
+      "To": "planned",
+      "Event": "PLAN",
+      "Actor": "cli",
+      "Reason": "Release planned",
+      "Metadata": null
+    }
+  ],
+  "updated_at": "2026-01-02T15:39:31+01:00"
+}

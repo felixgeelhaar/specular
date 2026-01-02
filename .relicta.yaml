@@ -1,0 +1,139 @@
+# Relicta Configuration for Specular
+# https://github.com/relicta-tech/relicta
+
+version: 1
+
+# Project information
+project:
+  name: specular
+  description: AI-Native Spec and Build Assistant with Governance
+  repository: github.com/felixgeelhaar/specular
+
+# Version configuration
+versioning:
+  # Strategy: conventional (based on commit messages) or manual
+  strategy: conventional
+
+  # Version file locations
+  files:
+    - path: internal/version/version.go
+      pattern: 'Version\s*=\s*"([^"]+)"'
+
+  # Tag prefix (e.g., v1.0.0)
+  tag_prefix: v
+
+# Commit analysis for automatic version bumps
+commits:
+  # Conventional commits parsing
+  conventional: true
+
+  # Commit types and their version impact
+  types:
+    # Major version bumps (breaking changes)
+    major:
+      - "breaking"
+      - "!:"
+
+    # Minor version bumps (new features)
+    minor:
+      - "feat"
+      - "feature"
+
+    # Patch version bumps (fixes)
+    patch:
+      - "fix"
+      - "bugfix"
+      - "perf"
+      - "refactor"
+      - "docs"
+      - "style"
+      - "test"
+      - "chore"
+      - "ci"
+      - "build"
+
+# Changelog generation
+changelog:
+  # Output file
+  file: CHANGELOG.md
+
+  # Include these commit types in changelog
+  include:
+    - feat
+    - fix
+    - perf
+    - breaking
+
+  # Group commits by type
+  groups:
+    - title: "Breaking Changes"
+      types: ["breaking"]
+    - title: "Features"
+      types: ["feat", "feature"]
+    - title: "Bug Fixes"
+      types: ["fix", "bugfix"]
+    - title: "Performance"
+      types: ["perf"]
+
+# Release workflow
+release:
+  # Pre-release checks
+  checks:
+    - name: tests
+      command: go test ./...
+    - name: build
+      command: go build ./...
+    - name: lint
+      command: golangci-lint run --timeout 5m
+
+  # GitHub release configuration
+  github:
+    enabled: true
+    draft: false
+    prerelease: false
+
+    # Assets to upload
+    assets:
+      - path: dist/*.tar.gz
+      - path: dist/*.zip
+      - path: dist/checksums.txt
+
+# Change Governance Protocol (CGP)
+governance:
+  # Risk evaluation enabled
+  enabled: true
+
+  # Risk thresholds
+  thresholds:
+    # Maximum risk score before requiring manual approval
+    auto_approve: 30
+    # Minimum risk score that triggers warnings
+    warning: 50
+    # Risk score that blocks release
+    block: 80
+
+  # Risk factors
+  factors:
+    - name: breaking_changes
+      weight: 25
+      description: Breaking API or behavior changes
+    - name: security_changes
+      weight: 20
+      description: Changes to security-related code
+    - name: dependency_updates
+      weight: 10
+      description: External dependency changes
+    - name: large_diff
+      weight: 15
+      description: Large number of lines changed
+    - name: core_changes
+      weight: 15
+      description: Changes to core business logic
+
+# Plugins and integrations
+plugins:
+  # GoReleaser integration for builds
+  - name: goreleaser
+    enabled: true
+    config:
+      config_file: .goreleaser.yaml
