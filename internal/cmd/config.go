@@ -93,12 +93,13 @@ func init() {
 
 // GlobalConfig represents the global Specular configuration
 type GlobalConfig struct {
-	Providers ProviderDefaults `yaml:"providers,omitempty"`
-	Defaults  CommandDefaults  `yaml:"defaults,omitempty"`
-	Budget    BudgetLimits     `yaml:"budget,omitempty"`
-	Logging   LoggingConfig    `yaml:"logging,omitempty"`
-	Telemetry TelemetryConfig  `yaml:"telemetry,omitempty"`
-	Vault     VaultConfig      `yaml:"vault,omitempty"`
+	Providers           ProviderDefaults          `yaml:"providers,omitempty"`
+	Defaults            CommandDefaults           `yaml:"defaults,omitempty"`
+	Budget              BudgetLimits              `yaml:"budget,omitempty"`
+	Logging             LoggingConfig             `yaml:"logging,omitempty"`
+	Telemetry           TelemetryConfig           `yaml:"telemetry,omitempty"`
+	Vault               VaultConfig               `yaml:"vault,omitempty"`
+	AWSSecretsManager   AWSSecretsManagerConfig   `yaml:"aws_secrets_manager,omitempty"`
 }
 
 // VaultConfig holds HashiCorp Vault integration settings for secrets management
@@ -150,6 +151,42 @@ type VaultTLSConfig struct {
 
 	// InsecureSkipVerify disables certificate verification (NOT for production)
 	InsecureSkipVerify bool `yaml:"insecure_skip_verify,omitempty"`
+}
+
+// AWSSecretsManagerConfig holds AWS Secrets Manager integration settings for
+// secrets management and cryptographic signing operations.
+type AWSSecretsManagerConfig struct {
+	// Enabled controls whether AWS Secrets Manager integration is active
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// Region is the primary AWS region (e.g., "us-west-2")
+	Region string `yaml:"region,omitempty"`
+
+	// SecondaryRegion is the DR/failover region (optional)
+	SecondaryRegion string `yaml:"secondary_region,omitempty"`
+
+	// Profile is the AWS profile name from ~/.aws/credentials (optional)
+	Profile string `yaml:"profile,omitempty"`
+
+	// AssumeRoleARN is the ARN of a role to assume for cross-account access (optional)
+	AssumeRoleARN string `yaml:"assume_role_arn,omitempty"`
+
+	// SigningKeyName is the secret name where the signing key is stored
+	// Example: "specular/audit/signing-key"
+	SigningKeyName string `yaml:"signing_key_name,omitempty"`
+
+	// SignerIdentity is the identity used for audit log signatures
+	// Example: "system@specular.dev"
+	SignerIdentity string `yaml:"signer_identity,omitempty"`
+
+	// AutoGenerateKey will create a new signing key if one doesn't exist
+	AutoGenerateKey bool `yaml:"auto_generate_key,omitempty"`
+
+	// Endpoint is a custom endpoint URL for LocalStack testing (optional)
+	Endpoint string `yaml:"endpoint,omitempty"`
+
+	// Tags are applied to secrets when creating new keys
+	Tags map[string]string `yaml:"tags,omitempty"`
 }
 
 // ProviderDefaults specifies the default and preferred AI providers for command
@@ -227,6 +264,7 @@ func loadConfig() (*GlobalConfig, error) {
 		}
 		// Apply environment overrides to default config
 		applyVaultEnvOverrides(defaultConfig)
+		applyAWSSecretsManagerEnvOverrides(defaultConfig)
 		return defaultConfig, nil
 	}
 
@@ -243,6 +281,7 @@ func loadConfig() (*GlobalConfig, error) {
 
 	// Apply environment variable overrides
 	applyVaultEnvOverrides(&config)
+	applyAWSSecretsManagerEnvOverrides(&config)
 
 	return &config, nil
 }
@@ -322,6 +361,78 @@ func applyVaultEnvOverrides(config *GlobalConfig) {
 	}
 }
 
+// applyAWSSecretsManagerEnvOverrides applies environment variable overrides for
+// AWS Secrets Manager configuration.
+//
+// AWS standard environment variables:
+//   - AWS_REGION: AWS region
+//   - AWS_PROFILE: AWS profile name
+//   - AWS_ENDPOINT_URL: Custom endpoint (for LocalStack)
+//
+// Specular-specific environment variables:
+//   - SPECULAR_AWS_SM_ENABLED: Enable/disable AWS Secrets Manager integration
+//   - SPECULAR_AWS_SM_REGION: Primary AWS region
+//   - SPECULAR_AWS_SM_SECONDARY_REGION: DR/failover region
+//   - SPECULAR_AWS_SM_PROFILE: AWS profile name
+//   - SPECULAR_AWS_SM_ASSUME_ROLE_ARN: Role ARN for cross-account access
+//   - SPECULAR_AWS_SM_SIGNING_KEY_NAME: Secret name for signing key
+//   - SPECULAR_AWS_SM_SIGNER_IDENTITY: Signer identity
+//   - SPECULAR_AWS_SM_AUTO_GENERATE_KEY: Auto-generate signing key
+//   - SPECULAR_AWS_SM_ENDPOINT: Custom endpoint URL
+func applyAWSSecretsManagerEnvOverrides(config *GlobalConfig) {
+	// AWS standard environment variables
+	if region := os.Getenv("AWS_REGION"); region != "" {
+		config.AWSSecretsManager.Region = region
+	}
+
+	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
+		config.AWSSecretsManager.Profile = profile
+	}
+
+	if endpoint := os.Getenv("AWS_ENDPOINT_URL"); endpoint != "" {
+		config.AWSSecretsManager.Endpoint = endpoint
+	}
+
+	// Specular-specific AWS Secrets Manager environment variables
+	if enabled := os.Getenv("SPECULAR_AWS_SM_ENABLED"); enabled != "" {
+		config.AWSSecretsManager.Enabled = parseBool(enabled)
+	}
+
+	if region := os.Getenv("SPECULAR_AWS_SM_REGION"); region != "" {
+		config.AWSSecretsManager.Region = region
+		// If region is explicitly set, implicitly enable AWS SM
+		config.AWSSecretsManager.Enabled = true
+	}
+
+	if secondaryRegion := os.Getenv("SPECULAR_AWS_SM_SECONDARY_REGION"); secondaryRegion != "" {
+		config.AWSSecretsManager.SecondaryRegion = secondaryRegion
+	}
+
+	if profile := os.Getenv("SPECULAR_AWS_SM_PROFILE"); profile != "" {
+		config.AWSSecretsManager.Profile = profile
+	}
+
+	if roleARN := os.Getenv("SPECULAR_AWS_SM_ASSUME_ROLE_ARN"); roleARN != "" {
+		config.AWSSecretsManager.AssumeRoleARN = roleARN
+	}
+
+	if keyName := os.Getenv("SPECULAR_AWS_SM_SIGNING_KEY_NAME"); keyName != "" {
+		config.AWSSecretsManager.SigningKeyName = keyName
+	}
+
+	if identity := os.Getenv("SPECULAR_AWS_SM_SIGNER_IDENTITY"); identity != "" {
+		config.AWSSecretsManager.SignerIdentity = identity
+	}
+
+	if autoGen := os.Getenv("SPECULAR_AWS_SM_AUTO_GENERATE_KEY"); autoGen != "" {
+		config.AWSSecretsManager.AutoGenerateKey = parseBool(autoGen)
+	}
+
+	if endpoint := os.Getenv("SPECULAR_AWS_SM_ENDPOINT"); endpoint != "" {
+		config.AWSSecretsManager.Endpoint = endpoint
+	}
+}
+
 // saveConfig saves the configuration to the file
 func saveConfig(config *GlobalConfig, path string) error {
 	data, err := yaml.Marshal(config)
@@ -374,6 +485,18 @@ func defaultGlobalConfig() *GlobalConfig {
 			SignerIdentity:  "",
 			AutoGenerateKey: true,
 			TLS:             VaultTLSConfig{},
+		},
+		AWSSecretsManager: AWSSecretsManagerConfig{
+			Enabled:         false,
+			Region:          "",
+			SecondaryRegion: "",
+			Profile:         "",
+			AssumeRoleARN:   "",
+			SigningKeyName:  "specular/audit/signing-key",
+			SignerIdentity:  "",
+			AutoGenerateKey: true,
+			Endpoint:        "",
+			Tags:            nil,
 		},
 	}
 }
@@ -566,6 +689,24 @@ func getNestedValue(config *GlobalConfig, key string) (string, error) {
 		return config.Vault.TLS.ServerName, nil
 	case "vault.tls.insecure_skip_verify":
 		return fmt.Sprintf("%t", config.Vault.TLS.InsecureSkipVerify), nil
+	case "aws_secrets_manager.enabled":
+		return fmt.Sprintf("%t", config.AWSSecretsManager.Enabled), nil
+	case "aws_secrets_manager.region":
+		return config.AWSSecretsManager.Region, nil
+	case "aws_secrets_manager.secondary_region":
+		return config.AWSSecretsManager.SecondaryRegion, nil
+	case "aws_secrets_manager.profile":
+		return config.AWSSecretsManager.Profile, nil
+	case "aws_secrets_manager.assume_role_arn":
+		return config.AWSSecretsManager.AssumeRoleARN, nil
+	case "aws_secrets_manager.signing_key_name":
+		return config.AWSSecretsManager.SigningKeyName, nil
+	case "aws_secrets_manager.signer_identity":
+		return config.AWSSecretsManager.SignerIdentity, nil
+	case "aws_secrets_manager.auto_generate_key":
+		return fmt.Sprintf("%t", config.AWSSecretsManager.AutoGenerateKey), nil
+	case "aws_secrets_manager.endpoint":
+		return config.AWSSecretsManager.Endpoint, nil
 	default:
 		return "", fmt.Errorf("unknown configuration key: %s", key)
 	}
@@ -649,6 +790,24 @@ func setNestedValue(config *GlobalConfig, key, value string) error {
 		config.Vault.TLS.ServerName = value
 	case "vault.tls.insecure_skip_verify":
 		config.Vault.TLS.InsecureSkipVerify = parseBool(value)
+	case "aws_secrets_manager.enabled":
+		config.AWSSecretsManager.Enabled = parseBool(value)
+	case "aws_secrets_manager.region":
+		config.AWSSecretsManager.Region = value
+	case "aws_secrets_manager.secondary_region":
+		config.AWSSecretsManager.SecondaryRegion = value
+	case "aws_secrets_manager.profile":
+		config.AWSSecretsManager.Profile = value
+	case "aws_secrets_manager.assume_role_arn":
+		config.AWSSecretsManager.AssumeRoleARN = value
+	case "aws_secrets_manager.signing_key_name":
+		config.AWSSecretsManager.SigningKeyName = value
+	case "aws_secrets_manager.signer_identity":
+		config.AWSSecretsManager.SignerIdentity = value
+	case "aws_secrets_manager.auto_generate_key":
+		config.AWSSecretsManager.AutoGenerateKey = parseBool(value)
+	case "aws_secrets_manager.endpoint":
+		config.AWSSecretsManager.Endpoint = value
 	default:
 		return fmt.Errorf("unknown configuration key: %s", key)
 	}
