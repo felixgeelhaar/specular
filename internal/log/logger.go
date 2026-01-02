@@ -94,11 +94,29 @@ func (l *Logger) WithError(err error) *Logger {
 	return l.With("error", err.Error())
 }
 
-// WithContext returns a new Logger with context values added
+// WithContext returns a new Logger with context values added.
+// This automatically extracts and adds:
+// - correlation_id: For cross-service request correlation
+// - request_id: For request-level tracing within a service
+// - trace_id: OpenTelemetry trace ID (if tracing is enabled)
+// - span_id: OpenTelemetry span ID (if tracing is enabled)
 func (l *Logger) WithContext(ctx context.Context) *Logger {
-	// Extract common context values for correlation
-	// This can be extended to extract trace IDs, user IDs, etc.
-	return l
+	if ctx == nil {
+		return l
+	}
+
+	ids := ExtractContextIDs(ctx)
+	if len(ids) == 0 {
+		return l
+	}
+
+	// Convert map to slog args
+	args := make([]any, 0, len(ids)*2)
+	for k, v := range ids {
+		args = append(args, k, v)
+	}
+
+	return l.With(args...)
 }
 
 // Debug logs a debug message

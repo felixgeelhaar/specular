@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
+	"github.com/felixgeelhaar/specular/internal/slo"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
@@ -93,13 +95,14 @@ func init() {
 
 // GlobalConfig represents the global Specular configuration
 type GlobalConfig struct {
-	Providers           ProviderDefaults          `yaml:"providers,omitempty"`
-	Defaults            CommandDefaults           `yaml:"defaults,omitempty"`
-	Budget              BudgetLimits              `yaml:"budget,omitempty"`
-	Logging             LoggingConfig             `yaml:"logging,omitempty"`
-	Telemetry           TelemetryConfig           `yaml:"telemetry,omitempty"`
-	Vault               VaultConfig               `yaml:"vault,omitempty"`
-	AWSSecretsManager   AWSSecretsManagerConfig   `yaml:"aws_secrets_manager,omitempty"`
+	Providers         ProviderDefaults        `yaml:"providers,omitempty"`
+	Defaults          CommandDefaults         `yaml:"defaults,omitempty"`
+	Budget            BudgetLimits            `yaml:"budget,omitempty"`
+	Logging           LoggingConfig           `yaml:"logging,omitempty"`
+	Telemetry         TelemetryConfig         `yaml:"telemetry,omitempty"`
+	Vault             VaultConfig             `yaml:"vault,omitempty"`
+	AWSSecretsManager AWSSecretsManagerConfig `yaml:"aws_secrets_manager,omitempty"`
+	Observability     ObservabilityConfig     `yaml:"observability,omitempty"`
 }
 
 // VaultConfig holds HashiCorp Vault integration settings for secrets management
@@ -228,6 +231,151 @@ type TelemetryConfig struct {
 	ShareUsage bool    `yaml:"share_usage,omitempty"`
 	Endpoint   string  `yaml:"endpoint,omitempty"`
 	SampleRate float64 `yaml:"sample_rate,omitempty"`
+}
+
+// ObservabilityConfig holds configuration for the observability stack including
+// SLO tracking, alerting integrations, and log aggregation.
+type ObservabilityConfig struct {
+	// SLO configuration for Service Level Objectives tracking
+	SLO SLOConfig `yaml:"slo,omitempty"`
+
+	// Alerting configuration for alert routing
+	Alerting AlertingConfig `yaml:"alerting,omitempty"`
+
+	// LogExport configuration for log aggregation
+	LogExport LogExportConfig `yaml:"log_export,omitempty"`
+}
+
+// SLOConfig holds Service Level Objective tracking configuration.
+type SLOConfig struct {
+	// Enabled controls whether SLO tracking is active
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// ConfigPath is the path to an external SLO definitions file
+	ConfigPath string `yaml:"config_path,omitempty"`
+
+	// DefaultWindow is the default SLO evaluation window (e.g., "30d")
+	DefaultWindow slo.Duration `yaml:"default_window,omitempty"`
+
+	// CacheTTL is how long to cache SLO status calculations
+	CacheTTL slo.Duration `yaml:"cache_ttl,omitempty"`
+
+	// SLOs are inline SLO definitions (alternative to ConfigPath)
+	SLOs []*slo.SLO `yaml:"slos,omitempty"`
+}
+
+// AlertingConfig holds alert routing configuration for incident management.
+type AlertingConfig struct {
+	// Enabled controls whether alerting is active
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// DefaultSeverity is the default alert severity if not specified
+	DefaultSeverity string `yaml:"default_severity,omitempty"`
+
+	// PagerDuty configuration for PagerDuty integration
+	PagerDuty PagerDutyConfig `yaml:"pagerduty,omitempty"`
+
+	// Opsgenie configuration for Opsgenie integration
+	Opsgenie OpsgenieConfig `yaml:"opsgenie,omitempty"`
+
+	// Slack configuration for Slack webhook integration
+	Slack SlackAlertConfig `yaml:"slack,omitempty"`
+
+	// Webhook configuration for generic webhook integration
+	Webhook WebhookAlertConfig `yaml:"webhook,omitempty"`
+}
+
+// PagerDutyConfig holds PagerDuty integration settings.
+type PagerDutyConfig struct {
+	// Enabled controls whether PagerDuty integration is active
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// RoutingKey is the PagerDuty routing key (integration key)
+	RoutingKey string `yaml:"routing_key,omitempty"`
+
+	// ServiceID is the PagerDuty service ID (optional)
+	ServiceID string `yaml:"service_id,omitempty"`
+
+	// URL is the PagerDuty Events API URL (defaults to v2 events API)
+	URL string `yaml:"url,omitempty"`
+}
+
+// OpsgenieConfig holds Opsgenie integration settings.
+type OpsgenieConfig struct {
+	// Enabled controls whether Opsgenie integration is active
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// APIKey is the Opsgenie API key
+	APIKey string `yaml:"api_key,omitempty"`
+
+	// Region is the Opsgenie region ("us" or "eu")
+	Region string `yaml:"region,omitempty"`
+
+	// TeamID is the Opsgenie team ID (optional)
+	TeamID string `yaml:"team_id,omitempty"`
+}
+
+// SlackAlertConfig holds Slack webhook integration settings.
+type SlackAlertConfig struct {
+	// Enabled controls whether Slack integration is active
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// WebhookURL is the Slack incoming webhook URL
+	WebhookURL string `yaml:"webhook_url,omitempty"`
+
+	// Channel is the default channel to send alerts (optional)
+	Channel string `yaml:"channel,omitempty"`
+
+	// Username is the bot username for alerts (optional)
+	Username string `yaml:"username,omitempty"`
+
+	// IconEmoji is the emoji icon for alert messages (optional)
+	IconEmoji string `yaml:"icon_emoji,omitempty"`
+}
+
+// WebhookAlertConfig holds generic webhook integration settings.
+type WebhookAlertConfig struct {
+	// Enabled controls whether webhook integration is active
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// URL is the webhook endpoint URL
+	URL string `yaml:"url,omitempty"`
+
+	// Method is the HTTP method (defaults to POST)
+	Method string `yaml:"method,omitempty"`
+
+	// Headers are additional HTTP headers to include
+	Headers map[string]string `yaml:"headers,omitempty"`
+
+	// Timeout is the request timeout (defaults to 30s)
+	Timeout time.Duration `yaml:"timeout,omitempty"`
+}
+
+// LogExportConfig holds log aggregation/export configuration.
+type LogExportConfig struct {
+	// Enabled controls whether log export is active
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// Type is the export type: "elk", "splunk", or "loki"
+	Type string `yaml:"type,omitempty"`
+
+	// Endpoint is the log aggregation endpoint URL
+	Endpoint string `yaml:"endpoint,omitempty"`
+
+	// APIKey is the API key for authentication (if required)
+	APIKey string `yaml:"api_key,omitempty"`
+
+	// Index is the index name for ELK or source for Splunk
+	Index string `yaml:"index,omitempty"`
+
+	// BatchSize is the number of log entries per batch
+	BatchSize int `yaml:"batch_size,omitempty"`
+
+	// FlushInterval is the interval between batch sends
+	FlushInterval time.Duration `yaml:"flush_interval,omitempty"`
+
+	// Labels are additional labels for Loki
+	Labels map[string]string `yaml:"labels,omitempty"`
 }
 
 // getConfigPath returns the path to the global configuration file
@@ -498,6 +646,44 @@ func defaultGlobalConfig() *GlobalConfig {
 			Endpoint:        "",
 			Tags:            nil,
 		},
+		Observability: ObservabilityConfig{
+			SLO: SLOConfig{
+				Enabled:       false,
+				ConfigPath:    "",
+				DefaultWindow: slo.Duration(30 * 24 * time.Hour), // 30 days
+				CacheTTL:      slo.Duration(1 * time.Minute),
+				SLOs:          nil,
+			},
+			Alerting: AlertingConfig{
+				Enabled:         false,
+				DefaultSeverity: "warning",
+				PagerDuty: PagerDutyConfig{
+					Enabled: false,
+					URL:     "https://events.pagerduty.com/v2/enqueue",
+				},
+				Opsgenie: OpsgenieConfig{
+					Enabled: false,
+					Region:  "us",
+				},
+				Slack: SlackAlertConfig{
+					Enabled:   false,
+					Username:  "Specular",
+					IconEmoji: ":robot_face:",
+				},
+				Webhook: WebhookAlertConfig{
+					Enabled: false,
+					Method:  "POST",
+					Timeout: 30 * time.Second,
+				},
+			},
+			LogExport: LogExportConfig{
+				Enabled:       false,
+				Type:          "",
+				Endpoint:      "",
+				BatchSize:     100,
+				FlushInterval: 10 * time.Second,
+			},
+		},
 	}
 }
 
@@ -707,6 +893,55 @@ func getNestedValue(config *GlobalConfig, key string) (string, error) {
 		return fmt.Sprintf("%t", config.AWSSecretsManager.AutoGenerateKey), nil
 	case "aws_secrets_manager.endpoint":
 		return config.AWSSecretsManager.Endpoint, nil
+	// Observability configuration
+	case "observability.slo.enabled":
+		return fmt.Sprintf("%t", config.Observability.SLO.Enabled), nil
+	case "observability.slo.config_path":
+		return config.Observability.SLO.ConfigPath, nil
+	case "observability.slo.default_window":
+		return config.Observability.SLO.DefaultWindow.String(), nil
+	case "observability.slo.cache_ttl":
+		return config.Observability.SLO.CacheTTL.String(), nil
+	case "observability.alerting.enabled":
+		return fmt.Sprintf("%t", config.Observability.Alerting.Enabled), nil
+	case "observability.alerting.default_severity":
+		return config.Observability.Alerting.DefaultSeverity, nil
+	case "observability.alerting.pagerduty.enabled":
+		return fmt.Sprintf("%t", config.Observability.Alerting.PagerDuty.Enabled), nil
+	case "observability.alerting.pagerduty.routing_key":
+		return config.Observability.Alerting.PagerDuty.RoutingKey, nil
+	case "observability.alerting.pagerduty.url":
+		return config.Observability.Alerting.PagerDuty.URL, nil
+	case "observability.alerting.opsgenie.enabled":
+		return fmt.Sprintf("%t", config.Observability.Alerting.Opsgenie.Enabled), nil
+	case "observability.alerting.opsgenie.api_key":
+		return config.Observability.Alerting.Opsgenie.APIKey, nil
+	case "observability.alerting.opsgenie.region":
+		return config.Observability.Alerting.Opsgenie.Region, nil
+	case "observability.alerting.slack.enabled":
+		return fmt.Sprintf("%t", config.Observability.Alerting.Slack.Enabled), nil
+	case "observability.alerting.slack.webhook_url":
+		return config.Observability.Alerting.Slack.WebhookURL, nil
+	case "observability.alerting.slack.channel":
+		return config.Observability.Alerting.Slack.Channel, nil
+	case "observability.alerting.webhook.enabled":
+		return fmt.Sprintf("%t", config.Observability.Alerting.Webhook.Enabled), nil
+	case "observability.alerting.webhook.url":
+		return config.Observability.Alerting.Webhook.URL, nil
+	case "observability.alerting.webhook.method":
+		return config.Observability.Alerting.Webhook.Method, nil
+	case "observability.log_export.enabled":
+		return fmt.Sprintf("%t", config.Observability.LogExport.Enabled), nil
+	case "observability.log_export.type":
+		return config.Observability.LogExport.Type, nil
+	case "observability.log_export.endpoint":
+		return config.Observability.LogExport.Endpoint, nil
+	case "observability.log_export.api_key":
+		return config.Observability.LogExport.APIKey, nil
+	case "observability.log_export.index":
+		return config.Observability.LogExport.Index, nil
+	case "observability.log_export.batch_size":
+		return fmt.Sprintf("%d", config.Observability.LogExport.BatchSize), nil
 	default:
 		return "", fmt.Errorf("unknown configuration key: %s", key)
 	}
@@ -808,6 +1043,67 @@ func setNestedValue(config *GlobalConfig, key, value string) error {
 		config.AWSSecretsManager.AutoGenerateKey = parseBool(value)
 	case "aws_secrets_manager.endpoint":
 		config.AWSSecretsManager.Endpoint = value
+	// Observability configuration
+	case "observability.slo.enabled":
+		config.Observability.SLO.Enabled = parseBool(value)
+	case "observability.slo.config_path":
+		config.Observability.SLO.ConfigPath = value
+	case "observability.slo.default_window":
+		d, err := slo.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		config.Observability.SLO.DefaultWindow = slo.Duration(d)
+	case "observability.slo.cache_ttl":
+		d, err := slo.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		config.Observability.SLO.CacheTTL = slo.Duration(d)
+	case "observability.alerting.enabled":
+		config.Observability.Alerting.Enabled = parseBool(value)
+	case "observability.alerting.default_severity":
+		config.Observability.Alerting.DefaultSeverity = value
+	case "observability.alerting.pagerduty.enabled":
+		config.Observability.Alerting.PagerDuty.Enabled = parseBool(value)
+	case "observability.alerting.pagerduty.routing_key":
+		config.Observability.Alerting.PagerDuty.RoutingKey = value
+	case "observability.alerting.pagerduty.url":
+		config.Observability.Alerting.PagerDuty.URL = value
+	case "observability.alerting.opsgenie.enabled":
+		config.Observability.Alerting.Opsgenie.Enabled = parseBool(value)
+	case "observability.alerting.opsgenie.api_key":
+		config.Observability.Alerting.Opsgenie.APIKey = value
+	case "observability.alerting.opsgenie.region":
+		config.Observability.Alerting.Opsgenie.Region = value
+	case "observability.alerting.slack.enabled":
+		config.Observability.Alerting.Slack.Enabled = parseBool(value)
+	case "observability.alerting.slack.webhook_url":
+		config.Observability.Alerting.Slack.WebhookURL = value
+	case "observability.alerting.slack.channel":
+		config.Observability.Alerting.Slack.Channel = value
+	case "observability.alerting.webhook.enabled":
+		config.Observability.Alerting.Webhook.Enabled = parseBool(value)
+	case "observability.alerting.webhook.url":
+		config.Observability.Alerting.Webhook.URL = value
+	case "observability.alerting.webhook.method":
+		config.Observability.Alerting.Webhook.Method = value
+	case "observability.log_export.enabled":
+		config.Observability.LogExport.Enabled = parseBool(value)
+	case "observability.log_export.type":
+		config.Observability.LogExport.Type = value
+	case "observability.log_export.endpoint":
+		config.Observability.LogExport.Endpoint = value
+	case "observability.log_export.api_key":
+		config.Observability.LogExport.APIKey = value
+	case "observability.log_export.index":
+		config.Observability.LogExport.Index = value
+	case "observability.log_export.batch_size":
+		if v, err := parseInt(value); err == nil {
+			config.Observability.LogExport.BatchSize = v
+		} else {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown configuration key: %s", key)
 	}
