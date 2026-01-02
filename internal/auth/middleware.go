@@ -91,7 +91,7 @@ func (m *Middleware) writeAuthError(w http.ResponseWriter, err error) {
 	if !ok {
 		// Generic error
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
+		_ = json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck // Error response, ignore encoding errors
 			"error":   "authentication_failed",
 			"message": err.Error(),
 		})
@@ -99,7 +99,7 @@ func (m *Middleware) writeAuthError(w http.ResponseWriter, err error) {
 	}
 
 	// Determine HTTP status code based on error code
-	statusCode := http.StatusUnauthorized
+	var statusCode int
 	switch authErr.Code {
 	case ErrSessionInvalid:
 		statusCode = http.StatusForbidden
@@ -114,7 +114,7 @@ func (m *Middleware) writeAuthError(w http.ResponseWriter, err error) {
 	}
 
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{ //nolint:errcheck // Error response, ignore encoding errors
 		"error":   authErr.Code,
 		"message": authErr.Message,
 		"context": authErr.Context,
@@ -135,7 +135,7 @@ func ExtractTokenFromRequest(r *http.Request) string {
 	if authHeader != "" {
 		// Extract Bearer token
 		parts := strings.Split(authHeader, " ")
-		if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+		if len(parts) == 2 && strings.EqualFold(parts[0], "bearer") {
 			return parts[1]
 		}
 	}

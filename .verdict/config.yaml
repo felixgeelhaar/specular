@@ -1,0 +1,40 @@
+# VerdictSec Configuration
+# https://github.com/felixgeelhaar/verdictsec
+
+version: "1"
+
+# Scan configuration
+scan:
+  # Engines to run
+  engines:
+    - gosec
+    - govulncheck
+    - gitleaks
+    - staticcheck
+
+# Policy thresholds
+policy:
+  fail_threshold: HIGH      # Fail on HIGH or CRITICAL findings
+  warn_threshold: MEDIUM    # Warn on MEDIUM findings
+  ignore_baseline: true     # Don't fail on baselined findings
+
+# Baseline configuration
+baseline:
+  path: .verdict/baseline.json
+  auto_update: false
+
+# Paths to exclude from scanning
+exclude:
+  - "**/testdata/**"
+  - "**/vendor/**"
+  - "**/*_test.go"
+  - "**/mock_*.go"
+  - "**/mocks/**"
+
+# Rule-specific suppressions
+suppressions:
+  # G104: Errors unhandled - common in defer statements
+  - rule_id: G104
+    paths:
+      - "**/cmd/**"
+    reason: "Deferred close operations where error handling is not critical"

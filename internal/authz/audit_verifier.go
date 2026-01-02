@@ -59,6 +59,8 @@ type VerificationResult struct {
 }
 
 // Verify checks the cryptographic signature on an audit entry.
+//
+//nolint:gocyclo // Complex validation logic
 func (v *AuditVerifier) Verify(entry *AuditEntry) (*VerificationResult, error) {
 	result := &VerificationResult{
 		Entry:      entry,
