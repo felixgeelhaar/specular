@@ -1,0 +1,72 @@
+{
+  "run_id": "run-d8c1bfd065ac82c0",
+  "state": "published",
+  "head_sha": "740960646d134229b84357443827b3823669f672",
+  "plan_hash": "00f2accbf04ffed3afd3f17c2baaa0379e9a640e9a0f5a670bfcd341319f04ef",
+  "version_next": "1.7.0",
+  "steps": {},
+  "history": [
+    {
+      "At": "2026-01-02T19:35:56.506044+01:00",
+      "From": "draft",
+      "To": "planned",
+      "Event": "PLAN",
+      "Actor": "cli",
+      "Reason": "Release planned",
+      "Metadata": null
+    },
+    {
+      "At": "2026-01-02T19:39:08.358434+01:00",
+      "From": "planned",
+      "To": "versioned",
+      "Event": "BUMP",
+      "Actor": "cli",
+      "Reason": "Version applied",
+      "Metadata": {
+        "tag_name": "v1.7.0",
+        "version": "1.7.0"
+      }
+    },
+    {
+      "At": "2026-01-02T19:39:16.807036+01:00",
+      "From": "versioned",
+      "To": "notes_ready",
+      "Event": "GENERATE_NOTES",
+      "Actor": "cli",
+      "Reason": "Notes generated",
+      "Metadata": null
+    },
+    {
+      "At": "2026-01-02T19:39:37.33442+01:00",
+      "From": "notes_ready",
+      "To": "approved",
+      "Event": "APPROVE",
+      "Actor": "felixgeelhaar",
+      "Reason": "Release approved",
+      "Metadata": {
+        "auto_approved": "false",
+        "plan_hash": "00f2accbf04ffed3afd3f17c2baaa0379e9a640e9a0f5a670bfcd341319f04ef",
+        "risk_score": "0.00"
+      }
+    },
+    {
+      "At": "2026-01-02T19:39:44.179515+01:00",
+      "From": "approved",
+      "To": "publishing",
+      "Event": "START_PUBLISH",
+      "Actor": "cli",
+      "Reason": "Publishing started",
+      "Metadata": null
+    },
+    {
+      "At": "2026-01-02T19:39:44.180146+01:00",
+      "From": "publishing",
+      "To": "published",
+      "Event": "PUBLISH_COMPLETE",
+      "Actor": "cli",
+      "Reason": "Release published",
+      "Metadata": null
+    }
+  ],
+  "updated_at": "2026-01-02T19:39:44+01:00"
+}
