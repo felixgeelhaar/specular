@@ -98,6 +98,58 @@ type GlobalConfig struct {
 	Budget    BudgetLimits     `yaml:"budget,omitempty"`
 	Logging   LoggingConfig    `yaml:"logging,omitempty"`
 	Telemetry TelemetryConfig  `yaml:"telemetry,omitempty"`
+	Vault     VaultConfig      `yaml:"vault,omitempty"`
+}
+
+// VaultConfig holds HashiCorp Vault integration settings for secrets management
+// and cryptographic signing operations.
+type VaultConfig struct {
+	// Enabled controls whether Vault integration is active
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// Address is the Vault server URL (e.g., "https://vault.example.com:8200")
+	Address string `yaml:"address,omitempty"`
+
+	// MountPath is the KV v2 secrets engine mount path (default: "secret")
+	MountPath string `yaml:"mount_path,omitempty"`
+
+	// Namespace is the Vault namespace (Enterprise feature, optional)
+	Namespace string `yaml:"namespace,omitempty"`
+
+	// SigningKeyPath is the path within Vault where the signing key is stored
+	// Example: "specular/audit/signing-key"
+	SigningKeyPath string `yaml:"signing_key_path,omitempty"`
+
+	// SignerIdentity is the identity used for audit log signatures
+	// Example: "system@specular.dev"
+	SignerIdentity string `yaml:"signer_identity,omitempty"`
+
+	// AutoGenerateKey will create a new signing key if one doesn't exist
+	AutoGenerateKey bool `yaml:"auto_generate_key,omitempty"`
+
+	// TLS configuration for Vault connection
+	TLS VaultTLSConfig `yaml:"tls,omitempty"`
+}
+
+// VaultTLSConfig holds TLS/mTLS settings for Vault connection.
+type VaultTLSConfig struct {
+	// CACert is the path to the CA certificate file
+	CACert string `yaml:"ca_cert,omitempty"`
+
+	// CAPath is the path to a directory of CA certificates
+	CAPath string `yaml:"ca_path,omitempty"`
+
+	// ClientCert is the path to the client certificate (for mTLS)
+	ClientCert string `yaml:"client_cert,omitempty"`
+
+	// ClientKey is the path to the client private key (for mTLS)
+	ClientKey string `yaml:"client_key,omitempty"`
+
+	// ServerName is the server name for SNI verification
+	ServerName string `yaml:"server_name,omitempty"`
+
+	// InsecureSkipVerify disables certificate verification (NOT for production)
+	InsecureSkipVerify bool `yaml:"insecure_skip_verify,omitempty"`
 }
 
 // ProviderDefaults specifies the default and preferred AI providers for command
@@ -159,7 +211,8 @@ func getConfigPath() (string, error) {
 	return configFile, nil
 }
 
-// loadConfig loads the global configuration, creating default if it doesn't exist
+// loadConfig loads the global configuration, creating default if it doesn't exist.
+// Environment variables override file-based configuration for Vault settings.
 func loadConfig() (*GlobalConfig, error) {
 	configPath, err := getConfigPath()
 	if err != nil {
@@ -172,6 +225,8 @@ func loadConfig() (*GlobalConfig, error) {
 		if err := saveConfig(defaultConfig, configPath); err != nil {
 			return nil, fmt.Errorf("failed to create default config: %w", err)
 		}
+		// Apply environment overrides to default config
+		applyVaultEnvOverrides(defaultConfig)
 		return defaultConfig, nil
 	}
 
@@ -186,7 +241,85 @@ func loadConfig() (*GlobalConfig, error) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
+	// Apply environment variable overrides
+	applyVaultEnvOverrides(&config)
+
 	return &config, nil
+}
+
+// applyVaultEnvOverrides applies environment variable overrides for Vault configuration.
+// This follows HashiCorp Vault conventions for environment variables:
+//   - VAULT_ADDR: Vault server address
+//   - VAULT_NAMESPACE: Vault namespace (Enterprise)
+//   - VAULT_CACERT: Path to CA certificate
+//   - VAULT_CAPATH: Path to CA certificate directory
+//   - VAULT_CLIENT_CERT: Path to client certificate
+//   - VAULT_CLIENT_KEY: Path to client private key
+//   - VAULT_TLS_SERVER_NAME: TLS server name for SNI
+//   - VAULT_SKIP_VERIFY: Skip TLS verification (not recommended)
+//
+// Specular-specific environment variables:
+//   - SPECULAR_VAULT_ENABLED: Enable/disable Vault integration
+//   - SPECULAR_VAULT_MOUNT_PATH: KV mount path
+//   - SPECULAR_VAULT_SIGNING_KEY_PATH: Path to signing key
+//   - SPECULAR_VAULT_SIGNER_IDENTITY: Signer identity
+func applyVaultEnvOverrides(config *GlobalConfig) {
+	// Standard Vault environment variables
+	if addr := os.Getenv("VAULT_ADDR"); addr != "" {
+		config.Vault.Address = addr
+		// If VAULT_ADDR is set, implicitly enable Vault
+		config.Vault.Enabled = true
+	}
+
+	if namespace := os.Getenv("VAULT_NAMESPACE"); namespace != "" {
+		config.Vault.Namespace = namespace
+	}
+
+	// TLS configuration from environment
+	if caCert := os.Getenv("VAULT_CACERT"); caCert != "" {
+		config.Vault.TLS.CACert = caCert
+	}
+
+	if caPath := os.Getenv("VAULT_CAPATH"); caPath != "" {
+		config.Vault.TLS.CAPath = caPath
+	}
+
+	if clientCert := os.Getenv("VAULT_CLIENT_CERT"); clientCert != "" {
+		config.Vault.TLS.ClientCert = clientCert
+	}
+
+	if clientKey := os.Getenv("VAULT_CLIENT_KEY"); clientKey != "" {
+		config.Vault.TLS.ClientKey = clientKey
+	}
+
+	if serverName := os.Getenv("VAULT_TLS_SERVER_NAME"); serverName != "" {
+		config.Vault.TLS.ServerName = serverName
+	}
+
+	if skipVerify := os.Getenv("VAULT_SKIP_VERIFY"); skipVerify != "" {
+		config.Vault.TLS.InsecureSkipVerify = parseBool(skipVerify)
+	}
+
+	// Specular-specific Vault environment variables
+	if enabled := os.Getenv("SPECULAR_VAULT_ENABLED"); enabled != "" {
+		config.Vault.Enabled = parseBool(enabled)
+	}
+
+	if mountPath := os.Getenv("SPECULAR_VAULT_MOUNT_PATH"); mountPath != "" {
+		config.Vault.MountPath = mountPath
+	}
+
+	if keyPath := os.Getenv("SPECULAR_VAULT_SIGNING_KEY_PATH"); keyPath != "" {
+		config.Vault.SigningKeyPath = keyPath
+	}
+
+	if identity := os.Getenv("SPECULAR_VAULT_SIGNER_IDENTITY"); identity != "" {
+		config.Vault.SignerIdentity = identity
+	}
+
+	if autoGen := os.Getenv("SPECULAR_VAULT_AUTO_GENERATE_KEY"); autoGen != "" {
+		config.Vault.AutoGenerateKey = parseBool(autoGen)
+	}
 }
 
 // saveConfig saves the configuration to the file
@@ -231,6 +364,16 @@ func defaultGlobalConfig() *GlobalConfig {
 			ShareUsage: false,
 			Endpoint:   "",
 			SampleRate: 1.0,
+		},
+		Vault: VaultConfig{
+			Enabled:         false,
+			Address:         "",
+			MountPath:       "secret",
+			Namespace:       "",
+			SigningKeyPath:  "specular/audit/signing-key",
+			SignerIdentity:  "",
+			AutoGenerateKey: true,
+			TLS:             VaultTLSConfig{},
 		},
 	}
 }
@@ -397,6 +540,32 @@ func getNestedValue(config *GlobalConfig, key string) (string, error) {
 		return config.Telemetry.Endpoint, nil
 	case "telemetry.sample_rate":
 		return fmt.Sprintf("%.2f", config.Telemetry.SampleRate), nil
+	case "vault.enabled":
+		return fmt.Sprintf("%t", config.Vault.Enabled), nil
+	case "vault.address":
+		return config.Vault.Address, nil
+	case "vault.mount_path":
+		return config.Vault.MountPath, nil
+	case "vault.namespace":
+		return config.Vault.Namespace, nil
+	case "vault.signing_key_path":
+		return config.Vault.SigningKeyPath, nil
+	case "vault.signer_identity":
+		return config.Vault.SignerIdentity, nil
+	case "vault.auto_generate_key":
+		return fmt.Sprintf("%t", config.Vault.AutoGenerateKey), nil
+	case "vault.tls.ca_cert":
+		return config.Vault.TLS.CACert, nil
+	case "vault.tls.ca_path":
+		return config.Vault.TLS.CAPath, nil
+	case "vault.tls.client_cert":
+		return config.Vault.TLS.ClientCert, nil
+	case "vault.tls.client_key":
+		return config.Vault.TLS.ClientKey, nil
+	case "vault.tls.server_name":
+		return config.Vault.TLS.ServerName, nil
+	case "vault.tls.insecure_skip_verify":
+		return fmt.Sprintf("%t", config.Vault.TLS.InsecureSkipVerify), nil
 	default:
 		return "", fmt.Errorf("unknown configuration key: %s", key)
 	}
@@ -454,6 +623,32 @@ func setNestedValue(config *GlobalConfig, key, value string) error {
 		} else {
 			return err
 		}
+	case "vault.enabled":
+		config.Vault.Enabled = parseBool(value)
+	case "vault.address":
+		config.Vault.Address = value
+	case "vault.mount_path":
+		config.Vault.MountPath = value
+	case "vault.namespace":
+		config.Vault.Namespace = value
+	case "vault.signing_key_path":
+		config.Vault.SigningKeyPath = value
+	case "vault.signer_identity":
+		config.Vault.SignerIdentity = value
+	case "vault.auto_generate_key":
+		config.Vault.AutoGenerateKey = parseBool(value)
+	case "vault.tls.ca_cert":
+		config.Vault.TLS.CACert = value
+	case "vault.tls.ca_path":
+		config.Vault.TLS.CAPath = value
+	case "vault.tls.client_cert":
+		config.Vault.TLS.ClientCert = value
+	case "vault.tls.client_key":
+		config.Vault.TLS.ClientKey = value
+	case "vault.tls.server_name":
+		config.Vault.TLS.ServerName = value
+	case "vault.tls.insecure_skip_verify":
+		config.Vault.TLS.InsecureSkipVerify = parseBool(value)
 	default:
 		return fmt.Errorf("unknown configuration key: %s", key)
 	}
