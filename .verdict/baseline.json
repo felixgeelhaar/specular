@@ -1,0 +1,19 @@
+{
+  "version": "1",
+  "created_at": "2026-01-02T12:30:00Z",
+  "updated_at": "2026-01-02T12:30:00Z",
+  "reason": "False positives: G101 flags on error constants, topic names, and K8s paths that are not actual credentials",
+  "scope": {},
+  "fingerprints": [
+    {"fingerprint": "fbe80a444c79eaa3c634f7384a2b4674", "reason": "K8s service account token path constant"},
+    {"fingerprint": "f52d02264974296a3d8763bbd140e485", "reason": "Kafka topic name, not a credential"},
+    {"fingerprint": "f0152516ed5d74355881e751e17b242e", "reason": "Error code constant"},
+    {"fingerprint": "c0193e5ff164760a10c04589ee84e1d0", "reason": "Error constant for OIDC"},
+    {"fingerprint": "76845f4984c9b903d8f29c6a91f15cae", "reason": "Error constant for token exchange"},
+    {"fingerprint": "6061336e7037a9015f253ec23476e23b", "reason": "Error constant for token signing"},
+    {"fingerprint": "e177dd042ea81239a8f5498f55c06666", "reason": "Error constant for token format"},
+    {"fingerprint": "6f1ba22163faf7470d38705a90110c25", "reason": "Error constant for token expiry"},
+    {"fingerprint": "e3570d20c299f1a5df0a680d1400f5e0", "reason": "Error constant for invalid token"},
+    {"fingerprint": "7ee3c2b1d6f9ed8abcc5165cc17dcbba", "reason": "Error constant for invalid credentials"}
+  ]
+}
