@@ -298,13 +298,13 @@ func formatDuration(d time.Duration) string {
 
 // Summary provides a summary of all SLO statuses.
 type Summary struct {
-	TotalSLOs     int            `json:"total_slos"`
-	HealthySLOs   int            `json:"healthy_slos"`
-	DegradedSLOs  int            `json:"degraded_slos"`
-	AlertingSLOs  int            `json:"alerting_slos"`
-	Statuses      []*SLOStatus   `json:"statuses"`
-	OverallHealth OverallHealth  `json:"overall_health"`
-	LastUpdated   time.Time      `json:"last_updated"`
+	TotalSLOs     int           `json:"total_slos"`
+	HealthySLOs   int           `json:"healthy_slos"`
+	DegradedSLOs  int           `json:"degraded_slos"`
+	AlertingSLOs  int           `json:"alerting_slos"`
+	Statuses      []*SLOStatus  `json:"statuses"`
+	OverallHealth OverallHealth `json:"overall_health"`
+	LastUpdated   time.Time     `json:"last_updated"`
 }
 
 // OverallHealth represents the overall health status.

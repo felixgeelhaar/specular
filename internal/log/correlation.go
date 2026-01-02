@@ -24,10 +24,12 @@ type CorrelationID string
 type RequestID string
 
 var (
-	// idPool is used to reduce allocations for ID generation
+	// idPool is used to reduce allocations for ID generation.
+	// Uses *[]byte to avoid allocations when putting back into the pool (SA6002).
 	idPool = sync.Pool{
 		New: func() interface{} {
-			return make([]byte, 16)
+			b := make([]byte, 16)
+			return &b
 		},
 	}
 )
@@ -35,28 +37,38 @@ var (
 // NewCorrelationID generates a new unique correlation ID.
 // The ID is a 32-character hex string (128 bits of randomness).
 func NewCorrelationID() CorrelationID {
-	b := idPool.Get().([]byte)
-	defer idPool.Put(b)
+	bp, ok := idPool.Get().(*[]byte)
+	if !ok || bp == nil {
+		// Fallback if pool returns unexpected type
+		b := make([]byte, 16)
+		bp = &b
+	}
+	defer idPool.Put(bp)
 
-	if _, err := rand.Read(b); err != nil {
+	if _, err := rand.Read(*bp); err != nil {
 		// Fallback to a less random but still unique ID
-		return CorrelationID("fallback-" + hex.EncodeToString(b[:8]))
+		return CorrelationID("fallback-" + hex.EncodeToString((*bp)[:8]))
 	}
 
-	return CorrelationID(hex.EncodeToString(b))
+	return CorrelationID(hex.EncodeToString(*bp))
 }
 
 // NewRequestID generates a new short request ID.
 // The ID is a 16-character hex string (64 bits of randomness).
 func NewRequestID() RequestID {
-	b := idPool.Get().([]byte)
-	defer idPool.Put(b)
+	bp, ok := idPool.Get().(*[]byte)
+	if !ok || bp == nil {
+		// Fallback if pool returns unexpected type
+		b := make([]byte, 16)
+		bp = &b
+	}
+	defer idPool.Put(bp)
 
-	if _, err := rand.Read(b[:8]); err != nil {
+	if _, err := rand.Read((*bp)[:8]); err != nil {
 		return RequestID("fallback")
 	}
 
-	return RequestID(hex.EncodeToString(b[:8]))
+	return RequestID(hex.EncodeToString((*bp)[:8]))
 }
 
 // String returns the string representation of the correlation ID

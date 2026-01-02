@@ -186,7 +186,7 @@ func (m *PagerDutyManager) sendRequest(ctx context.Context, payload *pagerdutyPa
 	if err != nil {
 		return fmt.Errorf("failed to send PagerDuty request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -198,8 +198,8 @@ func (m *PagerDutyManager) sendRequest(ctx context.Context, payload *pagerdutyPa
 	}
 
 	var pdResp pagerdutyResponse
-	if err := json.Unmarshal(respBody, &pdResp); err != nil {
-		return fmt.Errorf("failed to parse PagerDuty response: %w", err)
+	if unmarshalErr := json.Unmarshal(respBody, &pdResp); unmarshalErr != nil {
+		return fmt.Errorf("failed to parse PagerDuty response: %w", unmarshalErr)
 	}
 
 	if pdResp.Status != "success" {

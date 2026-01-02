@@ -65,7 +65,7 @@ type slackField struct {
 // NewSlackManager creates a new Slack alert manager.
 func NewSlackManager(config SlackConfig) (*SlackManager, error) {
 	if config.WebhookURL == "" {
-		return nil, fmt.Errorf("Slack webhook URL is required")
+		return nil, fmt.Errorf("slack webhook URL is required")
 	}
 
 	if config.Username == "" {
@@ -107,10 +107,10 @@ func (m *SlackManager) Resolve(ctx context.Context, dedupeKey string) error {
 		IconEmoji: m.config.IconEmoji,
 		Attachments: []slackAttachment{
 			{
-				Color: severityToSlackColor(SeverityInfo),
-				Title: "Alert Resolved",
-				Text:  fmt.Sprintf("Alert `%s` has been resolved.", dedupeKey),
-				Footer: "Specular",
+				Color:     severityToSlackColor(SeverityInfo),
+				Title:     "Alert Resolved",
+				Text:      fmt.Sprintf("Alert `%s` has been resolved.", dedupeKey),
+				Footer:    "Specular",
 				Timestamp: time.Now().Unix(),
 			},
 		},
@@ -155,19 +155,19 @@ func (m *SlackManager) buildMessage(alert *Alert, event AlertEvent) *slackMessag
 		})
 	}
 
-	// Add severity field
-	fields = append(fields, slackField{
-		Title: "Severity",
-		Value: string(alert.Severity),
-		Short: true,
-	})
-
-	// Add source field
-	fields = append(fields, slackField{
-		Title: "Source",
-		Value: alert.Source,
-		Short: true,
-	})
+	// Add severity and source fields
+	fields = append(fields,
+		slackField{
+			Title: "Severity",
+			Value: string(alert.Severity),
+			Short: true,
+		},
+		slackField{
+			Title: "Source",
+			Value: alert.Source,
+			Short: true,
+		},
+	)
 
 	attachment := slackAttachment{
 		Color:     color,
@@ -209,7 +209,7 @@ func (m *SlackManager) sendRequest(ctx context.Context, msg *slackMessage) error
 	if err != nil {
 		return fmt.Errorf("failed to send Slack request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -217,14 +217,12 @@ func (m *SlackManager) sendRequest(ctx context.Context, msg *slackMessage) error
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("Slack API error (status %d): %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("slack API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
-	// Slack returns "ok" on success
-	if string(respBody) != "ok" && resp.StatusCode == 200 {
-		// Some Slack configurations might return different success responses
-		// so we only fail on explicit error
-	}
+	// Slack returns "ok" on success for most webhook configurations.
+	// Some Slack configurations might return different success responses,
+	// so we only validate the HTTP status code above.
 
 	return nil
 }

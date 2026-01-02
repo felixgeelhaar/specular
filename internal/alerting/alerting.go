@@ -11,6 +11,7 @@ import (
 // Severity represents the alert severity level.
 type Severity string
 
+// Severity levels for alerts, from most to least severe.
 const (
 	SeverityCritical Severity = "critical"
 	SeverityHigh     Severity = "high"
@@ -95,11 +96,12 @@ type AlertLink struct {
 // AlertEvent represents an alert lifecycle event.
 type AlertEvent string
 
+// Alert event types for lifecycle management.
 const (
-	AlertEventTrigger  AlertEvent = "trigger"
-	AlertEventResolve  AlertEvent = "resolve"
-	AlertEventAck      AlertEvent = "acknowledge"
-	AlertEventUpdate   AlertEvent = "update"
+	AlertEventTrigger AlertEvent = "trigger"
+	AlertEventResolve AlertEvent = "resolve"
+	AlertEventAck     AlertEvent = "acknowledge"
+	AlertEventUpdate  AlertEvent = "update"
 )
 
 // AlertManager defines the interface for sending and managing alerts.

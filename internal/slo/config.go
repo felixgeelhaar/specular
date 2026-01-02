@@ -39,7 +39,7 @@ func DefaultConfig() Config {
 	return Config{
 		Enabled:       false,
 		DefaultWindow: Duration(30 * 24 * 60 * 60 * 1e9), // 30 days in nanoseconds
-		CacheTTL:      Duration(60 * 1e9),                 // 1 minute in nanoseconds
+		CacheTTL:      Duration(60 * 1e9),                // 1 minute in nanoseconds
 	}
 }
 

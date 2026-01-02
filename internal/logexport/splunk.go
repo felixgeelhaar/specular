@@ -56,11 +56,11 @@ type splunkEvent struct {
 // NewSplunkExporter creates a new Splunk HEC exporter.
 func NewSplunkExporter(config SplunkConfig) (*SplunkExporter, error) {
 	if config.URL == "" {
-		return nil, fmt.Errorf("Splunk HEC URL is required")
+		return nil, fmt.Errorf("splunk HEC URL is required")
 	}
 
 	if config.Token == "" {
-		return nil, fmt.Errorf("Splunk HEC token is required")
+		return nil, fmt.Errorf("splunk HEC token is required")
 	}
 
 	if config.Source == "" {
@@ -127,7 +127,7 @@ func (s *SplunkExporter) Healthy(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
@@ -198,7 +198,7 @@ func (s *SplunkExporter) sendRequest(ctx context.Context, body []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -206,7 +206,7 @@ func (s *SplunkExporter) sendRequest(ctx context.Context, body []byte) error {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("Splunk HEC error (status %d): %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("splunk HEC error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	// Check response for errors
@@ -215,12 +215,12 @@ func (s *SplunkExporter) sendRequest(ctx context.Context, body []byte) error {
 		Code int    `json:"code"`
 	}
 
-	if err := json.Unmarshal(respBody, &hecResp); err != nil {
+	if unmarshalErr := json.Unmarshal(respBody, &hecResp); unmarshalErr != nil {
 		return nil // Assume success if we can't parse
 	}
 
 	if hecResp.Code != 0 {
-		return fmt.Errorf("Splunk HEC error (code %d): %s", hecResp.Code, hecResp.Text)
+		return fmt.Errorf("splunk HEC error (code %d): %s", hecResp.Code, hecResp.Text)
 	}
 
 	return nil

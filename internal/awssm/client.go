@@ -77,9 +77,9 @@ func NewClient(ctx context.Context, cfg Config) (*Client, error) {
 
 	// Build secondary client for DR if configured
 	if cfg.SecondaryRegion != "" {
-		secondaryClient, err := createSecretsManagerClient(ctx, cfg, cfg.SecondaryRegion)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create secondary secrets manager client: %w", err)
+		secondaryClient, secondaryErr := createSecretsManagerClient(ctx, cfg, cfg.SecondaryRegion)
+		if secondaryErr != nil {
+			return nil, fmt.Errorf("failed to create secondary secrets manager client: %w", secondaryErr)
 		}
 		client.secondaryClient = secondaryClient
 		client.secondaryRegion = cfg.SecondaryRegion

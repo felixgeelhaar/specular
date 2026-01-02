@@ -46,11 +46,11 @@ type WebhookManager struct {
 
 // webhookPayload represents the default webhook payload format.
 type webhookPayload struct {
-	Event       string            `json:"event"`
-	Alert       *webhookAlert     `json:"alert,omitempty"`
-	DedupeKey   string            `json:"dedupe_key,omitempty"`
-	Timestamp   string            `json:"timestamp"`
-	Source      string            `json:"source"`
+	Event     string        `json:"event"`
+	Alert     *webhookAlert `json:"alert,omitempty"`
+	DedupeKey string        `json:"dedupe_key,omitempty"`
+	Timestamp string        `json:"timestamp"`
+	Source    string        `json:"source"`
 }
 
 // webhookAlert represents the alert data in webhook format.
@@ -176,7 +176,7 @@ func (m *WebhookManager) sendRequest(ctx context.Context, payload interface{}) e
 	if err != nil {
 		return fmt.Errorf("failed to send webhook request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

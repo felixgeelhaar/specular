@@ -73,7 +73,7 @@ type opsgenieResponse struct {
 // NewOpsgenieManager creates a new Opsgenie alert manager.
 func NewOpsgenieManager(config OpsgenieConfig) (*OpsgenieManager, error) {
 	if config.APIKey == "" {
-		return nil, fmt.Errorf("Opsgenie API key is required")
+		return nil, fmt.Errorf("opsgenie API key is required")
 	}
 
 	if config.Region == "" {
@@ -195,7 +195,7 @@ func (m *OpsgenieManager) sendRequest(ctx context.Context, method, url string, p
 	if err != nil {
 		return fmt.Errorf("failed to send Opsgenie request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -203,17 +203,17 @@ func (m *OpsgenieManager) sendRequest(ctx context.Context, method, url string, p
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("Opsgenie API error (status %d): %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("opsgenie API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	var ogResp opsgenieResponse
-	if err := json.Unmarshal(respBody, &ogResp); err != nil {
+	if unmarshalErr := json.Unmarshal(respBody, &ogResp); unmarshalErr != nil {
 		// Some endpoints may not return JSON
 		return nil
 	}
 
 	if ogResp.Message != "" && ogResp.Result == "" {
-		return fmt.Errorf("Opsgenie error: %s", ogResp.Message)
+		return fmt.Errorf("opsgenie error: %s", ogResp.Message)
 	}
 
 	return nil

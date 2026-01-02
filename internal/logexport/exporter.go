@@ -12,6 +12,7 @@ import (
 // LogLevel represents the log level.
 type LogLevel string
 
+// Log levels for exported log entries.
 const (
 	LogLevelDebug   LogLevel = "DEBUG"
 	LogLevelInfo    LogLevel = "INFO"
@@ -181,9 +182,8 @@ func (b *BufferedExporter) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := b.Flush(ctx); err != nil {
-		// Log error but continue with close
-	}
+	// Best-effort final flush; ignore errors to allow graceful close
+	_ = b.Flush(ctx)
 
 	return b.exporter.Close()
 }
@@ -211,11 +211,11 @@ func (b *BufferedExporter) flushLoop() {
 			return
 		case <-ticker.C:
 			ctx, cancel := context.WithTimeout(context.Background(), b.config.Timeout)
-			b.Flush(ctx)
+			_ = b.Flush(ctx) // Error logged internally, continue flushing on schedule
 			cancel()
 		case <-b.flushChan:
 			ctx, cancel := context.WithTimeout(context.Background(), b.config.Timeout)
-			b.Flush(ctx)
+			_ = b.Flush(ctx) // Error logged internally, continue processing flush requests
 			cancel()
 		}
 	}

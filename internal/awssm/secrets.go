@@ -149,8 +149,8 @@ func (s *Secrets) GetByStage(ctx context.Context, name, stage string) (*Secret, 
 	// Parse JSON secret string
 	var data map[string]interface{}
 	if output.SecretString != nil {
-		if err := json.Unmarshal([]byte(*output.SecretString), &data); err != nil {
-			return nil, fmt.Errorf("failed to parse secret data: %w", err)
+		if unmarshalErr := json.Unmarshal([]byte(*output.SecretString), &data); unmarshalErr != nil {
+			return nil, fmt.Errorf("failed to parse secret data: %w", unmarshalErr)
 		}
 	}
 
@@ -190,8 +190,8 @@ func (s *Secrets) GetByVersionID(ctx context.Context, name, versionID string) (*
 	// Parse JSON secret string
 	var data map[string]interface{}
 	if output.SecretString != nil {
-		if err := json.Unmarshal([]byte(*output.SecretString), &data); err != nil {
-			return nil, fmt.Errorf("failed to parse secret data: %w", err)
+		if unmarshalErr := json.Unmarshal([]byte(*output.SecretString), &data); unmarshalErr != nil {
+			return nil, fmt.Errorf("failed to parse secret data: %w", unmarshalErr)
 		}
 	}
 
@@ -255,14 +255,14 @@ func (s *Secrets) Restore(ctx context.Context, name string) error {
 
 // SecretInfo contains metadata about a secret.
 type SecretInfo struct {
-	Name            string            `json:"name"`
-	ARN             string            `json:"arn"`
-	Description     string            `json:"description,omitempty"`
-	Tags            map[string]string `json:"tags,omitempty"`
-	LastChangedDate string            `json:"last_changed_date,omitempty"`
-	LastAccessedDate string           `json:"last_accessed_date,omitempty"`
-	DeletedDate     string            `json:"deleted_date,omitempty"`
-	VersionIDs      []string          `json:"version_ids,omitempty"`
+	Name             string            `json:"name"`
+	ARN              string            `json:"arn"`
+	Description      string            `json:"description,omitempty"`
+	Tags             map[string]string `json:"tags,omitempty"`
+	LastChangedDate  string            `json:"last_changed_date,omitempty"`
+	LastAccessedDate string            `json:"last_accessed_date,omitempty"`
+	DeletedDate      string            `json:"deleted_date,omitempty"`
+	VersionIDs       []string          `json:"version_ids,omitempty"`
 }
 
 // List lists secrets with optional prefix filtering.

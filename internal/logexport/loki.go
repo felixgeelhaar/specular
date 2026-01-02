@@ -53,7 +53,7 @@ type lokiStream struct {
 // NewLokiExporter creates a new Loki exporter.
 func NewLokiExporter(config LokiConfig) (*LokiExporter, error) {
 	if config.URL == "" {
-		return nil, fmt.Errorf("Loki URL is required")
+		return nil, fmt.Errorf("loki URL is required")
 	}
 
 	if config.Labels == nil {
@@ -117,7 +117,7 @@ func (l *LokiExporter) Healthy(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
@@ -262,11 +262,14 @@ func (l *LokiExporter) sendRequest(ctx context.Context, payload lokiPushRequest)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Loki error (status %d): %s", resp.StatusCode, string(respBody))
+		respBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("loki error (status %d): failed to read response body: %w", resp.StatusCode, readErr)
+		}
+		return fmt.Errorf("loki error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	return nil

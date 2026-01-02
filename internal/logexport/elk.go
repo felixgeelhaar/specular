@@ -60,7 +60,7 @@ type elkDocument struct {
 // NewELKExporter creates a new Elasticsearch exporter.
 func NewELKExporter(config ELKConfig) (*ELKExporter, error) {
 	if config.URL == "" {
-		return nil, fmt.Errorf("Elasticsearch URL is required")
+		return nil, fmt.Errorf("elasticsearch URL is required")
 	}
 
 	if config.Index == "" {
@@ -117,7 +117,7 @@ func (e *ELKExporter) Healthy(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
@@ -170,7 +170,7 @@ func (e *ELKExporter) sendBulkRequest(ctx context.Context, body []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -178,7 +178,7 @@ func (e *ELKExporter) sendBulkRequest(ctx context.Context, body []byte) error {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("Elasticsearch error (status %d): %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("elasticsearch error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	// Check for errors in the bulk response
@@ -194,7 +194,7 @@ func (e *ELKExporter) sendBulkRequest(ctx context.Context, body []byte) error {
 		} `json:"items"`
 	}
 
-	if err := json.Unmarshal(respBody, &bulkResp); err != nil {
+	if unmarshalErr := json.Unmarshal(respBody, &bulkResp); unmarshalErr != nil {
 		return nil // Assume success if we can't parse
 	}
 

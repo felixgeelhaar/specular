@@ -298,8 +298,8 @@ func TestSLO_ErrorBudget(t *testing.T) {
 
 func TestSLO_ErrorBudgetMinutes(t *testing.T) {
 	slo := &SLO{
-		Target: 0.99,                              // 99% target = 1% error budget
-		Window: Duration(30 * 24 * time.Hour),    // 30 days
+		Target: 0.99,                          // 99% target = 1% error budget
+		Window: Duration(30 * 24 * time.Hour), // 30 days
 	}
 
 	// 30 days = 43200 minutes
