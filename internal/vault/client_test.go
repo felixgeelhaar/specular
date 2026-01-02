@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -147,11 +148,11 @@ func TestClient_Health(t *testing.T) {
 }
 
 func TestClient_TokenRenewal(t *testing.T) {
-	renewalCalled := false
+	var renewalCalled atomic.Bool
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/v1/auth/token/renew-self" {
-			renewalCalled = true
+			renewalCalled.Store(true)
 			w.WriteHeader(http.StatusOK)
 		}
 	}))
@@ -168,7 +169,7 @@ func TestClient_TokenRenewal(t *testing.T) {
 	// Wait for renewal (80% of 100ms = 80ms)
 	time.Sleep(150 * time.Millisecond)
 
-	assert.True(t, renewalCalled, "Token renewal should have been called")
+	assert.True(t, renewalCalled.Load(), "Token renewal should have been called")
 }
 
 func TestClient_Close(t *testing.T) {
