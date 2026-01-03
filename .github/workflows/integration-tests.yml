@@ -2,9 +2,24 @@ name: Integration Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'tests/integration/**'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'tests/integration/**'
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   integration-tests:
