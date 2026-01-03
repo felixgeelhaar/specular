@@ -6,260 +6,264 @@ run:
   modules-download-mode: readonly
 
 linters:
+  default: none
   enable:
-    - errcheck      # Check for unchecked errors
-    - govet         # Vet examines Go source code
-    - ineffassign   # Detect ineffectual assignments
-    - staticcheck   # Static analysis (includes gosimple)
-    - unused        # Check for unused constants, variables, functions
-    - misspell      # Check for misspelled words
-    - revive        # Fast, configurable, extensible, flexible linter
-    - gosec         # Security-focused linter
-    - gocritic      # Provides diagnostics that check for bugs, performance, and style issues
-    - gocyclo       # Cyclomatic complexity
-    - dupl          # Code cloning detection
-    - gofmt         # Gofmt checks formatting
-    - goimports     # Check imports
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - gosec
+    - gocritic
+    - gocyclo
+    - dupl
 
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-    check-blank: false
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: false
 
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-    settings:
-      shadow:
-        strict: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+      settings:
+        shadow:
+          strict: true
 
-  gocyclo:
-    min-complexity: 15
+    gocyclo:
+      min-complexity: 15
 
-  dupl:
-    threshold: 100
+    dupl:
+      threshold: 100
 
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - performance
-    disabled-checks:
-      - whyNoLint
-      - hugeParam
-      - rangeValCopy
-      - emptyStringTest
-      - appendAssign
-      - ifElseChain
-      - paramTypeCombine
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+      disabled-checks:
+        - whyNoLint
+        - hugeParam
+        - rangeValCopy
+        - emptyStringTest
+        - appendAssign
+        - ifElseChain
+        - paramTypeCombine
 
-  gosec:
-    excludes:
-      - G204
-      - G304
+    gosec:
+      excludes:
+        - G204
+        - G304
 
-  revive:
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            - disableStutteringCheck
+
+  exclusions:
+    generated: lax
     rules:
-      - name: exported
-        arguments:
-          - disableStutteringCheck
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - errcheck
+          - dupl
+          - gosec
+          - govet
+          - gocritic
 
-  goimports:
-    local-prefixes: github.com/felixgeelhaar/specular
+      - path: test/e2e/
+        linters:
+          - errcheck
+          - gosec
+          - govet
 
-issues:
-  exclude-use-default: false
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gocyclo
-        - errcheck
-        - dupl
-        - gosec
-        - govet
-        - gocritic
+      - path: internal/(exec|eval|workflow)/
+        linters:
+          - govet
+          - dupl
+          - errcheck
+          - gosec
+          - gocyclo
 
-    - path: test/e2e/
-      linters:
-        - errcheck
-        - gosec
-        - govet
+      - path: internal/(plan|policy|prd)/
+        linters:
+          - govet
+          - gosec
+          - unused
 
-    - path: internal/(exec|eval|workflow)/
-      linters:
-        - govet
-        - dupl
-        - errcheck
-        - gosec
-        - gocyclo
+      - path: internal/interview/
+        linters:
+          - gocritic
+          - staticcheck
+          - revive
+          - gocyclo
 
-    - path: internal/(plan|policy|prd)/
-      linters:
-        - govet
-        - gosec
-        - unused
+      - path: internal/progress/
+        linters:
+          - errcheck
 
-    - path: internal/interview/
-      linters:
-        - gocritic
-        - staticcheck
-        - revive
-        - gocyclo
+      - path: internal/provider/
+        linters:
+          - govet
+          - dupl
+          - errcheck
+          - gosec
+          - ineffassign
+          - gocyclo
+          - staticcheck
 
-    - path: internal/progress/
-      linters:
-        - errcheck
+      - path: internal/router/
+        linters:
+          - govet
+          - gosec
+          - gocyclo
+          - errcheck
+          - gocritic
+          - revive
+          - staticcheck
 
-    - path: internal/provider/
-      linters:
-        - govet
-        - dupl
-        - errcheck
-        - gosec
-        - ineffassign
-        - gocyclo
-        - staticcheck
+      - path: internal/spec/
+        linters:
+          - govet
+          - gosec
+          - errcheck
+          - gocritic
 
-    - path: internal/router/
-      linters:
-        - govet
-        - gosec
-        - gocyclo
-        - errcheck
-        - gocritic
-        - revive
-        - staticcheck
+      - path: providers/
+        linters:
+          - gocyclo
+          - govet
+          - errcheck
+          - gosec
 
-    - path: internal/spec/
-      linters:
-        - govet
-        - gosec
-        - errcheck
-        - gocritic
+      - path: internal/auto/
+        linters:
+          - gocyclo
+          - govet
+          - errcheck
+          - gocritic
+          - gosec
+          - staticcheck
+          - dupl
 
-    - path: providers/
-      linters:
-        - gocyclo
-        - govet
-        - errcheck
-        - gosec
+      - path: internal/tui/
+        linters:
+          - gocyclo
+          - govet
 
-    - path: internal/auto/
-      linters:
-        - gocyclo
-        - govet
-        - errcheck
-        - gocritic
-        - gosec
-        - staticcheck
-        - dupl
+      - path: internal/trace/
+        linters:
+          - errcheck
+          - govet
+          - gosec
 
-    - path: internal/tui/
-      linters:
-        - gocyclo
-        - govet
+      - path: internal/attestation/
+        linters:
+          - gocyclo
+          - errcheck
 
-    - path: internal/trace/
-      linters:
-        - errcheck
-        - govet
-        - gosec
+      - path: internal/security/
+        linters:
+          - govet
+          - errcheck
+          - gosec
+          - revive
 
-    - path: internal/attestation/
-      linters:
-        - gocyclo
-        - errcheck
+      - path: internal/autopolicy/
+        linters:
+          - staticcheck
 
-    - path: internal/security/
-      linters:
-        - govet
-        - errcheck
-        - gosec
-        - revive
+      - path: internal/patch/
+        linters:
+          - govet
+          - gosec
+          - gocyclo
+          - staticcheck
+          - revive
 
-    - path: internal/autopolicy/
-      linters:
-        - staticcheck
+      - path: internal/profiles/
+        linters:
+          - govet
+          - errcheck
+          - gocyclo
 
-    - path: internal/patch/
-      linters:
-        - govet
-        - gosec
-        - gocyclo
-        - staticcheck
-        - revive
+      - path: internal/ux/
+        linters:
+          - errcheck
+          - govet
 
-    - path: internal/profiles/
-      linters:
-        - govet
-        - errcheck
-        - gocyclo
+      - path: internal/cmd/
+        linters:
+          - errcheck
+          - gocyclo
+          - dupl
+          - govet
+          - gosec
+          - staticcheck
 
-    - path: internal/ux/
-      linters:
-        - errcheck
-        - govet
+      - path: internal/domain/
+        linters:
+          - dupl
 
-    - path: internal/cmd/
-      linters:
-        - errcheck
-        - gocyclo
-        - dupl
-        - govet
-        - gosec
-        - staticcheck
+      - path: internal/hooks/
+        linters:
+          - govet
+          - errcheck
+          - revive
+          - gocritic
 
-    - path: internal/domain/
-      linters:
-        - dupl
+      - path: internal/explain/
+        linters:
+          - dupl
 
-    - path: internal/hooks/
-      linters:
-        - govet
-        - errcheck
-        - revive
-        - gocritic
+      - path: internal/drift/
+        linters:
+          - unconvert
 
-    - path: internal/explain/
-      linters:
-        - dupl
+      - path: internal/license/
+        linters:
+          - errcheck
+          - govet
+          - gosec
 
-    - path: internal/drift/
-      linters:
-        - unconvert
+      - path: internal/platform/
+        linters:
+          - errcheck
+          - govet
 
-    - path: internal/license/
-      linters:
-        - errcheck
-        - govet
-        - gosec
+      - path: internal/plugin/
+        linters:
+          - errcheck
+          - govet
+          - dupl
 
-    - path: internal/platform/
-      linters:
-        - errcheck
-        - govet
+      - path: internal/telemetry/
+        linters:
+          - govet
 
-    - path: internal/plugin/
-      linters:
-        - errcheck
-        - govet
-        - dupl
+      - path: examples/
+        linters:
+          - errcheck
+          - gosec
+          - govet
 
-    - path: internal/telemetry/
-      linters:
-        - govet
+formatters:
+  enable:
+    - gofmt
+    - goimports
 
-    - path: examples/
-      linters:
-        - errcheck
-        - gosec
-        - govet
-
-  max-issues-per-linter: 0
-  max-same-issues: 0
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/felixgeelhaar/specular
 
 output:
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-  sort-results: true
+  formats:
+    text:
+      path: stdout
+      colors: true
+      print-linter-name: true
