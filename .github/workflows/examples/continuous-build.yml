@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Generate Spec from PRD
         uses: ./
@@ -46,7 +46,7 @@ jobs:
           verbose: 'true'
 
       - name: Upload Spec Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: specification
           path: .specular/spec.yaml
@@ -59,10 +59,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download Spec
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: specification
           path: .specular/
@@ -77,7 +77,7 @@ jobs:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-plan
           path: build-plan.json
@@ -90,13 +90,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Docker
         uses: docker/setup-buildx-action@v3
 
       - name: Download Build Plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: build-plan
 
@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload Build Artifacts
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-output
           path: |
@@ -127,15 +127,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download Build Plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: build-plan
 
       - name: Download Spec
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: specification
           path: .specular/
@@ -153,7 +153,7 @@ jobs:
 
       - name: Upload SARIF Report
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: validation-report.sarif
           category: specular-build-validation
