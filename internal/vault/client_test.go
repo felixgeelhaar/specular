@@ -200,8 +200,10 @@ func TestClient_TLSConfig(t *testing.T) {
 	// We can't easily test the actual TLS handshake without a real server
 
 	t.Run("valid TLS config with CA cert path", func(t *testing.T) {
+		// Create a temp directory with no files (empty CA path)
+		tmpDir := t.TempDir()
 		httpClient, err := createHTTPClient(&TLSConfig{
-			CAPath: "/tmp", // Use a path that exists
+			CAPath: tmpDir,
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, httpClient)
