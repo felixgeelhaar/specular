@@ -106,8 +106,8 @@ func SaveSLOsToFile(path string, slos []*SLO) error {
 		return fmt.Errorf("failed to marshal SLO file: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0600); err != nil {
-		return fmt.Errorf("failed to write SLO file: %w", err)
+	if writeErr := os.WriteFile(path, data, 0600); writeErr != nil {
+		return fmt.Errorf("failed to write SLO file: %w", writeErr)
 	}
 
 	return nil
