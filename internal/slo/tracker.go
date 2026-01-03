@@ -311,8 +311,11 @@ type Summary struct {
 type OverallHealth string
 
 const (
-	OverallHealthHealthy  OverallHealth = "healthy"
+	// OverallHealthHealthy indicates all SLOs are meeting their targets.
+	OverallHealthHealthy OverallHealth = "healthy"
+	// OverallHealthDegraded indicates some SLOs are not meeting their targets.
 	OverallHealthDegraded OverallHealth = "degraded"
+	// OverallHealthCritical indicates critical SLOs are failing.
 	OverallHealthCritical OverallHealth = "critical"
 )
 

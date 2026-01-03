@@ -112,10 +112,14 @@ type AlertPolicy struct {
 type Severity string
 
 const (
+	// SeverityCritical represents critical severity requiring immediate attention.
 	SeverityCritical Severity = "critical"
-	SeverityHigh     Severity = "high"
-	SeverityWarning  Severity = "warning"
-	SeverityInfo     Severity = "info"
+	// SeverityHigh represents high severity requiring prompt attention.
+	SeverityHigh Severity = "high"
+	// SeverityWarning represents warning severity for potential issues.
+	SeverityWarning Severity = "warning"
+	// SeverityInfo represents informational severity for normal events.
+	SeverityInfo Severity = "info"
 )
 
 // IsValid returns true if the severity is valid.

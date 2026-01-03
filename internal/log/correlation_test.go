@@ -130,7 +130,7 @@ func TestWithRequestID_GeneratesWhenEmpty(t *testing.T) {
 }
 
 func TestCorrelationIDFromContext_NilContext(t *testing.T) {
-	id := CorrelationIDFromContext(nil)
+	id := CorrelationIDFromContext(nil) //nolint:staticcheck // Testing nil context handling
 	assert.True(t, id.IsEmpty())
 }
 
@@ -141,7 +141,7 @@ func TestCorrelationIDFromContext_NoValue(t *testing.T) {
 }
 
 func TestRequestIDFromContext_NilContext(t *testing.T) {
-	id := RequestIDFromContext(nil)
+	id := RequestIDFromContext(nil) //nolint:staticcheck // Testing nil context handling
 	assert.True(t, id.IsEmpty())
 }
 
