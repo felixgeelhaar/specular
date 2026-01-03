@@ -25,6 +25,12 @@ linters:
       check-type-assertions: true
       check-blank: false
 
+    staticcheck:
+      checks:
+        - all
+        - -QF*  # Disable quickfix suggestions
+        - -ST*  # Disable style suggestions
+
     govet:
       enable-all: true
       disable:
