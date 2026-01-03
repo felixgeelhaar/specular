@@ -489,9 +489,9 @@ func TestBuildOllamaRequest(t *testing.T) {
 
 func TestFinishReason(t *testing.T) {
 	tests := []struct {
-		name   string
-		done   bool
-		want   string
+		name string
+		done bool
+		want string
 	}{
 		{name: "done true", done: true, want: "stop"},
 		{name: "done false", done: false, want: "length"},
@@ -546,4 +546,3 @@ func TestHelperProcess(t *testing.T) {
 		os.Exit(1)
 	}
 }
-

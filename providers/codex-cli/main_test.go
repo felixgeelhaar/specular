@@ -304,7 +304,6 @@ func TestHelperProcess(t *testing.T) {
 	}
 }
 
-
 func TestResponseProvider(t *testing.T) {
 	resp := GenerateResponse{
 		Content:      "test",
