@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/pkg/specular/types"
-	"gopkg.in/yaml.v3"
 )
 
 // GoalParser converts natural language goals into structured specifications

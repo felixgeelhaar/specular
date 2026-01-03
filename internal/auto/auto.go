@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/felixgeelhaar/specular/internal/checkpoint"
 	"github.com/felixgeelhaar/specular/internal/hooks"
 	"github.com/felixgeelhaar/specular/internal/patch"
@@ -15,7 +17,6 @@ import (
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/internal/trace"
-	"gopkg.in/yaml.v3"
 )
 
 // Orchestrator manages the autonomous workflow

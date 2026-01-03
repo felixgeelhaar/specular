@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/felixgeelhaar/specular/internal/checkpoint"
 	execpkg "github.com/felixgeelhaar/specular/internal/exec"
@@ -18,7 +19,6 @@ import (
 	"github.com/felixgeelhaar/specular/internal/progress"
 	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/ux"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 var buildCmd = &cobra.Command{

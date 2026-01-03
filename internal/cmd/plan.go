@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/ux"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 var planCmd = &cobra.Command{

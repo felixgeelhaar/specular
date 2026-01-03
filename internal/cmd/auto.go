@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/felixgeelhaar/specular/internal/attestation"
 	"github.com/felixgeelhaar/specular/internal/auto"
@@ -24,7 +25,6 @@ import (
 	"github.com/felixgeelhaar/specular/internal/trace"
 	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/version"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 var autoCmd = &cobra.Command{

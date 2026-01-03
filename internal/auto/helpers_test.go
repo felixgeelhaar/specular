@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/pkg/specular/types"
-	"gopkg.in/yaml.v3"
 )
 
 // TestSaveOutputFiles tests the saveOutputFiles helper method
