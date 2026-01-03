@@ -1,20 +1,7 @@
-version: "2"
-
 run:
   timeout: 5m
   tests: true
   modules-download-mode: readonly
-
-formatters:
-  enable:
-    - gofmt
-    - goimports
-  settings:
-    gofmt:
-      simplify: true
-    goimports:
-      local-prefixes:
-        - github.com/felixgeelhaar/specular
 
 linters:
   enable:
@@ -29,54 +16,58 @@ linters:
     - gocritic      # Provides diagnostics that check for bugs, performance, and style issues
     - gocyclo       # Cyclomatic complexity
     - dupl          # Code cloning detection
+    - gofmt         # Gofmt checks formatting
+    - goimports     # Check imports
 
-  settings:
-    errcheck:
-      check-type-assertions: true
-      check-blank: false  # Allow explicit _ = for intentionally ignored errors
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
 
-    govet:
-      enable-all: true
-      disable:
-        - fieldalignment  # Memory optimization, not critical for v1.0
-      settings:
-        shadow:
-          strict: true
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+    settings:
+      shadow:
+        strict: true
 
-    gocyclo:
-      min-complexity: 15
+  gocyclo:
+    min-complexity: 15
 
-    dupl:
-      threshold: 100
+  dupl:
+    threshold: 100
 
-    gocritic:
-      enabled-tags:
-        - diagnostic
-        - performance
-      disabled-checks:
-        - whyNoLint       # Too verbose, nolint is self-explanatory in context
-        - hugeParam       # Struct size suggestions are opinionated
-        - rangeValCopy    # Performance optimization, not critical for v1.0
-        - emptyStringTest # len(s) > 0 vs s != "" is style preference
-        - appendAssign    # append patterns are valid Go idioms
-        - ifElseChain     # if-else chains are often clearer than switches
-        - paramTypeCombine # Parameter combining is style preference
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+    disabled-checks:
+      - whyNoLint
+      - hugeParam
+      - rangeValCopy
+      - emptyStringTest
+      - appendAssign
+      - ifElseChain
+      - paramTypeCombine
 
-    gosec:
-      excludes:
-        - G204  # Subprocess with variable - needed for Docker execution
-        - G304  # File path from variable - needed for file operations
+  gosec:
+    excludes:
+      - G204
+      - G304
 
-    revive:
-      rules:
-        - name: exported
-          arguments:
-            - disableStutteringCheck
+  revive:
+    rules:
+      - name: exported
+        arguments:
+          - disableStutteringCheck
+
+  goimports:
+    local-prefixes: github.com/felixgeelhaar/specular
 
 issues:
   exclude-use-default: false
   exclude-rules:
-    # Exclude some linters from running on tests files
     - path: _test\.go
       linters:
         - gocyclo
@@ -84,218 +75,190 @@ issues:
         - dupl
         - gosec
         - govet
-        - gocritic  # Exclude octalLiteral and other style suggestions in tests
+        - gocritic
 
-    # Exclude E2E test files
     - path: test/e2e/
       linters:
         - errcheck
         - gosec
         - govet
 
-    # Exclude non-critical linters from internal files needing refactoring (v1.1)
     - path: internal/(exec|eval|workflow)/
       linters:
-        - govet    # Shadow declarations - refactor in v1.1
-        - dupl     # Duplicate code - refactor in v1.1
-        - errcheck # Some unchecked errors - audit in v1.1
-        - gosec    # File permissions - review in v1.1
-        - gocyclo  # Complexity - refactor in v1.1
+        - govet
+        - dupl
+        - errcheck
+        - gosec
+        - gocyclo
 
-    # Exclude from plan/policy/prd files (simple data structures)
     - path: internal/(plan|policy|prd)/
       linters:
-        - govet    # Shadow declarations - simple loader files
-        - gosec    # File permissions - refactor in v1.1
-        - unused   # Unused helper functions - clean up in v1.1
+        - govet
+        - gosec
+        - unused
 
-    # Exclude from interview files (interactive CLI, acceptable complexity/style)
     - path: internal/interview/
       linters:
-        - gocritic  # Style suggestions - refactor in v1.1
-        - staticcheck  # Simplification suggestions (previously gosimple) - refactor in v1.1
-        - revive    # Export comments - add in v1.1
-        - gocyclo   # Interview flow complexity is acceptable
+        - gocritic
+        - staticcheck
+        - revive
+        - gocyclo
 
-    # Exclude from progress indicator (display code, unchecked errors acceptable)
     - path: internal/progress/
       linters:
-        - errcheck  # Display functions, errors not critical
+        - errcheck
 
-    # Exclude from provider implementations (refactor in v1.1)
     - path: internal/provider/
       linters:
-        - govet       # Shadow declarations - refactor in v1.1
-        - dupl        # Duplicate code across providers - extract common logic in v1.1
-        - errcheck    # Some unchecked errors - audit in v1.1
-        - gosec       # File permissions - review in v1.1
-        - ineffassign # Ineffectual assignments - clean up in v1.1
-        - gocyclo     # Complexity - refactor in v1.1
-        - staticcheck # Unused values - clean up in v1.1
+        - govet
+        - dupl
+        - errcheck
+        - gosec
+        - ineffassign
+        - gocyclo
+        - staticcheck
 
-    # Exclude from router (complex routing logic, refactor in v1.1)
     - path: internal/router/
       linters:
-        - govet       # Shadow declarations - refactor in v1.1
-        - gosec       # File permissions - review in v1.1
-        - gocyclo     # Routing complexity - acceptable for v1.0
-        - errcheck    # RecordUsage errors - audit in v1.1
-        - gocritic    # Style suggestions - refactor in v1.1
-        - revive      # Export comments - add in v1.1
-        - staticcheck # Empty branches in tests - clean up in v1.1
+        - govet
+        - gosec
+        - gocyclo
+        - errcheck
+        - gocritic
+        - revive
+        - staticcheck
 
-    # Exclude from spec loader (simple data structures, refactor in v1.1)
     - path: internal/spec/
       linters:
-        - govet    # Shadow declarations - simple loader files
-        - gosec    # File permissions - review in v1.1
-        - errcheck # Some unchecked errors - audit in v1.1
-        - gocritic # filepathJoin patterns - acceptable for v1.0
+        - govet
+        - gosec
+        - errcheck
+        - gocritic
 
-    # Exclude from external provider executables (standalone binaries, refactor in v1.1)
     - path: providers/
       linters:
-        - gocyclo  # Handler complexity - refactor in v1.1
-        - govet    # Shadow declarations - refactor in v1.1
-        - errcheck # Some unchecked errors - audit in v1.1
-        - gosec    # Unhandled errors - audit in v1.1
+        - gocyclo
+        - govet
+        - errcheck
+        - gosec
 
-    # Exclude from autonomous mode orchestrator (complex workflow logic, refactor in v1.1)
     - path: internal/auto/
       linters:
-        - gocyclo  # High complexity due to workflow orchestration - refactor in v1.1
-        - govet    # Shadow declarations in long functions - refactor in v1.1
-        - errcheck # Unchecked trace logging errors - acceptable for v1.0
-        - gocritic # Style suggestions - refactor in v1.1
-        - gosec    # Unhandled errors and file permissions - review in v1.1
-        - staticcheck # Context key warnings - refactor in v1.1
-        - dupl     # Duplicate retry logic - refactor in v1.1
+        - gocyclo
+        - govet
+        - errcheck
+        - gocritic
+        - gosec
+        - staticcheck
+        - dupl
 
-    # Exclude from TUI hooks (event handling complexity, refactor in v1.1)
     - path: internal/tui/
       linters:
-        - gocyclo  # Event handler complexity - refactor in v1.1
-        - govet    # Shadow declarations in event handlers - refactor in v1.1
+        - gocyclo
+        - govet
 
-    # Exclude from trace logging (display code, unchecked errors acceptable)
     - path: internal/trace/
       linters:
-        - errcheck # Logging errors not critical for v1.0
-        - govet    # Shadow declarations - refactor in v1.1
-        - gosec    # Sync errors not critical for v1.0
+        - errcheck
+        - govet
+        - gosec
 
-    # Exclude from attestation verify (verification complexity acceptable)
     - path: internal/attestation/
       linters:
-        - gocyclo  # Verification logic complexity - acceptable for security code
-        - errcheck # Best-effort operations like hostname - acceptable
+        - gocyclo
+        - errcheck
 
-    # Exclude from security packages (review in v1.1)
     - path: internal/security/
       linters:
-        - govet    # Shadow declarations - refactor in v1.1
-        - errcheck # Some unchecked errors - audit in v1.1
-        - gosec    # Credential constant names trigger false positives
-        - revive   # Export comment formatting - fix in v1.1
+        - govet
+        - errcheck
+        - gosec
+        - revive
 
-    # Exclude from autopolicy (policy checking logic, refactor in v1.1)
     - path: internal/autopolicy/
       linters:
-        - staticcheck # Context key warnings - refactor in v1.1
+        - staticcheck
 
-    # Exclude from patch system (rollback complexity, refactor in v1.1)
     - path: internal/patch/
       linters:
-        - govet       # Shadow declarations - refactor in v1.1
-        - gosec       # File permissions - review in v1.1
-        - gocyclo     # Rollback complexity - acceptable for v1.0
-        - staticcheck # HasSuffix side effects - acceptable
-        - revive      # Export comments - fix in v1.1
+        - govet
+        - gosec
+        - gocyclo
+        - staticcheck
+        - revive
 
-    # Exclude from profiles system (loader complexity, refactor in v1.1)
     - path: internal/profiles/
       linters:
-        - govet    # Shadow declarations - refactor in v1.1
-        - errcheck # Best-effort operations - acceptable for v1.0
-        - gocyclo  # Profile merge complexity - acceptable for v1.0
+        - govet
+        - errcheck
+        - gocyclo
 
-    # Exclude from ux formatter (display code, unchecked errors acceptable)
     - path: internal/ux/
       linters:
-        - errcheck # Display formatting errors not critical
-        - govet    # Shadow declarations - refactor in v1.1
+        - errcheck
+        - govet
 
-    # Exclude from CLI commands (flag parsing, display code)
     - path: internal/cmd/
       linters:
-        - errcheck # Flag parsing errors never occur in practice
-        - gocyclo  # Command complexity - acceptable for CLI code
-        - dupl     # Command pattern duplication - acceptable for CLI
-        - govet    # Shadow declarations in commands - acceptable for v1.0
-        - gosec    # Unhandled errors in display code - acceptable for v1.0
-        - staticcheck # Nil pointer checks - validated at runtime
+        - errcheck
+        - gocyclo
+        - dupl
+        - govet
+        - gosec
+        - staticcheck
 
-    # Exclude from domain types (simple type definitions with intentional patterns)
     - path: internal/domain/
       linters:
-        - dupl     # ID type definitions follow same pattern by design
+        - dupl
 
-    # Exclude from hooks system (hook builder complexity, refactor in v1.1)
     - path: internal/hooks/
       linters:
-        - govet    # Shadow declarations in config builders - acceptable
-        - errcheck # Body close errors in hooks - acceptable for v1.0
-        - revive   # Export comments on interface methods - fix in v1.1
-        - gocritic # Append combining - style preference
+        - govet
+        - errcheck
+        - revive
+        - gocritic
 
-    # Exclude from explain formatter (output formatting patterns, refactor in v1.1)
     - path: internal/explain/
       linters:
-        - dupl     # Formatting patterns intentionally similar - fix in v1.1
+        - dupl
 
-    # Exclude from drift detector (conversion patterns, refactor in v1.1)
     - path: internal/drift/
       linters:
-        - unconvert # Type conversions for clarity - acceptable
+        - unconvert
 
-    # Exclude from license system (business logic, refactor in v1.1)
     - path: internal/license/
       linters:
-        - errcheck # Best-effort tier detection - acceptable for v1.0
-        - govet    # Shadow declarations - refactor in v1.1
-        - gosec    # File permissions for license storage - review in v1.1
+        - errcheck
+        - govet
+        - gosec
 
-    # Exclude from platform client (API client code, refactor in v1.1)
     - path: internal/platform/
       linters:
-        - errcheck # Response body close - refactor in v1.1
-        - govet    # Shadow declarations in API handlers - refactor in v1.1
+        - errcheck
+        - govet
 
-    # Exclude from plugin system (extension framework, refactor in v1.1)
     - path: internal/plugin/
       linters:
-        - errcheck # UserHomeDir errors - acceptable for v1.0
-        - govet    # Shadow declarations in loaders - refactor in v1.1
-        - dupl     # Plugin loading patterns - refactor in v1.1
+        - errcheck
+        - govet
+        - dupl
 
-    # Exclude from telemetry system (observability code, refactor in v1.1)
     - path: internal/telemetry/
       linters:
-        - govet    # Shadow declarations and nilness checks - refactor in v1.1
+        - govet
 
-    # Exclude from examples directory (sample code, not production)
     - path: examples/
       linters:
-        - errcheck  # Example code doesn't need full error handling
-        - gosec     # Security not critical for examples
-        - govet     # Style not critical for examples
+        - errcheck
+        - gosec
+        - govet
 
   max-issues-per-linter: 0
   max-same-issues: 0
 
 output:
   formats:
-    colored-line-number: {}
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
   sort-results: true
