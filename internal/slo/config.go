@@ -80,14 +80,14 @@ func LoadSLOsFromFile(path string) ([]*SLO, error) {
 	}
 
 	var file SLOFile
-	if err := yaml.Unmarshal(data, &file); err != nil {
-		return nil, fmt.Errorf("failed to parse SLO file: %w", err)
+	if unmarshalErr := yaml.Unmarshal(data, &file); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to parse SLO file: %w", unmarshalErr)
 	}
 
 	// Validate all SLOs
 	for _, slo := range file.SLOs {
-		if err := slo.Validate(); err != nil {
-			return nil, fmt.Errorf("invalid SLO %s: %w", slo.Name, err)
+		if validateErr := slo.Validate(); validateErr != nil {
+			return nil, fmt.Errorf("invalid SLO %s: %w", slo.Name, validateErr)
 		}
 	}
 
@@ -106,7 +106,7 @@ func SaveSLOsToFile(path string, slos []*SLO) error {
 		return fmt.Errorf("failed to marshal SLO file: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("failed to write SLO file: %w", err)
 	}
 

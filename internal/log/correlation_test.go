@@ -316,7 +316,7 @@ func TestLoggerWithContext(t *testing.T) {
 	logger := Default()
 
 	t.Run("with nil context", func(t *testing.T) {
-		newLogger := logger.WithContext(nil)
+		newLogger := logger.WithContext(nil) //nolint:staticcheck // Testing nil context handling
 		require.NotNil(t, newLogger)
 	})
 

@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"go.opentelemetry.io/otel/attribute"
+
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 )
 
 // GeminiProvider implements the ProviderClient interface for Google Gemini API

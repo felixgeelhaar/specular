@@ -176,7 +176,7 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON implements json.Marshaler for Duration.
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, d.String())), nil
+	return []byte(fmt.Sprintf("%q", d.String())), nil
 }
 
 // Duration returns the time.Duration value.

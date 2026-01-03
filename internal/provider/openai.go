@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"go.opentelemetry.io/otel/attribute"
+
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 )
 
 // OpenAIProvider implements the ProviderClient interface for OpenAI API

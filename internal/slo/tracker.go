@@ -180,13 +180,13 @@ func (t *Tracker) calculateStatus(ctx context.Context, slo *SLO) (*SLOStatus, er
 	// Get short and long window SLIs for alerting
 	var shortWindowSLI, longWindowSLI *SLIValue
 	if slo.AlertPolicy != nil {
-		shortSLI, err := t.fetchSLI(ctx, slo, slo.AlertPolicy.ShortWindow.Duration())
-		if err == nil {
+		shortSLI, shortErr := t.fetchSLI(ctx, slo, slo.AlertPolicy.ShortWindow.Duration())
+		if shortErr == nil {
 			shortWindowSLI = &shortSLI
 		}
 
-		longSLI, err := t.fetchSLI(ctx, slo, slo.AlertPolicy.LongWindow.Duration())
-		if err == nil {
+		longSLI, longErr := t.fetchSLI(ctx, slo, slo.AlertPolicy.LongWindow.Duration())
+		if longErr == nil {
 			longWindowSLI = &longSLI
 		}
 	}
