@@ -153,7 +153,7 @@ func TestRequestIDFromContext_NoValue(t *testing.T) {
 
 func TestTraceIDFromContext(t *testing.T) {
 	t.Run("nil context", func(t *testing.T) {
-		id := TraceIDFromContext(nil)
+		id := TraceIDFromContext(nil) //nolint:staticcheck // Testing nil context handling
 		assert.Empty(t, id)
 	})
 
@@ -182,7 +182,7 @@ func TestTraceIDFromContext(t *testing.T) {
 
 func TestSpanIDFromContext(t *testing.T) {
 	t.Run("nil context", func(t *testing.T) {
-		id := SpanIDFromContext(nil)
+		id := SpanIDFromContext(nil) //nolint:staticcheck // Testing nil context handling
 		assert.Empty(t, id)
 	})
 
