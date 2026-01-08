@@ -171,6 +171,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create command context: %w", err)
 	}
 
+	// Handle --workflow flag (shorthand for 'init workflow <id>')
+	if workflowFlag != "" {
+		return RunWorkflowFromFlag(cmd, workflowFlag)
+	}
+
 	// Setup target directory
 	absDir, specDir, err := setupTargetDirectory(args)
 	if err != nil {
