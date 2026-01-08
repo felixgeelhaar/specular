@@ -385,3 +385,305 @@ func (b *BarIndicator) Finish() {
 
 	fmt.Fprintln(b.writer)
 }
+
+// MultiStepIndicator tracks progress through a series of named steps
+type MultiStepIndicator struct {
+	writer      io.Writer
+	steps       []StepInfo
+	current     int
+	startTime   time.Time
+	stepStart   time.Time
+	mu          sync.Mutex
+	isCI        bool
+	showSpinner bool
+	spinnerIdx  int
+	stopChan    chan struct{}
+	stopOnce    sync.Once
+}
+
+// StepInfo holds information about a step
+type StepInfo struct {
+	Name      string
+	Status    StepStatus
+	StartTime time.Time
+	Duration  time.Duration
+	Error     error
+}
+
+// StepStatus represents the status of a step
+type StepStatus string
+
+const (
+	StepPending   StepStatus = "pending"
+	StepRunning   StepStatus = "running"
+	StepCompleted StepStatus = "completed"
+	StepFailed    StepStatus = "failed"
+	StepSkipped   StepStatus = "skipped"
+)
+
+// MultiStepConfig holds configuration for multi-step indicator
+type MultiStepConfig struct {
+	Writer      io.Writer
+	Steps       []string
+	ShowSpinner bool
+	IsCI        bool
+}
+
+// NewMultiStepIndicator creates a new multi-step progress indicator
+func NewMultiStepIndicator(cfg MultiStepConfig) *MultiStepIndicator {
+	if cfg.Writer == nil {
+		cfg.Writer = os.Stdout
+	}
+
+	// Auto-detect CI environment
+	if !cfg.IsCI {
+		cfg.IsCI = os.Getenv("CI") == "true" || os.Getenv("GITHUB_ACTIONS") == "true"
+	}
+
+	steps := make([]StepInfo, len(cfg.Steps))
+	for i, name := range cfg.Steps {
+		steps[i] = StepInfo{
+			Name:   name,
+			Status: StepPending,
+		}
+	}
+
+	return &MultiStepIndicator{
+		writer:      cfg.Writer,
+		steps:       steps,
+		current:     -1,
+		startTime:   time.Now(),
+		isCI:        cfg.IsCI,
+		showSpinner: cfg.ShowSpinner && !cfg.IsCI,
+		stopChan:    make(chan struct{}),
+	}
+}
+
+// Start begins the multi-step indicator display
+func (m *MultiStepIndicator) Start() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.startTime = time.Now()
+	m.printHeader()
+
+	if m.showSpinner {
+		go m.spinnerLoop()
+	}
+}
+
+// printHeader prints the initial step list
+func (m *MultiStepIndicator) printHeader() {
+	fmt.Fprintln(m.writer, "")
+	fmt.Fprintf(m.writer, "📋 Steps (%d total):\n", len(m.steps))
+	for i, step := range m.steps {
+		fmt.Fprintf(m.writer, "   %d. %s\n", i+1, step.Name)
+	}
+	fmt.Fprintln(m.writer, "")
+}
+
+// StartStep marks a step as running
+func (m *MultiStepIndicator) StartStep(name string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Find the step by name
+	for i, step := range m.steps {
+		if step.Name == name {
+			m.current = i
+			m.steps[i].Status = StepRunning
+			m.steps[i].StartTime = time.Now()
+			m.stepStart = time.Now()
+			m.printStepStart(i, name)
+			return
+		}
+	}
+}
+
+// StartNextStep moves to and starts the next pending step
+func (m *MultiStepIndicator) StartNextStep() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Find next pending step
+	for i, step := range m.steps {
+		if step.Status == StepPending {
+			m.current = i
+			m.steps[i].Status = StepRunning
+			m.steps[i].StartTime = time.Now()
+			m.stepStart = time.Now()
+			m.printStepStart(i, step.Name)
+			return true
+		}
+	}
+	return false
+}
+
+// printStepStart prints step start message
+func (m *MultiStepIndicator) printStepStart(idx int, name string) {
+	spinner := "▶"
+	if m.showSpinner && idx >= 0 && idx < len(spinnerFrames) {
+		spinner = spinnerFrames[m.spinnerIdx]
+	}
+	fmt.Fprintf(m.writer, "%s [%d/%d] %s...\n", spinner, idx+1, len(m.steps), name)
+}
+
+// CompleteStep marks the current step as completed
+func (m *MultiStepIndicator) CompleteStep(err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.current < 0 || m.current >= len(m.steps) {
+		return
+	}
+
+	step := &m.steps[m.current]
+	step.Duration = time.Since(step.StartTime)
+	step.Error = err
+
+	if err != nil {
+		step.Status = StepFailed
+		m.printStepComplete(m.current, step.Name, step.Duration, err)
+	} else {
+		step.Status = StepCompleted
+		m.printStepComplete(m.current, step.Name, step.Duration, nil)
+	}
+}
+
+// SkipStep marks a step as skipped
+func (m *MultiStepIndicator) SkipStep(name, reason string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, step := range m.steps {
+		if step.Name == name {
+			m.steps[i].Status = StepSkipped
+			fmt.Fprintf(m.writer, "⊘ [%d/%d] %s (skipped: %s)\n", i+1, len(m.steps), name, reason)
+			return
+		}
+	}
+}
+
+// printStepComplete prints step completion message
+func (m *MultiStepIndicator) printStepComplete(idx int, name string, duration time.Duration, err error) {
+	if err != nil {
+		fmt.Fprintf(m.writer, "✗ [%d/%d] %s failed (%s) - %v\n",
+			idx+1, len(m.steps), name, formatDuration(duration), err)
+	} else {
+		fmt.Fprintf(m.writer, "✓ [%d/%d] %s completed (%s)\n",
+			idx+1, len(m.steps), name, formatDuration(duration))
+	}
+}
+
+// Stop stops the multi-step indicator
+func (m *MultiStepIndicator) Stop() {
+	m.stopOnce.Do(func() {
+		if m.showSpinner {
+			close(m.stopChan)
+		}
+	})
+}
+
+// spinnerLoop runs the spinner animation for the current step
+func (m *MultiStepIndicator) spinnerLoop() {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-m.stopChan:
+			return
+		case <-ticker.C:
+			m.mu.Lock()
+			m.spinnerIdx = (m.spinnerIdx + 1) % len(spinnerFrames)
+			m.mu.Unlock()
+		}
+	}
+}
+
+// PrintSummary prints a summary of all steps
+func (m *MultiStepIndicator) PrintSummary() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	elapsed := time.Since(m.startTime)
+	completed := 0
+	failed := 0
+	skipped := 0
+
+	for _, step := range m.steps {
+		switch step.Status {
+		case StepCompleted:
+			completed++
+		case StepFailed:
+			failed++
+		case StepSkipped:
+			skipped++
+		}
+	}
+
+	fmt.Fprintln(m.writer)
+	fmt.Fprintln(m.writer, "───────────────────────────────────────────────")
+	fmt.Fprintf(m.writer, "Summary: %d steps in %s\n", len(m.steps), formatDuration(elapsed))
+	fmt.Fprintf(m.writer, "  ✓ Completed: %d\n", completed)
+	if failed > 0 {
+		fmt.Fprintf(m.writer, "  ✗ Failed:    %d\n", failed)
+	}
+	if skipped > 0 {
+		fmt.Fprintf(m.writer, "  ⊘ Skipped:   %d\n", skipped)
+	}
+	fmt.Fprintln(m.writer, "───────────────────────────────────────────────")
+
+	// List failed steps
+	if failed > 0 {
+		fmt.Fprintln(m.writer, "\nFailed steps:")
+		for i, step := range m.steps {
+			if step.Status == StepFailed {
+				fmt.Fprintf(m.writer, "  %d. %s: %v\n", i+1, step.Name, step.Error)
+			}
+		}
+	}
+}
+
+// Progress returns overall progress as a percentage (0.0 to 1.0)
+func (m *MultiStepIndicator) Progress() float64 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if len(m.steps) == 0 {
+		return 0
+	}
+
+	completed := 0
+	for _, step := range m.steps {
+		if step.Status == StepCompleted || step.Status == StepFailed || step.Status == StepSkipped {
+			completed++
+		}
+	}
+
+	return float64(completed) / float64(len(m.steps))
+}
+
+// HasFailures returns true if any step failed
+func (m *MultiStepIndicator) HasFailures() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, step := range m.steps {
+		if step.Status == StepFailed {
+			return true
+		}
+	}
+	return false
+}
+
+// CurrentStep returns the name of the current step
+func (m *MultiStepIndicator) CurrentStep() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.current >= 0 && m.current < len(m.steps) {
+		return m.steps[m.current].Name
+	}
+	return ""
+}

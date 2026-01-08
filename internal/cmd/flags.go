@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/felixgeelhaar/specular/internal/ux"
 	"github.com/spf13/cobra"
 )
 
@@ -23,6 +24,12 @@ type CommandContext struct {
 	// Configuration
 	SpecularHome string
 	LogLevel     string
+
+	// Interactive mode
+	// IsInteractive indicates if the terminal supports interactive prompts.
+	// This is automatically detected based on stdin being a terminal and
+	// the absence of CI environment variables.
+	IsInteractive bool
 }
 
 // NewCommandContext extracts command context from cobra.Command flags.
@@ -77,14 +84,20 @@ func NewCommandContext(cmd *cobra.Command) (*CommandContext, error) {
 		return nil, err
 	}
 
+	// Detect interactive mode based on environment and terminal state
+	interactiveCfg := ux.NewInteractiveConfig()
+	interactiveCfg.Quiet = quiet
+	isInteractive := ux.ShouldPrompt(interactiveCfg)
+
 	return &CommandContext{
-		Verbose:      verbose,
-		Quiet:        quiet,
-		Format:       format,
-		NoColor:      noColor,
-		Explain:      explain,
-		Trace:        trace,
-		SpecularHome: specularHome,
-		LogLevel:     logLevel,
+		Verbose:       verbose,
+		Quiet:         quiet,
+		Format:        format,
+		NoColor:       noColor,
+		Explain:       explain,
+		Trace:         trace,
+		SpecularHome:  specularHome,
+		LogLevel:      logLevel,
+		IsInteractive: isInteractive,
 	}, nil
 }

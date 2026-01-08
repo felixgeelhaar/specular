@@ -17,8 +17,9 @@ import (
 )
 
 var planCmd = &cobra.Command{
-	Use:   "plan",
-	Short: "Manage execution plans",
+	Use:     "plan",
+	Aliases: []string{"p"},
+	Short:   "Manage execution plans",
 	Long: `Generate, review, and manage execution plans from specifications.
 
 Use 'specular plan create' to generate a new plan from a specification.

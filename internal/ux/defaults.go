@@ -121,3 +121,148 @@ func SuggestNextSteps() string {
 
 	return "Execute your plan with 'specular build'"
 }
+
+// ConfigPaths holds all discovered configuration file paths for a project.
+// Use DiscoverAllConfigs() to populate this struct with auto-discovered paths.
+type ConfigPaths struct {
+	// ProjectRoot is the root directory of the project (contains .git or .specular)
+	ProjectRoot string
+	// SpecularDir is the path to the .specular directory
+	SpecularDir string
+	// SpecFile is the path to spec.yaml
+	SpecFile string
+	// LockFile is the path to spec.lock.json
+	LockFile string
+	// PlanFile is the path to plan.json
+	PlanFile string
+	// RouterFile is the path to router.yaml
+	RouterFile string
+	// PolicyFile is the path to policy.yaml
+	PolicyFile string
+	// ProvidersFile is the path to providers.yaml
+	ProvidersFile string
+	// CheckpointDir is the path to the checkpoints directory
+	CheckpointDir string
+	// CacheDir is the path to the cache directory
+	CacheDir string
+}
+
+// Exists returns true if the given path exists
+func (cp *ConfigPaths) Exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// HasSpec returns true if a spec file exists
+func (cp *ConfigPaths) HasSpec() bool {
+	return cp.Exists(cp.SpecFile)
+}
+
+// HasLock returns true if a lock file exists
+func (cp *ConfigPaths) HasLock() bool {
+	return cp.Exists(cp.LockFile)
+}
+
+// HasRouter returns true if a router config exists
+func (cp *ConfigPaths) HasRouter() bool {
+	return cp.Exists(cp.RouterFile)
+}
+
+// HasPolicy returns true if a policy config exists
+func (cp *ConfigPaths) HasPolicy() bool {
+	return cp.Exists(cp.PolicyFile)
+}
+
+// HasProviders returns true if a providers config exists
+func (cp *ConfigPaths) HasProviders() bool {
+	return cp.Exists(cp.ProvidersFile)
+}
+
+// IsInitialized returns true if the project has been initialized
+func (cp *ConfigPaths) IsInitialized() bool {
+	return cp.Exists(cp.SpecularDir)
+}
+
+// DiscoverProjectRoot finds the project root directory.
+// It searches for .git or .specular directories starting from cwd
+// and walking up the directory tree.
+func DiscoverProjectRoot() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("cannot get current directory: %w", err)
+	}
+
+	dir := cwd
+	for {
+		// Check for .specular directory (Specular project root)
+		specularDir := filepath.Join(dir, ".specular")
+		if _, err := os.Stat(specularDir); err == nil {
+			return dir, nil
+		}
+
+		// Check for .git directory (Git repository root)
+		gitDir := filepath.Join(dir, ".git")
+		if _, err := os.Stat(gitDir); err == nil {
+			return dir, nil
+		}
+
+		// Move up one directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached filesystem root, use current working directory
+			return cwd, nil
+		}
+		dir = parent
+	}
+}
+
+// DiscoverAllConfigs discovers all configuration file paths for the project.
+// It auto-detects the project root and .specular directory, then resolves
+// all config file paths relative to that location.
+func DiscoverAllConfigs() (*ConfigPaths, error) {
+	projectRoot, err := DiscoverProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to discover project root: %w", err)
+	}
+
+	specularDir := filepath.Join(projectRoot, ".specular")
+
+	// Use PathDefaults to get consistent file paths
+	pd := &PathDefaults{SpecularDir: specularDir}
+
+	return &ConfigPaths{
+		ProjectRoot:   projectRoot,
+		SpecularDir:   specularDir,
+		SpecFile:      pd.SpecFile(),
+		LockFile:      pd.SpecLockFile(),
+		PlanFile:      filepath.Join(projectRoot, pd.PlanFile()),
+		RouterFile:    pd.RouterFile(),
+		PolicyFile:    pd.PolicyFile(),
+		ProvidersFile: pd.ProvidersFile(),
+		CheckpointDir: pd.CheckpointDir(),
+		CacheDir:      pd.CacheDir(),
+	}, nil
+}
+
+// MustDiscoverAllConfigs is like DiscoverAllConfigs but returns defaults on error
+func MustDiscoverAllConfigs() *ConfigPaths {
+	configs, err := DiscoverAllConfigs()
+	if err != nil {
+		// Return defaults from current directory
+		pd := NewPathDefaults()
+		cwd, _ := os.Getwd()
+		return &ConfigPaths{
+			ProjectRoot:   cwd,
+			SpecularDir:   pd.SpecularDir,
+			SpecFile:      pd.SpecFile(),
+			LockFile:      pd.SpecLockFile(),
+			PlanFile:      pd.PlanFile(),
+			RouterFile:    pd.RouterFile(),
+			PolicyFile:    pd.PolicyFile(),
+			ProvidersFile: pd.ProvidersFile(),
+			CheckpointDir: pd.CheckpointDir(),
+			CacheDir:      pd.CacheDir(),
+		}
+	}
+	return configs
+}

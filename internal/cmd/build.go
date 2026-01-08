@@ -22,8 +22,9 @@ import (
 )
 
 var buildCmd = &cobra.Command{
-	Use:   "build",
-	Short: "Manage build execution and verification",
+	Use:     "build",
+	Aliases: []string{"b"},
+	Short:   "Manage build execution and verification",
 	Long: `Execute, verify, and approve builds with policy enforcement.
 
 Use 'specular build run' to execute a build plan.

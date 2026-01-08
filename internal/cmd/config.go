@@ -17,8 +17,9 @@ import (
 )
 
 var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "View or edit Specular configuration",
+	Use:     "config",
+	Aliases: []string{"c", "cfg"},
+	Short:   "View or edit Specular configuration",
 	Long: `Manage Specular global configuration stored at ~/.specular/config.yaml
 
 Configuration includes:

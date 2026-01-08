@@ -386,3 +386,209 @@ func OneOf(name string, value string, allowed []string) error {
 		Message: fmt.Sprintf("must be one of: %s", strings.Join(allowed, ", ")),
 	}
 }
+
+// Severity indicates the importance level of a validation issue
+type Severity int
+
+const (
+	// SeverityError indicates a critical issue that should stop execution
+	SeverityError Severity = iota
+	// SeverityWarning indicates an issue that should be noted but doesn't stop execution
+	SeverityWarning
+	// SeverityInfo indicates informational messages
+	SeverityInfo
+)
+
+// String returns a human-readable representation of the severity
+func (s Severity) String() string {
+	switch s {
+	case SeverityError:
+		return "error"
+	case SeverityWarning:
+		return "warning"
+	case SeverityInfo:
+		return "info"
+	default:
+		return "unknown"
+	}
+}
+
+// Symbol returns a visual symbol for the severity level
+func (s Severity) Symbol() string {
+	switch s {
+	case SeverityError:
+		return "✗"
+	case SeverityWarning:
+		return "⚠"
+	case SeverityInfo:
+		return "ℹ"
+	default:
+		return "?"
+	}
+}
+
+// ValidationIssue represents a single validation issue with severity
+type ValidationIssue struct {
+	Severity Severity
+	Field    string
+	Value    string
+	Message  string
+	Code     string
+}
+
+// Error returns a formatted error message
+func (v *ValidationIssue) Error() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("[%s] ", v.Severity.String()))
+	if v.Code != "" {
+		sb.WriteString(fmt.Sprintf("[%s] ", v.Code))
+	}
+	if v.Field != "" {
+		sb.WriteString(fmt.Sprintf("%s: ", v.Field))
+	}
+	sb.WriteString(v.Message)
+	if v.Value != "" {
+		displayValue := v.Value
+		if len(displayValue) > 50 {
+			displayValue = displayValue[:47] + "..."
+		}
+		sb.WriteString(fmt.Sprintf(" (got: %q)", displayValue))
+	}
+	return sb.String()
+}
+
+// ValidationResult collects multiple validation issues
+type ValidationResult struct {
+	Issues []ValidationIssue
+}
+
+// NewValidationResult creates a new empty validation result
+func NewValidationResult() *ValidationResult {
+	return &ValidationResult{
+		Issues: make([]ValidationIssue, 0),
+	}
+}
+
+// AddError adds an error-level issue
+func (r *ValidationResult) AddError(field, value, message string) {
+	r.AddIssue(SeverityError, field, value, message, "")
+}
+
+// AddErrorWithCode adds an error-level issue with a code
+func (r *ValidationResult) AddErrorWithCode(field, value, message, code string) {
+	r.AddIssue(SeverityError, field, value, message, code)
+}
+
+// AddWarning adds a warning-level issue
+func (r *ValidationResult) AddWarning(field, value, message string) {
+	r.AddIssue(SeverityWarning, field, value, message, "")
+}
+
+// AddWarningWithCode adds a warning-level issue with a code
+func (r *ValidationResult) AddWarningWithCode(field, value, message, code string) {
+	r.AddIssue(SeverityWarning, field, value, message, code)
+}
+
+// AddInfo adds an info-level issue
+func (r *ValidationResult) AddInfo(field, value, message string) {
+	r.AddIssue(SeverityInfo, field, value, message, "")
+}
+
+// AddIssue adds a validation issue with the specified severity
+func (r *ValidationResult) AddIssue(severity Severity, field, value, message, code string) {
+	r.Issues = append(r.Issues, ValidationIssue{
+		Severity: severity,
+		Field:    field,
+		Value:    value,
+		Message:  message,
+		Code:     code,
+	})
+}
+
+// HasErrors returns true if there are any error-level issues
+func (r *ValidationResult) HasErrors() bool {
+	for _, issue := range r.Issues {
+		if issue.Severity == SeverityError {
+			return true
+		}
+	}
+	return false
+}
+
+// HasWarnings returns true if there are any warning-level issues
+func (r *ValidationResult) HasWarnings() bool {
+	for _, issue := range r.Issues {
+		if issue.Severity == SeverityWarning {
+			return true
+		}
+	}
+	return false
+}
+
+// HasIssues returns true if there are any issues at all
+func (r *ValidationResult) HasIssues() bool {
+	return len(r.Issues) > 0
+}
+
+// Errors returns all error-level issues
+func (r *ValidationResult) Errors() []ValidationIssue {
+	var errors []ValidationIssue
+	for _, issue := range r.Issues {
+		if issue.Severity == SeverityError {
+			errors = append(errors, issue)
+		}
+	}
+	return errors
+}
+
+// Warnings returns all warning-level issues
+func (r *ValidationResult) Warnings() []ValidationIssue {
+	var warnings []ValidationIssue
+	for _, issue := range r.Issues {
+		if issue.Severity == SeverityWarning {
+			warnings = append(warnings, issue)
+		}
+	}
+	return warnings
+}
+
+// Count returns counts of issues by severity
+func (r *ValidationResult) Count() (errors, warnings, infos int) {
+	for _, issue := range r.Issues {
+		switch issue.Severity {
+		case SeverityError:
+			errors++
+		case SeverityWarning:
+			warnings++
+		case SeverityInfo:
+			infos++
+		}
+	}
+	return
+}
+
+// Error returns an error if there are any error-level issues
+func (r *ValidationResult) Error() error {
+	if !r.HasErrors() {
+		return nil
+	}
+
+	errors := r.Errors()
+	if len(errors) == 1 {
+		return fmt.Errorf("validation failed: %s", errors[0].Message)
+	}
+
+	var messages []string
+	for _, err := range errors {
+		messages = append(messages, err.Message)
+	}
+	return fmt.Errorf("validation failed with %d errors: %s", len(errors), strings.Join(messages, "; "))
+}
+
+// Merge combines another ValidationResult into this one
+func (r *ValidationResult) Merge(other *ValidationResult) {
+	if other == nil {
+		return
+	}
+	r.Issues = append(r.Issues, other.Issues...)
+}

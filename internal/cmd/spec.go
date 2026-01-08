@@ -23,9 +23,10 @@ import (
 )
 
 var specCmd = &cobra.Command{
-	Use:   "spec",
-	Short: "Specification management commands",
-	Long:  `Generate, validate, and manage product specifications.`,
+	Use:     "spec",
+	Aliases: []string{"s"},
+	Short:   "Specification management commands",
+	Long:    `Generate, validate, and manage product specifications.`,
 }
 
 var specGenerateCmd = &cobra.Command{

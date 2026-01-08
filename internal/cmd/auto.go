@@ -29,8 +29,9 @@ import (
 )
 
 var autoCmd = &cobra.Command{
-	Use:   "auto <goal>",
-	Short: "Autonomous mode: from goal to working code",
+	Use:     "auto <goal>",
+	Aliases: []string{"a", "run"},
+	Short:   "Autonomous mode: from goal to working code",
 	Long: `Run Specular in autonomous agent mode. Provide a natural language goal,
 and Specular will:
   1. Generate a structured specification

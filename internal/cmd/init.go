@@ -29,8 +29,9 @@ var (
 )
 
 var initCmd = &cobra.Command{
-	Use:   "init [directory]",
-	Short: "Initialize a new specular project with smart context detection",
+	Use:     "init [directory]",
+	Aliases: []string{"i", "new"},
+	Short:   "Initialize a new specular project with smart context detection",
 	Long: `Initialize a new specular project with smart context detection and configuration.
 
 Automatically detects your environment (Docker, AI providers, languages, frameworks, Git, CI)

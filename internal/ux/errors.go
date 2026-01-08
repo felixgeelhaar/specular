@@ -2,8 +2,279 @@ package ux
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
+
+// ErrorCategory categorizes errors for targeted suggestions and formatting
+type ErrorCategory string
+
+const (
+	// CategoryYAMLSyntax indicates YAML parsing errors
+	CategoryYAMLSyntax ErrorCategory = "yaml_syntax"
+	// CategorySchemaViolation indicates configuration schema errors
+	CategorySchemaViolation ErrorCategory = "schema"
+	// CategoryMissingFile indicates required file not found
+	CategoryMissingFile ErrorCategory = "missing_file"
+	// CategoryNetwork indicates network connectivity issues
+	CategoryNetwork ErrorCategory = "network"
+	// CategoryAuth indicates authentication/authorization failures
+	CategoryAuth ErrorCategory = "auth"
+	// CategoryProvider indicates AI provider issues
+	CategoryProvider ErrorCategory = "provider"
+	// CategoryPolicy indicates policy enforcement issues
+	CategoryPolicy ErrorCategory = "policy"
+	// CategoryDocker indicates container/Docker issues
+	CategoryDocker ErrorCategory = "docker"
+	// CategoryPermission indicates file/directory permission issues
+	CategoryPermission ErrorCategory = "permission"
+	// CategoryValidation indicates spec/config validation errors
+	CategoryValidation ErrorCategory = "validation"
+	// CategoryUnknown is the default for unrecognized errors
+	CategoryUnknown ErrorCategory = "unknown"
+)
+
+// ANSI color codes for terminal output
+const (
+	colorRed    = "\033[31m"
+	colorYellow = "\033[33m"
+	colorGreen  = "\033[32m"
+	colorBlue   = "\033[34m"
+	colorCyan   = "\033[36m"
+	colorReset  = "\033[0m"
+	colorBold   = "\033[1m"
+)
+
+// EnhancedError provides rich error information with category,
+// suggestions, and colored output support.
+type EnhancedError struct {
+	// Category of the error for targeted handling
+	Category ErrorCategory
+	// Message is the primary error message
+	Message string
+	// Suggestions are recovery commands or actions
+	Suggestions []string
+	// Code is an optional error code (e.g., "E001")
+	Code string
+	// NoColor disables colored output
+	NoColor bool
+	// underlying is the original error
+	underlying error
+}
+
+// Error implements the error interface
+func (e *EnhancedError) Error() string {
+	return e.Message
+}
+
+// Unwrap returns the underlying error
+func (e *EnhancedError) Unwrap() error {
+	return e.underlying
+}
+
+// ColoredOutput returns the error with ANSI color formatting
+func (e *EnhancedError) ColoredOutput() string {
+	if e.NoColor {
+		return e.PlainOutput()
+	}
+
+	var sb strings.Builder
+
+	// Error code and category
+	if e.Code != "" {
+		sb.WriteString(colorRed + colorBold)
+		sb.WriteString(fmt.Sprintf("[%s] ", e.Code))
+		sb.WriteString(colorReset)
+	}
+
+	// Error message
+	sb.WriteString(colorRed)
+	sb.WriteString(e.Message)
+	sb.WriteString(colorReset)
+
+	// Category hint
+	if e.Category != CategoryUnknown {
+		sb.WriteString(colorCyan)
+		sb.WriteString(fmt.Sprintf(" (%s)", e.Category))
+		sb.WriteString(colorReset)
+	}
+
+	// Suggestions
+	if len(e.Suggestions) > 0 {
+		sb.WriteString("\n\n")
+		sb.WriteString(colorYellow + colorBold)
+		sb.WriteString("💡 Suggestions:")
+		sb.WriteString(colorReset)
+		for _, s := range e.Suggestions {
+			sb.WriteString("\n")
+			sb.WriteString(colorGreen)
+			sb.WriteString("   → ")
+			sb.WriteString(s)
+			sb.WriteString(colorReset)
+		}
+	}
+
+	return sb.String()
+}
+
+// PlainOutput returns the error without ANSI color codes
+func (e *EnhancedError) PlainOutput() string {
+	var sb strings.Builder
+
+	if e.Code != "" {
+		sb.WriteString(fmt.Sprintf("[%s] ", e.Code))
+	}
+
+	sb.WriteString(e.Message)
+
+	if e.Category != CategoryUnknown {
+		sb.WriteString(fmt.Sprintf(" (%s)", e.Category))
+	}
+
+	if len(e.Suggestions) > 0 {
+		sb.WriteString("\n\nSuggestions:")
+		for _, s := range e.Suggestions {
+			sb.WriteString("\n   → ")
+			sb.WriteString(s)
+		}
+	}
+
+	return sb.String()
+}
+
+// NewEnhancedError creates an EnhancedError from an existing error
+func NewEnhancedError(err error) *EnhancedError {
+	if err == nil {
+		return nil
+	}
+
+	enhanced := &EnhancedError{
+		Message:    err.Error(),
+		Category:   CategoryUnknown,
+		underlying: err,
+	}
+
+	// Detect category and add suggestions
+	enhanced.detectCategory()
+	enhanced.addSuggestions()
+	enhanced.assignCode()
+
+	return enhanced
+}
+
+// detectCategory analyzes the error message to determine category
+func (e *EnhancedError) detectCategory() {
+	msg := strings.ToLower(e.Message)
+
+	switch {
+	// Check file-related errors first (before yaml: which could match file paths)
+	case strings.Contains(msg, "no such file") || strings.Contains(msg, "file not found"):
+		e.Category = CategoryMissingFile
+	case strings.Contains(msg, "permission denied"):
+		e.Category = CategoryPermission
+	// YAML syntax errors (actual parsing errors, not file paths)
+	case strings.Contains(msg, "yaml: ") || strings.Contains(msg, "yaml syntax"):
+		e.Category = CategoryYAMLSyntax
+	case strings.Contains(msg, "schema") || strings.Contains(msg, "invalid field"):
+		e.Category = CategorySchemaViolation
+	// Network and auth errors
+	case strings.Contains(msg, "connection refused") || strings.Contains(msg, "no route"):
+		e.Category = CategoryNetwork
+	case strings.Contains(msg, "401") || strings.Contains(msg, "unauthorized") || strings.Contains(msg, "api key"):
+		e.Category = CategoryAuth
+	// Provider-specific "not found" (checked after general file not found)
+	case strings.Contains(msg, "provider") && (strings.Contains(msg, "not found") || strings.Contains(msg, "not available")):
+		e.Category = CategoryProvider
+	// General "not found" (less specific, checked after provider)
+	case strings.Contains(msg, "not found"):
+		e.Category = CategoryMissingFile
+	case strings.Contains(msg, "policy") || strings.Contains(msg, "violation"):
+		e.Category = CategoryPolicy
+	case strings.Contains(msg, "docker") || strings.Contains(msg, "container"):
+		e.Category = CategoryDocker
+	case strings.Contains(msg, "validation") || strings.Contains(msg, "drift"):
+		e.Category = CategoryValidation
+	}
+}
+
+// addSuggestions adds category-specific recovery suggestions
+func (e *EnhancedError) addSuggestions() {
+	msg := e.Message
+
+	switch e.Category {
+	case CategoryYAMLSyntax:
+		// Extract line number if available
+		lineMatch := regexp.MustCompile(`line (\d+)`).FindStringSubmatch(msg)
+		if len(lineMatch) > 1 {
+			e.Suggestions = append(e.Suggestions, fmt.Sprintf("Check YAML syntax at line %s", lineMatch[1]))
+		}
+		e.Suggestions = append(e.Suggestions, "Run: specular config validate")
+		e.Suggestions = append(e.Suggestions, "Use a YAML linter to check your configuration")
+
+	case CategorySchemaViolation:
+		e.Suggestions = append(e.Suggestions, "Check documentation for valid field names and types")
+		e.Suggestions = append(e.Suggestions, "Run: specular config validate --verbose")
+
+	case CategoryMissingFile:
+		if strings.Contains(msg, "spec.yaml") {
+			e.Suggestions = append(e.Suggestions, "Run: specular interview (interactive)")
+			e.Suggestions = append(e.Suggestions, "Run: specular spec generate --in PRD.md")
+		} else if strings.Contains(msg, "providers.yaml") || strings.Contains(msg, "router.yaml") {
+			e.Suggestions = append(e.Suggestions, "Run: specular init")
+		}
+
+	case CategoryAuth:
+		e.Suggestions = append(e.Suggestions, "Check your API key is set correctly")
+		e.Suggestions = append(e.Suggestions, "Run: specular auth login")
+		e.Suggestions = append(e.Suggestions, "Verify: echo $OPENAI_API_KEY or $ANTHROPIC_API_KEY")
+
+	case CategoryProvider:
+		e.Suggestions = append(e.Suggestions, "Run: specular provider list")
+		e.Suggestions = append(e.Suggestions, "Run: specular provider doctor")
+		e.Suggestions = append(e.Suggestions, "Check .specular/router.yaml configuration")
+
+	case CategoryNetwork:
+		e.Suggestions = append(e.Suggestions, "Check your internet connection")
+		e.Suggestions = append(e.Suggestions, "Verify firewall/proxy settings")
+		e.Suggestions = append(e.Suggestions, "Try: specular provider doctor")
+
+	case CategoryDocker:
+		e.Suggestions = append(e.Suggestions, "Ensure Docker Desktop/daemon is running")
+		e.Suggestions = append(e.Suggestions, "Run: docker info (to verify)")
+
+	case CategoryPolicy:
+		e.Suggestions = append(e.Suggestions, "Review policy constraints in .specular/policy.yaml")
+		e.Suggestions = append(e.Suggestions, "Consider increasing budget with --max-cost")
+
+	case CategoryPermission:
+		e.Suggestions = append(e.Suggestions, "Check file/directory permissions")
+		e.Suggestions = append(e.Suggestions, "For Docker socket: sudo usermod -aG docker $USER")
+
+	case CategoryValidation:
+		e.Suggestions = append(e.Suggestions, "Run: specular spec validate")
+		e.Suggestions = append(e.Suggestions, "Run: specular drift check")
+	}
+}
+
+// assignCode assigns an error code based on category
+func (e *EnhancedError) assignCode() {
+	codes := map[ErrorCategory]string{
+		CategoryYAMLSyntax:      "E001",
+		CategorySchemaViolation: "E002",
+		CategoryMissingFile:     "E003",
+		CategoryNetwork:         "E004",
+		CategoryAuth:            "E005",
+		CategoryProvider:        "E006",
+		CategoryPolicy:          "E007",
+		CategoryDocker:          "E008",
+		CategoryPermission:      "E009",
+		CategoryValidation:      "E010",
+	}
+
+	if code, ok := codes[e.Category]; ok {
+		e.Code = code
+	}
+}
 
 // ErrorWithSuggestion wraps an error with helpful recovery suggestions
 type ErrorWithSuggestion struct {

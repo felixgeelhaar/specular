@@ -239,14 +239,15 @@ func TestNewCommandContext_LogLevelValues(t *testing.T) {
 // TestCommandContext_Struct tests the struct fields are properly typed
 func TestCommandContext_Struct(t *testing.T) {
 	ctx := &CommandContext{
-		Verbose:      true,
-		Quiet:        false,
-		Format:       "json",
-		NoColor:      true,
-		Explain:      false,
-		Trace:        "abc-123",
-		SpecularHome: "/home/test/.specular",
-		LogLevel:     "debug",
+		Verbose:       true,
+		Quiet:         false,
+		Format:        "json",
+		NoColor:       true,
+		Explain:       false,
+		Trace:         "abc-123",
+		SpecularHome:  "/home/test/.specular",
+		LogLevel:      "debug",
+		IsInteractive: true,
 	}
 
 	// Verify types by accessing fields
@@ -254,6 +255,7 @@ func TestCommandContext_Struct(t *testing.T) {
 	b = ctx.Quiet
 	b = ctx.NoColor
 	b = ctx.Explain
+	b = ctx.IsInteractive
 
 	var s string = ctx.Format
 	s = ctx.Trace
@@ -263,4 +265,19 @@ func TestCommandContext_Struct(t *testing.T) {
 	// Avoid unused variable errors
 	_ = b
 	_ = s
+}
+
+// TestNewCommandContext_IsInteractive tests the IsInteractive field is set
+func TestNewCommandContext_IsInteractive(t *testing.T) {
+	cmd := setupTestCommand()
+
+	ctx, err := NewCommandContext(cmd)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// In test environments (CI), IsInteractive should be false
+	// because stdin is not a terminal
+	// We just verify the field exists and is a bool
+	_ = ctx.IsInteractive
 }

@@ -327,3 +327,225 @@ func TestSuggestNextSteps_AllExists(t *testing.T) {
 		t.Errorf("SuggestNextSteps() = %q, want build suggestion", suggestion)
 	}
 }
+
+// Tests for ConfigPaths
+
+func TestConfigPaths_Exists(t *testing.T) {
+	// Create a temporary file
+	tmpFile, err := os.CreateTemp("", "test-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.Close()
+
+	cp := &ConfigPaths{}
+
+	if !cp.Exists(tmpFile.Name()) {
+		t.Error("Exists() should return true for existing file")
+	}
+
+	if cp.Exists("/nonexistent/file/path.txt") {
+		t.Error("Exists() should return false for non-existing file")
+	}
+}
+
+func TestConfigPaths_HasMethods(t *testing.T) {
+	tmpDir := t.TempDir()
+	specularDir := filepath.Join(tmpDir, ".specular")
+	if err := os.MkdirAll(specularDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create some config files
+	specFile := filepath.Join(specularDir, "spec.yaml")
+	if err := os.WriteFile(specFile, []byte("version: 1.0"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	routerFile := filepath.Join(specularDir, "router.yaml")
+	if err := os.WriteFile(routerFile, []byte("providers: []"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cp := &ConfigPaths{
+		SpecularDir:   specularDir,
+		SpecFile:      specFile,
+		LockFile:      filepath.Join(specularDir, "spec.lock.json"), // doesn't exist
+		RouterFile:    routerFile,
+		PolicyFile:    filepath.Join(specularDir, "policy.yaml"),    // doesn't exist
+		ProvidersFile: filepath.Join(specularDir, "providers.yaml"), // doesn't exist
+	}
+
+	// Test Has* methods
+	if !cp.HasSpec() {
+		t.Error("HasSpec() should return true")
+	}
+	if cp.HasLock() {
+		t.Error("HasLock() should return false")
+	}
+	if !cp.HasRouter() {
+		t.Error("HasRouter() should return true")
+	}
+	if cp.HasPolicy() {
+		t.Error("HasPolicy() should return false")
+	}
+	if cp.HasProviders() {
+		t.Error("HasProviders() should return false")
+	}
+}
+
+func TestConfigPaths_IsInitialized(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Not initialized (no .specular)
+	cp := &ConfigPaths{
+		SpecularDir: filepath.Join(tmpDir, ".specular"),
+	}
+	if cp.IsInitialized() {
+		t.Error("IsInitialized() should return false when .specular doesn't exist")
+	}
+
+	// Create .specular directory
+	if err := os.MkdirAll(cp.SpecularDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if !cp.IsInitialized() {
+		t.Error("IsInitialized() should return true when .specular exists")
+	}
+}
+
+func TestDiscoverProjectRoot(t *testing.T) {
+	// Create a temp directory with .specular
+	tmpDir := t.TempDir()
+	// Resolve symlinks for macOS (/var -> /private/var)
+	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
+
+	specularDir := filepath.Join(tmpDir, ".specular")
+	if err := os.MkdirAll(specularDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a subdirectory
+	subDir := filepath.Join(tmpDir, "sub", "deep")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// Change to subdirectory
+	if err := os.Chdir(subDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Should discover project root from subdirectory
+	root, err := DiscoverProjectRoot()
+	if err != nil {
+		t.Fatalf("DiscoverProjectRoot() error = %v", err)
+	}
+
+	if root != tmpDir {
+		t.Errorf("DiscoverProjectRoot() = %s, want %s", root, tmpDir)
+	}
+}
+
+func TestDiscoverProjectRoot_GitRoot(t *testing.T) {
+	// Create a temp directory with .git
+	tmpDir := t.TempDir()
+	// Resolve symlinks for macOS (/var -> /private/var)
+	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
+
+	gitDir := filepath.Join(tmpDir, ".git")
+	if err := os.MkdirAll(gitDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+
+	root, err := DiscoverProjectRoot()
+	if err != nil {
+		t.Fatalf("DiscoverProjectRoot() error = %v", err)
+	}
+
+	if root != tmpDir {
+		t.Errorf("DiscoverProjectRoot() = %s, want %s", root, tmpDir)
+	}
+}
+
+func TestDiscoverAllConfigs(t *testing.T) {
+	tmpDir := t.TempDir()
+	// Resolve symlinks for macOS (/var -> /private/var)
+	tmpDir, _ = filepath.EvalSymlinks(tmpDir)
+
+	specularDir := filepath.Join(tmpDir, ".specular")
+	if err := os.MkdirAll(specularDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+
+	configs, err := DiscoverAllConfigs()
+	if err != nil {
+		t.Fatalf("DiscoverAllConfigs() error = %v", err)
+	}
+
+	if configs.ProjectRoot != tmpDir {
+		t.Errorf("ProjectRoot = %s, want %s", configs.ProjectRoot, tmpDir)
+	}
+
+	if configs.SpecularDir != specularDir {
+		t.Errorf("SpecularDir = %s, want %s", configs.SpecularDir, specularDir)
+	}
+
+	// Check all paths are set
+	if configs.SpecFile == "" {
+		t.Error("SpecFile should not be empty")
+	}
+	if configs.LockFile == "" {
+		t.Error("LockFile should not be empty")
+	}
+	if configs.RouterFile == "" {
+		t.Error("RouterFile should not be empty")
+	}
+	if configs.PolicyFile == "" {
+		t.Error("PolicyFile should not be empty")
+	}
+	if configs.ProvidersFile == "" {
+		t.Error("ProvidersFile should not be empty")
+	}
+}
+
+func TestMustDiscoverAllConfigs(t *testing.T) {
+	// This should never panic, even if discovery fails
+	configs := MustDiscoverAllConfigs()
+	if configs == nil {
+		t.Error("MustDiscoverAllConfigs() should never return nil")
+	}
+
+	// Should have reasonable defaults
+	if configs.SpecularDir == "" {
+		t.Error("SpecularDir should have a default value")
+	}
+}
