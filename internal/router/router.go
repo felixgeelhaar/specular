@@ -1,3 +1,34 @@
+// Package router provides intelligent model routing and cost management for AI providers.
+//
+// The router implements a multi-model orchestration layer that:
+//   - Selects optimal models based on task complexity, latency requirements, and cost
+//   - Manages budgets and prevents cost overruns
+//   - Tracks usage metrics and provides cost estimates
+//   - Supports fallback chains when primary providers are unavailable
+//   - Handles context validation and truncation for model limits
+//
+// Key components:
+//   - Router: Main orchestrator for model selection and generation
+//   - Budget: Tracks spending and enforces cost limits
+//   - Model: Represents available AI models with their capabilities
+//   - ContextValidator: Ensures prompts fit within model context windows
+//
+// Usage:
+//
+//	config := &RouterConfig{
+//	    BudgetUSD:    10.0,
+//	    MaxLatencyMs: 30000,
+//	    PreferCheap:  true,
+//	}
+//	router, err := NewRouter(config)
+//	if err != nil {
+//	    return err
+//	}
+//	resp, err := router.Generate(ctx, GenerateRequest{
+//	    Prompt:     "Implement a REST API",
+//	    ModelHint:  "fast",
+//	    Complexity: 2,
+//	})
 package router
 
 import (

@@ -1,3 +1,19 @@
+// Package cmd implements the Specular CLI command structure using Cobra.
+//
+// This package follows Cobra's recommended pattern of using a package-level
+// rootCmd variable with init() functions for command registration. While this
+// uses a global variable, it's the standard Cobra approach that ensures all
+// subcommands are registered before Execute() is called.
+//
+// For testing, use ExecuteContext(ctx) which provides a clean entry point.
+// The CommandContext abstraction in flags.go provides dependency injection
+// for command-level dependencies.
+//
+// Commands are organized as:
+//   - root.go: Root command and global flags
+//   - auto.go, plan.go, etc.: Subcommands with their own flags
+//   - flags.go: CommandContext for flag extraction
+//   - errors.go: User-friendly error handling
 package cmd
 
 import (
@@ -7,6 +23,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// rootCmd is the base command for the Specular CLI.
+//
+// This follows Cobra's recommended pattern of a package-level variable.
+// Subcommands register themselves via init() functions using rootCmd.AddCommand().
+// Testing is done through ExecuteContext() which wraps this command.
 var rootCmd = &cobra.Command{
 	Use:   "specular",
 	Short: "AI-Native Spec and Build Assistant",

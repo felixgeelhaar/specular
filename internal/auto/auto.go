@@ -1,3 +1,35 @@
+// Package auto implements the autonomous workflow execution engine for Specular.
+//
+// The auto package orchestrates the complete "auto" command workflow:
+//   - Goal parsing and specification generation
+//   - Action plan creation and step management
+//   - Policy enforcement at each step
+//   - Progress tracking with checkpoint/resume support
+//   - Approval gates for human-in-the-loop validation
+//   - Cost estimation and budget management
+//   - Rollback support via patch generation
+//
+// Key components:
+//   - Orchestrator: Main workflow controller that coordinates all operations
+//   - ActionPlan: Structured workflow with typed steps (spec, plan, build, verify)
+//   - GoalParser: Converts natural language goals into structured specifications
+//   - Config: Runtime configuration including profiles, budgets, and policies
+//   - PolicyChecker: Interface for step-level policy enforcement
+//
+// The workflow follows these phases:
+//  1. Parse goal into specification
+//  2. Generate action plan
+//  3. Request approval (if not in no-approval mode)
+//  4. Execute steps with policy checks
+//  5. Generate patches for rollback
+//  6. Report results
+//
+// Usage:
+//
+//	config := DefaultConfig()
+//	config.Goal = "Build a REST API for user management"
+//	orchestrator := NewOrchestrator(router, config)
+//	output, err := orchestrator.Execute(ctx)
 package auto
 
 import (
@@ -152,7 +184,10 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	}
 
 	// Step 1: Parse goal into spec
-	step1, _ := o.actionPlan.GetStep("step-1")
+	step1, err := o.actionPlan.GetStep("step-1")
+	if err != nil {
+		return nil, fmt.Errorf("get step-1: %w", err)
+	}
 
 	// Check policy before executing step
 	allowed, policyEvent, err := o.checkPolicy(ctx, o.policyChecker, step1, 0, completedSteps, totalCost, executionStart)
@@ -189,8 +224,7 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	fmt.Println("🤖 Generating specification from goal...")
 	productSpec, err := o.parser.ParseGoal(ctx, o.config.Goal)
 	if err != nil {
-		step, _ := o.actionPlan.GetStep("step-1")
-		step.Error = err.Error()
+		step1.Error = err.Error()
 		_ = o.actionPlan.UpdateStepStatus("step-1", StepStatusFailed) //#nosec G104 -- Status update errors handled at workflow level
 		if o.tracer != nil {
 			o.tracer.LogStepFail("step-1", "Generate specification", err) //#nosec G104 -- Logging errors not critical
@@ -238,7 +272,10 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	}
 
 	// Step 2: Generate spec lock
-	step2, _ := o.actionPlan.GetStep("step-2")
+	step2, err := o.actionPlan.GetStep("step-2")
+	if err != nil {
+		return nil, fmt.Errorf("get step-2: %w", err)
+	}
 
 	// Check policy before executing step
 	allowed, policyEvent, err = o.checkPolicy(ctx, o.policyChecker, step2, 1, completedSteps, totalCost, executionStart)
@@ -272,8 +309,7 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	fmt.Println("🔒 Locking specification...")
 	specLock, err := o.generateSpecLock(productSpec)
 	if err != nil {
-		step, _ := o.actionPlan.GetStep("step-2")
-		step.Error = err.Error()
+		step2.Error = err.Error()
 		_ = o.actionPlan.UpdateStepStatus("step-2", StepStatusFailed) //#nosec G104 -- Status update errors handled at workflow level
 		if autoOutput != nil {
 			autoOutput.AddStepResult(StepResult{
@@ -327,7 +363,10 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	}
 
 	// Step 3: Generate execution plan
-	step3, _ := o.actionPlan.GetStep("step-3")
+	step3, err := o.actionPlan.GetStep("step-3")
+	if err != nil {
+		return nil, fmt.Errorf("get step-3: %w", err)
+	}
 
 	// Check policy before executing step
 	allowed, policyEvent, err = o.checkPolicy(ctx, o.policyChecker, step3, 2, completedSteps, totalCost, executionStart)
@@ -361,8 +400,7 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	fmt.Println("📋 Generating execution plan...")
 	execPlan, err := o.generatePlan(ctx, productSpec, specLock)
 	if err != nil {
-		step, _ := o.actionPlan.GetStep("step-3")
-		step.Error = err.Error()
+		step3.Error = err.Error()
 		_ = o.actionPlan.UpdateStepStatus("step-3", StepStatusFailed) //#nosec G104 -- Status update errors handled at workflow level
 		if autoOutput != nil {
 			autoOutput.AddStepResult(StepResult{
@@ -476,7 +514,10 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	}
 
 	// Step 4: Execute plan
-	step4, _ := o.actionPlan.GetStep("step-4")
+	step4, err := o.actionPlan.GetStep("step-4")
+	if err != nil {
+		return nil, fmt.Errorf("get step-4: %w", err)
+	}
 
 	// Check policy before executing step
 	allowed, policyEvent, err = o.checkPolicy(ctx, o.policyChecker, step4, 3, completedSteps, totalCost, executionStart)
@@ -516,8 +557,7 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	executor := NewTaskExecutor(nil, o.config, productSpec, o.actionPlan, o.router)
 	execStats, err := executor.Execute(ctx, execPlan)
 	if err != nil {
-		step, _ := o.actionPlan.GetStep("step-4")
-		step.Error = err.Error()
+		step4.Error = err.Error()
 		_ = o.actionPlan.UpdateStepStatus("step-4", StepStatusFailed) //#nosec G104 -- Status update errors handled at workflow level
 		result.Success = false
 		result.TasksExecuted = execStats.Executed
@@ -742,9 +782,15 @@ func (o *Orchestrator) executeResume(ctx context.Context, start time.Time) (*Res
 		return nil, fmt.Errorf("failed to load checkpoint: %w", err)
 	}
 
-	// Restore goal from checkpoint
-	goal, _ := cpState.GetMetadata("goal")
-	product, _ := cpState.GetMetadata("product")
+	// Restore goal from checkpoint (defaults for display if missing)
+	goal, ok := cpState.GetMetadata("goal")
+	if !ok {
+		goal = "(goal not stored in checkpoint)"
+	}
+	product, ok := cpState.GetMetadata("product")
+	if !ok {
+		product = "(product not stored in checkpoint)"
+	}
 	fmt.Printf("📋 Resuming: %s\n", product)
 	fmt.Printf("   Goal: %s\n", goal)
 

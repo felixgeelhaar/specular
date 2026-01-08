@@ -1,6 +1,7 @@
 package errors
 
 import (
+	stderrors "errors"
 	"fmt"
 	"strings"
 )
@@ -250,4 +251,79 @@ func NewFileUnmarshalError(path string, format string, cause error) *SpecularErr
 	return Wrap(ErrCodeFileUnmarshal, fmt.Sprintf("failed to parse %s file: %s", format, path), cause).
 		WithSuggestion("Check the file syntax and format").
 		WithSuggestion(fmt.Sprintf("Ensure the file is valid %s", format))
+}
+
+// MultiError aggregates multiple errors while preserving error chains.
+// This is useful when multiple operations can fail independently.
+type MultiError struct {
+	Message string
+	Errors  []error
+}
+
+// NewMultiError creates a new MultiError with the given message and errors.
+// Returns nil if there are no errors.
+func NewMultiError(message string, errs []error) error {
+	if len(errs) == 0 {
+		return nil
+	}
+	if len(errs) == 1 {
+		return fmt.Errorf("%s: %w", message, errs[0])
+	}
+	return &MultiError{
+		Message: message,
+		Errors:  errs,
+	}
+}
+
+// Error implements the error interface.
+func (e *MultiError) Error() string {
+	if len(e.Errors) == 0 {
+		return e.Message
+	}
+
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("%s (%d errors):", e.Message, len(e.Errors)))
+	for i, err := range e.Errors {
+		b.WriteString(fmt.Sprintf("\n  [%d] %v", i+1, err))
+	}
+	return b.String()
+}
+
+// Unwrap returns the first error for compatibility with errors.Is and errors.As.
+// For checking all errors, use the Errors field directly.
+func (e *MultiError) Unwrap() error {
+	if len(e.Errors) == 0 {
+		return nil
+	}
+	return e.Errors[0]
+}
+
+// Is reports whether any error in the chain matches target.
+func (e *MultiError) Is(target error) bool {
+	for _, err := range e.Errors {
+		if Is(err, target) {
+			return true
+		}
+	}
+	return false
+}
+
+// As finds the first error in the chain that matches target.
+func (e *MultiError) As(target interface{}) bool {
+	for _, err := range e.Errors {
+		if As(err, target) {
+			return true
+		}
+	}
+	return false
+}
+
+// Is wraps the standard errors.Is function.
+func Is(err, target error) bool {
+	return stderrors.Is(err, target)
+}
+
+// As wraps the standard errors.As function.
+func As(err error, target interface{}) bool {
+	return stderrors.As(err, target)
 }

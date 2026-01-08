@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"context"
 	osexec "os/exec"
 	"testing"
 
@@ -268,7 +269,7 @@ func TestExecute_DryRun(t *testing.T) {
 		},
 	}
 
-	result, err := executor.Execute(p)
+	result, err := executor.Execute(context.Background(), p)
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -314,7 +315,7 @@ func TestExecute_PolicyViolation(t *testing.T) {
 		},
 	}
 
-	result, err := executor.Execute(p)
+	result, err := executor.Execute(context.Background(), p)
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -365,7 +366,7 @@ func TestExecute_DependencyFailure(t *testing.T) {
 	// Note: This test would need Docker to be available for full execution
 	// In dry-run mode or with mocked executor, we can validate the logic
 
-	result, err := executor.Execute(p)
+	result, err := executor.Execute(context.Background(), p)
 	// This will fail in CI without Docker, but the logic is tested in dry-run mode above
 	_ = result
 	_ = err
@@ -384,7 +385,9 @@ func TestExecutionResult_PrintSummary(t *testing.T) {
 }
 
 func TestExecute_WithImagePull(t *testing.T) {
-	if err := ValidateDockerAvailable(); err != nil {
+	ctx := context.Background()
+
+	if err := ValidateDockerAvailable(ctx); err != nil {
 		t.Skip("Docker not available, skipping test")
 	}
 
@@ -421,7 +424,7 @@ func TestExecute_WithImagePull(t *testing.T) {
 		},
 	}
 
-	result, err := executor.Execute(p)
+	result, err := executor.Execute(ctx, p)
 	if err != nil {
 		t.Fatalf("Execute() unexpected error: %v", err)
 	}
@@ -435,7 +438,7 @@ func TestExecute_WithImagePull(t *testing.T) {
 	}
 
 	// Verify the image was pulled and now exists
-	exists, err := ImageExists(testImage)
+	exists, err := ImageExists(ctx, testImage)
 	if err != nil {
 		t.Fatalf("ImageExists() error: %v", err)
 	}

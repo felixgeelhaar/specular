@@ -2,21 +2,23 @@ package exec
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
 	"time"
 )
 
-// RunDocker executes a step in a Docker container with security constraints
-func RunDocker(step Step) (*Result, error) {
+// RunDocker executes a step in a Docker container with security constraints.
+// The context is used to provide timeout and cancellation support.
+func RunDocker(ctx context.Context, step Step) (*Result, error) {
 	startTime := time.Now()
 
 	// Build Docker command with security constraints
 	args := buildDockerArgs(step)
 
-	// Execute command
-	cmd := exec.Command("docker", args...)
+	// Execute command with context for cancellation support
+	cmd := exec.CommandContext(ctx, "docker", args...)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -28,6 +30,10 @@ func RunDocker(step Step) (*Result, error) {
 	// Get exit code
 	exitCode := 0
 	if err != nil {
+		// Check for context cancellation/timeout
+		if ctx.Err() != nil {
+			return nil, fmt.Errorf("docker command cancelled or timed out: %w", ctx.Err())
+		}
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode = exitErr.ExitCode()
 		} else {
@@ -94,34 +100,47 @@ func buildDockerArgs(step Step) []string {
 	return args
 }
 
-// ValidateDockerAvailable checks if Docker is available on the system
-func ValidateDockerAvailable() error {
-	cmd := exec.Command("docker", "version")
+// ValidateDockerAvailable checks if Docker is available on the system.
+// The context is used to provide timeout and cancellation support.
+func ValidateDockerAvailable(ctx context.Context) error {
+	cmd := exec.CommandContext(ctx, "docker", "version")
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return fmt.Errorf("docker availability check cancelled or timed out: %w", ctx.Err())
+		}
 		return fmt.Errorf("docker is not available: %w", err)
 	}
 	return nil
 }
 
-// PullImage pulls a Docker image if not already present
-func PullImage(image string) error {
-	cmd := exec.Command("docker", "pull", image)
+// PullImage pulls a Docker image if not already present.
+// The context is used to provide timeout and cancellation support.
+func PullImage(ctx context.Context, image string) error {
+	cmd := exec.CommandContext(ctx, "docker", "pull", image)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return fmt.Errorf("docker pull cancelled or timed out: %w", ctx.Err())
+		}
 		return fmt.Errorf("failed to pull image %s: %s", image, stderr.String())
 	}
 	return nil
 }
 
-// ImageExists checks if a Docker image exists locally
-func ImageExists(image string) (bool, error) {
-	cmd := exec.Command("docker", "image", "inspect", image)
+// ImageExists checks if a Docker image exists locally.
+// The context is used to provide timeout and cancellation support.
+func ImageExists(ctx context.Context, image string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "docker", "image", "inspect", image)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
+		// Check for context cancellation
+		if ctx.Err() != nil {
+			return false, fmt.Errorf("docker image inspect cancelled or timed out: %w", ctx.Err())
+		}
 		// Check if it's a "not found" error
 		stderrStr := stderr.String()
 		if strings.Contains(stderrStr, "No such") || strings.Contains(err.Error(), "exit status 1") {

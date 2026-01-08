@@ -24,6 +24,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/trace"
 	"github.com/felixgeelhaar/specular/internal/tui"
+	"github.com/felixgeelhaar/specular/internal/validate"
 	"github.com/felixgeelhaar/specular/internal/version"
 )
 
@@ -119,6 +120,7 @@ Examples:
 		enableTrace, _ := cmd.Flags().GetBool("trace")
 		savePatches, _ := cmd.Flags().GetBool("save-patches")
 		enableAttest, _ := cmd.Flags().GetBool("attest")
+		estimateCost, _ := cmd.Flags().GetBool("estimate-cost")
 
 		// Handle --list-profiles
 		if listProfiles {
@@ -176,6 +178,25 @@ Examples:
 			if goal == "" {
 				return fmt.Errorf("no goal provided. Use 'specular auto \"your goal here\"' or run interactively")
 			}
+
+			// Validate goal input
+			if err := validate.Goal(goal); err != nil {
+				return fmt.Errorf("invalid goal: %w", err)
+			}
+		}
+
+		// Validate profile name if provided
+		if profileName != "" && profileName != "default" {
+			if err := validate.ProfileName(profileName); err != nil {
+				return fmt.Errorf("invalid profile: %w", err)
+			}
+		}
+
+		// Validate resume checkpoint ID if provided
+		if resumeFrom != "" {
+			if err := validate.CheckpointID(resumeFrom); err != nil {
+				return fmt.Errorf("invalid checkpoint ID: %w", err)
+			}
 		}
 
 		// Load provider registry with auto-discovery
@@ -207,6 +228,21 @@ Examples:
 		if verbose {
 			budget := r.GetBudget()
 			fmt.Fprintf(os.Stderr, "Router initialized: budget=$%.2f\n", budget.LimitUSD)
+		}
+
+		// Handle --estimate-cost (show cost breakdown and exit)
+		if estimateCost {
+			estimate := auto.EstimateWorkflowCost(goal, r)
+			if jsonOutput {
+				// JSON output for CI/CD
+				fmt.Printf(`{"spec_generation": %.4f, "plan_generation": %.4f, "task_execution": %.4f, "total": %.4f, "model": "%s", "budget_limit": %.2f, "budget_remaining": %.2f}`,
+					estimate.SpecGeneration, estimate.PlanGeneration, estimate.TaskExecution,
+					estimate.Total, estimate.ModelUsed, estimate.BudgetLimit, estimate.BudgetRemaining)
+				fmt.Println()
+			} else {
+				fmt.Print(auto.FormatCostEstimate(estimate))
+			}
+			return nil
 		}
 
 		// Merge CLI flags with profile
@@ -276,26 +312,34 @@ Examples:
 		// Create orchestrator
 		orchestrator := auto.NewOrchestrator(r, config)
 
-		// Handle TUI mode
-		var tuiAdapter *tui.Adapter
+		// Handle TUI mode with Dashboard
+		var tuiAdapter *tui.DashboardAdapter
 		if useTUI {
-			// Initialize TUI
-			tuiAdapter = tui.NewAdapter(goal, profileName)
+			// Get budget limit from router
+			budgetLimit := 5.0 // default
+			if r != nil && r.GetBudget() != nil {
+				budgetLimit = r.GetBudget().LimitUSD
+			}
+
+			// Initialize Dashboard TUI
+			tuiAdapter = tui.NewDashboardAdapter(goal, profileName, budgetLimit)
 			if err := tuiAdapter.Start(); err != nil {
 				fmt.Fprintf(os.Stderr, "⚠️  Failed to start TUI, falling back to text mode: %v\n", err)
 				tuiAdapter = nil
 			} else {
 				defer tuiAdapter.Stop()
 
-				// Create hook registry and register TUI hook
+				// Create hook registry and register Dashboard hook
 				registry := hooks.NewRegistry()
-				tuiHook := tui.NewHook(tuiAdapter)
+				tuiHook := tui.NewDashboardHook(tuiAdapter)
 				if err := registry.Register(tuiHook); err != nil {
 					fmt.Fprintf(os.Stderr, "⚠️  Failed to register TUI hook: %v\n", err)
 				} else {
 					// Set hook registry on orchestrator for real-time updates
 					orchestrator.SetHookRegistry(registry)
-					fmt.Println("📺 TUI mode enabled with real-time updates")
+					if verbose {
+						fmt.Println("📺 Dashboard TUI enabled with budget tracking")
+					}
 				}
 			}
 		}
@@ -742,6 +786,7 @@ func init() {
 	autoCmd.Flags().StringP("output", "o", "", "Output directory to save spec and plan files")
 	autoCmd.Flags().Bool("save-patches", false, "Save patches for each step to enable rollback (default: profile-based)")
 	autoCmd.Flags().Bool("attest", false, "Generate cryptographic attestation of workflow execution")
+	autoCmd.Flags().Bool("estimate-cost", false, "Estimate costs without executing (shows breakdown and exits)")
 
 	// Safety limit flags (override profile settings)
 	// When set to 0, uses profile defaults: max-cost=$5, max-cost-per-task=$0.50, max-retries=3, max-steps=12, timeout=25m (default profile)

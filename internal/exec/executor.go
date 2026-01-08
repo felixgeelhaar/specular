@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -29,8 +30,9 @@ type ExecutionResult struct {
 	EndTime      time.Time
 }
 
-// Execute runs all tasks in a plan with policy enforcement
-func (e *Executor) Execute(p *plan.Plan) (*ExecutionResult, error) {
+// Execute runs all tasks in a plan with policy enforcement.
+// The context is used to provide cancellation support for task execution.
+func (e *Executor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionResult, error) {
 	result := &ExecutionResult{
 		TotalTasks:  len(p.Tasks),
 		TaskResults: make(map[string]*Result),
@@ -39,6 +41,11 @@ func (e *Executor) Execute(p *plan.Plan) (*ExecutionResult, error) {
 
 	// Execute tasks in order
 	for _, task := range p.Tasks {
+		// Check for cancellation before each task
+		if ctx.Err() != nil {
+			return result, fmt.Errorf("execution cancelled: %w", ctx.Err())
+		}
+
 		fmt.Printf("Executing task %s (%s)...\n", task.ID, task.FeatureID)
 
 		// Check dependencies completed successfully
@@ -68,7 +75,7 @@ func (e *Executor) Execute(p *plan.Plan) (*ExecutionResult, error) {
 			result.SuccessTasks++
 			result.TaskResults[task.ID.String()] = &Result{ExitCode: 0}
 		} else {
-			taskResult, err := e.executeTask(step)
+			taskResult, err := e.executeTask(ctx, step)
 
 			if err != nil {
 				result.FailedTasks++
@@ -162,35 +169,36 @@ func (e *Executor) createStep(task plan.Task) Step {
 	return step
 }
 
-// executeTask runs a single task
-func (e *Executor) executeTask(step Step) (*Result, error) {
+// executeTask runs a single task.
+// The context is used to provide cancellation support for Docker operations.
+func (e *Executor) executeTask(ctx context.Context, step Step) (*Result, error) {
 	// Validate Docker is available
-	if err := ValidateDockerAvailable(); err != nil {
+	if err := ValidateDockerAvailable(ctx); err != nil {
 		return nil, fmt.Errorf("docker not available: %w", err)
 	}
 
 	// Use cache if available, otherwise pull directly
 	if e.ImageCache != nil {
-		if err := e.ImageCache.EnsureImage(step.Image, e.Verbose); err != nil {
+		if err := e.ImageCache.EnsureImage(ctx, step.Image, e.Verbose); err != nil {
 			return nil, fmt.Errorf("ensure image: %w", err)
 		}
 	} else {
 		// Fallback to direct pull (backward compatibility)
-		exists, err := ImageExists(step.Image)
+		exists, err := ImageExists(ctx, step.Image)
 		if err != nil {
 			return nil, fmt.Errorf("check image exists: %w", err)
 		}
 
 		if !exists {
 			fmt.Printf("  ⬇ Pulling image %s...\n", step.Image)
-			if err := PullImage(step.Image); err != nil {
+			if err := PullImage(ctx, step.Image); err != nil {
 				return nil, fmt.Errorf("pull image: %w", err)
 			}
 		}
 	}
 
 	// Run Docker container
-	return RunDocker(step)
+	return RunDocker(ctx, step)
 }
 
 // PrintSummary outputs execution summary

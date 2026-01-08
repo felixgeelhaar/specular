@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"context"
 	"testing"
 )
 
@@ -206,15 +207,17 @@ func containsAllStrings(slice []string, substrs []string) bool {
 
 func TestValidateDockerAvailable(t *testing.T) {
 	// This test checks if Docker is available
-	err := ValidateDockerAvailable()
+	err := ValidateDockerAvailable(context.Background())
 	if err != nil {
 		t.Skipf("Docker not available: %v (test skipped)", err)
 	}
 }
 
 func TestImageExists(t *testing.T) {
+	ctx := context.Background()
+
 	// Skip if Docker not available
-	if err := ValidateDockerAvailable(); err != nil {
+	if err := ValidateDockerAvailable(ctx); err != nil {
 		t.Skip("Docker not available, skipping test")
 	}
 
@@ -242,10 +245,10 @@ func TestImageExists(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// For the alpine test, ensure the image exists first
 			if tt.wantExists {
-				_ = PullImage(tt.image) // Ignore error, will be caught in ImageExists
+				_ = PullImage(ctx, tt.image) // Ignore error, will be caught in ImageExists
 			}
 
-			exists, err := ImageExists(tt.image)
+			exists, err := ImageExists(ctx, tt.image)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ImageExists() error = %v, wantErr %v", err, tt.wantErr)
@@ -260,8 +263,10 @@ func TestImageExists(t *testing.T) {
 }
 
 func TestPullImage(t *testing.T) {
+	ctx := context.Background()
+
 	// Skip if Docker not available
-	if err := ValidateDockerAvailable(); err != nil {
+	if err := ValidateDockerAvailable(ctx); err != nil {
 		t.Skip("Docker not available, skipping test")
 	}
 
@@ -284,7 +289,7 @@ func TestPullImage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := PullImage(tt.image)
+			err := PullImage(ctx, tt.image)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PullImage() error = %v, wantErr %v", err, tt.wantErr)
@@ -292,7 +297,7 @@ func TestPullImage(t *testing.T) {
 
 			// If pull succeeded, verify image exists
 			if !tt.wantErr && err == nil {
-				exists, checkErr := ImageExists(tt.image)
+				exists, checkErr := ImageExists(ctx, tt.image)
 				if checkErr != nil {
 					t.Errorf("ImageExists() check after pull failed: %v", checkErr)
 				}

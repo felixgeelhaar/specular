@@ -463,3 +463,117 @@ func TestErrorCodes(t *testing.T) {
 		}
 	}
 }
+
+func TestMultiError(t *testing.T) {
+	t.Run("nil for empty errors", func(t *testing.T) {
+		result := NewMultiError("test", nil)
+		if result != nil {
+			t.Errorf("expected nil for empty errors, got %v", result)
+		}
+
+		result = NewMultiError("test", []error{})
+		if result != nil {
+			t.Errorf("expected nil for empty slice, got %v", result)
+		}
+	})
+
+	t.Run("single error wrapped directly", func(t *testing.T) {
+		cause := fmt.Errorf("single error")
+		result := NewMultiError("operation failed", []error{cause})
+
+		if result == nil {
+			t.Error("expected non-nil result for single error")
+		}
+
+		// Should be wrapped directly, not as MultiError
+		_, isMulti := result.(*MultiError)
+		if isMulti {
+			t.Error("single error should not be wrapped in MultiError")
+		}
+
+		if !errors.Is(result, cause) {
+			t.Error("single error should be unwrappable")
+		}
+	})
+
+	t.Run("multiple errors aggregated", func(t *testing.T) {
+		err1 := fmt.Errorf("error one")
+		err2 := fmt.Errorf("error two")
+		err3 := fmt.Errorf("error three")
+
+		result := NewMultiError("batch failed", []error{err1, err2, err3})
+
+		multi, ok := result.(*MultiError)
+		if !ok {
+			t.Fatalf("expected MultiError, got %T", result)
+		}
+
+		if len(multi.Errors) != 3 {
+			t.Errorf("expected 3 errors, got %d", len(multi.Errors))
+		}
+
+		if multi.Message != "batch failed" {
+			t.Errorf("expected message 'batch failed', got %s", multi.Message)
+		}
+
+		// Test Error() output
+		errStr := multi.Error()
+		if !strings.Contains(errStr, "(3 errors)") {
+			t.Errorf("error string should contain count: %s", errStr)
+		}
+		if !strings.Contains(errStr, "error one") {
+			t.Errorf("error string should contain first error: %s", errStr)
+		}
+		if !strings.Contains(errStr, "[1]") {
+			t.Errorf("error string should contain numbered errors: %s", errStr)
+		}
+	})
+
+	t.Run("Unwrap returns first error", func(t *testing.T) {
+		err1 := fmt.Errorf("first")
+		err2 := fmt.Errorf("second")
+
+		result := NewMultiError("test", []error{err1, err2})
+		multi := result.(*MultiError)
+
+		unwrapped := multi.Unwrap()
+		if unwrapped != err1 {
+			t.Errorf("Unwrap should return first error, got %v", unwrapped)
+		}
+	})
+
+	t.Run("Is checks all errors", func(t *testing.T) {
+		targetErr := fmt.Errorf("target")
+		err1 := fmt.Errorf("first: %w", targetErr)
+		err2 := fmt.Errorf("second")
+
+		result := NewMultiError("test", []error{err2, err1})
+		multi := result.(*MultiError)
+
+		if !multi.Is(targetErr) {
+			t.Error("Is should return true when any error matches")
+		}
+
+		otherErr := fmt.Errorf("other")
+		if multi.Is(otherErr) {
+			t.Error("Is should return false when no error matches")
+		}
+	})
+
+	t.Run("As finds matching error type", func(t *testing.T) {
+		specErr := New(ErrCodeSpecInvalid, "invalid spec")
+		otherErr := fmt.Errorf("other error")
+
+		result := NewMultiError("test", []error{otherErr, specErr})
+		multi := result.(*MultiError)
+
+		var foundErr *SpecularError
+		if !multi.As(&foundErr) {
+			t.Error("As should find SpecularError in multi-error")
+		}
+
+		if foundErr.Code != ErrCodeSpecInvalid {
+			t.Errorf("expected code %s, got %s", ErrCodeSpecInvalid, foundErr.Code)
+		}
+	})
+}

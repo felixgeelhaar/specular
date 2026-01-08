@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/errors"
 )
 
 // LogLevel represents the log level.
@@ -266,7 +268,7 @@ func (m *MultiExporter) Export(ctx context.Context, entries []LogEntry) error {
 		}
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("export failed: %v", errs)
+		return errors.NewMultiError("export failed", errs)
 	}
 	return nil
 }
@@ -280,7 +282,7 @@ func (m *MultiExporter) Close() error {
 		}
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("close failed: %v", errs)
+		return errors.NewMultiError("close failed", errs)
 	}
 	return nil
 }

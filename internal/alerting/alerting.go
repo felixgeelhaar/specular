@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/errors"
 )
 
 // Severity represents the alert severity level.
@@ -209,7 +211,7 @@ func (r *Router) Send(ctx context.Context, alert *Alert) error {
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("failed to send alert: %v", errs)
+		return errors.NewMultiError("failed to send alert", errs)
 	}
 
 	return nil
@@ -229,7 +231,7 @@ func (r *Router) Resolve(ctx context.Context, dedupeKey string) error {
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("failed to resolve alert: %v", errs)
+		return errors.NewMultiError("failed to resolve alert", errs)
 	}
 
 	return nil
@@ -249,7 +251,7 @@ func (r *Router) Test(ctx context.Context) error {
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("connectivity test failed: %v", errs)
+		return errors.NewMultiError("connectivity test failed", errs)
 	}
 
 	return nil

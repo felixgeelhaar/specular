@@ -130,7 +130,7 @@ func (te *TaskExecutor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionSt
 			fmt.Printf("\n🚀 Execution attempt %d/%d...\n", attempt, te.config.MaxRetries)
 		}
 
-		execResult, execErr = executor.Execute(p)
+		execResult, execErr = executor.Execute(ctx, p)
 
 		if execErr == nil && execResult.FailedTasks == 0 {
 			// Success - all tasks completed
@@ -297,7 +297,7 @@ func (te *TaskExecutor) ExecuteWithCheckpoint(ctx context.Context, p *plan.Plan,
 			fmt.Printf("\n🚀 Execution attempt %d/%d...\n", attempt, te.config.MaxRetries)
 		}
 
-		execResult, execErr = executor.Execute(p)
+		execResult, execErr = executor.Execute(ctx, p)
 
 		if execErr == nil && execResult.FailedTasks == 0 {
 			// Success - all tasks completed

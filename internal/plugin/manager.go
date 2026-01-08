@@ -35,15 +35,18 @@ type ManagerConfig struct {
 
 // DefaultManagerConfig returns default configuration
 func DefaultManagerConfig() ManagerConfig {
-	homeDir, _ := os.UserHomeDir()
-	return ManagerConfig{
+	config := ManagerConfig{
 		AutoDiscover: true,
 		Timeout:      30 * time.Second,
-		PluginDirs: []string{
-			filepath.Join(homeDir, ".specular", "plugins"),
-			"/usr/local/share/specular/plugins",
-		},
+		PluginDirs:   []string{"/usr/local/share/specular/plugins"},
 	}
+
+	// Add user-specific plugin directory if home directory is available
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		config.PluginDirs = append([]string{filepath.Join(homeDir, ".specular", "plugins")}, config.PluginDirs...)
+	}
+
+	return config
 }
 
 // NewManager creates a new plugin manager

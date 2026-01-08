@@ -1,0 +1,143 @@
+name: Web Application
+id: web-app
+description: Full-stack web application with frontend, backend API, and database
+language: go
+tags:
+  - web
+  - fullstack
+  - frontend
+  - backend
+
+spec:
+  product: Web Application
+  goals:
+    - Deliver responsive web interface
+    - Provide secure backend API
+    - Support user management
+    - Enable real-time updates
+
+  features:
+    - id: feat-web-auth
+      title: User Authentication
+      desc: User registration, login, and session management
+      priority: P0
+      api:
+        - method: POST
+          path: /api/auth/register
+          request: '{"email": "string", "password": "string", "name": "string"}'
+          response: '{"id": "uuid", "email": "string", "name": "string"}'
+        - method: POST
+          path: /api/auth/login
+          request: '{"email": "string", "password": "string"}'
+          response: '{"token": "jwt", "user": {"id": "uuid", "email": "string"}}'
+        - method: GET
+          path: /api/auth/me
+          response: '{"id": "uuid", "email": "string", "name": "string"}'
+      success:
+        - Users can register with email and password
+        - Login returns session token
+        - Protected routes require valid token
+        - Password reset flow works via email
+      trace:
+        - Passwords hashed with bcrypt
+        - Sessions stored in Redis
+        - Email verification required
+
+    - id: feat-web-dashboard
+      title: User Dashboard
+      desc: Main dashboard with overview and quick actions
+      priority: P0
+      success:
+        - Dashboard shows user-specific data
+        - Quick action buttons for common tasks
+        - Recent activity displayed
+        - Mobile-responsive layout
+      trace:
+        - Server-side rendering for initial load
+        - Client-side updates via API
+        - Lazy load secondary content
+
+    - id: feat-web-forms
+      title: Form Handling
+      desc: Create and edit resources with validated forms
+      priority: P1
+      success:
+        - Form validation on client and server
+        - Clear error messages for invalid fields
+        - Unsaved changes warning on navigation
+        - Form state preserved on validation errors
+      trace:
+        - Use react-hook-form or similar
+        - Server validation matches client
+        - CSRF protection on all forms
+
+    - id: feat-web-notifications
+      title: Notification System
+      desc: In-app and push notifications
+      priority: P1
+      success:
+        - Toast notifications for immediate feedback
+        - Notification bell with unread count
+        - Click notification to navigate to source
+        - Email notifications for important events
+      trace:
+        - WebSocket for real-time updates
+        - Notification preferences per user
+        - Rate limiting on notifications
+
+    - id: feat-web-search
+      title: Search Functionality
+      desc: Global search across application data
+      priority: P2
+      success:
+        - Search bar in header
+        - Results grouped by type
+        - Keyboard shortcuts (Cmd+K)
+        - Recent searches saved
+      trace:
+        - Debounce search input
+        - Server-side search with indexing
+        - Highlight matching terms
+
+    - id: feat-web-settings
+      title: User Settings
+      desc: User preferences and account management
+      priority: P2
+      success:
+        - Profile editing (name, avatar)
+        - Password change with confirmation
+        - Notification preferences
+        - Account deletion option
+      trace:
+        - Settings changes take effect immediately
+        - Confirmation for destructive actions
+        - Audit log for security changes
+
+  non_functional:
+    performance:
+      - First contentful paint < 1.5s
+      - Time to interactive < 3s
+      - Lighthouse score > 90
+      - API response time < 200ms
+    security:
+      - HTTPS required
+      - CSP headers configured
+      - XSS protection
+      - SQL injection prevention
+      - Rate limiting on auth endpoints
+    scalability:
+      - Stateless backend for horizontal scaling
+      - CDN for static assets
+      - Database read replicas
+    availability:
+      - 99.9% uptime target
+      - Graceful degradation on service issues
+      - Offline support for read operations
+
+  acceptance:
+    - Users can register and login
+    - Dashboard loads within performance targets
+    - Forms validate correctly
+    - Search returns relevant results
+    - Settings changes persist correctly
+    - Application works on mobile devices

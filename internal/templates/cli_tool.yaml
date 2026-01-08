@@ -1,0 +1,119 @@
+name: CLI Tool
+id: cli-tool
+description: Command-line application with subcommands, flags, and configuration
+language: go
+tags:
+  - cli
+  - tool
+  - command-line
+
+spec:
+  product: CLI Tool
+  goals:
+    - Provide intuitive command-line interface
+    - Support configuration via flags, environment, and files
+    - Include comprehensive help and documentation
+    - Enable scripting and automation
+
+  features:
+    - id: feat-cli-commands
+      title: Command Structure
+      desc: Hierarchical command structure with subcommands
+      priority: P0
+      success:
+        - Root command displays help with available subcommands
+        - Each subcommand has dedicated help text
+        - Command aliases work (e.g., ls = list)
+        - Unknown commands show suggestion for similar commands
+      trace:
+        - Use cobra for command parsing
+        - Commands organized in cmd/ directory
+        - Each command in separate file
+
+    - id: feat-cli-flags
+      title: Flag Handling
+      desc: Support global and command-specific flags
+      priority: P0
+      success:
+        - Global flags (--verbose, --config) work on all commands
+        - Command-specific flags only appear for relevant commands
+        - Short flags (-v) and long flags (--verbose) both work
+        - Required flags fail with clear error message
+      trace:
+        - Use pflag for POSIX-compliant flags
+        - Flags bound to viper configuration
+        - Boolean flags default to false
+
+    - id: feat-cli-config
+      title: Configuration Management
+      desc: Load configuration from multiple sources with precedence
+      priority: P1
+      success:
+        - Config file loaded from ~/.config/tool/config.yaml
+        - Environment variables override config file
+        - Flags override environment variables
+        - Missing config file uses sensible defaults
+      trace:
+        - Use viper for configuration management
+        - ENV prefix matches tool name
+        - Config file format supports YAML and JSON
+
+    - id: feat-cli-output
+      title: Output Formatting
+      desc: Support multiple output formats and colors
+      priority: P1
+      success:
+        - Default output is human-readable with colors
+        - --json flag outputs machine-readable JSON
+        - --quiet flag suppresses non-essential output
+        - Colors disabled when stdout is not a terminal
+      trace:
+        - Use lipgloss or color package for colors
+        - JSON output includes all fields
+        - Quiet mode only shows errors
+
+    - id: feat-cli-completion
+      title: Shell Completion
+      desc: Generate completion scripts for popular shells
+      priority: P2
+      success:
+        - Bash completion script generated
+        - Zsh completion script generated
+        - Fish completion script generated
+        - Completion includes subcommands and flags
+      trace:
+        - Cobra generates completion automatically
+        - Custom completion for dynamic values (file paths, IDs)
+
+    - id: feat-cli-version
+      title: Version Information
+      desc: Display version and build information
+      priority: P2
+      success:
+        - --version shows semantic version
+        - Version includes git commit hash
+        - Build date included in version output
+        - Supports version comparison for update checks
+      trace:
+        - Version injected at build time via ldflags
+        - Version command shows all build metadata
+
+  non_functional:
+    performance:
+      - CLI startup time < 100ms
+      - Command execution begins within 200ms
+      - Memory usage < 50MB for typical operations
+    security:
+      - Config file permissions checked (warn if world-readable)
+      - Sensitive values not logged
+      - API keys read from environment or secure keyring
+    availability:
+      - Offline mode works for local operations
+      - Graceful handling of network timeouts
+
+  acceptance:
+    - All commands have help text and examples
+    - Configuration precedence works correctly
+    - Output formats (text, json) work as expected
+    - Shell completion provides accurate suggestions
+    - Error messages are clear and actionable

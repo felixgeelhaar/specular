@@ -310,7 +310,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 	progressIndicator.Start()
 	defer progressIndicator.Stop()
 
-	result, err := executor.Execute(p)
+	result, err := executor.Execute(cmd.Context(), p)
 	if err != nil {
 		// Stop progress indicator before error handling
 		progressIndicator.Stop()

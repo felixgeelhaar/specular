@@ -3,6 +3,8 @@ package provider
 import (
 	"fmt"
 	"sync"
+
+	"github.com/felixgeelhaar/specular/internal/errors"
 )
 
 // ProviderRegistry defines the interface for managing AI providers.
@@ -136,7 +138,7 @@ func (r *Registry) CloseAll() error {
 	r.configs = make(map[string]*ProviderConfig)
 
 	if len(errs) > 0 {
-		return fmt.Errorf("errors closing providers: %v", errs)
+		return errors.NewMultiError("errors closing providers", errs)
 	}
 
 	return nil

@@ -1,0 +1,141 @@
+name: REST API Service
+id: rest-api
+description: RESTful API with CRUD operations, authentication, and health endpoints
+language: go
+tags:
+  - api
+  - backend
+  - rest
+  - crud
+
+spec:
+  product: REST API Service
+  goals:
+    - Provide a secure RESTful API for resource management
+    - Support standard CRUD operations
+    - Include authentication and authorization
+    - Expose health and metrics endpoints
+
+  features:
+    - id: feat-api-health
+      title: Health & Metrics Endpoints
+      desc: Expose health check and basic metrics for monitoring
+      priority: P0
+      api:
+        - method: GET
+          path: /health
+          response: '{"status": "healthy", "version": "1.0.0"}'
+        - method: GET
+          path: /ready
+          response: '{"ready": true}'
+        - method: GET
+          path: /metrics
+          response: Prometheus metrics format
+      success:
+        - Health endpoint returns 200 when service is up
+        - Ready endpoint returns 503 when dependencies unavailable
+        - Metrics endpoint exposes request counts and latencies
+      trace:
+        - Health check runs within 100ms
+        - No external dependencies for /health
+        - Ready checks database and cache connectivity
+
+    - id: feat-api-auth
+      title: Authentication System
+      desc: JWT-based authentication with login and token refresh
+      priority: P0
+      api:
+        - method: POST
+          path: /api/v1/auth/login
+          request: '{"email": "string", "password": "string"}'
+          response: '{"token": "jwt", "refresh_token": "jwt", "expires_in": 3600}'
+        - method: POST
+          path: /api/v1/auth/refresh
+          request: '{"refresh_token": "jwt"}'
+          response: '{"token": "jwt", "expires_in": 3600}'
+        - method: POST
+          path: /api/v1/auth/logout
+          response: '{"success": true}'
+      success:
+        - Login returns JWT on valid credentials
+        - Invalid credentials return 401 with error message
+        - Refresh token extends session without re-authentication
+        - Logout invalidates refresh token
+      trace:
+        - Passwords hashed with bcrypt (cost 12)
+        - JWT signed with RS256 algorithm
+        - Refresh tokens stored in Redis with TTL
+
+    - id: feat-api-crud
+      title: Resource CRUD Operations
+      desc: Standard create, read, update, delete operations for resources
+      priority: P1
+      api:
+        - method: GET
+          path: /api/v1/resources
+          response: '{"items": [], "total": 0, "page": 1, "per_page": 20}'
+        - method: GET
+          path: /api/v1/resources/{id}
+          response: '{"id": "uuid", "name": "string", "created_at": "timestamp"}'
+        - method: POST
+          path: /api/v1/resources
+          request: '{"name": "string", "description": "string"}'
+          response: '{"id": "uuid", "name": "string", "created_at": "timestamp"}'
+        - method: PUT
+          path: /api/v1/resources/{id}
+          request: '{"name": "string", "description": "string"}'
+          response: '{"id": "uuid", "name": "string", "updated_at": "timestamp"}'
+        - method: DELETE
+          path: /api/v1/resources/{id}
+          response: '{"success": true}'
+      success:
+        - List returns paginated results with total count
+        - Get returns 404 for non-existent resources
+        - Create returns 201 with created resource
+        - Update returns 200 with updated resource
+        - Delete returns 204 on success
+      trace:
+        - All endpoints require authentication
+        - Pagination defaults to 20 items per page
+        - Soft delete with deleted_at timestamp
+
+    - id: feat-api-validation
+      title: Input Validation
+      desc: Validate all API inputs and return structured error responses
+      priority: P1
+      api:
+        - method: POST
+          path: /api/v1/resources
+          response: '{"error": "validation_error", "details": [{"field": "name", "message": "required"}]}'
+      success:
+        - Invalid input returns 400 with field-level errors
+        - Error responses follow RFC 7807 Problem Details format
+        - SQL injection attempts blocked and logged
+      trace:
+        - Validate on binding before business logic
+        - Sanitize all string inputs
+        - Log validation failures for security monitoring
+
+  non_functional:
+    performance:
+      - "API response time p95 < 200ms"
+      - "Support 1000 concurrent connections"
+      - "Database query time < 50ms"
+    security:
+      - "All endpoints use HTTPS"
+      - "CORS configured for allowed origins only"
+      - "Rate limiting - 100 requests/minute per IP"
+      - "SQL injection protection via parameterized queries"
+    scalability:
+      - "Horizontal scaling via stateless design"
+      - "Connection pooling for database"
+    availability:
+      - "99.9% uptime SLA"
+      - "Graceful shutdown with connection draining"
+
+  acceptance:
+    - All CRUD operations work correctly
+    - Authentication flow complete with login, refresh, logout
+    - Health endpoints return correct status
+    - Invalid inputs return proper error responses
+    - API documentation auto-generated from OpenAPI spec

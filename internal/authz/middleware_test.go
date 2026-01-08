@@ -493,13 +493,38 @@ func TestRequirePermission_CustomForbiddenHandler(t *testing.T) {
 	assert.False(t, capturedDecision.Allowed)
 }
 
-func TestRequirePermission_PanicOnNilEngine(t *testing.T) {
+func TestRequirePermission_NilEngine_Returns500(t *testing.T) {
 	cfg := MiddlewareConfig{
-		Engine: nil, // This should panic
+		Engine: nil, // This should return 500 error, not panic
 	}
 
-	assert.Panics(t, func() {
-		RequirePermission("plan:approve", "plan", cfg)
+	handler := RequirePermission("plan:approve", "plan", cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called when engine is nil")
+	}))
+
+	req := httptest.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), "internal_server_error")
+	assert.Contains(t, w.Body.String(), "authorization engine not configured")
+}
+
+func TestValidateMiddlewareConfig(t *testing.T) {
+	t.Run("returns error for nil engine", func(t *testing.T) {
+		cfg := MiddlewareConfig{Engine: nil}
+		err := ValidateMiddlewareConfig(cfg)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Engine cannot be nil")
+	})
+
+	t.Run("returns nil for valid config", func(t *testing.T) {
+		engine := NewEngine(nil, nil)
+		cfg := MiddlewareConfig{Engine: engine}
+		err := ValidateMiddlewareConfig(cfg)
+		assert.NoError(t, err)
 	})
 }
 

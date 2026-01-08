@@ -45,6 +45,15 @@ type MiddlewareConfig struct {
 	ForbiddenHandler func(w http.ResponseWriter, r *http.Request, decision *Decision)
 }
 
+// ValidateMiddlewareConfig validates the middleware configuration and returns an error if invalid.
+// Call this during application startup to catch configuration errors early.
+func ValidateMiddlewareConfig(cfg MiddlewareConfig) error {
+	if cfg.Engine == nil {
+		return fmt.Errorf("authz: MiddlewareConfig.Engine cannot be nil")
+	}
+	return nil
+}
+
 // RequirePermission creates middleware that enforces authorization for the specified action and resource type.
 //
 // The middleware:
@@ -55,12 +64,20 @@ type MiddlewareConfig struct {
 //  5. Returns 403 Forbidden if access is denied
 //  6. Calls the next handler if access is granted
 //
+// If cfg.Engine is nil, the middleware returns 500 Internal Server Error for all requests.
+// Use ValidateMiddlewareConfig at startup to catch configuration errors early.
+//
 // Example usage:
 //
 //	engine := authz.NewEngine(policyStore, attrResolver)
 //	cfg := authz.MiddlewareConfig{
 //	    Engine: engine,
 //	    ResourceIDExtractor: authz.URLParamExtractor("planID"),
+//	}
+//
+//	// Validate configuration at startup
+//	if err := authz.ValidateMiddlewareConfig(cfg); err != nil {
+//	    log.Fatal(err)
 //	}
 //
 //	// Protect plan approval endpoint
@@ -70,8 +87,14 @@ type MiddlewareConfig struct {
 //	    ),
 //	)
 func RequirePermission(action, resourceType string, cfg MiddlewareConfig) func(http.Handler) http.Handler {
+	// If engine is nil, return a middleware that always returns 500 Internal Server Error
+	// This is safer than panicking and allows the error to be handled gracefully
 	if cfg.Engine == nil {
-		panic("authz: MiddlewareConfig.Engine cannot be nil")
+		return func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				writeInternalError(w, "authorization engine not configured")
+			})
+		}
 	}
 
 	return func(next http.Handler) http.Handler {

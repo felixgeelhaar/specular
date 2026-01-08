@@ -3,6 +3,7 @@
 package exec
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +13,8 @@ import (
 
 // TestEnsureImage tests image ensure functionality with real Docker
 func TestEnsureImage(t *testing.T) {
+	ctx := context.Background()
+
 	// Check if Docker is available
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("Docker not available in test environment")
@@ -25,7 +28,7 @@ func TestEnsureImage(t *testing.T) {
 
 	// First ensure - should pull if not cached
 	t.Logf("First ensure of %s (may pull if not available locally)", testImage)
-	err := cache.EnsureImage(testImage, true)
+	err := cache.EnsureImage(ctx, testImage, true)
 	if err != nil {
 		t.Fatalf("EnsureImage failed: %v", err)
 	}
@@ -56,7 +59,7 @@ func TestEnsureImage(t *testing.T) {
 	oldLastUsed := state.LastUsed
 	time.Sleep(10 * time.Millisecond) // Small delay to ensure timestamp difference
 
-	err = cache.EnsureImage(testImage, true)
+	err = cache.EnsureImage(ctx, testImage, true)
 	if err != nil {
 		t.Fatalf("Second EnsureImage failed: %v", err)
 	}
@@ -70,6 +73,8 @@ func TestEnsureImage(t *testing.T) {
 
 // TestPrewarmImages tests parallel image pulling
 func TestPrewarmImages(t *testing.T) {
+	ctx := context.Background()
+
 	// Check if Docker is available
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("Docker not available in test environment")
@@ -86,7 +91,7 @@ func TestPrewarmImages(t *testing.T) {
 
 	t.Logf("Prewarming %d images with concurrency 2", len(testImages))
 	startTime := time.Now()
-	err := cache.PrewarmImages(testImages, 2, true)
+	err := cache.PrewarmImages(ctx, testImages, 2, true)
 	duration := time.Since(startTime)
 
 	if err != nil {
@@ -112,13 +117,13 @@ func TestPrewarmImages(t *testing.T) {
 		"alpine:latest",
 		"busybox:latest",
 	}
-	err = cache.PrewarmImages(duplicateImages, 2, true)
+	err = cache.PrewarmImages(ctx, duplicateImages, 2, true)
 	if err != nil {
 		t.Fatalf("PrewarmImages with duplicates failed: %v", err)
 	}
 
 	// Test with empty list
-	err = cache.PrewarmImages([]string{}, 2, true)
+	err = cache.PrewarmImages(ctx, []string{}, 2, true)
 	if err != nil {
 		t.Errorf("PrewarmImages should handle empty list: %v", err)
 	}
@@ -126,6 +131,8 @@ func TestPrewarmImages(t *testing.T) {
 
 // TestPruneCache tests cache pruning functionality
 func TestPruneCache(t *testing.T) {
+	ctx := context.Background()
+
 	// Check if Docker is available
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("Docker not available in test environment")
@@ -136,7 +143,7 @@ func TestPruneCache(t *testing.T) {
 
 	// Pull a test image
 	testImage := "alpine:latest"
-	err := cache.EnsureImage(testImage, true)
+	err := cache.EnsureImage(ctx, testImage, true)
 	if err != nil {
 		t.Fatalf("Failed to ensure test image: %v", err)
 	}
@@ -178,6 +185,8 @@ func TestPruneCache(t *testing.T) {
 
 // TestExportImportImages tests image export and import functionality
 func TestExportImportImages(t *testing.T) {
+	ctx := context.Background()
+
 	// Check if Docker is available
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("Docker not available in test environment")
@@ -189,7 +198,7 @@ func TestExportImportImages(t *testing.T) {
 
 	// Ensure test image is available
 	testImage := "alpine:latest"
-	err := cache.EnsureImage(testImage, true)
+	err := cache.EnsureImage(ctx, testImage, true)
 	if err != nil {
 		t.Fatalf("Failed to ensure test image: %v", err)
 	}
@@ -255,6 +264,8 @@ func TestExportImportImages(t *testing.T) {
 
 // TestGetImageInfo tests image info retrieval
 func TestGetImageInfo(t *testing.T) {
+	ctx := context.Background()
+
 	// Check if Docker is available
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("Docker not available in test environment")
@@ -264,10 +275,10 @@ func TestGetImageInfo(t *testing.T) {
 	testImage := "alpine:latest"
 
 	// Pull image if not available
-	localExists, _ := ImageExists(testImage)
+	localExists, _ := ImageExists(ctx, testImage)
 	if !localExists {
 		t.Logf("Pulling %s for test", testImage)
-		if err := PullImage(testImage); err != nil {
+		if err := PullImage(ctx, testImage); err != nil {
 			t.Fatalf("Failed to pull test image: %v", err)
 		}
 	}
@@ -303,6 +314,8 @@ func TestGetImageInfo(t *testing.T) {
 
 // TestEnsureImageWithOldCache tests cache expiration behavior
 func TestEnsureImageWithOldCache(t *testing.T) {
+	ctx := context.Background()
+
 	// Check if Docker is available
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("Docker not available in test environment")
@@ -314,7 +327,7 @@ func TestEnsureImageWithOldCache(t *testing.T) {
 	testImage := "alpine:latest"
 
 	// Ensure image is available
-	err := cache.EnsureImage(testImage, true)
+	err := cache.EnsureImage(ctx, testImage, true)
 	if err != nil {
 		t.Fatalf("Failed to ensure test image: %v", err)
 	}
@@ -326,7 +339,7 @@ func TestEnsureImageWithOldCache(t *testing.T) {
 
 	// EnsureImage should detect expired cache and re-validate
 	t.Logf("Ensuring image with expired cache entry")
-	err = cache.EnsureImage(testImage, true)
+	err = cache.EnsureImage(ctx, testImage, true)
 	if err != nil {
 		t.Fatalf("EnsureImage failed with expired cache: %v", err)
 	}
@@ -342,6 +355,8 @@ func TestEnsureImageWithOldCache(t *testing.T) {
 
 // TestPrewarmImagesWithErrors tests error handling in parallel operations
 func TestPrewarmImagesWithErrors(t *testing.T) {
+	ctx := context.Background()
+
 	// Check if Docker is available
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("Docker not available in test environment")
@@ -358,7 +373,7 @@ func TestPrewarmImagesWithErrors(t *testing.T) {
 	}
 
 	t.Logf("Prewarming with mixed valid/invalid images")
-	err := cache.PrewarmImages(mixedImages, 2, true)
+	err := cache.PrewarmImages(ctx, mixedImages, 2, true)
 
 	// Should report error but continue with valid images
 	if err == nil {

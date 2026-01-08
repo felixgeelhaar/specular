@@ -1,0 +1,138 @@
+name: Go Library
+id: library
+description: Reusable Go library with clean API, documentation, and testing
+language: go
+tags:
+  - library
+  - package
+  - sdk
+  - go
+
+spec:
+  product: Go Library
+  goals:
+    - Provide clean, idiomatic Go API
+    - Include comprehensive documentation
+    - Achieve high test coverage
+    - Support multiple use cases
+
+  features:
+    - id: feat-lib-api
+      title: Public API Design
+      desc: Clean, well-documented public interface
+      priority: P0
+      success:
+        - Exported functions have clear names
+        - All public types are documented
+        - Error types are specific and useful
+        - Options pattern for configuration
+      trace:
+        - Use functional options pattern
+        - Interfaces for testability
+        - Consistent error wrapping
+
+    - id: feat-lib-errors
+      title: Error Handling
+      desc: Custom error types with rich context
+      priority: P0
+      success:
+        - Errors implement standard error interface
+        - Errors include context for debugging
+        - Errors can be checked with errors.Is()
+        - Error messages are actionable
+      trace:
+        - Define error types in errors.go
+        - Use fmt.Errorf with %w for wrapping
+        - Include operation name in errors
+
+    - id: feat-lib-config
+      title: Configuration
+      desc: Flexible configuration with sensible defaults
+      priority: P1
+      success:
+        - Zero-config works with defaults
+        - All settings can be customized
+        - Configuration is validated
+        - Invalid config returns clear errors
+      trace:
+        - Use Option pattern
+        - Validate in constructor
+        - Document all options
+
+    - id: feat-lib-logging
+      title: Logging Integration
+      desc: Optional logging with standard interfaces
+      priority: P1
+      success:
+        - Works without logging (silent by default)
+        - Accepts standard log.Logger
+        - Accepts slog.Logger
+        - Log levels configurable
+      trace:
+        - Define Logger interface
+        - NopLogger as default
+        - Debug logs behind level check
+
+    - id: feat-lib-context
+      title: Context Support
+      desc: Proper context handling for cancellation and deadlines
+      priority: P1
+      success:
+        - All long operations accept context
+        - Cancellation is respected promptly
+        - Deadlines propagate correctly
+        - Context values used sparingly
+      trace:
+        - Context as first parameter
+        - Check ctx.Done() in loops
+        - Return ctx.Err() appropriately
+
+    - id: feat-lib-testing
+      title: Testing Support
+      desc: Testable design with mock helpers
+      priority: P2
+      success:
+        - Interfaces allow mocking
+        - Test helpers exported in _test package
+        - Example tests demonstrate usage
+        - Benchmark tests for performance
+      trace:
+        - testdata/ for test fixtures
+        - Table-driven tests
+        - t.Helper() in test helpers
+
+    - id: feat-lib-docs
+      title: Documentation
+      desc: Comprehensive godoc and examples
+      priority: P2
+      success:
+        - Package doc explains purpose
+        - All exported items documented
+        - Example functions compile and run
+        - README with quick start
+      trace:
+        - Run godoc locally to verify
+        - Examples in example_test.go
+        - Badges in README
+
+  non_functional:
+    performance:
+      - Zero allocations in hot paths where possible
+      - Benchmark all public functions
+      - Memory profile shows no leaks
+    security:
+      - No unsafe package usage
+      - Input validation on all public APIs
+      - Secure defaults
+    scalability:
+      - Thread-safe by default
+      - No global state
+      - Resource cleanup in Close()
+
+  acceptance:
+    - go vet passes with no issues
+    - golangci-lint passes
+    - Test coverage > 80%
+    - All examples compile and run
+    - Documentation is complete
+    - No race conditions (go test -race)

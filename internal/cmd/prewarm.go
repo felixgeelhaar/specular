@@ -92,7 +92,7 @@ Use this command before running builds in CI/CD to cache images.`,
 
 		// Pre-warm images
 		if len(images) > 0 {
-			if err := cache.PrewarmImages(images, concurrency, verbose); err != nil {
+			if err := cache.PrewarmImages(cmd.Context(), images, concurrency, verbose); err != nil {
 				return fmt.Errorf("prewarm images: %w", err)
 			}
 		}

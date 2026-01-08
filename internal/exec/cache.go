@@ -2,6 +2,7 @@ package exec
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -102,14 +103,15 @@ func (c *ImageCache) SaveManifest() error {
 	return nil
 }
 
-// EnsureImage ensures an image is available, using cache when possible
-func (c *ImageCache) EnsureImage(image string, verbose bool) error {
+// EnsureImage ensures an image is available, using cache when possible.
+// The context is used to provide cancellation support for Docker operations.
+func (c *ImageCache) EnsureImage(ctx context.Context, image string, verbose bool) error {
 	c.mu.Lock()
 	state, exists := c.imageStates[image]
 	c.mu.Unlock()
 
 	// Check if image exists locally
-	localExists, err := ImageExists(image)
+	localExists, err := ImageExists(ctx, image)
 	if err != nil {
 		return fmt.Errorf("check image exists: %w", err)
 	}
@@ -140,7 +142,7 @@ func (c *ImageCache) EnsureImage(image string, verbose bool) error {
 	}
 
 	startTime := time.Now()
-	if err := PullImage(image); err != nil {
+	if err := PullImage(ctx, image); err != nil {
 		return fmt.Errorf("pull image: %w", err)
 	}
 	pullDuration := time.Since(startTime)
@@ -181,8 +183,9 @@ func (c *ImageCache) EnsureImage(image string, verbose bool) error {
 	return nil
 }
 
-// PrewarmImages pulls multiple images in parallel
-func (c *ImageCache) PrewarmImages(images []string, concurrency int, verbose bool) error {
+// PrewarmImages pulls multiple images in parallel.
+// The context is used to provide cancellation support for Docker operations.
+func (c *ImageCache) PrewarmImages(ctx context.Context, images []string, concurrency int, verbose bool) error {
 	if len(images) == 0 {
 		return nil
 	}
@@ -213,7 +216,12 @@ func (c *ImageCache) PrewarmImages(images []string, concurrency int, verbose boo
 		go func() {
 			defer wg.Done()
 			for image := range imageChan {
-				if err := c.EnsureImage(image, verbose); err != nil {
+				// Check for context cancellation
+				if ctx.Err() != nil {
+					errChan <- fmt.Errorf("%s: %w", image, ctx.Err())
+					continue
+				}
+				if err := c.EnsureImage(ctx, image, verbose); err != nil {
 					errChan <- fmt.Errorf("%s: %w", image, err)
 				}
 			}
@@ -237,7 +245,7 @@ func (c *ImageCache) PrewarmImages(images []string, concurrency int, verbose boo
 	}
 
 	if len(errors) > 0 {
-		return fmt.Errorf("failed to prewarm %d images: %v", len(errors), errors[0])
+		return fmt.Errorf("failed to prewarm %d images: %w", len(errors), errors[0])
 	}
 
 	if verbose {

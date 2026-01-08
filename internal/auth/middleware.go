@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -167,9 +168,23 @@ func GetSession(ctx context.Context) *Session {
 	return session
 }
 
+// GetSessionOrError retrieves the session from the request context.
+// Returns an error if no session is attached to the context.
+//
+// This is the preferred alternative to MustGetSession when you want
+// to handle the error case explicitly rather than panicking.
+func GetSessionOrError(ctx context.Context) (*Session, error) {
+	session := GetSession(ctx)
+	if session == nil {
+		return nil, fmt.Errorf("no session in context (did you forget RequireAuth middleware?)")
+	}
+	return session, nil
+}
+
 // MustGetSession retrieves the session from the request context.
 //
-// Panics if no session is attached to the context.
+// Deprecated: Use GetSessionOrError for explicit error handling.
+// This function panics if no session is attached to the context.
 // Use this in handlers that have RequireAuth middleware (session is guaranteed).
 func MustGetSession(ctx context.Context) *Session {
 	session := GetSession(ctx)
