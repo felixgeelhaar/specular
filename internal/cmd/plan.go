@@ -122,6 +122,12 @@ func runPlanCreate(cmd *cobra.Command, args []string) error {
 	estimate := cmd.Flags().Lookup("estimate").Value.String() == "true"
 	featureID := cmd.Flags().Lookup("feature").Value.String()
 
+	// Check for TUI mode
+	useTUI := false
+	if flag := cmd.Flags().Lookup("tui"); flag != nil {
+		useTUI = flag.Value.String() == "true"
+	}
+
 	// Use smart defaults if not changed
 	if !cmd.Flags().Changed("in") {
 		specPath = defaults.SpecFile()
@@ -131,6 +137,74 @@ func runPlanCreate(cmd *cobra.Command, args []string) error {
 	}
 	if !cmd.Flags().Changed("out") {
 		out = defaults.PlanFile()
+	}
+
+	// If TUI mode is enabled, run with BuildTUI wrapper (reusing build TUI for plan creation)
+	if useTUI {
+		tuiConfig := tui.BuildTUIConfig{
+			SpecFile:  specPath,
+			OutputDir: ".",
+			Format:    "json",
+			Validate:  true,
+			ShowDiff:  false,
+		}
+
+		runner := tui.NewBuildTUIRunner(tuiConfig, nil)
+		return runner.Run(func(buildTUI *tui.BuildTUI) error {
+			// Load and generate plan within TUI context
+			buildTUI.OnLoadSpec(true, specPath, nil)
+
+			// Load spec
+			s, err := spec.LoadSpec(specPath)
+			if err != nil {
+				buildTUI.OnLoadSpec(false, specPath, err)
+				return fmt.Errorf("failed to load spec: %w", err)
+			}
+			buildTUI.OnLoadSpec(false, specPath, nil)
+
+			// Validate spec
+			buildTUI.OnValidate(true, 0, 0, nil)
+
+			// Load SpecLock
+			lock, err := spec.LoadSpecLock(lockPath)
+			if err != nil {
+				buildTUI.OnValidate(false, 0, 1, err)
+				return fmt.Errorf("failed to load SpecLock: %w", err)
+			}
+			buildTUI.OnValidate(false, 0, 0, nil)
+
+			// Resolve dependencies
+			buildTUI.OnResolve(true, 0, nil)
+
+			// Generate plan
+			opts := plan.GenerateOptions{
+				SpecLock:           lock,
+				EstimateComplexity: estimate,
+			}
+
+			p, err := plan.Generate(ctx, s, opts)
+			if err != nil {
+				buildTUI.OnResolve(false, 0, err)
+				return fmt.Errorf("failed to generate plan: %w", err)
+			}
+			buildTUI.OnResolve(false, len(p.Tasks), nil)
+
+			// Generate output
+			buildTUI.OnGenerate(true, "json", nil)
+
+			// Save plan
+			if err := plan.SavePlan(p, out); err != nil {
+				buildTUI.OnGenerate(false, "json", err)
+				return fmt.Errorf("failed to save plan: %w", err)
+			}
+			buildTUI.OnGenerate(false, "json", nil)
+
+			// Write complete
+			buildTUI.OnWriteComplete(1, 0, nil)
+			buildTUI.Log(tui.LogLevelInfo, fmt.Sprintf("Generated plan with %d tasks", len(p.Tasks)))
+
+			return nil
+		})
 	}
 
 	// Record span attributes
@@ -591,6 +665,7 @@ func init() {
 	planCreateCmd.Flags().StringP("out", "o", "plan.json", "Output plan file")
 	planCreateCmd.Flags().Bool("estimate", true, "Estimate task complexity")
 	planCreateCmd.Flags().String("feature", "", "Generate plan for specific feature ID")
+	planCreateCmd.Flags().Bool("tui", false, "Run with interactive TUI mode")
 
 	// plan review flags
 	planReviewCmd.Flags().String("plan", "plan.json", "Plan file to review")

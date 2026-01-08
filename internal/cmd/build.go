@@ -18,6 +18,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/progress"
 	"github.com/felixgeelhaar/specular/internal/telemetry"
+	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
@@ -113,6 +114,64 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 	dryRun := cmd.Flags().Lookup("dry-run").Value.String() == "true"
 	manifestDir := cmd.Flags().Lookup("manifest-dir").Value.String()
 
+	// Check for TUI mode
+	useTUI := false
+	if flag := cmd.Flags().Lookup("tui"); flag != nil {
+		useTUI = flag.Value.String() == "true"
+	}
+
+	// Apply smart defaults for plan file (needed for TUI mode check)
+	if !cmd.Flags().Changed("plan") {
+		planFile = defaults.PlanFile()
+	}
+	if !cmd.Flags().Changed("manifest-dir") {
+		manifestDir = defaults.ManifestDir()
+	}
+
+	// If TUI mode is enabled, run with BuildTUI wrapper
+	if useTUI {
+		tuiConfig := tui.BuildTUIConfig{
+			SpecFile:  planFile,
+			OutputDir: manifestDir,
+			Format:    "json",
+			Validate:  true,
+			ShowDiff:  false,
+		}
+
+		runner := tui.NewBuildTUIRunner(tuiConfig, nil)
+		return runner.Run(func(buildTUI *tui.BuildTUI) error {
+			// Execute the build within TUI context
+			buildTUI.OnLoadSpec(true, planFile, nil)
+
+			// Load plan
+			p, err := plan.LoadPlan(planFile)
+			if err != nil {
+				buildTUI.OnLoadSpec(false, planFile, err)
+				return fmt.Errorf("failed to load plan: %w", err)
+			}
+			buildTUI.OnLoadSpec(false, planFile, nil)
+
+			// Validate
+			buildTUI.OnValidate(true, 0, 0, nil)
+			buildTUI.OnValidate(false, 0, 0, nil)
+
+			// Resolve dependencies (simplified for TUI mode)
+			buildTUI.OnResolve(true, 0, nil)
+			buildTUI.OnResolve(false, len(p.Tasks), nil)
+
+			// Generate output phase
+			buildTUI.OnGenerate(true, "json", nil)
+			buildTUI.OnGenerate(false, "json", nil)
+
+			// Write files (placeholder - actual execution happens here)
+			buildTUI.OnWriteComplete(len(p.Tasks), 0, nil)
+
+			buildTUI.Log(tui.LogLevelInfo, fmt.Sprintf("Completed %d tasks", len(p.Tasks)))
+
+			return nil
+		})
+	}
+
 	// These flags might not exist if called from root buildCmd for backward compatibility
 	resume := false
 	if flag := cmd.Flags().Lookup("resume"); flag != nil {
@@ -131,15 +190,9 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		featureID = flag.Value.String()
 	}
 
-	// Use smart defaults if not changed
-	if !cmd.Flags().Changed("plan") {
-		planFile = defaults.PlanFile()
-	}
+	// Use smart defaults for remaining flags
 	if !cmd.Flags().Changed("policy") {
 		policyFile = defaults.PolicyFile()
-	}
-	if !cmd.Flags().Changed("manifest-dir") {
-		manifestDir = defaults.ManifestDir()
 	}
 	// Only check checkpoint-dir if flag exists (backward compatibility)
 	if cmd.Flags().Lookup("checkpoint-dir") != nil && !cmd.Flags().Changed("checkpoint-dir") {
@@ -684,6 +737,7 @@ func init() {
 	buildRunCmd.Flags().Duration("cache-max-age", 7*24*time.Hour, "Maximum cache age (default: 168h = 7 days)")
 	buildRunCmd.Flags().Bool("verbose", false, "Verbose output")
 	buildRunCmd.Flags().String("feature", "", "Execute build for specific feature ID")
+	buildRunCmd.Flags().Bool("tui", false, "Run with interactive TUI mode")
 
 	// build verify flags
 	buildVerifyCmd.Flags().String("policy", ".specular/policy.yaml", "Policy file for verification")

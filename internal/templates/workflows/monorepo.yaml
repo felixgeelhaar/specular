@@ -1,0 +1,303 @@
+id: monorepo
+name: Monorepo
+description: Monorepo configuration with Turborepo or Nx
+category: monorepo
+tags:
+  - monorepo
+  - turborepo
+  - nx
+  - workspace
+
+variables:
+  - name: project_name
+    description: Name of the monorepo project
+    type: string
+    required: true
+  - name: tool
+    description: Monorepo build tool
+    type: choice
+    required: true
+    choices:
+      - turborepo
+      - nx
+    default: turborepo
+  - name: package_manager
+    description: Package manager
+    type: choice
+    required: false
+    choices:
+      - pnpm
+      - npm
+      - yarn
+    default: pnpm
+
+files:
+  - path: package.json
+    description: Root package.json
+    template: |
+      {
+        "name": "{{.project_name}}",
+        "version": "0.0.0",
+        "private": true,
+        {{if eq .package_manager "pnpm"}}
+        "packageManager": "pnpm@8.14.0",
+        {{else if eq .package_manager "yarn"}}
+        "packageManager": "yarn@4.0.0",
+        {{end}}
+        "scripts": {
+          {{if eq .tool "turborepo"}}
+          "build": "turbo run build",
+          "dev": "turbo run dev",
+          "lint": "turbo run lint",
+          "test": "turbo run test",
+          "clean": "turbo run clean",
+          "format": "prettier --write \"**/*.{ts,tsx,md}\""
+          {{else}}
+          "build": "nx run-many -t build",
+          "dev": "nx run-many -t dev",
+          "lint": "nx run-many -t lint",
+          "test": "nx run-many -t test",
+          "clean": "nx reset",
+          "format": "nx format:write"
+          {{end}}
+        },
+        "devDependencies": {
+          {{if eq .tool "turborepo"}}
+          "turbo": "^1.11",
+          {{else}}
+          "nx": "^17.2",
+          "@nx/workspace": "^17.2",
+          {{end}}
+          "prettier": "^3.1",
+          "typescript": "^5.3"
+        },
+        "engines": {
+          "node": ">=18"
+        }
+      }
+
+  - path: turbo.json
+    description: Turborepo configuration
+    template: |
+      {{if eq .tool "turborepo"}}
+      {
+        "$schema": "https://turbo.build/schema.json",
+        "globalDependencies": ["**/.env.*local"],
+        "pipeline": {
+          "build": {
+            "dependsOn": ["^build"],
+            "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+          },
+          "lint": {
+            "dependsOn": ["^build"]
+          },
+          "test": {
+            "dependsOn": ["build"],
+            "outputs": ["coverage/**"]
+          },
+          "dev": {
+            "cache": false,
+            "persistent": true
+          },
+          "clean": {
+            "cache": false
+          }
+        }
+      }
+      {{else}}
+      {{end}}
+
+  - path: nx.json
+    description: Nx configuration
+    template: |
+      {{if eq .tool "nx"}}
+      {
+        "$schema": "https://nx.dev/nx-schema",
+        "targetDefaults": {
+          "build": {
+            "dependsOn": ["^build"],
+            "outputs": ["{projectRoot}/dist"]
+          },
+          "lint": {
+            "dependsOn": ["^build"]
+          },
+          "test": {
+            "dependsOn": ["build"],
+            "outputs": ["{projectRoot}/coverage"]
+          }
+        },
+        "defaultBase": "main",
+        "namedInputs": {
+          "default": ["{projectRoot}/**/*", "sharedGlobals"],
+          "sharedGlobals": [],
+          "production": ["default", "!{projectRoot}/**/*.spec.ts", "!{projectRoot}/test/**/*"]
+        }
+      }
+      {{else}}
+      {{end}}
+
+  - path: pnpm-workspace.yaml
+    description: PNPM workspace configuration
+    template: |
+      {{if eq .package_manager "pnpm"}}
+      packages:
+        - 'apps/*'
+        - 'packages/*'
+        - 'libs/*'
+      {{end}}
+
+  - path: apps/.gitkeep
+    description: Apps directory placeholder
+    template: |
+      # Applications go here
+
+  - path: packages/.gitkeep
+    description: Packages directory placeholder
+    template: |
+      # Shared packages go here
+
+  - path: packages/ui/package.json
+    description: Example shared UI package
+    template: |
+      {
+        "name": "@{{.project_name}}/ui",
+        "version": "0.0.0",
+        "private": true,
+        "main": "./dist/index.js",
+        "types": "./dist/index.d.ts",
+        "exports": {
+          ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+          }
+        },
+        "scripts": {
+          "build": "tsc",
+          "lint": "eslint .",
+          "clean": "rm -rf dist"
+        },
+        "devDependencies": {
+          "typescript": "^5.3"
+        }
+      }
+
+  - path: packages/ui/src/index.ts
+    description: UI package entry point
+    template: |
+      /**
+       * Shared UI components for {{.project_name}}
+       */
+
+      export * from './components';
+
+  - path: packages/ui/src/components/index.ts
+    description: UI components exports
+    template: |
+      /**
+       * Component exports
+       */
+
+      export const Button = () => {
+        // TODO: Implement button component
+      };
+
+  - path: packages/config/package.json
+    description: Shared configuration package
+    template: |
+      {
+        "name": "@{{.project_name}}/config",
+        "version": "0.0.0",
+        "private": true,
+        "main": "./index.js",
+        "exports": {
+          "./eslint": "./eslint.js",
+          "./typescript": "./tsconfig.json"
+        }
+      }
+
+  - path: packages/config/tsconfig.json
+    description: Shared TypeScript configuration
+    template: |
+      {
+        "compilerOptions": {
+          "target": "ES2022",
+          "lib": ["ES2022"],
+          "module": "NodeNext",
+          "moduleResolution": "NodeNext",
+          "strict": true,
+          "esModuleInterop": true,
+          "skipLibCheck": true,
+          "forceConsistentCasingInFileNames": true,
+          "declaration": true,
+          "declarationMap": true,
+          "sourceMap": true
+        }
+      }
+
+  - path: .github/workflows/ci.yaml
+    description: CI workflow for monorepo
+    template: |
+      name: CI
+
+      on:
+        push:
+          branches: [main]
+        pull_request:
+          branches: [main]
+
+      jobs:
+        build:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+              with:
+                fetch-depth: 2
+
+            - uses: pnpm/action-setup@v2
+              with:
+                version: 8
+
+            - uses: actions/setup-node@v4
+              with:
+                node-version: 20
+                cache: '{{.package_manager}}'
+
+            - name: Install dependencies
+              run: {{.package_manager}} install
+
+            {{if eq .tool "turborepo"}}
+            - name: Build
+              run: {{.package_manager}} turbo run build lint test --filter=...[origin/main]
+            {{else}}
+            - name: Build affected
+              run: {{.package_manager}} nx affected -t build lint test --base=origin/main
+            {{end}}
+
+  - path: .gitignore
+    description: Git ignore file
+    template: |
+      # Dependencies
+      node_modules/
+      .pnpm-store/
+
+      # Build outputs
+      dist/
+      .next/
+      out/
+
+      # Turbo/Nx
+      .turbo/
+      .nx/
+
+      # IDE
+      .vscode/
+      .idea/
+
+      # OS
+      .DS_Store
+
+      # Environment
+      .env*.local
+
+      # Testing
+      coverage/

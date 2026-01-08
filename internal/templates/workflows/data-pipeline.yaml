@@ -1,0 +1,308 @@
+id: data-pipeline
+name: Data Pipeline
+description: Data processing pipeline with dbt, Airflow, or Prefect
+category: data
+tags:
+  - data
+  - etl
+  - dbt
+  - airflow
+  - prefect
+
+variables:
+  - name: project_name
+    description: Name of the data pipeline project
+    type: string
+    required: true
+  - name: orchestrator
+    description: Pipeline orchestration tool
+    type: choice
+    required: true
+    choices:
+      - airflow
+      - prefect
+      - dagster
+    default: prefect
+  - name: database
+    description: Target database type
+    type: choice
+    required: false
+    choices:
+      - postgres
+      - snowflake
+      - bigquery
+      - databricks
+    default: postgres
+  - name: include_dbt
+    description: Include dbt for transformations
+    type: boolean
+    required: false
+    default: "true"
+
+files:
+  - path: pyproject.toml
+    description: Python project configuration
+    template: |
+      [tool.poetry]
+      name = "{{.project_name}}"
+      version = "0.1.0"
+      description = "Data pipeline for {{.project_name}}"
+      authors = ["Your Name <you@example.com>"]
+
+      [tool.poetry.dependencies]
+      python = "^3.11"
+      {{if eq .orchestrator "prefect"}}
+      prefect = "^2.14"
+      {{else if eq .orchestrator "airflow"}}
+      apache-airflow = "^2.8"
+      {{else if eq .orchestrator "dagster"}}
+      dagster = "^1.6"
+      dagster-webserver = "^1.6"
+      {{end}}
+      {{if eq .database "postgres"}}
+      psycopg2-binary = "^2.9"
+      {{else if eq .database "snowflake"}}
+      snowflake-connector-python = "^3.6"
+      {{else if eq .database "bigquery"}}
+      google-cloud-bigquery = "^3.14"
+      {{end}}
+      pandas = "^2.1"
+      pydantic = "^2.5"
+
+      [tool.poetry.group.dev.dependencies]
+      pytest = "^7.4"
+      pytest-cov = "^4.1"
+      ruff = "^0.1"
+      mypy = "^1.7"
+
+      [build-system]
+      requires = ["poetry-core"]
+      build-backend = "poetry.core.masonry.api"
+
+      [tool.ruff]
+      line-length = 100
+      target-version = "py311"
+
+  - path: src/{{.project_name}}/__init__.py
+    description: Package initialization
+    template: |
+      """{{.project_name}} data pipeline."""
+
+      __version__ = "0.1.0"
+
+  - path: src/{{.project_name}}/config.py
+    description: Configuration management
+    template: |
+      """Configuration for {{.project_name}} pipeline."""
+
+      from pydantic_settings import BaseSettings
+
+
+      class Settings(BaseSettings):
+          """Application settings."""
+
+          database_url: str = "{{if eq .database "postgres"}}postgresql://localhost/{{.project_name}}{{else if eq .database "snowflake"}}snowflake://account/database{{else if eq .database "bigquery"}}bigquery://project/dataset{{end}}"
+          environment: str = "development"
+          log_level: str = "INFO"
+
+          class Config:
+              env_file = ".env"
+
+
+      settings = Settings()
+
+  - path: src/{{.project_name}}/flows/extract.py
+    description: Data extraction flow
+    template: |
+      """Data extraction flow for {{.project_name}}."""
+
+      {{if eq .orchestrator "prefect"}}
+      from prefect import flow, task
+      import pandas as pd
+
+
+      @task(retries=3, retry_delay_seconds=60)
+      def extract_from_source(source_name: str) -> pd.DataFrame:
+          """Extract data from a source."""
+          # Implement extraction logic
+          return pd.DataFrame()
+
+
+      @flow(name="extract-data")
+      def extract_flow(sources: list[str]) -> dict[str, pd.DataFrame]:
+          """Extract data from multiple sources."""
+          results = {}
+          for source in sources:
+              results[source] = extract_from_source(source)
+          return results
+      {{else if eq .orchestrator "airflow"}}
+      from airflow.decorators import dag, task
+      from datetime import datetime
+      import pandas as pd
+
+
+      @dag(
+          schedule_interval="@daily",
+          start_date=datetime(2024, 1, 1),
+          catchup=False,
+      )
+      def extract_dag():
+          """Extract data DAG."""
+
+          @task
+          def extract_from_source(source_name: str) -> dict:
+              """Extract data from a source."""
+              # Implement extraction logic
+              return {"source": source_name, "rows": 0}
+
+          extract_from_source("main_source")
+
+
+      extract_dag()
+      {{else if eq .orchestrator "dagster"}}
+      from dagster import asset, AssetExecutionContext
+      import pandas as pd
+
+
+      @asset
+      def extracted_data(context: AssetExecutionContext) -> pd.DataFrame:
+          """Extract data from source."""
+          context.log.info("Extracting data...")
+          # Implement extraction logic
+          return pd.DataFrame()
+      {{end}}
+
+  - path: src/{{.project_name}}/flows/transform.py
+    description: Data transformation flow
+    template: |
+      """Data transformation flow for {{.project_name}}."""
+
+      {{if eq .orchestrator "prefect"}}
+      from prefect import flow, task
+      import pandas as pd
+
+
+      @task
+      def clean_data(df: pd.DataFrame) -> pd.DataFrame:
+          """Clean and validate data."""
+          # Remove duplicates
+          df = df.drop_duplicates()
+          # Handle missing values
+          df = df.fillna(method='ffill')
+          return df
+
+
+      @task
+      def transform_data(df: pd.DataFrame) -> pd.DataFrame:
+          """Apply business transformations."""
+          # Implement transformations
+          return df
+
+
+      @flow(name="transform-data")
+      def transform_flow(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+          """Transform extracted data."""
+          # Combine all dataframes
+          combined = pd.concat(data.values(), ignore_index=True)
+          cleaned = clean_data(combined)
+          transformed = transform_data(cleaned)
+          return transformed
+      {{else if eq .orchestrator "airflow"}}
+      from airflow.decorators import task
+      import pandas as pd
+
+
+      @task
+      def transform_data(data: dict) -> dict:
+          """Transform the extracted data."""
+          # Implement transformation logic
+          return {"transformed": True, "rows": data.get("rows", 0)}
+      {{else if eq .orchestrator "dagster"}}
+      from dagster import asset
+      import pandas as pd
+
+
+      @asset
+      def transformed_data(extracted_data: pd.DataFrame) -> pd.DataFrame:
+          """Transform the extracted data."""
+          # Remove duplicates
+          df = extracted_data.drop_duplicates()
+          return df
+      {{end}}
+
+  - path: src/{{.project_name}}/flows/load.py
+    description: Data loading flow
+    template: |
+      """Data loading flow for {{.project_name}}."""
+
+      {{if eq .orchestrator "prefect"}}
+      from prefect import flow, task
+      import pandas as pd
+
+      from ..config import settings
+
+
+      @task(retries=3)
+      def load_to_database(df: pd.DataFrame, table_name: str) -> int:
+          """Load data to the target database."""
+          # Implement loading logic
+          {{if eq .database "postgres"}}
+          # df.to_sql(table_name, settings.database_url, if_exists='replace')
+          {{end}}
+          return len(df)
+
+
+      @flow(name="load-data")
+      def load_flow(data: pd.DataFrame, target_table: str) -> int:
+          """Load transformed data to target."""
+          return load_to_database(data, target_table)
+      {{else if eq .orchestrator "airflow"}}
+      from airflow.decorators import task
+
+
+      @task
+      def load_data(data: dict, target_table: str) -> dict:
+          """Load data to target database."""
+          # Implement loading logic
+          return {"table": target_table, "loaded": True}
+      {{else if eq .orchestrator "dagster"}}
+      from dagster import asset, AssetExecutionContext
+      import pandas as pd
+
+
+      @asset
+      def loaded_data(context: AssetExecutionContext, transformed_data: pd.DataFrame) -> dict:
+          """Load data to target database."""
+          context.log.info(f"Loading {len(transformed_data)} rows...")
+          # Implement loading logic
+          return {"rows_loaded": len(transformed_data)}
+      {{end}}
+
+  - path: tests/test_flows.py
+    description: Pipeline tests
+    template: |
+      """Tests for {{.project_name}} pipeline flows."""
+
+      import pytest
+      import pandas as pd
+
+
+      def test_data_extraction():
+          """Test data extraction."""
+          # Add extraction tests
+          pass
+
+
+      def test_data_transformation():
+          """Test data transformation."""
+          # Create sample data
+          df = pd.DataFrame({"a": [1, 1, 2], "b": ["x", "x", "y"]})
+          # Test deduplication
+          result = df.drop_duplicates()
+          assert len(result) == 2
+
+
+      def test_data_loading():
+          """Test data loading."""
+          # Add loading tests
+          pass

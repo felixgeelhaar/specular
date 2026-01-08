@@ -1,0 +1,242 @@
+id: microservice
+name: Microservice
+description: Docker and Kubernetes configuration for microservices
+category: microservice
+tags:
+  - docker
+  - kubernetes
+  - containerization
+  - microservice
+
+variables:
+  - name: service_name
+    description: Name of the microservice
+    type: string
+    required: true
+  - name: port
+    description: Port the service listens on
+    type: string
+    required: false
+    default: "8080"
+  - name: language
+    description: Programming language
+    type: choice
+    required: true
+    choices:
+      - go
+      - typescript
+      - python
+    default: go
+  - name: replicas
+    description: Number of pod replicas
+    type: string
+    required: false
+    default: "3"
+  - name: namespace
+    description: Kubernetes namespace
+    type: string
+    required: false
+    default: default
+
+files:
+  - path: Dockerfile
+    description: Multi-stage Dockerfile for the service
+    template: |
+      {{if eq .language "go"}}
+      # Build stage
+      FROM golang:1.22-alpine AS builder
+
+      WORKDIR /app
+
+      # Copy go mod files
+      COPY go.mod go.sum ./
+      RUN go mod download
+
+      # Copy source code
+      COPY . .
+
+      # Build the application
+      RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /{{.service_name}} ./cmd/{{.service_name}}
+
+      # Runtime stage
+      FROM alpine:3.19
+
+      RUN apk --no-cache add ca-certificates
+
+      WORKDIR /app
+
+      COPY --from=builder /{{.service_name}} .
+
+      EXPOSE {{.port}}
+
+      ENTRYPOINT ["./{{.service_name}}"]
+      {{else if eq .language "typescript"}}
+      # Build stage
+      FROM node:20-alpine AS builder
+
+      WORKDIR /app
+
+      COPY package*.json ./
+      RUN npm ci
+
+      COPY . .
+      RUN npm run build
+
+      # Runtime stage
+      FROM node:20-alpine
+
+      WORKDIR /app
+
+      COPY package*.json ./
+      RUN npm ci --only=production
+
+      COPY --from=builder /app/dist ./dist
+
+      EXPOSE {{.port}}
+
+      CMD ["node", "dist/index.js"]
+      {{else if eq .language "python"}}
+      # Build stage
+      FROM python:3.12-slim AS builder
+
+      WORKDIR /app
+
+      RUN pip install poetry
+      COPY pyproject.toml poetry.lock* ./
+      RUN poetry export -f requirements.txt --output requirements.txt
+
+      # Runtime stage
+      FROM python:3.12-slim
+
+      WORKDIR /app
+
+      COPY --from=builder /app/requirements.txt .
+      RUN pip install --no-cache-dir -r requirements.txt
+
+      COPY . .
+
+      EXPOSE {{.port}}
+
+      CMD ["python", "-m", "{{.service_name}}"]
+      {{end}}
+
+  - path: k8s/deployment.yaml
+    description: Kubernetes Deployment manifest
+    template: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: {{.service_name}}
+        namespace: {{.namespace}}
+        labels:
+          app: {{.service_name}}
+      spec:
+        replicas: {{.replicas}}
+        selector:
+          matchLabels:
+            app: {{.service_name}}
+        template:
+          metadata:
+            labels:
+              app: {{.service_name}}
+          spec:
+            containers:
+              - name: {{.service_name}}
+                image: {{.service_name}}:latest
+                ports:
+                  - containerPort: {{.port}}
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "256Mi"
+                    cpu: "500m"
+                livenessProbe:
+                  httpGet:
+                    path: /health
+                    port: {{.port}}
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
+                readinessProbe:
+                  httpGet:
+                    path: /ready
+                    port: {{.port}}
+                  initialDelaySeconds: 5
+                  periodSeconds: 5
+                env:
+                  - name: PORT
+                    value: "{{.port}}"
+
+  - path: k8s/service.yaml
+    description: Kubernetes Service manifest
+    template: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{.service_name}}
+        namespace: {{.namespace}}
+        labels:
+          app: {{.service_name}}
+      spec:
+        type: ClusterIP
+        ports:
+          - port: {{.port}}
+            targetPort: {{.port}}
+            protocol: TCP
+            name: http
+        selector:
+          app: {{.service_name}}
+
+  - path: k8s/hpa.yaml
+    description: Horizontal Pod Autoscaler
+    optional: true
+    template: |
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: {{.service_name}}-hpa
+        namespace: {{.namespace}}
+      spec:
+        scaleTargetRef:
+          apiVersion: apps/v1
+          kind: Deployment
+          name: {{.service_name}}
+        minReplicas: {{.replicas}}
+        maxReplicas: 10
+        metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 70
+          - type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 80
+
+  - path: docker-compose.yaml
+    description: Docker Compose for local development
+    template: |
+      version: '3.8'
+
+      services:
+        {{.service_name}}:
+          build:
+            context: .
+            dockerfile: Dockerfile
+          ports:
+            - "{{.port}}:{{.port}}"
+          environment:
+            - PORT={{.port}}
+            - ENV=development
+          volumes:
+            - .:/app
+          healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:{{.port}}/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
