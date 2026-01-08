@@ -60,7 +60,7 @@ Examples:
 
 func init() {
 	// Register doctor command flags
-	doctorCmd.Flags().BoolVarP(&doctorQuick, "quick", "q", false, "Skip slow checks (security, API health)")
+	doctorCmd.Flags().BoolVar(&doctorQuick, "quick", false, "Skip slow checks (security, API health)")
 	doctorCmd.Flags().BoolVarP(&doctorVerbose, "verbose", "v", false, "Show detailed diagnostic output")
 
 	// Register as top-level command (also available via 'debug doctor')

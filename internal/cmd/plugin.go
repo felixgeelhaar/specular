@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/plugin"
+	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
 var pluginCmd = &cobra.Command{
@@ -26,10 +28,16 @@ Plugins can provide:
 }
 
 var pluginListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List installed plugins",
-	Long:  `List all installed plugins and their current status.`,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List installed plugins",
+	Long:    `List all installed plugins and their current status.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cmdCtx, err := NewCommandContext(cmd)
+		if err != nil {
+			return fmt.Errorf("failed to create command context: %w", err)
+		}
+
 		manager := plugin.NewManager(plugin.DefaultManagerConfig())
 
 		// Discover plugins
@@ -38,6 +46,17 @@ var pluginListCmd = &cobra.Command{
 		}
 
 		plugins := manager.List()
+
+		// JSON/YAML output
+		if cmdCtx.Format == "json" || cmdCtx.Format == "yaml" {
+			formatter, err := ux.NewFormatter(cmdCtx.Format, &ux.FormatterOptions{
+				NoColor: cmdCtx.NoColor,
+			})
+			if err != nil {
+				return err
+			}
+			return formatter.Format(plugins)
+		}
 
 		if len(plugins) == 0 {
 			fmt.Println("No plugins installed.")
@@ -82,11 +101,17 @@ var pluginListCmd = &cobra.Command{
 }
 
 var pluginInfoCmd = &cobra.Command{
-	Use:   "info <plugin-name>",
-	Short: "Show plugin information",
-	Long:  `Show detailed information about a specific plugin.`,
-	Args:  cobra.ExactArgs(1),
+	Use:     "info <plugin-name>",
+	Aliases: []string{"show"},
+	Short:   "Show plugin information",
+	Long:    `Show detailed information about a specific plugin.`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cmdCtx, err := NewCommandContext(cmd)
+		if err != nil {
+			return fmt.Errorf("failed to create command context: %w", err)
+		}
+
 		pluginName := args[0]
 
 		manager := plugin.NewManager(plugin.DefaultManagerConfig())
@@ -99,6 +124,17 @@ var pluginInfoCmd = &cobra.Command{
 		p, ok := manager.Get(pluginName)
 		if !ok {
 			return fmt.Errorf("plugin not found: %s", pluginName)
+		}
+
+		// JSON/YAML output
+		if cmdCtx.Format == "json" || cmdCtx.Format == "yaml" {
+			formatter, err := ux.NewFormatter(cmdCtx.Format, &ux.FormatterOptions{
+				NoColor: cmdCtx.NoColor,
+			})
+			if err != nil {
+				return err
+			}
+			return formatter.Format(p)
 		}
 
 		// Print plugin details
@@ -303,6 +339,167 @@ var pluginUninstallCmd = &cobra.Command{
 	},
 }
 
+var (
+	pluginCreateType   string
+	pluginCreateAuthor string
+)
+
+var pluginCreateCmd = &cobra.Command{
+	Use:     "create <name>",
+	Aliases: []string{"init", "new"},
+	Short:   "Create a new plugin scaffold",
+	Long: `Create a new plugin directory with manifest and entrypoint template.
+
+This generates a basic plugin structure that you can customize:
+  - plugin.yaml: Plugin manifest with metadata
+  - entrypoint.sh: Shell script entrypoint (or .py for Python)
+  - README.md: Basic documentation
+
+Examples:
+  # Create a provider plugin
+  specular plugin create my-provider --type provider
+
+  # Create a notifier plugin with author info
+  specular plugin create slack-notifier --type notifier --author "Your Name"`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		pluginName := args[0]
+
+		// Validate plugin type
+		validTypes := []string{"provider", "validator", "formatter", "hook", "notifier"}
+		typeValid := false
+		for _, t := range validTypes {
+			if pluginCreateType == t {
+				typeValid = true
+				break
+			}
+		}
+		if !typeValid {
+			return fmt.Errorf("invalid plugin type: %s (valid: %v)", pluginCreateType, validTypes)
+		}
+
+		// Create plugin directory
+		pluginDir := filepath.Join(".", pluginName)
+		if _, err := os.Stat(pluginDir); err == nil {
+			return fmt.Errorf("directory already exists: %s", pluginDir)
+		}
+
+		if err := os.MkdirAll(pluginDir, 0755); err != nil {
+			return fmt.Errorf("failed to create directory: %w", err)
+		}
+
+		// Create plugin.yaml manifest
+		manifest := fmt.Sprintf(`# Specular Plugin Manifest
+name: %s
+version: "0.1.0"
+type: %s
+description: "A Specular %s plugin"
+author: "%s"
+license: "MIT"
+entrypoint: "./entrypoint.sh"
+
+# Capabilities this plugin provides
+capabilities:
+  - %s
+
+# Configuration options (optional)
+config: []
+`, pluginName, pluginCreateType, pluginCreateType, pluginCreateAuthor, pluginCreateType)
+
+		if err := os.WriteFile(filepath.Join(pluginDir, "plugin.yaml"), []byte(manifest), 0644); err != nil {
+			return fmt.Errorf("failed to create manifest: %w", err)
+		}
+
+		// Create entrypoint script
+		entrypoint := fmt.Sprintf(`#!/bin/bash
+# Specular Plugin: %s
+# Type: %s
+#
+# This plugin receives JSON input on stdin and outputs JSON on stdout.
+# Input format: { "action": "...", "data": {...} }
+# Output format: { "success": true, "result": {...} } or { "success": false, "error": "..." }
+
+set -e
+
+# Read input
+INPUT=$(cat)
+ACTION=$(echo "$INPUT" | jq -r '.action // "execute"')
+
+case "$ACTION" in
+  "health")
+    # Health check
+    echo '{"success": true, "result": {"status": "healthy", "version": "0.1.0"}}'
+    ;;
+  "execute")
+    # Main execution logic
+    # TODO: Implement your plugin logic here
+    echo '{"success": true, "result": {"message": "Plugin executed successfully"}}'
+    ;;
+  *)
+    echo "{\"success\": false, \"error\": \"Unknown action: $ACTION\"}"
+    exit 1
+    ;;
+esac
+`, pluginName, pluginCreateType)
+
+		entrypointPath := filepath.Join(pluginDir, "entrypoint.sh")
+		if err := os.WriteFile(entrypointPath, []byte(entrypoint), 0755); err != nil {
+			return fmt.Errorf("failed to create entrypoint: %w", err)
+		}
+
+		// Create README.md
+		readme := fmt.Sprintf(`# %s
+
+A Specular %s plugin.
+
+## Installation
+
+`+"```bash"+`
+specular plugin install ./%s
+`+"```"+`
+
+## Usage
+
+After installation, this plugin will be available for use with Specular.
+
+## Configuration
+
+Edit `+"`plugin.yaml`"+` to configure the plugin options.
+
+## Development
+
+1. Edit `+"`entrypoint.sh`"+` to implement your plugin logic
+2. Test locally: `+"`echo '{}' | ./entrypoint.sh`"+`
+3. Install: `+"`specular plugin install ./%s`"+`
+
+## License
+
+MIT
+`, pluginName, pluginCreateType, pluginName, pluginName)
+
+		if err := os.WriteFile(filepath.Join(pluginDir, "README.md"), []byte(readme), 0644); err != nil {
+			return fmt.Errorf("failed to create README: %w", err)
+		}
+
+		fmt.Printf("✓ Created plugin scaffold: %s\n", pluginDir)
+		fmt.Printf("\nFiles created:\n")
+		fmt.Printf("  %s/plugin.yaml    - Plugin manifest\n", pluginName)
+		fmt.Printf("  %s/entrypoint.sh  - Plugin entrypoint script\n", pluginName)
+		fmt.Printf("  %s/README.md      - Documentation\n", pluginName)
+		fmt.Printf("\nNext steps:\n")
+		fmt.Printf("  1. Edit %s/entrypoint.sh to implement your plugin logic\n", pluginName)
+		fmt.Printf("  2. Test: echo '{}' | ./%s/entrypoint.sh\n", pluginName)
+		fmt.Printf("  3. Install: specular plugin install ./%s\n", pluginName)
+
+		return nil
+	},
+}
+
+// GetPluginTypes returns valid plugin types for shell completion
+func GetPluginTypes() []string {
+	return []string{"provider", "validator", "formatter", "hook", "notifier"}
+}
+
 func init() {
 	// Add plugin command to root
 	rootCmd.AddCommand(pluginCmd)
@@ -315,7 +512,12 @@ func init() {
 	pluginCmd.AddCommand(pluginDisableCmd)
 	pluginCmd.AddCommand(pluginInstallCmd)
 	pluginCmd.AddCommand(pluginUninstallCmd)
+	pluginCmd.AddCommand(pluginCreateCmd)
 
 	// Flags for uninstall command
 	pluginUninstallCmd.Flags().Bool("force", false, "Skip confirmation prompt")
+
+	// Flags for create command
+	pluginCreateCmd.Flags().StringVar(&pluginCreateType, "type", "provider", "Plugin type (provider, validator, formatter, hook, notifier)")
+	pluginCreateCmd.Flags().StringVar(&pluginCreateAuthor, "author", "", "Plugin author name")
 }

@@ -66,24 +66,20 @@ func TestDoctorCommandFlags(t *testing.T) {
 		t.Fatal("doctor command not found")
 	}
 
-	// Check flags
-	flags := []struct {
-		name     string
-		shortcut string
-	}{
-		{"quick", "q"},
-		{"verbose", "v"},
+	// Check flags exist
+	requiredFlags := []string{"quick", "verbose"}
+
+	for _, name := range requiredFlags {
+		flag := doctorCommand.Flags().Lookup(name)
+		if flag == nil {
+			t.Errorf("Missing flag: --%s", name)
+		}
 	}
 
-	for _, f := range flags {
-		flag := doctorCommand.Flags().Lookup(f.name)
-		if flag == nil {
-			t.Errorf("Missing flag: --%s", f.name)
-			continue
-		}
-		if flag.Shorthand != f.shortcut {
-			t.Errorf("Flag --%s shorthand = %s, want %s", f.name, flag.Shorthand, f.shortcut)
-		}
+	// verbose should have -v shortcut
+	verboseFlag := doctorCommand.Flags().Lookup("verbose")
+	if verboseFlag != nil && verboseFlag.Shorthand != "v" {
+		t.Errorf("Flag --verbose shorthand = %s, want v", verboseFlag.Shorthand)
 	}
 }
 
