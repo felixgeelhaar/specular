@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,9 +16,15 @@ import (
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
+var (
+	doctorQuick   bool
+	doctorVerbose bool
+)
+
 var doctorCmd = &cobra.Command{
-	Use:   "doctor",
-	Short: "Run system diagnostics and health checks",
+	Use:     "doctor",
+	Aliases: []string{"check", "health"},
+	Short:   "Run system diagnostics and health checks",
 	Long: `Run comprehensive system diagnostics to check if Specular is properly configured.
 
 Checks include:
@@ -28,14 +35,36 @@ Checks include:
   • Git repository status
   • Environment variables and API keys
 
+The --quick flag skips slow checks like API health verification.
+The --verbose flag shows additional diagnostic details.
+
 Examples:
   # Run diagnostics with colored output
-  specular debug doctor
+  specular doctor
+
+  # Quick check (skip API health)
+  specular doctor --quick
+
+  # Verbose output with details
+  specular doctor --verbose
 
   # Output as JSON for CI/CD
-  specular debug doctor --format json
+  specular doctor --format json
+
+  # Using aliases
+  specular check
+  specular health
 `,
 	RunE: runDoctor,
+}
+
+func init() {
+	// Register doctor command flags
+	doctorCmd.Flags().BoolVarP(&doctorQuick, "quick", "q", false, "Skip slow checks (security, API health)")
+	doctorCmd.Flags().BoolVarP(&doctorVerbose, "verbose", "v", false, "Show detailed diagnostic output")
+
+	// Register as top-level command (also available via 'debug doctor')
+	rootCmd.AddCommand(doctorCmd)
 }
 
 // DoctorReport represents the complete health check report
@@ -97,8 +126,8 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	// Check container runtime
 	checkContainerRuntime(ctx, report)
 
-	// Check AI providers
-	checkProviders(ctx, report)
+	// Check AI providers (skip API health if --quick)
+	checkProvidersWithOptions(ctx, report, !doctorQuick)
 
 	// Check project structure
 	checkProjectStructure(report)
@@ -106,8 +135,10 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	// Check Git
 	checkGit(ctx, report)
 
-	// Check governance
-	checkGovernance(report)
+	// Check governance (skip if --quick)
+	if !doctorQuick {
+		checkGovernance(report)
+	}
 
 	// Generate next steps
 	generateNextSteps(report)
@@ -116,7 +147,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	report.Healthy = len(report.Issues) == 0
 
 	// Output report using formatter
-	return outputReport(cmdCtx, report)
+	return outputReport(cmdCtx, report, doctorVerbose)
 }
 
 func checkContainerRuntime(ctx *detect.Context, report *DoctorReport) {
@@ -158,7 +189,8 @@ func checkContainerRuntime(ctx *detect.Context, report *DoctorReport) {
 	}
 }
 
-func checkProviders(ctx *detect.Context, report *DoctorReport) {
+// checkProvidersWithOptions checks AI providers with optional API health checks
+func checkProvidersWithOptions(ctx *detect.Context, report *DoctorReport, includeAPIHealth bool) {
 	// Use concurrent checks for better performance
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -224,8 +256,15 @@ func checkProviders(ctx *detect.Context, report *DoctorReport) {
 		report.Issues = append(report.Issues, "No AI providers detected")
 	}
 
-	// Perform API health checks for configured providers
-	checkProviderHealth(report)
+	// Perform API health checks for configured providers (skip if quick mode)
+	if includeAPIHealth {
+		checkProviderHealth(report)
+	}
+}
+
+// checkProviders is the default provider check (with API health)
+func checkProviders(ctx *detect.Context, report *DoctorReport) {
+	checkProvidersWithOptions(ctx, report, true)
 }
 
 // checkProviderHealth tests actual API connectivity for configured providers
@@ -598,7 +637,7 @@ func generateNextSteps(report *DoctorReport) {
 	}
 }
 
-func outputReport(cmdCtx *CommandContext, report *DoctorReport) error {
+func outputReport(cmdCtx *CommandContext, report *DoctorReport, verbose bool) error {
 	// For JSON and YAML, use the formatter
 	if cmdCtx.Format == "json" || cmdCtx.Format == "yaml" {
 		formatter, err := ux.NewFormatter(cmdCtx.Format, &ux.FormatterOptions{
@@ -611,16 +650,16 @@ func outputReport(cmdCtx *CommandContext, report *DoctorReport) error {
 	}
 
 	// For text format, use custom formatted output
-	return outputText(report)
+	return outputText(report, verbose)
 }
 
-func outputText(report *DoctorReport) error {
+func outputText(report *DoctorReport, verbose bool) error {
 	printHeader()
-	printContainerRuntime(report)
-	printAIProviders(report)
-	printProjectStructure(report)
-	printGitRepository(report)
-	printGovernance(report)
+	printContainerRuntime(report, verbose)
+	printAIProviders(report, verbose)
+	printProjectStructure(report, verbose)
+	printGitRepository(report, verbose)
+	printGovernance(report, verbose)
 	printIssues(report)
 	printWarnings(report)
 	printNextSteps(report)
@@ -637,57 +676,65 @@ func printHeader() {
 }
 
 // printContainerRuntime prints container runtime checks
-func printContainerRuntime(report *DoctorReport) {
+func printContainerRuntime(report *DoctorReport, verbose bool) {
 	fmt.Println("Container Runtime:")
 	if report.Docker != nil {
-		printCheck(report.Docker)
+		printCheck(report.Docker, verbose)
 	}
 	if report.Podman != nil {
-		printCheck(report.Podman)
+		printCheck(report.Podman, verbose)
 	}
 	fmt.Println()
 }
 
 // printAIProviders prints AI provider checks
-func printAIProviders(report *DoctorReport) {
+func printAIProviders(report *DoctorReport, verbose bool) {
 	fmt.Println("AI Providers:")
 	for _, name := range []string{"ollama", "anthropic", "openai", "gemini", "claude"} {
 		if check, ok := report.Providers[name]; ok {
-			printCheck(check)
+			printCheck(check, verbose)
+		}
+	}
+	// In verbose mode, also show API health checks
+	if verbose {
+		for name, check := range report.Providers {
+			if strings.Contains(name, "(API)") {
+				printCheck(check, verbose)
+			}
 		}
 	}
 	fmt.Println()
 }
 
 // printProjectStructure prints project structure checks
-func printProjectStructure(report *DoctorReport) {
+func printProjectStructure(report *DoctorReport, verbose bool) {
 	fmt.Println("Project Structure:")
 	if report.Spec != nil {
-		printCheck(report.Spec)
+		printCheck(report.Spec, verbose)
 	}
 	if report.Lock != nil {
-		printCheck(report.Lock)
+		printCheck(report.Lock, verbose)
 	}
 	if report.Policy != nil {
-		printCheck(report.Policy)
+		printCheck(report.Policy, verbose)
 	}
 	if report.Router != nil {
-		printCheck(report.Router)
+		printCheck(report.Router, verbose)
 	}
 	fmt.Println()
 }
 
 // printGitRepository prints git repository check
-func printGitRepository(report *DoctorReport) {
+func printGitRepository(report *DoctorReport, verbose bool) {
 	if report.Git != nil {
 		fmt.Println("Git Repository:")
-		printCheck(report.Git)
+		printCheck(report.Git, verbose)
 		fmt.Println()
 	}
 }
 
 // printGovernance prints governance checks
-func printGovernance(report *DoctorReport) {
+func printGovernance(report *DoctorReport, verbose bool) {
 	if report.Governance == nil {
 		return
 	}
@@ -695,22 +742,22 @@ func printGovernance(report *DoctorReport) {
 	fmt.Println("Governance:")
 	gov := report.Governance
 	if gov.Workspace != nil {
-		printCheck(gov.Workspace)
+		printCheck(gov.Workspace, verbose)
 	}
 	if gov.Policies != nil {
-		printCheck(gov.Policies)
+		printCheck(gov.Policies, verbose)
 	}
 	if gov.Providers != nil {
-		printCheck(gov.Providers)
+		printCheck(gov.Providers, verbose)
 	}
 	if gov.Bundles != nil {
-		printCheck(gov.Bundles)
+		printCheck(gov.Bundles, verbose)
 	}
 	if gov.Approvals != nil {
-		printCheck(gov.Approvals)
+		printCheck(gov.Approvals, verbose)
 	}
 	if gov.Traces != nil {
-		printCheck(gov.Traces)
+		printCheck(gov.Traces, verbose)
 	}
 	fmt.Println()
 }
@@ -762,7 +809,7 @@ func printOverallHealth(report *DoctorReport) error {
 	return fmt.Errorf("system health check failed")
 }
 
-func printCheck(check *DoctorCheck) {
+func printCheck(check *DoctorCheck, verbose bool) {
 	icon := " "
 	switch check.Status {
 	case "ok":
@@ -776,4 +823,11 @@ func printCheck(check *DoctorCheck) {
 	}
 
 	fmt.Printf("  %s %s: %s\n", icon, check.Name, check.Message)
+
+	// In verbose mode, print details
+	if verbose && len(check.Details) > 0 {
+		for key, value := range check.Details {
+			fmt.Printf("      %s: %v\n", key, value)
+		}
+	}
 }
