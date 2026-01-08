@@ -16,33 +16,33 @@ var templateFS embed.FS
 
 // Template represents a pre-built spec template
 type Template struct {
-	Name        string   `yaml:"name"`
-	ID          string   `yaml:"id"`
-	Description string   `yaml:"description"`
-	Language    string   `yaml:"language"`
-	Tags        []string `yaml:"tags"`
+	Name        string       `yaml:"name"`
+	ID          string       `yaml:"id"`
+	Description string       `yaml:"description"`
+	Language    string       `yaml:"language"`
+	Tags        []string     `yaml:"tags"`
 	Spec        SpecTemplate `yaml:"spec"`
 }
 
 // SpecTemplate is the template version of ProductSpec
 type SpecTemplate struct {
-	Product       string             `yaml:"product"`
-	Goals         []string           `yaml:"goals"`
-	Features      []FeatureTemplate  `yaml:"features"`
+	Product       string                `yaml:"product"`
+	Goals         []string              `yaml:"goals"`
+	Features      []FeatureTemplate     `yaml:"features"`
 	NonFunctional NonFunctionalTemplate `yaml:"non_functional"`
-	Acceptance    []string           `yaml:"acceptance"`
+	Acceptance    []string              `yaml:"acceptance"`
 }
 
 // FeatureTemplate is the template version of Feature
 type FeatureTemplate struct {
-	ID       string         `yaml:"id"`
-	Title    string         `yaml:"title"`
-	Desc     string         `yaml:"desc"`
-	Priority string         `yaml:"priority"`
-	API      []APITemplate  `yaml:"api,omitempty"`
-	Success  []string       `yaml:"success"`
-	Trace    []string       `yaml:"trace"`
-	Refs     []string       `yaml:"refs,omitempty"`
+	ID       string        `yaml:"id"`
+	Title    string        `yaml:"title"`
+	Desc     string        `yaml:"desc"`
+	Priority string        `yaml:"priority"`
+	API      []APITemplate `yaml:"api,omitempty"`
+	Success  []string      `yaml:"success"`
+	Trace    []string      `yaml:"trace"`
+	Refs     []string      `yaml:"refs,omitempty"`
 }
 
 // APITemplate is the template version of API

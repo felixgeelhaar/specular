@@ -11,12 +11,12 @@ import (
 
 // ProviderSelection represents a selected AI provider for quickstart
 type ProviderSelection struct {
-	Name      string // Provider name (anthropic, openai, ollama, etc.)
-	Type      string // Provider type (api, local, cli)
-	Ready     bool   // Is the provider ready to use
-	EnvVar    string // Environment variable used (if API provider)
-	Version   string // Version string (if available)
-	Reason    string // Why this provider was selected
+	Name    string // Provider name (anthropic, openai, ollama, etc.)
+	Type    string // Provider type (api, local, cli)
+	Ready   bool   // Is the provider ready to use
+	EnvVar  string // Environment variable used (if API provider)
+	Version string // Version string (if available)
+	Reason  string // Why this provider was selected
 }
 
 // DockerStatus represents container runtime status

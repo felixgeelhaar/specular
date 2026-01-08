@@ -33,6 +33,37 @@ func TestAutoSubcommands(t *testing.T) {
 	}
 }
 
+// TestCommandAliases tests that main commands have their aliases configured
+func TestCommandAliases(t *testing.T) {
+	tests := []struct {
+		cmd     *cobra.Command
+		name    string
+		aliases []string
+	}{
+		{autoCmd, "auto", []string{"a", "run"}},
+		{specCmd, "spec", []string{"s"}},
+		{planCmd, "plan", []string{"p"}},
+		{buildCmd, "build", []string{"b"}},
+		{initCmd, "init", []string{"i", "new"}},
+		{configCmd, "config", []string{"c", "cfg"}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if len(tc.cmd.Aliases) != len(tc.aliases) {
+				t.Errorf("%s: expected %d aliases, got %d", tc.name, len(tc.aliases), len(tc.cmd.Aliases))
+				return
+			}
+
+			for i, expected := range tc.aliases {
+				if tc.cmd.Aliases[i] != expected {
+					t.Errorf("%s: alias[%d] = %q, want %q", tc.name, i, tc.cmd.Aliases[i], expected)
+				}
+			}
+		})
+	}
+}
+
 // TestAutoResumeFlags tests that auto resume command has correct configuration
 func TestAutoResumeFlags(t *testing.T) {
 	// Find resume subcommand
@@ -297,8 +328,8 @@ func TestAutoGoalValidation(t *testing.T) {
 		{"valid_goal", "Build a REST API for user management", false},
 		{"empty_goal", "", true},
 		{"whitespace_goal", "   ", true},
-		{"too_short_goal", "Hi", true},       // Less than 3 characters - invalid
-		{"minimum_valid_goal", "Fix", false}, // Exactly 3 characters - valid
+		{"too_short_goal", "Hi", true},                  // Less than 3 characters - invalid
+		{"minimum_valid_goal", "Fix", false},            // Exactly 3 characters - valid
 		{"long_goal", strings.Repeat("x", 10001), true}, // Too long
 	}
 

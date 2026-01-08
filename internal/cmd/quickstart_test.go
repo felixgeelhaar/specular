@@ -149,9 +149,9 @@ func TestQuickstartTemplateToSpec(t *testing.T) {
 // TestTruncateString tests the truncateString helper function
 func TestTruncateString(t *testing.T) {
 	tests := []struct {
-		input   string
-		maxLen  int
-		want    string
+		input  string
+		maxLen int
+		want   string
 	}{
 		{"hello", 10, "hello"},
 		{"hello world", 5, "he..."},

@@ -24,10 +24,10 @@ func TestRegistry_Get(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		id        string
-		wantErr   bool
-		wantName  string
+		name     string
+		id       string
+		wantErr  bool
+		wantName string
 	}{
 		{
 			name:     "rest-api template",
@@ -196,9 +196,9 @@ func TestTemplate_Features(t *testing.T) {
 	}
 
 	tests := []struct {
-		templateID      string
-		minFeatures     int
-		hasAPI          bool
+		templateID       string
+		minFeatures      int
+		hasAPI           bool
 		hasNonFunctional bool
 	}{
 		{"rest-api", 3, true, true},

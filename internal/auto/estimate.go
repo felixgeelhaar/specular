@@ -10,16 +10,16 @@ import (
 // CostEstimate represents a comprehensive cost estimation for a workflow
 type CostEstimate struct {
 	// Component costs
-	SpecGeneration  float64 `json:"spec_generation"`
-	PlanGeneration  float64 `json:"plan_generation"`
-	TaskExecution   float64 `json:"task_execution"`
-	Total           float64 `json:"total"`
+	SpecGeneration float64 `json:"spec_generation"`
+	PlanGeneration float64 `json:"plan_generation"`
+	TaskExecution  float64 `json:"task_execution"`
+	Total          float64 `json:"total"`
 
 	// Context
-	ModelUsed       string  `json:"model_used"`
-	GoalLength      int     `json:"goal_length"`
-	EstFeatureCount int     `json:"est_feature_count"`
-	EstTaskCount    int     `json:"est_task_count"`
+	ModelUsed       string `json:"model_used"`
+	GoalLength      int    `json:"goal_length"`
+	EstFeatureCount int    `json:"est_feature_count"`
+	EstTaskCount    int    `json:"est_task_count"`
 
 	// Budget context (if available)
 	BudgetLimit     float64 `json:"budget_limit"`

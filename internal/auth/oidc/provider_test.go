@@ -396,11 +396,11 @@ func TestConfig_PKCEDisabled(t *testing.T) {
 // This is a helper for integration-style tests
 type MockOIDCServer struct {
 	*httptest.Server
-	tokenEndpoint      string
-	authorizationURL   string
-	userInfoEndpoint   string
-	jwksURI            string
-	discoveryEndpoint  string
+	tokenEndpoint     string
+	authorizationURL  string
+	userInfoEndpoint  string
+	jwksURI           string
+	discoveryEndpoint string
 }
 
 // NewMockOIDCServer creates a new mock OIDC server
