@@ -1,0 +1,20 @@
+# GitHub Pages Configuration for Specular Landing Page
+title: Specular
+description: The governance layer for AI-driven development
+url: https://felixgeelhaar.github.io
+baseurl: /specular
+
+# Build settings
+markdown: kramdown
+theme: null
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+
+# Include landing page
+include:
+  - index.html
