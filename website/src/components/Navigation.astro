@@ -1,0 +1,110 @@
+---
+// Navigation component
+---
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/specular/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none">
+        <path d="M16 2L2 9v14l14 7 14-7V9L16 2z" stroke="currentColor" stroke-width="2"/>
+        <path d="M16 16v14M2 9l14 7 14-7" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+        <circle cx="16" cy="16" r="4" fill="currentColor"/>
+      </svg>
+      <span>Specular</span>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#workflow">Workflow</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><a href="https://github.com/felixgeelhaar/specular/blob/main/docs/getting-started.md">Docs</a></li>
+    </ul>
+
+    <div class="nav-cta">
+      <a href="https://github.com/felixgeelhaar/specular" class="btn btn-ghost">GitHub</a>
+      <a href="#install" class="btn btn-primary">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<style>
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 1rem 0;
+    background: linear-gradient(to bottom, var(--bg-void) 0%, transparent 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .nav-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--text-primary);
+  }
+
+  .nav-logo svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .nav-logo span {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s;
+    position: relative;
+  }
+
+  .nav-links a::before {
+    content: '//';
+    opacity: 0;
+    margin-right: 0.25rem;
+    color: var(--accent-cyan);
+    transition: opacity 0.2s;
+  }
+
+  .nav-links a:hover {
+    color: var(--text-primary);
+  }
+
+  .nav-links a:hover::before {
+    opacity: 1;
+  }
+
+  .nav-cta {
+    display: flex;
+    gap: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .nav-links {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,226 @@
+---
+interface Props {
+  version?: string;
+}
+
+const { version = "v1.9.0" } = Astro.props;
+---
+
+<section class="hero">
+  <div class="container hero-content">
+    <div class="hero-badge">
+      <span>{version} Now Available</span>
+    </div>
+
+    <h1 class="hero-title">
+      The <span class="highlight">Governance Layer</span><br />
+      for AI Development
+    </h1>
+
+    <p class="hero-subtitle">
+      Replace wild-west prompting with structured, policy-compliant workflows.
+      Specular is the control plane for AI-driven development with drift detection,
+      audit trails, and enterprise-grade policy enforcement.
+    </p>
+
+    <div class="hero-actions">
+      <a href="#install" class="btn btn-primary">
+        <span>brew install specular</span>
+      </a>
+      <a href="https://github.com/felixgeelhaar/specular/blob/main/docs/getting-started.md" class="btn btn-ghost">
+        Read the Docs
+      </a>
+    </div>
+
+    <!-- Terminal Preview -->
+    <div class="terminal-preview">
+      <div class="terminal-header">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">specular — zsh</span>
+      </div>
+      <div class="terminal-body">
+        <div class="terminal-line">
+          <span class="terminal-prompt">$</span>
+          <span class="terminal-command">specular auto "Build a REST API for user management"</span>
+        </div>
+        <div class="terminal-line terminal-output">
+          <span class="terminal-success">✓</span> Spec generated from requirements
+        </div>
+        <div class="terminal-line terminal-output">
+          <span class="terminal-success">✓</span> Policy validation passed
+        </div>
+        <div class="terminal-line terminal-output">
+          <span class="terminal-warning">→</span> Executing in Docker sandbox...
+        </div>
+        <div class="terminal-line terminal-output">
+          <span class="terminal-success">✓</span> Build complete. Drift check: <span class="terminal-success">0 issues</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 6rem;
+    position: relative;
+  }
+
+  .hero-content {
+    text-align: center;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--accent-cyan);
+    background: var(--accent-cyan-glow);
+    border: 1px solid var(--border-accent);
+    padding: 0.5rem 1rem;
+    border-radius: 100px;
+    margin-bottom: 2rem;
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent-cyan);
+    border-radius: 50%;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-title .highlight {
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-violet) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    max-width: 600px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.7;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 4rem;
+  }
+
+  .hero-actions .btn {
+    padding: 0.875rem 1.75rem;
+    font-size: 0.875rem;
+  }
+
+  /* Terminal Preview */
+  .terminal-preview {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    overflow: hidden;
+    max-width: 700px;
+    margin: 0 auto;
+    box-shadow:
+      0 0 0 1px var(--border-subtle),
+      0 20px 50px -10px rgba(0, 0, 0, 0.5),
+      0 0 100px -20px var(--accent-cyan-glow);
+    text-align: left;
+  }
+
+  .terminal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .terminal-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .terminal-dot.red { background: #ff5f56; }
+  .terminal-dot.yellow { background: #ffbd2e; }
+  .terminal-dot.green { background: #27ca40; }
+
+  .terminal-title {
+    flex: 1;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .terminal-body {
+    padding: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.8;
+  }
+
+  .terminal-line {
+    display: flex;
+    align-items: flex-start;
+    opacity: 0;
+    animation: fadeIn 0.5s ease forwards;
+  }
+
+  .terminal-line:nth-child(1) { animation-delay: 0.2s; }
+  .terminal-line:nth-child(2) { animation-delay: 0.8s; }
+  .terminal-line:nth-child(3) { animation-delay: 1.4s; }
+  .terminal-line:nth-child(4) { animation-delay: 2.0s; }
+  .terminal-line:nth-child(5) { animation-delay: 2.6s; }
+
+  .terminal-prompt {
+    color: var(--accent-cyan);
+    margin-right: 0.75rem;
+    user-select: none;
+  }
+
+  .terminal-command {
+    color: var(--text-primary);
+  }
+
+  .terminal-output {
+    color: var(--text-secondary);
+    padding-left: 1.5rem;
+  }
+
+  .terminal-success {
+    color: var(--accent-emerald);
+  }
+
+  .terminal-warning {
+    color: var(--accent-amber);
+  }
+</style>

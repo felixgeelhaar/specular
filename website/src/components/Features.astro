@@ -1,0 +1,168 @@
+---
+const features = [
+  {
+    title: "Policy Enforcement",
+    desc: "Define what AI can and cannot do. Image allowlisting, resource limits, and cryptographic approvals for every action.",
+    icon: "shield-check",
+    accent: "cyan"
+  },
+  {
+    title: "Drift Detection",
+    desc: "Multi-layer validation ensures spec, plan, and code stay aligned. SARIF reports integrate with GitHub Security scanning.",
+    icon: "alert",
+    accent: "amber"
+  },
+  {
+    title: "Docker Sandboxing",
+    desc: "All AI execution happens in isolated containers with resource limits, network controls, and no host access.",
+    icon: "terminal",
+    accent: "emerald"
+  },
+  {
+    title: "Multi-LLM Routing",
+    desc: "Intelligent routing across Ollama, OpenAI, Anthropic, and Gemini. Optimize for cost, latency, or capability.",
+    icon: "cube",
+    accent: "violet"
+  },
+  {
+    title: "Audit Trails",
+    desc: "Cryptographic attestations with ECDSA signatures. Complete trace logging for compliance and debugging.",
+    icon: "document",
+    accent: "rose"
+  },
+  {
+    title: "CI/CD Integration",
+    desc: "GitHub Action included. Run drift checks on every PR, gate deployments on policy compliance.",
+    icon: "cli",
+    accent: "cyan"
+  }
+];
+---
+
+<section class="features-section" id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">// Capabilities</div>
+      <h2 class="section-title">Enterprise-Grade AI Governance</h2>
+      <p class="section-subtitle">
+        Everything you need to run AI-powered development at scale with confidence.
+      </p>
+    </div>
+
+    <div class="features-grid">
+      {features.map((feature) => (
+        <div class={`feature-card accent-${feature.accent}`}>
+          <div class="feature-icon">
+            {feature.icon === "shield-check" && (
+              <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            )}
+            {feature.icon === "alert" && (
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            )}
+            {feature.icon === "terminal" && (
+              <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            )}
+            {feature.icon === "cube" && (
+              <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            )}
+            {feature.icon === "document" && (
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            )}
+            {feature.icon === "cli" && (
+              <svg viewBox="0 0 24 24"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            )}
+          </div>
+          <h3 class="feature-title">{feature.title}</h3>
+          <p class="feature-desc">{feature.desc}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .features-section {
+    padding: var(--section-padding) 0;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 2rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    --card-accent: var(--accent-cyan);
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--card-accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3);
+  }
+
+  .feature-card:hover::before {
+    opacity: 1;
+  }
+
+  .feature-card.accent-amber { --card-accent: var(--accent-amber); }
+  .feature-card.accent-emerald { --card-accent: var(--accent-emerald); }
+  .feature-card.accent-violet { --card-accent: var(--accent-violet); }
+  .feature-card.accent-rose { --card-accent: var(--accent-rose); }
+
+  .feature-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-cyan-glow);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .feature-card.accent-amber .feature-icon { background: rgba(245, 158, 11, 0.15); }
+  .feature-card.accent-emerald .feature-icon { background: rgba(16, 185, 129, 0.15); }
+  .feature-card.accent-violet .feature-icon { background: rgba(139, 92, 246, 0.15); }
+  .feature-card.accent-rose .feature-icon { background: rgba(244, 63, 94, 0.15); }
+
+  .feature-icon svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--card-accent);
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  .feature-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .feature-desc {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+</style>

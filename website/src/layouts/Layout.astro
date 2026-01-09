@@ -1,0 +1,31 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "The governance layer for AI-driven development. Policy enforcement, drift detection, and audit trails for enterprise AI workflows." } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="keywords" content="AI development, governance, policy enforcement, drift detection, LLM, DevOps, specification-driven" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="/specular/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div class="grid-bg"></div>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>

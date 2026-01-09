@@ -61,6 +61,11 @@ dist/
 build/
 bin/
 
+# Node.js (website)
+node_modules/
+website/dist/
+website/.astro/
+
 # Sensitive internal documents (IP)
 docs/prd.md
 docs/*roadmap*.md

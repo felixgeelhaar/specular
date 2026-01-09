@@ -1,0 +1,69 @@
+---
+// Call to Action component
+---
+
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-box">
+      <h2 class="cta-title">Ready to govern your AI workflows?</h2>
+      <p class="cta-subtitle">
+        Join teams shipping AI-powered software with confidence and compliance.
+      </p>
+      <div class="cta-actions">
+        <a href="#install" class="btn btn-primary">Get Started Free</a>
+        <a href="https://github.com/felixgeelhaar/specular" class="btn btn-ghost">View on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cta-section {
+    padding: var(--section-padding) 0;
+  }
+
+  .cta-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 24px;
+    padding: 4rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, var(--accent-cyan-glow) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .cta-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.125rem;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+
+  .cta-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+</style>
