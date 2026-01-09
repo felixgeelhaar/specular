@@ -1,0 +1,290 @@
+---
+import type { Command } from '../../data/commands';
+
+interface Props {
+  command: Command;
+  parentCommand?: string;
+}
+
+const { command, parentCommand } = Astro.props;
+const fullName = parentCommand ? `${parentCommand} ${command.name}` : command.name;
+const anchorId = fullName.replace(/\s+/g, '-').toLowerCase();
+---
+
+<article class="command-card" id={anchorId}>
+  <header class="command-header">
+    <h3 class="command-name">
+      <span class="prompt">$</span>
+      <span class="cmd">specular {fullName}</span>
+    </h3>
+  </header>
+
+  <p class="command-description">{command.description}</p>
+
+  <div class="command-usage">
+    <h4 class="subsection-title">Usage</h4>
+    <code class="usage-code">{command.usage}</code>
+  </div>
+
+  {command.examples.length > 0 && (
+    <div class="command-examples">
+      <h4 class="subsection-title">Examples</h4>
+      <div class="examples-list">
+        {command.examples.map((example) => (
+          <div class="example-line">
+            <span class="example-prompt">$</span>
+            <code class="example-code">{example}</code>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+
+  {command.flags.length > 0 && (
+    <div class="command-flags">
+      <h4 class="subsection-title">Flags</h4>
+      <div class="flags-table">
+        {command.flags.map((flag) => (
+          <div class="flag-row">
+            <div class="flag-name">
+              <code>{flag.name}</code>
+              {flag.shorthand && <code class="shorthand">{flag.shorthand}</code>}
+            </div>
+            <div class="flag-description">
+              {flag.description}
+              {flag.default && <span class="flag-default">Default: {flag.default}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+
+  {command.subcommands && command.subcommands.length > 0 && (
+    <div class="command-subcommands">
+      <h4 class="subsection-title">Subcommands</h4>
+      <div class="subcommands-list">
+        {command.subcommands.map((sub) => (
+          <a href={`#${fullName.replace(/\s+/g, '-').toLowerCase()}-${sub.name}`} class="subcommand-link">
+            <code>{sub.name}</code>
+            <span>{sub.description}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  )}
+</article>
+
+<style>
+  .command-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 1.5rem;
+    scroll-margin-top: 100px;
+    transition: border-color 0.2s;
+  }
+
+  .command-card:hover {
+    border-color: var(--border-accent);
+  }
+
+  .command-card:target {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 20px var(--accent-cyan-glow);
+  }
+
+  .command-header {
+    margin-bottom: 1rem;
+  }
+
+  .command-name {
+    font-family: var(--font-mono);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .prompt {
+    color: var(--accent-cyan);
+  }
+
+  .cmd {
+    color: #f7f7f7;
+  }
+
+  .command-description {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+
+  .subsection-title {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+
+  .command-usage {
+    margin-bottom: 1.25rem;
+  }
+
+  .usage-code {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--accent-cyan);
+    background: var(--bg-elevated);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    display: block;
+  }
+
+  .command-examples {
+    margin-bottom: 1.25rem;
+  }
+
+  .examples-list {
+    background: #0c0c0c;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+  }
+
+  .example-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+  }
+
+  .example-prompt {
+    color: var(--accent-cyan);
+    flex-shrink: 0;
+  }
+
+  .example-code {
+    color: #cccccc;
+  }
+
+  .command-flags {
+    margin-bottom: 1.25rem;
+  }
+
+  .flags-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .flag-row {
+    display: grid;
+    grid-template-columns: minmax(180px, auto) 1fr;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .flag-row:last-child {
+    border-bottom: none;
+  }
+
+  .flag-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .flag-name code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--accent-amber);
+    background: rgba(245, 158, 11, 0.1);
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+  }
+
+  .flag-name .shorthand {
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+  }
+
+  .flag-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .flag-default {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .command-subcommands {
+    margin-top: 1rem;
+  }
+
+  .subcommands-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .subcommand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-elevated);
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .subcommand-link:hover {
+    background: var(--bg-card-hover);
+  }
+
+  .subcommand-link code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--accent-cyan);
+    flex-shrink: 0;
+  }
+
+  .subcommand-link span {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 768px) {
+    .command-card {
+      padding: 1rem;
+    }
+
+    .flag-row {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+
+    .flag-name {
+      flex-wrap: wrap;
+    }
+  }
+</style>

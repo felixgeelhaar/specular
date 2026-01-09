@@ -1,0 +1,339 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DocsSidebar from '../components/docs/DocsSidebar.astro';
+import CommandGroup from '../components/docs/CommandGroup.astro';
+import { commandGroups, globalFlags } from '../data/commands';
+---
+
+<Layout title="Documentation | Specular CLI" description="Complete command reference for the Specular CLI. Learn about all commands, flags, and options for governance-first AI development.">
+  <div class="docs-layout">
+    <DocsSidebar />
+
+    <main class="docs-main">
+      <div class="docs-header">
+        <div class="breadcrumb">
+          <a href="/specular/">Home</a>
+          <span class="separator">/</span>
+          <span>Documentation</span>
+        </div>
+        <h1 class="docs-title">Command Reference</h1>
+        <p class="docs-subtitle">
+          Complete reference for all Specular CLI commands, flags, and options.
+          Use the sidebar to navigate between command groups.
+        </p>
+      </div>
+
+      <div class="docs-content">
+        {commandGroups.map((group) => (
+          <CommandGroup group={group} />
+        ))}
+
+        <section class="global-flags-section" id="global-flags">
+          <header class="group-header">
+            <div class="group-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <div class="group-info">
+              <h2 class="group-name">Global Flags</h2>
+              <p class="group-description">Flags available on all Specular commands</p>
+            </div>
+          </header>
+
+          <div class="global-flags-card">
+            <div class="flags-table">
+              {globalFlags.map((flag) => (
+                <div class="flag-row">
+                  <div class="flag-name">
+                    <code>{flag.name}</code>
+                    {flag.shorthand && <code class="shorthand">{flag.shorthand}</code>}
+                  </div>
+                  <div class="flag-description">
+                    {flag.description}
+                    {flag.default && <span class="flag-default">Default: {flag.default}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="docs-footer">
+        <p>
+          Need help? Check out the
+          <a href="https://github.com/felixgeelhaar/specular/blob/main/docs/getting-started.md">Getting Started Guide</a>
+          or open an
+          <a href="https://github.com/felixgeelhaar/specular/issues">issue on GitHub</a>.
+        </p>
+      </footer>
+    </main>
+  </div>
+</Layout>
+
+<script>
+  // Scroll spy for sidebar navigation
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          document.querySelectorAll('.nav-link').forEach((link) => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${id}`) {
+              link.classList.add('active');
+            }
+          });
+        }
+      });
+    },
+    { rootMargin: '-100px 0px -80% 0px' }
+  );
+
+  document.querySelectorAll('.command-group, .global-flags-section').forEach((section) => {
+    observer.observe(section);
+  });
+
+  // Smooth scroll for sidebar links
+  document.querySelectorAll('.sidebar-nav a[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const href = this.getAttribute('href');
+      if (href) {
+        const target = document.querySelector(href);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.pushState(null, '', href);
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  .docs-layout {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .docs-main {
+    flex: 1;
+    margin-left: 280px;
+    padding: 2rem;
+    max-width: 100%;
+  }
+
+  .docs-header {
+    max-width: 900px;
+    margin: 0 auto 3rem;
+    padding-top: 2rem;
+  }
+
+  .breadcrumb {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .breadcrumb a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .breadcrumb a:hover {
+    color: var(--accent-cyan);
+  }
+
+  .separator {
+    color: var(--border-default);
+  }
+
+  .docs-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin: 0 0 1rem 0;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .docs-subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 600px;
+  }
+
+  .docs-content {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+  }
+
+  /* Global flags section */
+  .global-flags-section {
+    scroll-margin-top: 100px;
+  }
+
+  .group-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .group-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-cyan-glow);
+    border: 1px solid var(--border-accent);
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+
+  .group-icon svg {
+    width: 24px;
+    height: 24px;
+    color: var(--accent-cyan);
+  }
+
+  .group-info {
+    flex: 1;
+  }
+
+  .group-name {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.02em;
+  }
+
+  .group-description {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    margin: 0;
+  }
+
+  .global-flags-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .flags-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .flag-row {
+    display: grid;
+    grid-template-columns: minmax(180px, auto) 1fr;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .flag-row:last-child {
+    border-bottom: none;
+  }
+
+  .flag-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .flag-name code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--accent-amber);
+    background: rgba(245, 158, 11, 0.1);
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+  }
+
+  .flag-name .shorthand {
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+  }
+
+  .flag-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .flag-default {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .docs-footer {
+    max-width: 900px;
+    margin: 4rem auto 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-subtle);
+    text-align: center;
+  }
+
+  .docs-footer p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  .docs-footer a {
+    color: var(--accent-cyan);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .docs-footer a:hover {
+    color: var(--accent-cyan-dim);
+    text-decoration: underline;
+  }
+
+  @media (max-width: 1024px) {
+    .docs-main {
+      margin-left: 0;
+    }
+
+    .docs-header {
+      padding-top: 1rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .docs-main {
+      padding: 1rem;
+    }
+
+    .flag-row {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+  }
+</style>
