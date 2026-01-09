@@ -5,8 +5,10 @@
 Output public/demo.gif
 
 Set Shell "zsh"
-Set FontFamily "JetBrainsMono Nerd Font"
-Set FontSize 15
+Set FontFamily "SF Mono"
+Set FontSize 14
+Set LetterSpacing 0.5
+Set LineHeight 1.2
 Set Width 1000
 Set Height 600
 Set Padding 20
