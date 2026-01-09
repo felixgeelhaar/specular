@@ -32,7 +32,7 @@ const { version = "v1.9.0" } = Astro.props;
       </a>
     </div>
 
-    <!-- Terminal Preview - CSS Animation -->
+    <!-- Terminal Preview - Full Workflow Demo -->
     <div class="terminal-preview">
       <div class="terminal-header">
         <span class="terminal-dot red"></span>
@@ -42,55 +42,82 @@ const { version = "v1.9.0" } = Astro.props;
       </div>
       <div class="terminal-body">
         <div class="terminal-content">
-          <!-- Command 1: specular doctor -->
+          <!-- Step 1: Initialize -->
           <div class="terminal-line line-1">
             <span class="prompt">$</span>
-            <span class="command">specular doctor</span>
+            <span class="command">specular init</span>
           </div>
-
-          <!-- Output -->
           <div class="terminal-line line-2">
-            <span class="output box-top">╔══════════════════════════════════════════════════════════════╗</span>
+            <span class="output"><span class="success">✓</span> Created .specular/spec.yaml</span>
           </div>
           <div class="terminal-line line-3">
-            <span class="output box-mid">║                    System Diagnostics                        ║</span>
+            <span class="output"><span class="success">✓</span> Created .specular/policy.yaml</span>
           </div>
           <div class="terminal-line line-4">
-            <span class="output box-bot">╚══════════════════════════════════════════════════════════════╝</span>
+            <span class="output"><span class="success">✓</span> Created .specular/router.yaml</span>
           </div>
 
+          <!-- Step 2: Route List - Show Providers -->
           <div class="terminal-line line-5">
-            <span class="output section">Container Runtime:</span>
+            <span class="prompt">$</span>
+            <span class="command">specular route list</span>
           </div>
           <div class="terminal-line line-6">
-            <span class="output"><span class="success">✓</span> Docker: Docker is available (version 29.1.3)</span>
+            <span class="output section">=== AI Providers ===</span>
           </div>
-
           <div class="terminal-line line-7">
-            <span class="output section">AI Providers:</span>
+            <span class="output"><span class="success">✓</span> ollama (local) — llama3.2, qwen3</span>
           </div>
           <div class="terminal-line line-8">
-            <span class="output"><span class="success">✓</span> ollama: ollama is available (local)</span>
+            <span class="output"><span class="success">✓</span> claude (cli) — Claude Code 2.1.2</span>
           </div>
           <div class="terminal-line line-9">
-            <span class="output"><span class="success">✓</span> anthropic: anthropic is available</span>
+            <span class="output"><span class="success">✓</span> anthropic — claude-sonnet-4, claude-haiku-3.5</span>
           </div>
           <div class="terminal-line line-10">
-            <span class="output"><span class="success">✓</span> openai: openai is available</span>
+            <span class="output"><span class="success">✓</span> openai — gpt-4o, gpt-4o-mini</span>
           </div>
 
+          <!-- Step 3: Spec Validate -->
           <div class="terminal-line line-11">
-            <span class="output section">Project Structure:</span>
+            <span class="prompt">$</span>
+            <span class="command">specular spec validate</span>
           </div>
           <div class="terminal-line line-12">
-            <span class="output"><span class="success">✓</span> Spec: specular.yaml loaded</span>
-          </div>
-          <div class="terminal-line line-13">
-            <span class="output"><span class="success">✓</span> Policy: policy.yaml configured</span>
+            <span class="output"><span class="success">✓</span> Spec valid: 3 features, 12 tasks defined</span>
           </div>
 
+          <!-- Step 4: Plan Create -->
+          <div class="terminal-line line-13">
+            <span class="prompt">$</span>
+            <span class="command">specular plan create</span>
+          </div>
           <div class="terminal-line line-14">
-            <span class="output result"><span class="success">✅</span> System is healthy and ready to use!</span>
+            <span class="output"><span class="success">✓</span> Plan generated: 12 tasks across 4 phases</span>
+          </div>
+
+          <!-- Step 5: Build with Sandbox -->
+          <div class="terminal-line line-15">
+            <span class="prompt">$</span>
+            <span class="command">specular build --sandbox</span>
+          </div>
+          <div class="terminal-line line-16">
+            <span class="output"><span class="success">✓</span> Docker sandbox created (isolated)</span>
+          </div>
+          <div class="terminal-line line-17">
+            <span class="output"><span class="success">✓</span> Executing plan in container...</span>
+          </div>
+          <div class="terminal-line line-18">
+            <span class="output"><span class="success">✓</span> Build complete: all tests passing</span>
+          </div>
+
+          <!-- Step 6: Drift Check -->
+          <div class="terminal-line line-19">
+            <span class="prompt">$</span>
+            <span class="command">specular drift check</span>
+          </div>
+          <div class="terminal-line line-20">
+            <span class="output result"><span class="success">✅</span> No drift — spec, plan, code aligned</span>
           </div>
         </div>
       </div>
@@ -274,19 +301,36 @@ const { version = "v1.9.0" } = Astro.props;
     color: #d0b03c;
   }
 
-  /* Animation delays */
+  /* Animation delays - Full Workflow */
+  /* Step 1: specular init */
   .line-1 { animation-delay: 0.2s; }
-  .line-2 { animation-delay: 0.8s; }
-  .line-3 { animation-delay: 0.9s; }
+  .line-2 { animation-delay: 0.6s; }
+  .line-3 { animation-delay: 0.8s; }
   .line-4 { animation-delay: 1.0s; }
-  .line-5 { animation-delay: 1.3s; }
-  .line-6 { animation-delay: 1.5s; }
-  .line-7 { animation-delay: 1.8s; }
-  .line-8 { animation-delay: 2.0s; }
-  .line-9 { animation-delay: 2.2s; }
-  .line-10 { animation-delay: 2.4s; }
-  .line-11 { animation-delay: 2.7s; }
-  .line-12 { animation-delay: 2.9s; }
-  .line-13 { animation-delay: 3.1s; }
-  .line-14 { animation-delay: 3.5s; }
+
+  /* Step 2: specular route list */
+  .line-5 { animation-delay: 1.5s; }
+  .line-6 { animation-delay: 1.9s; }
+  .line-7 { animation-delay: 2.1s; }
+  .line-8 { animation-delay: 2.3s; }
+  .line-9 { animation-delay: 2.5s; }
+  .line-10 { animation-delay: 2.7s; }
+
+  /* Step 3: specular spec validate */
+  .line-11 { animation-delay: 3.2s; }
+  .line-12 { animation-delay: 3.6s; }
+
+  /* Step 4: specular plan create */
+  .line-13 { animation-delay: 4.1s; }
+  .line-14 { animation-delay: 4.5s; }
+
+  /* Step 5: specular build --sandbox */
+  .line-15 { animation-delay: 5.0s; }
+  .line-16 { animation-delay: 5.4s; }
+  .line-17 { animation-delay: 5.8s; }
+  .line-18 { animation-delay: 6.2s; }
+
+  /* Step 6: specular drift check */
+  .line-19 { animation-delay: 6.7s; }
+  .line-20 { animation-delay: 7.1s; }
 </style>
