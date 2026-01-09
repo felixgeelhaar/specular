@@ -45,17 +45,32 @@ const { version = "v1.9.0" } = Astro.props;
           <span class="terminal-prompt">$</span>
           <span class="terminal-command">specular auto "Build a REST API for user management"</span>
         </div>
-        <div class="terminal-line terminal-output">
-          <span class="terminal-success">✓</span> Spec generated from requirements
+        <div class="terminal-line terminal-output terminal-dim">
+          <span class="terminal-icon">📋</span> Created action plan with 4 steps
         </div>
         <div class="terminal-line terminal-output">
-          <span class="terminal-success">✓</span> Policy validation passed
+          <span class="terminal-icon">🤖</span> Generating specification from goal...
+        </div>
+        <div class="terminal-line terminal-output terminal-indent">
+          <span class="terminal-success">✓</span> Spec locked: .specular/spec.lock.yaml
         </div>
         <div class="terminal-line terminal-output">
-          <span class="terminal-warning">→</span> Executing in Docker sandbox...
+          <span class="terminal-icon">🔒</span> Policy validation passed <span class="terminal-dim">(L2 governance)</span>
         </div>
         <div class="terminal-line terminal-output">
-          <span class="terminal-success">✓</span> Build complete. Drift check: <span class="terminal-success">0 issues</span>
+          <span class="terminal-icon">🚀</span> Executing plan...
+        </div>
+        <div class="terminal-line terminal-output terminal-indent">
+          <span class="terminal-warning">→</span> Running in Docker sandbox...
+        </div>
+        <div class="terminal-line terminal-output terminal-indent">
+          <span class="terminal-success">✓</span> Completed: <span class="terminal-highlight">12/12</span> tasks
+        </div>
+        <div class="terminal-line terminal-output terminal-result">
+          <span class="terminal-success">✅</span> Auto mode completed in <span class="terminal-highlight">2m 34s</span>
+        </div>
+        <div class="terminal-line terminal-output terminal-indent terminal-stats">
+          Drift check: <span class="terminal-success">0 issues</span> · Cost: <span class="terminal-dim">$0.0847</span>
         </div>
       </div>
     </div>
@@ -192,14 +207,19 @@ const { version = "v1.9.0" } = Astro.props;
     display: flex;
     align-items: flex-start;
     opacity: 0;
-    animation: fadeIn 0.5s ease forwards;
+    animation: fadeIn 0.4s ease forwards;
   }
 
   .terminal-line:nth-child(1) { animation-delay: 0.2s; }
-  .terminal-line:nth-child(2) { animation-delay: 0.8s; }
-  .terminal-line:nth-child(3) { animation-delay: 1.4s; }
-  .terminal-line:nth-child(4) { animation-delay: 2.0s; }
-  .terminal-line:nth-child(5) { animation-delay: 2.6s; }
+  .terminal-line:nth-child(2) { animation-delay: 0.6s; }
+  .terminal-line:nth-child(3) { animation-delay: 1.0s; }
+  .terminal-line:nth-child(4) { animation-delay: 1.4s; }
+  .terminal-line:nth-child(5) { animation-delay: 1.8s; }
+  .terminal-line:nth-child(6) { animation-delay: 2.2s; }
+  .terminal-line:nth-child(7) { animation-delay: 2.6s; }
+  .terminal-line:nth-child(8) { animation-delay: 3.0s; }
+  .terminal-line:nth-child(9) { animation-delay: 3.4s; }
+  .terminal-line:nth-child(10) { animation-delay: 3.8s; }
 
   .terminal-prompt {
     color: var(--accent-cyan);
@@ -213,7 +233,14 @@ const { version = "v1.9.0" } = Astro.props;
 
   .terminal-output {
     color: var(--text-secondary);
+  }
+
+  .terminal-indent {
     padding-left: 1.5rem;
+  }
+
+  .terminal-icon {
+    margin-right: 0.5rem;
   }
 
   .terminal-success {
@@ -222,5 +249,21 @@ const { version = "v1.9.0" } = Astro.props;
 
   .terminal-warning {
     color: var(--accent-amber);
+  }
+
+  .terminal-highlight {
+    color: var(--accent-cyan);
+  }
+
+  .terminal-dim {
+    color: var(--text-muted);
+  }
+
+  .terminal-result {
+    margin-top: 0.5rem;
+  }
+
+  .terminal-stats {
+    font-size: 0.8rem;
   }
 </style>
