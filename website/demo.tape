@@ -6,12 +6,12 @@ Output public/demo.gif
 
 Set Shell "zsh"
 Set FontFamily "JetBrainsMono Nerd Font"
-Set FontSize 16
-Set Width 900
-Set Height 500
-Set Padding 24
+Set FontSize 15
+Set Width 1000
+Set Height 600
+Set Padding 20
 Set Framerate 30
-Set TypingSpeed 40ms
+Set TypingSpeed 35ms
 Set CursorBlink false
 
 # Ghostty-inspired dark theme colors
@@ -30,16 +30,34 @@ Enter
 Sleep 300ms
 Show
 
-# Initialize project
+# 1. Initialize project
 Type "./specular init --yes --no-detect"
-Sleep 300ms
+Sleep 200ms
 Enter
-Sleep 5s
+Sleep 4s
 
-# Run doctor
-Type "./specular doctor"
-Sleep 300ms
+# 2. Show the generated spec file
+Type "cat specular.yaml | head -25"
+Sleep 200ms
 Enter
-Sleep 5s
+Sleep 3s
+
+# 3. Run doctor to check system health
+Type "./specular doctor"
+Sleep 200ms
+Enter
+Sleep 4s
+
+# 4. Validate policies
+Type "./specular policy validate"
+Sleep 200ms
+Enter
+Sleep 3s
+
+# 5. Check for drift
+Type "./specular drift check"
+Sleep 200ms
+Enter
+Sleep 3s
 
 Sleep 1s
