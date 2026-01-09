@@ -5,7 +5,7 @@
 Output public/demo.gif
 
 Set Shell "zsh"
-Set FontFamily "JetBrains Mono"
+Set FontFamily "JetBrainsMono Nerd Font"
 Set FontSize 16
 Set Width 900
 Set Height 500
