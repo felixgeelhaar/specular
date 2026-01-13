@@ -52,6 +52,7 @@ specular plugin list
 | [Protocol Reference](protocol-reference.md) | JSON communication protocol |
 | [Best Practices](best-practices.md) | Development guidelines |
 | [Publishing Guide](publishing.md) | Registry submission process |
+| [Plugin Template Checklist](template-checklist.md) | What to replace when scaffolding a plugin |
 
 ### Language Guides
 
