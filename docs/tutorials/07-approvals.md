@@ -12,6 +12,9 @@ Approvals provide:
 - Audit trails with timestamps
 - Verification of stakeholder consent
 
+For governance approvals, use `specular approve <resource-id> --message \"...\"`
+and follow `docs/APPROVAL_BEST_PRACTICES.md`.
+
 ---
 
 ## Prerequisites
@@ -168,9 +171,9 @@ Checking required roles...
 
 ---
 
-## Step 5: Approve Generic Resources
+## Step 5: Approve Governance Resources
 
-Approve bundles, drift, or policies by ID:
+Approve bundles, drift, or policies by ID (message required):
 
 ```bash
 # Approve a bundle
@@ -250,8 +253,8 @@ Output:
 
 🔀 Drift Detected:
   • Drift detected but not approved
-  • Run 'specular drift check' to see details
-  • Run 'specular drift approve' to approve
+  • Run 'specular eval drift' to see details
+  • Run 'specular approve <drift-id>' to approve
 ```
 
 Exit code 1 if pending approvals exist (for CI/CD).

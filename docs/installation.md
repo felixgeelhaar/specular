@@ -624,7 +624,7 @@ $env:OPENAI_API_KEY = "sk-..."
 specular provider list
 
 # Check provider health
-specular provider health
+specular provider doctor
 
 # Test with a simple generation
 specular generate "What is 2 + 2?" --model-hint fast
@@ -886,14 +886,14 @@ echo 'export ANTHROPIC_API_KEY="sk-ant-..."' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-#### Provider Health Check Fails
+#### Provider Doctor Check Fails
 
 **Problem**: Network issues or invalid API key.
 
 **Solution**:
 ```bash
 # Check provider health with verbose output
-specular provider health --verbose
+specular provider doctor --verbose
 
 # Test API key manually
 curl https://api.anthropic.com/v1/messages \

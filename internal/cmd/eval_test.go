@@ -118,22 +118,6 @@ func TestEvalScenarioChecks(t *testing.T) {
 	}
 }
 
-// TestEvalBackwardCompatibilityFlags tests that old eval flags work
-func TestEvalBackwardCompatibilityFlags(t *testing.T) {
-	// Test that the root eval command still has the old flags for backward compatibility
-	if evalCmd.Flags().Lookup("plan") == nil {
-		t.Error("backward compatibility flag 'plan' not found on eval command")
-	}
-	if evalCmd.Flags().Lookup("lock") == nil {
-		t.Error("backward compatibility flag 'lock' not found on eval command")
-	}
-	if evalCmd.Flags().Lookup("fail-on-drift") == nil {
-		t.Error("backward compatibility flag 'fail-on-drift' not found on eval command")
-	}
-	if evalCmd.Flags().Lookup("policy") == nil {
-		t.Error("backward compatibility flag 'policy' not found on eval command")
-	}
-}
 
 // TestEvalRunFlags tests that eval run has all required flags
 func TestEvalRunFlags(t *testing.T) {

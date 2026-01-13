@@ -30,13 +30,13 @@ Status information includes:
 
 Examples:
   # Display status in default text format
-  specular debug status
+  specular status
 
   # Output as JSON for scripting
-  specular debug status --format json
+  specular status --format json
 
   # Output as YAML
-  specular debug status --format yaml
+  specular status --format yaml
 `,
 	RunE: runStatus,
 }
@@ -114,6 +114,10 @@ func runStatus(cmd *cobra.Command, args []string) error {
 
 	// Output report
 	return outputStatus(cmdCtx, report)
+}
+
+func init() {
+	rootCmd.AddCommand(statusCmd)
 }
 
 func buildStatusReport() (*StatusReport, error) {

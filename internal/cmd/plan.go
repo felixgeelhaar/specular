@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -28,20 +27,11 @@ Use 'specular plan create' to generate a new plan from a specification.
 Use 'specular plan review' to interactively review a plan.
 Use 'specular plan visualize' to visualize plan as graph.
 Use 'specular plan validate' to validate plan structure.
-Use 'specular plan explain' to understand routing decisions.`,
+Use 'specular plan explain' to understand routing decisions.
+
+Typical flow:
+  spec lock -> plan create -> build run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Check if this is being used as the old direct command
-		// If flags are set, run the create command for backward compatibility
-		if cmd.Flags().Changed("in") || cmd.Flags().Changed("out") || cmd.Flags().Changed("lock") {
-			fmt.Fprintf(os.Stderr, "\n⚠️  DEPRECATION WARNING:\n")
-			fmt.Fprintf(os.Stderr, "Running 'plan' directly is deprecated and will be removed in v1.6.0.\n")
-			fmt.Fprintf(os.Stderr, "Please use 'specular plan create' instead.\n\n")
-
-			// Run create command
-			return runPlanCreate(cmd, args)
-		}
-
-		// Otherwise show help
 		return cmd.Help()
 	},
 }
@@ -768,13 +758,6 @@ func init() {
 	planCmd.AddCommand(planExplainCmd)
 	planCmd.AddCommand(planVisualizeCmd)
 	planCmd.AddCommand(planValidateCmd)
-
-	// Flags for backward compatibility on root plan command
-	planCmd.Flags().StringP("in", "i", ".specular/spec.yaml", "Input spec file")
-	planCmd.Flags().String("lock", ".specular/spec.lock.json", "Input SpecLock file")
-	planCmd.Flags().StringP("out", "o", "plan.json", "Output plan file")
-	planCmd.Flags().Bool("estimate", true, "Estimate task complexity")
-	planCmd.Flags().String("feature", "", "Generate plan for specific feature ID")
 
 	// plan create flags
 	planCreateCmd.Flags().StringP("in", "i", ".specular/spec.yaml", "Input spec file")

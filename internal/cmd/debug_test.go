@@ -9,7 +9,6 @@ import (
 // TestDebugSubcommands tests that all debug subcommands are registered
 func TestDebugSubcommands(t *testing.T) {
 	subcommands := map[string]bool{
-		"status":  false,
 		"context": false,
 		"doctor":  false,
 		"logs":    false,
@@ -26,31 +25,6 @@ func TestDebugSubcommands(t *testing.T) {
 		if !found {
 			t.Errorf("subcommand '%s' not found in debug command", name)
 		}
-	}
-}
-
-// TestDebugStatusCommand tests the debug status command configuration
-func TestDebugStatusCommand(t *testing.T) {
-	// Find status subcommand
-	var statusCmd *cobra.Command
-	for _, cmd := range debugCmd.Commands() {
-		if cmd.Name() == "status" {
-			statusCmd = cmd
-			break
-		}
-	}
-
-	if statusCmd == nil {
-		t.Fatal("status subcommand not found")
-	}
-
-	// Check command configuration
-	if statusCmd.Use != "status" {
-		t.Errorf("status Use = %q, want %q", statusCmd.Use, "status")
-	}
-
-	if statusCmd.Short == "" {
-		t.Error("status Short description is empty")
 	}
 }
 

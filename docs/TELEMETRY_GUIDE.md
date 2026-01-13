@@ -10,7 +10,7 @@ This guide covers the configuration and integration of the production-grade Open
 2. [Configuration](#configuration)
 3. [Distributed Tracing](#distributed-tracing)
 4. [Metrics Collection](#metrics-collection)
-5. [Provider Health Checks](#provider-health-checks)
+5. [Provider Doctor Checks](#provider-health-checks)
 6. [Circuit Breaker](#circuit-breaker)
 7. [Retry Logic](#retry-logic)
 8. [Integration Examples](#integration-examples)
@@ -634,7 +634,7 @@ rate(specular_provider_latency_sum[5m])
    }
    ```
 
-## Provider Health Checks
+## Provider Doctor Checks
 
 The doctor command includes comprehensive provider health checks that test actual API connectivity, not just environment variable presence.
 
@@ -752,7 +752,7 @@ type ProviderClient interface {
 }
 ```
 
-### Implementing Provider Health Checks
+### Implementing Provider Doctor Checks
 
 Example implementation for a custom provider:
 

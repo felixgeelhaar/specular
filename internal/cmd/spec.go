@@ -27,7 +27,10 @@ var specCmd = &cobra.Command{
 	Use:     "spec",
 	Aliases: []string{"s"},
 	Short:   "Specification management commands",
-	Long:    `Generate, validate, and manage product specifications.`,
+	Long: `Generate, validate, and manage product specifications.
+
+Typical flow:
+  spec new -> spec validate -> spec lock -> plan create`,
 }
 
 var specGenerateCmd = &cobra.Command{
@@ -362,7 +365,9 @@ var specApproveCmd = &cobra.Command{
 	Long: `Mark the current specification as approved for plan generation and execution.
 
 This creates an approval record with timestamp and optional signature for
-governance and compliance purposes.`,
+governance and compliance purposes.
+
+For governance approvals, use "specular approve <resource-id>".`,
 	RunE: runSpecApprove,
 }
 

@@ -428,8 +428,8 @@ specular version
 # Doctor check
 specular doctor --format json
 
-# Provider health
-specular provider health
+# Provider doctor
+specular provider doctor
 
 # Simple generation
 export ANTHROPIC_API_KEY="..."

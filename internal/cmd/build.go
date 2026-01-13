@@ -31,20 +31,11 @@ var buildCmd = &cobra.Command{
 Use 'specular build run' to execute a build plan.
 Use 'specular build verify' to run lint, tests, and policy checks.
 Use 'specular build approve' to approve build results.
-Use 'specular build explain' to show logs and routing decisions.`,
+Use 'specular build explain' to show logs and routing decisions.
+
+Typical flow:
+  plan create -> build run -> eval run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Check if this is being used as the old direct command
-		// If flags are set, run the run command for backward compatibility
-		if cmd.Flags().Changed("plan") || cmd.Flags().Changed("policy") || cmd.Flags().Changed("dry-run") {
-			fmt.Fprintf(os.Stderr, "\n⚠️  DEPRECATION WARNING:\n")
-			fmt.Fprintf(os.Stderr, "Running 'build' directly is deprecated and will be removed in v1.6.0.\n")
-			fmt.Fprintf(os.Stderr, "Please use 'specular build run' instead.\n\n")
-
-			// Run build run command
-			return runBuildRun(cmd, args)
-		}
-
-		// Otherwise show help
 		return cmd.Help()
 	},
 }
@@ -83,7 +74,9 @@ Validation checks:
 - All tasks completed successfully
 - No policy violations
 
-Creates an approval marker file with timestamp for audit trail.`,
+Creates an approval marker file with timestamp for audit trail.
+
+For governance approvals, use "specular approve <resource-id>".`,
 	RunE: runBuildApprove,
 }
 
@@ -725,12 +718,6 @@ func init() {
 	buildCmd.AddCommand(buildVerifyCmd)
 	buildCmd.AddCommand(buildApproveCmd)
 	buildCmd.AddCommand(buildExplainCmd)
-
-	// Flags for backward compatibility on root build command
-	buildCmd.Flags().String("plan", "plan.json", "Plan file to execute")
-	buildCmd.Flags().String("policy", ".specular/policy.yaml", "Policy file for enforcement")
-	buildCmd.Flags().Bool("dry-run", false, "Show what would be executed without running")
-	buildCmd.Flags().String("manifest-dir", ".specular/runs", "Directory for run manifests")
 
 	// build run flags
 	buildRunCmd.Flags().String("plan", "plan.json", "Plan file to execute (default: plan.json)")

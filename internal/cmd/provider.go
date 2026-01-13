@@ -114,9 +114,8 @@ var providerListCmd = &cobra.Command{
 }
 
 var providerDoctorCmd = &cobra.Command{
-	Use:     "doctor [provider-name]",
-	Aliases: []string{"health"}, // Keep health for backward compatibility
-	Short:   "Check provider health and configuration",
+	Use:   "doctor [provider-name]",
+	Short: "Check provider health and configuration",
 	Long:    `Check the health status of providers. If no provider name is specified, checks all enabled providers. Use --quick to skip detailed health checks and list provider status only.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		quick := cmd.Flags().Lookup("quick").Value.String() == "true"
@@ -241,7 +240,7 @@ var providerInitCmd = &cobra.Command{
 		fmt.Println("  1. Edit .specular/providers.yaml to enable desired providers")
 		fmt.Println("  2. Review the example at .specular/providers.yaml.example for reference")
 		fmt.Println("  3. Set any required API keys as environment variables")
-		fmt.Println("  4. Run 'specular provider health' to check provider status")
+		fmt.Println("  4. Run 'specular provider doctor' to check provider status")
 
 		return nil
 	},

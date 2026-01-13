@@ -193,7 +193,7 @@ func TestProviderLoadError(t *testing.T) {
 		"specular init",
 		"providers.yaml",
 		"API keys",
-		"provider health",
+		"provider doctor",
 	}
 
 	for _, sug := range expectedSuggestions {
@@ -219,7 +219,7 @@ func TestRouterError(t *testing.T) {
 	expectedSuggestions := []string{
 		"provider is configured",
 		"provider list",
-		"provider health",
+		"provider doctor",
 	}
 
 	for _, sug := range expectedSuggestions {

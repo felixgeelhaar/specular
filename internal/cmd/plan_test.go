@@ -236,22 +236,6 @@ func TestPlanDriftDetection(t *testing.T) {
 	}
 }
 
-// TestBackwardCompatibilityFlags tests that old plan flags work
-func TestBackwardCompatibilityFlags(t *testing.T) {
-	// Test that the root plan command still has the old flags for backward compatibility
-	if planCmd.Flags().Lookup("in") == nil {
-		t.Error("backward compatibility flag 'in' not found on plan command")
-	}
-	if planCmd.Flags().Lookup("out") == nil {
-		t.Error("backward compatibility flag 'out' not found on plan command")
-	}
-	if planCmd.Flags().Lookup("lock") == nil {
-		t.Error("backward compatibility flag 'lock' not found on plan command")
-	}
-	if planCmd.Flags().Lookup("estimate") == nil {
-		t.Error("backward compatibility flag 'estimate' not found on plan command")
-	}
-}
 
 // TestPlanGenFlags tests that plan gen has all required flags
 func TestPlanGenFlags(t *testing.T) {

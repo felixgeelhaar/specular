@@ -57,7 +57,7 @@ export ANTHROPIC_API_KEY="your-api-key-here"
 specular provider init
 
 # Verify provider health
-specular provider health
+specular provider doctor
 ```
 
 Example output:
@@ -1066,7 +1066,7 @@ Speed up workflow runs by caching the Specular binary:
 
 #### 4. Run Drift Detection on Every PR
 
-Catch specification drift early by running drift checks on all pull requests:
+Catch specification drift early by running eval drifts on all pull requests:
 
 ```yaml
 on:
@@ -1332,7 +1332,7 @@ Capture architectural decisions in your PRD:
 specular provider list
 
 # Test specific provider
-specular provider health anthropic
+specular provider doctor anthropic
 
 # Update configuration
 specular provider init --force

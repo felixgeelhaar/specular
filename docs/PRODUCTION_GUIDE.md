@@ -298,7 +298,7 @@ export SPECULAR_CACHE_MAX_AGE="168h"
 specular doctor --format json | jq .
 
 # Test provider connectivity
-specular provider health
+specular provider doctor
 
 # Verify policy syntax
 specular policy validate --policy .specular/policy.yaml
@@ -754,7 +754,7 @@ tar -xzf "$BACKUP_DIR/attestations.tar.gz" -C ~/.specular/attestations/
 
 # Verify restoration
 specular doctor --format json
-specular provider health
+specular provider doctor
 ```
 
 **Checkpoint recovery:**
@@ -790,7 +790,7 @@ Message: authentication failed (401 Unauthorized)
 env | grep -E "ANTHROPIC_API_KEY|OPENAI_API_KEY"
 
 # Test provider connectivity
-specular provider health
+specular provider doctor
 
 # Verify API key format
 echo $ANTHROPIC_API_KEY | cut -c1-10  # Should start with "sk-ant-"

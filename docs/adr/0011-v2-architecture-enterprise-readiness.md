@@ -566,7 +566,6 @@ type Mutation {
 
 ## References
 
-- [ROADMAP_v2.0.md](../ROADMAP_v2.0.md) - Detailed milestone breakdown
 - [Multi-Tenancy Patterns](https://docs.microsoft.com/en-us/azure/architecture/patterns/multitenancy)
 - [The Twelve-Factor App](https://12factor.net/)
 - [OpenTelemetry Best Practices](https://opentelemetry.io/docs/concepts/observability-primer/)

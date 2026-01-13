@@ -65,7 +65,7 @@ func ProviderLoadError(configPath string, err error) error {
 		"Initialize providers: specular init",
 		"Check provider configuration: cat ~/.specular/providers.yaml",
 		"Verify API keys are set in environment variables",
-		"Run health check: specular provider health",
+		"Run health check: specular provider doctor",
 	)
 }
 
@@ -76,7 +76,7 @@ func RouterError(err error) error {
 		err,
 		"Check that at least one provider is configured",
 		"Verify provider configuration: specular provider list",
-		"Test provider connectivity: specular provider health",
+		"Test provider connectivity: specular provider doctor",
 		"Review routing configuration in your profile",
 	)
 }

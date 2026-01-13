@@ -27,20 +27,11 @@ var evalCmd = &cobra.Command{
 
 Use 'specular eval run' to run evaluation scenarios.
 Use 'specular eval rules' to manage guardrail rules.
-Use 'specular eval drift' to detect drift.`,
+Use 'specular eval drift' to detect drift.
+
+Typical flow:
+  build run -> eval run -> eval drift`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Check if this is being used as the old direct command
-		// If flags are set, run the drift command for backward compatibility
-		if cmd.Flags().Changed("plan") || cmd.Flags().Changed("lock") || cmd.Flags().Changed("fail-on-drift") {
-			fmt.Fprintf(os.Stderr, "\n⚠️  DEPRECATION WARNING:\n")
-			fmt.Fprintf(os.Stderr, "Running 'eval' directly is deprecated and will be removed in v1.6.0.\n")
-			fmt.Fprintf(os.Stderr, "Please use 'specular eval drift' instead.\n\n")
-
-			// Run drift command
-			return runEvalDrift(cmd, args)
-		}
-
-		// Otherwise show help
 		return cmd.Help()
 	},
 }
@@ -848,21 +839,6 @@ func init() {
 	evalCmd.AddCommand(evalRunCmd)
 	evalCmd.AddCommand(evalRulesCmd)
 	evalCmd.AddCommand(evalDriftCmd)
-
-	// Flags for backward compatibility on root eval command
-	evalCmd.Flags().String("plan", "plan.json", "Plan file to evaluate")
-	evalCmd.Flags().String("lock", ".specular/spec.lock.json", "SpecLock file")
-	evalCmd.Flags().String("spec", ".specular/spec.yaml", "Spec file for code drift detection")
-	evalCmd.Flags().String("policy", "", "Policy file for infrastructure drift detection")
-	evalCmd.Flags().String("report", "drift.sarif", "Output report file (SARIF format)")
-	evalCmd.Flags().Bool("fail-on-drift", false, "Exit with error if drift is detected")
-	evalCmd.Flags().String("project-root", ".", "Project root directory")
-	evalCmd.Flags().String("api-spec", "", "Path to OpenAPI spec file")
-	evalCmd.Flags().StringSlice("ignore", []string{}, "Glob patterns to ignore (e.g., *.test.js)")
-	evalCmd.Flags().Bool("resume", false, "Resume from previous checkpoint")
-	evalCmd.Flags().String("checkpoint-dir", ".specular/checkpoints", "Directory for checkpoints")
-	evalCmd.Flags().String("checkpoint-id", "", "Checkpoint ID (auto-generated if not provided)")
-	evalCmd.Flags().Bool("keep-checkpoint", false, "Keep checkpoint after successful completion")
 
 	// eval run flags
 	evalRunCmd.Flags().String("scenario", "smoke", "Evaluation scenario to run")

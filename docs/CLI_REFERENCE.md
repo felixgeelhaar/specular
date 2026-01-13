@@ -11,8 +11,10 @@ Complete reference for Specular CLI commands and flags.
   - [doctor](#doctor)
 - [Policy Management Commands](#policy-management-commands)
   - [policy](#policy)
-- [Approval Workflow Commands](#approval-workflow-commands)
-  - [approval](#approval)
+- [Approval Commands](#approval-commands)
+  - [approve](#approve)
+  - [approvals list](#approvals-list)
+  - [approvals pending](#approvals-pending)
 - [Environment & Configuration Commands](#environment--configuration-commands)
   - [context](#context)
   - [config](#config)
@@ -27,8 +29,7 @@ Complete reference for Specular CLI commands and flags.
   - [build](#build)
 - [Bundle Commands](#bundle-commands)
   - [bundle](#bundle)
-- [Drift Detection Commands](#drift-detection-commands)
-  - [drift](#drift)
+- [Drift Detection](#drift-detection)
 - [Autonomous Mode Commands](#autonomous-mode-commands)
   - [auto](#auto)
 - [Checkpoint Commands](#checkpoint-commands)
@@ -407,34 +408,34 @@ Policy validation failed in strict mode.
 Approve policy changes with audit trail.
 
 ```bash
-specular policy approve [--reason <text>]
+specular policy approve [--user <name>] [--message <text>] [--json]
 ```
 
 **Description:**
 
-Records approval of policy changes in the approval workflow:
+Records approval of policy changes:
 - Creates approval record with timestamp
-- Captures approver identity (from git config)
-- Stores approval reason for audit trail
-- Updates policy approval status
+- Captures approver identity
+- Stores approval message for audit trail
 
 **Example:**
 ```bash
-$ specular policy approve --reason "Updated resource limits for production workload"
+$ specular policy approve --message "Updated resource limits for production workload"
 ✓ Policy changes approved
   Approver: user@example.com
   Timestamp: 2025-11-17T10:30:00Z
-  Reason: Updated resource limits for production workload
+  Message: Updated resource limits for production workload
 
-Approval recorded in .specular/approvals/policy-abc123.json
+Approval recorded in .specular/approvals/policy-20251117-103000.yaml
 ```
 
 **Flags:**
 
 | Flag | Type | Description |
 |------|------|-------------|
-| `--reason <text>` | string | Reason for approval (required) |
-| `--approver <email>` | string | Approver email (defaults to git config) |
+| `--user <name>` | string | Approver name (defaults to $USER) |
+| `--message <text>` | string | Approval message or comment (required) |
+| `--json` | bool | Output approval record as JSON |
 
 ---
 
@@ -529,159 +530,105 @@ Changes require approval.
 
 ---
 
-## Approval Workflow Commands
+## Approval Commands
 
-### approval
+### approve
 
-Manage approval workflow for plans, builds, and drift.
+Approve a governance resource by ID.
 
 **Usage:**
 ```bash
-specular approval <subcommand> [flags]
+specular approve <resource> --message <text>
 ```
 
 **Description:**
 
-Approval commands implement governance controls for critical workflow steps, ensuring proper review and authorization before execution.
+Creates an approval record for:
+- `bundle-<id>`
+- `drift-<id>`
+- `policy-<id>`
+- `plan-<id>`
 
-**Subcommands:**
-
-#### approval approve
-
-Approve plans, builds, or drift with role verification.
-
-```bash
-specular approval approve <type> <id> [--reason <text>]
-```
-
-**Arguments:**
-- `<type>` - What to approve: plan, build, or drift
-- `<id>` - ID of the item to approve
-
-**Description:**
-
-Records approval for workflow items:
-- Verifies approver has required role/permissions
-- Creates approval record with audit trail
-- Updates approval status in workflow
-- Enables gated workflow progression
+`--message` is required for audit context. See `docs/APPROVAL_BEST_PRACTICES.md`.
 
 **Example:**
 ```bash
-$ specular approval approve plan plan-abc123 --reason "Reviewed and validated implementation plan"
-✓ Plan approved
-  Type: plan
-  ID: plan-abc123
+$ specular approve plan-abc123 --message "Reviewed and validated implementation plan"
+✓ Approval recorded
+  Resource: plan-abc123
   Approver: user@example.com
-  Role: developer
   Timestamp: 2025-11-17T10:30:00Z
-  Reason: Reviewed and validated implementation plan
+  Message: Reviewed and validated implementation plan
 
-Approval recorded in .specular/approvals/plan-abc123.json
+Approval recorded in .specular/approvals/plan-20251117-103000.yaml
 ```
 
 **Flags:**
 
 | Flag | Type | Description |
 |------|------|-------------|
-| `--reason <text>` | string | Reason for approval (required) |
-| `--approver <email>` | string | Approver email (defaults to git config) |
-| `--role <name>` | string | Approver role (developer, reviewer, admin) |
+| `--message <text>` | string | Approval message or comment |
 
 ---
 
-#### approval list
+### approvals list
 
 List all approval records with filtering.
 
 ```bash
-specular approval list [--type <type>] [--status <status>] [--format text|json|yaml]
+specular approvals list
 ```
 
 **Description:**
 
-Displays approval records with filtering options:
-- Filter by type (plan, build, drift, policy)
-- Filter by status (pending, approved, rejected)
-- Sort by timestamp
-- Show approver and reason
+Displays approval records grouped by type and sorted by timestamp.
 
 **Example:**
 ```bash
-$ specular approval list --type plan
+$ specular approvals list
 
-Approval Records (plan):
-  ✓ plan-abc123 - Approved
-    Approver: user@example.com
-    Timestamp: 2025-11-17T10:30:00Z
-    Reason: Reviewed and validated implementation plan
+=== Approval Records ===
+Plan Approvals: 1
+  • plan-abc123
+    Approved by: user@example.com
+    Approved at: 2025-11-17 10:30:00
+    Message: Reviewed and validated implementation plan
 
-  ⏳ plan-def456 - Pending
-    Created: 2025-11-17T11:00:00Z
-
-  ✗ plan-ghi789 - Rejected
-    Approver: reviewer@example.com
-    Timestamp: 2025-11-16T15:00:00Z
-    Reason: Security concerns in implementation
-
-Total: 3 approvals (1 approved, 1 pending, 1 rejected)
+Total approvals: 1
 ```
 
-**Flags:**
-
-| Flag | Type | Description |
-|------|------|-------------|
-| `--type <type>` | string | Filter by type: plan, build, drift, policy |
-| `--status <status>` | string | Filter by status: pending, approved, rejected |
-| `--format` | string | Output format: text, json, or yaml |
-| `--days <n>` | int | Show approvals from last N days |
-
----
-
-#### approval pending
+### approvals pending
 
 Show pending approvals requiring action.
 
 ```bash
-specular approval pending [--format text|json|yaml]
+specular approvals pending
 ```
 
 **Description:**
 
-Displays all items awaiting approval:
-- Shows pending plans, builds, and drift detections
-- Highlights items requiring urgent attention
-- Provides quick approval commands
+Displays items awaiting approval and suggests the corresponding `specular approve` command.
 
 **Example:**
 ```bash
-$ specular approval pending
+$ specular approvals pending
 
 Pending Approvals:
 
-Plans (2):
-  • plan-abc123 (created 2 hours ago)
-    Description: Add user authentication
-    Command: specular approval approve plan plan-abc123
+📋 Policy Changes:
+  • Policies have changed since last approval
+  • Run 'specular policy diff' to see changes
+  • Run 'specular policy approve' to approve
 
-  • plan-def456 (created 30 minutes ago)
-    Description: Refactor payment processing
-    Command: specular approval approve plan plan-def456
+📦 Bundles: 1 pending
+  • bundle-abc123
+  Run 'specular approve <bundle-id>' to approve
 
-Builds (1):
-  • build-xyz789 (created 1 hour ago)
-    Description: Build for plan-abc123
-    Command: specular approval approve build build-xyz789
-
-Total: 3 pending approvals
+🔀 Drift Detected:
+  • Drift detected but not approved
+  • Run 'specular eval drift' to see details
+  • Run 'specular approve <drift-id>' to approve
 ```
-
-**Flags:**
-
-| Flag | Type | Description |
-|------|------|-------------|
-| `--format` | string | Output format: text, json, or yaml |
-| `--type <type>` | string | Filter by type: plan, build, drift |
 
 ---
 
@@ -1248,14 +1195,6 @@ Generating plan for feature: feat-001...
 | `--feature <id>` | string | Generate plan for specific feature only |
 | `--estimate` | bool | Include effort estimates in plan |
 
-**Backward Compatibility:**
-
-The deprecated form `specular plan` (without subcommand) still works:
-```bash
-$ specular plan --in spec.yaml --out plan.json
-⚠ Warning: 'plan' without subcommand is deprecated. Use 'plan create' instead.
-```
-
 ---
 
 #### plan visualize
@@ -1521,14 +1460,6 @@ Plan: plan.json
 Would execute 3 tasks
 ```
 
-**Backward Compatibility:**
-
-The deprecated form `specular build` (without subcommand) still works:
-```bash
-$ specular build --plan plan.json
-⚠ Warning: 'build' without subcommand is deprecated. Use 'build run' instead.
-```
-
 ---
 
 #### build verify
@@ -1694,12 +1625,6 @@ Manifest:
 
 **Backward Compatibility:**
 
-The deprecated form `bundle build` still works:
-```bash
-$ specular bundle build --from runs/abc123
-⚠ Warning: 'bundle build' is deprecated. Use 'bundle create' instead.
-```
-
 ---
 
 #### bundle gate
@@ -1767,14 +1692,6 @@ Quality gate failed in strict mode.
 | `--bundle <file>` | string | Bundle file to verify (required) |
 | `--strict` | bool | Enable strict mode with higher thresholds |
 | `--format` | string | Output format: text, json, yaml |
-
-**Backward Compatibility:**
-
-The deprecated form `bundle verify` still works:
-```bash
-$ specular bundle verify --bundle build-abc123.tar
-⚠ Warning: 'bundle verify' is deprecated. Use 'bundle gate' instead.
-```
 
 ---
 
@@ -1915,29 +1832,16 @@ Total: 3 bundles (1 approved, 1 pending, 1 failed)
 
 ---
 
-## Drift Detection Commands
+## Drift Detection
 
-### drift
+Use `specular eval drift` to detect plan, code, and infrastructure drift.
 
-Detect and manage plan, code, and infrastructure drift.
-
-**Usage:**
-```bash
-specular drift <subcommand> [flags]
-```
-
-**Description:**
-
-Drift commands help you detect and manage divergence between specifications, plans, code, and deployed infrastructure. This ensures implementations stay aligned with approved plans.
-
-**Subcommands:**
-
-#### drift check
+### eval drift
 
 Run comprehensive drift detection.
 
 ```bash
-specular drift check [--spec <file>] [--plan <file>] [--report <file>]
+specular eval drift [--spec <file>] [--plan <file>] [--report <file>]
 ```
 
 **Description:**
@@ -1950,7 +1854,7 @@ Performs multi-layer drift detection:
 
 **Example:**
 ```bash
-$ specular drift check --spec .specular/spec.yaml --plan plan.json --report drift.sarif
+$ specular eval drift --spec .specular/spec.yaml --plan plan.json --report drift.sarif
 
 Drift Detection:
 
@@ -1995,12 +1899,12 @@ SARIF report saved to: drift.sarif
 | `--report <file>` | string | SARIF report output file |
 | `--project-root <dir>` | string | Project root directory |
 
-#### drift approve
+### approve drift
 
 Approve detected drift with justification.
 
 ```bash
-specular drift approve [--drift-id <id>] [--reason <text>]
+specular approve drift-<id> [--message <text>]
 ```
 
 **Description:**
@@ -2009,20 +1913,17 @@ Records approval for acceptable drift:
 - Documents why drift is acceptable
 - Creates approval record with audit trail
 - Prevents drift from blocking workflows
-- Requires justification for compliance
 
 **Example:**
 ```bash
-$ specular drift approve --drift-id drift-abc123 --reason "Debug endpoint for development only, will remove before production"
+$ specular approve drift-abc123 --message "Debug endpoint for development only, will remove before production"
 ✓ Drift approved
   Drift ID: drift-abc123
-  Type: API drift
-  Item: POST /api/v1/debug
   Approver: user@example.com
   Timestamp: 2025-11-17T10:30:00Z
-  Reason: Debug endpoint for development only, will remove before production
+  Message: Debug endpoint for development only, will remove before production
 
-Approval recorded in .specular/approvals/drift-abc123.json
+Approval recorded in .specular/approvals/drift-20251117-103000.yaml
 
 Note: Approved drift should be resolved before production deployment.
 ```
@@ -2031,10 +1932,7 @@ Note: Approved drift should be resolved before production deployment.
 
 | Flag | Type | Description |
 |------|------|-------------|
-| `--drift-id <id>` | string | Drift detection ID to approve |
-| `--reason <text>` | string | Justification for approval (required) |
-| `--approver <email>` | string | Approver email (defaults to git config) |
-| `--temporary` | bool | Mark as temporary approval (requires resolution) |
+| `--message <text>` | string | Approval message or comment |
 
 ---
 
@@ -2302,7 +2200,7 @@ Performs comprehensive provider health checks:
 ```bash
 $ specular provider doctor
 
-Provider Health Checks:
+Provider Doctor Checks:
 
 Ollama:
   ✓ Service running (http://localhost:11434)
@@ -2328,7 +2226,7 @@ All configured providers operational.
 ```bash
 $ specular provider doctor --provider anthropic
 
-Anthropic Provider Health:
+Anthropic Provider Doctor:
   ✓ API Key: Valid (expires in 45 days)
   ✓ Connectivity: OK (latency: 320ms)
   ✓ Models: 3 available
@@ -2348,14 +2246,6 @@ Provider is healthy.
 | `--provider <name>` | string | Check specific provider only |
 | `--format` | string | Output format: text, json, yaml |
 | `--verbose` | bool | Show detailed diagnostic information |
-
-**Backward Compatibility:**
-
-The deprecated form `provider health` still works:
-```bash
-$ specular provider health
-⚠ Warning: 'provider health' is deprecated. Use 'provider doctor' instead.
-```
 
 ---
 

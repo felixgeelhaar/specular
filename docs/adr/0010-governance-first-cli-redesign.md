@@ -15,7 +15,7 @@ Specular's current CLI is **spec-first oriented**, reflecting its origins as a s
 specular spec new             # Generate spec via Q&A
 specular spec                 # Spec management (lock, validate)
 specular plan create          # Generate plan from spec
-specular drift check          # Drift detection
+specular eval drift          # Drift detection
 specular bundle build         # Create bundle
 specular bundle verify        # Verify bundle
 specular policy apply/new     # Basic policy operations
@@ -131,8 +131,8 @@ specular generate --unsafe    # Ungoverned mode (with warnings)
 
 #### 7. Drift Commands (PROMOTED TO TOP-LEVEL)
 ```bash
-specular drift check          # Check all drift types (was: plan drift)
-specular drift approve        # Approve drift as intentional (NEW)
+specular eval drift          # Check all drift types (was: plan drift)
+specular approve <drift-id>        # Approve drift as intentional (NEW)
 ```
 
 **Before**: Nested under `plan drift`
@@ -177,7 +177,7 @@ specular help                 # Help menu (existing)
 |--------------|--------------|-------------|
 | `interview` | `new` | BREAKING RENAME |
 | `plan gen` | `plan create` | BREAKING RENAME |
-| `plan drift` | `drift check` | BREAKING MOVE |
+| `plan drift` | `eval drift` | BREAKING MOVE |
 | `bundle build` | `bundle create` | BREAKING RENAME |
 | `bundle verify` | `bundle gate` | BREAKING RENAME |
 | `policy apply` | `policy validate` | BREAKING RENAME |
@@ -384,7 +384,7 @@ For internal team reference during transition:
 # OLD (v1.1.0)             → NEW (v1.2.0)
 specular interview         → specular spec new
 specular plan gen          → specular plan create
-specular plan drift        → specular drift check
+specular plan drift        → specular eval drift
 specular bundle build      → specular bundle create
 specular bundle verify     → specular bundle gate
 specular policy apply      → specular policy validate
@@ -419,7 +419,7 @@ specular policy apply      → specular policy validate
 - [ ] Implement `plan validate`
 
 ### Phase 4: Drift & Generation (Week 3)
-- [ ] Move `plan drift` → `drift check`
+- [ ] Move `plan drift` → `eval drift`
 - [ ] Implement `drift approve`
 - [ ] Rename `interview` → `new`
 - [ ] Update `generate` command structure

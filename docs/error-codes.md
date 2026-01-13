@@ -100,7 +100,7 @@ The current state differs from the expected state.
 - Hash verification failure
 
 **Resolution:**
-1. Run `specular drift check` to see detailed differences
+1. Run `specular eval drift` to see detailed differences
 2. If changes are intentional, run with `--force` to acknowledge
 3. If changes are unexpected, investigate the source
 4. Re-run the planning phase if needed

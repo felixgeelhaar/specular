@@ -310,19 +310,6 @@ func TestBuildApproveValidation(t *testing.T) {
 	}
 }
 
-// TestBuildBackwardCompatibilityFlags tests that old build flags work
-func TestBuildBackwardCompatibilityFlags(t *testing.T) {
-	// Test that the root build command still has the old flags for backward compatibility
-	if buildCmd.Flags().Lookup("plan") == nil {
-		t.Error("backward compatibility flag 'plan' not found on build command")
-	}
-	if buildCmd.Flags().Lookup("policy") == nil {
-		t.Error("backward compatibility flag 'policy' not found on build command")
-	}
-	if buildCmd.Flags().Lookup("dry-run") == nil {
-		t.Error("backward compatibility flag 'dry-run' not found on build command")
-	}
-}
 
 // TestBuildRunFlags tests that build run has all required flags
 func TestBuildRunFlags(t *testing.T) {

@@ -13,7 +13,7 @@ specular provider init
 specular provider list
 
 # 4. Check provider health
-specular provider health
+specular provider doctor
 ```
 
 ## Architecture
@@ -117,14 +117,14 @@ Health checks verify that providers are accessible and properly configured. Each
 
 ```bash
 # Check all enabled providers
-specular provider health
+specular provider doctor
 
 # Check specific provider(s)
-specular provider health ollama
-specular provider health openai anthropic
+specular provider doctor ollama
+specular provider doctor openai anthropic
 
 # Use custom config file
-specular provider health --config path/to/providers.yaml
+specular provider doctor --config path/to/providers.yaml
 ```
 
 Example output:

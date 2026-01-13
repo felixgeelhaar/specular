@@ -297,7 +297,7 @@ specular provider list
 
 1. **Check what changed:**
    ```bash
-   specular drift check
+   specular eval drift
    ```
 
 2. **Accept the changes:**

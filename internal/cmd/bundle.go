@@ -269,6 +269,8 @@ includes:
 The signature proves that a specific individual in a specific role approved the
 bundle at a specific time.
 
+For governance approvals, use "specular approve <resource-id>".
+
 Supported signature types:
 - SSH (default) - Uses SSH keys (~/.ssh/id_ed25519, id_rsa, etc.)
 - GPG - Uses GPG keys from gpg keyring

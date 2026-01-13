@@ -84,7 +84,9 @@ Creates an approval record with:
 
 Approved policies are required for governed workflows.
 
-This command requires Specular Pro or Enterprise.`,
+This command requires Specular Pro or Enterprise.
+
+For governance approvals, use "specular approve <resource-id>".`,
 	RunE: runPolicyApprove,
 }
 

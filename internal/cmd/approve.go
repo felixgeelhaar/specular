@@ -21,7 +21,7 @@ var approveCmd = &cobra.Command{
 
 Resources can be:
   • Bundle ID (from bundle create)
-  • Drift hash (from drift check)
+  • Drift hash (from eval drift)
   • Policy change (from policy diff)
 
 Approvals are stored in .specular/approvals/ with timestamps and approver info.
@@ -65,7 +65,7 @@ var approvalsPendingCmd = &cobra.Command{
 Checks:
   • Unapproved policy changes (from policy diff)
   • Unapproved bundles (from bundle create)
-  • Unapproved drift (from drift check)
+  • Unapproved drift (from eval drift)
 
 Exit codes:
   0: No pending approvals
@@ -94,6 +94,9 @@ func runApprove(cmd *cobra.Command, args []string) error {
 
 	resourceID := args[0]
 	message := cmd.Flags().Lookup("message").Value.String()
+	if strings.TrimSpace(message) == "" {
+		return fmt.Errorf("approval message is required (use --message \"...\")")
+	}
 
 	// Determine resource type from ID prefix
 	var resourceType string
@@ -148,9 +151,7 @@ func runApprove(cmd *cobra.Command, args []string) error {
 	fmt.Printf("✅ Approved %s: %s\n\n", resourceType, resourceID)
 	fmt.Printf("Approved by: %s\n", approver)
 	fmt.Printf("Approval saved: %s\n", approvalPath)
-	if message != "" {
-		fmt.Printf("Message: %s\n", message)
-	}
+	fmt.Printf("Message: %s\n", message)
 
 	return nil
 }
@@ -269,8 +270,8 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 	if hasDrift, err := checkDrift(); err == nil && hasDrift {
 		fmt.Println("🔀 Drift Detected:")
 		fmt.Println("  • Drift detected but not approved")
-		fmt.Println("  • Run 'specular drift check' to see details")
-		fmt.Println("  • Run 'specular drift approve' to approve")
+		fmt.Println("  • Run 'specular eval drift' to see details")
+		fmt.Println("  • Run 'specular approve <drift-id>' to approve")
 		fmt.Println()
 		hasPending = true
 	}
