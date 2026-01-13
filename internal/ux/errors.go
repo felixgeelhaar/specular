@@ -217,8 +217,8 @@ func (e *EnhancedError) addSuggestions() {
 
 	case CategoryMissingFile:
 		if strings.Contains(msg, "spec.yaml") {
-			e.Suggestions = append(e.Suggestions, "Run: specular interview (interactive)")
-			e.Suggestions = append(e.Suggestions, "Run: specular spec generate --in PRD.md")
+			e.Suggestions = append(e.Suggestions, "Run: specular spec new")
+			e.Suggestions = append(e.Suggestions, "Run: specular spec new --from PRD.md")
 		} else if strings.Contains(msg, "providers.yaml") || strings.Contains(msg, "router.yaml") {
 			e.Suggestions = append(e.Suggestions, "Run: specular init")
 		}
@@ -354,7 +354,7 @@ func enhanceFileNotFoundError(err error, errMsg string) error {
 
 	if strings.Contains(errMsg, "spec.yaml") {
 		return NewErrorWithSuggestion(err,
-			"Create a spec by running 'specular interview' or 'specular spec generate --in PRD.md'")
+			"Create a spec by running 'specular spec new' or 'specular spec new --from PRD.md'")
 	}
 	if strings.Contains(errMsg, "spec.lock.json") {
 		return NewErrorWithSuggestion(err,
@@ -362,7 +362,7 @@ func enhanceFileNotFoundError(err error, errMsg string) error {
 	}
 	if strings.Contains(errMsg, "plan.json") {
 		return NewErrorWithSuggestion(err,
-			"Generate a plan by running 'specular plan'")
+			"Generate a plan by running 'specular plan create'")
 	}
 	if strings.Contains(errMsg, "policy.yaml") {
 		return NewErrorWithSuggestion(err,
@@ -370,7 +370,7 @@ func enhanceFileNotFoundError(err error, errMsg string) error {
 	}
 	if strings.Contains(errMsg, "providers.yaml") {
 		return NewErrorWithSuggestion(err,
-			"Configure providers by running 'specular init' or check .specular/examples/providers.yaml")
+			"Configure providers by running 'specular init' or check .specular/providers.yaml.example")
 	}
 
 	return nil
@@ -433,7 +433,7 @@ func enhanceValidationError(err error, errMsg string) error {
 	}
 	if strings.Contains(errMsg, "drift detected") {
 		return NewErrorWithSuggestion(err,
-			"Review drift with 'specular build drift' and update spec or code to align")
+			"Review drift with 'specular drift check' and update spec or code to align")
 	}
 	return nil
 }

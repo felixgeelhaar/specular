@@ -68,9 +68,12 @@ func TestSaveManifest(t *testing.T) {
 			OutputHashes: map[string]string{"output.bin": "def456"},
 		}
 
-		err := SaveManifest(manifest, tmpDir)
+		path, err := SaveManifest(manifest, tmpDir)
 		if err != nil {
 			t.Fatalf("SaveManifest() error = %v", err)
+		}
+		if path == "" {
+			t.Fatal("SaveManifest() returned empty path")
 		}
 
 		// Check if file was created
@@ -110,7 +113,7 @@ func TestSaveManifest(t *testing.T) {
 
 		// Try to save manifest to a subdirectory of the readonly file (will fail)
 		invalidDir := filepath.Join(readOnlyFile, "subdir")
-		err := SaveManifest(manifest, invalidDir)
+		_, err := SaveManifest(manifest, invalidDir)
 		if err == nil {
 			t.Error("SaveManifest() expected error for invalid directory, got nil")
 		}

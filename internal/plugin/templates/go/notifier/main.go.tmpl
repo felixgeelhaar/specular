@@ -1,0 +1,82 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+const Version = "{{.Version}}"
+
+// PluginRequest represents incoming plugin requests
+type PluginRequest struct {
+	Action string                 `json:"action"`
+	Data   map[string]interface{} `json:"data,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
+}
+
+// PluginResponse represents plugin responses
+type PluginResponse struct {
+	Success bool        `json:"success"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
+// NotifierResult for notification responses
+type NotifierResult struct {
+	Sent      bool   `json:"sent"`
+	MessageID string `json:"message_id,omitempty"`
+	Channel   string `json:"channel,omitempty"`
+}
+
+func main() {
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		var req PluginRequest
+		if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("invalid JSON: %v", err)})
+			continue
+		}
+
+		switch req.Action {
+		case "health":
+			respond(PluginResponse{
+				Success: true,
+				Result: map[string]string{
+					"status":  "healthy",
+					"version": Version,
+				},
+			})
+		case "notify", "send":
+			result, err := notify(req)
+			if err != nil {
+				respond(PluginResponse{Success: false, Error: err.Error()})
+			} else {
+				respond(PluginResponse{Success: true, Result: result})
+			}
+		default:
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("unknown action: %s", req.Action)})
+		}
+	}
+}
+
+func notify(req PluginRequest) (*NotifierResult, error) {
+	message, _ := req.Data["message"].(string)
+	channel, _ := req.Data["channel"].(string)
+
+	// TODO: Implement your notification logic here
+	// Example: messageID, err := sendNotification(message, channel, req.Config)
+	_ = message
+	_ = channel
+
+	return &NotifierResult{
+		Sent:      true,
+		MessageID: "msg-001",
+		Channel:   channel,
+	}, nil
+}
+
+func respond(resp PluginResponse) {
+	json.NewEncoder(os.Stdout).Encode(resp)
+}

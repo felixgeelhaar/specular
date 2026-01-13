@@ -1,10 +1,68 @@
 package provider
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/felixgeelhaar/specular/internal/provider/testhelpers"
 )
+
+type stubNativeProvider struct {
+	info *ProviderInfo
+	caps *ProviderCapabilities
+}
+
+func (s *stubNativeProvider) Generate(_ context.Context, _ *GenerateRequest) (*GenerateResponse, error) {
+	return &GenerateResponse{
+		Content:      "stub response",
+		Model:        "llama3.2",
+		TokensUsed:   1,
+		FinishReason: "stop",
+		Provider:     "ollama",
+	}, nil
+}
+
+func (s *stubNativeProvider) Stream(_ context.Context, _ *GenerateRequest) (<-chan StreamChunk, error) {
+	return nil, fmt.Errorf("streaming not supported")
+}
+
+func (s *stubNativeProvider) GetCapabilities() *ProviderCapabilities {
+	return s.caps
+}
+
+func (s *stubNativeProvider) GetInfo() *ProviderInfo {
+	return s.info
+}
+
+func (s *stubNativeProvider) IsAvailable() bool {
+	return true
+}
+
+func (s *stubNativeProvider) Health(_ context.Context) error {
+	return nil
+}
+
+func (s *stubNativeProvider) Close() error {
+	return nil
+}
+
+func init() {
+	RegisterNativeProvider("ollama", func(cfg *ProviderConfig) (ProviderClient, error) {
+		return &stubNativeProvider{
+			info: &ProviderInfo{
+				Name:        "ollama",
+				Type:        ProviderTypeNative,
+				Description: "stub native provider for tests",
+			},
+			caps: &ProviderCapabilities{
+				SupportsMultiTurn: true,
+			},
+		}, nil
+	})
+}
 
 func TestLoadProvidersConfig(t *testing.T) {
 	// Test loading the example config
@@ -20,10 +78,10 @@ func TestLoadProvidersConfig(t *testing.T) {
 
 	// Check for expected providers
 	expectedProviders := map[string]bool{
-		"ollama":     false,
-		"openai":     false,
-		"anthropic":  false,
-		"claude-cli": false,
+		"ollama":      false,
+		"openai":      false,
+		"anthropic":   false,
+		"claude-code": false,
 	}
 
 	for _, p := range config.Providers {
@@ -340,12 +398,12 @@ func TestSaveAndLoadProvidersConfig(t *testing.T) {
 		Providers: []ProviderConfig{
 			{
 				Name:    "ollama",
-				Type:    ProviderTypeCLI,
+				Type:    ProviderTypeNative,
 				Enabled: true,
-				Source:  "local",
+				Source:  "builtin",
 				Version: "1.0.0",
 				Config: map[string]interface{}{
-					"path": "/path/to/ollama-provider",
+					"base_url": "http://localhost:11434",
 				},
 				Models: map[string]string{
 					"fast": "llama3.2",
@@ -648,30 +706,23 @@ func TestLoadRegistryFromProvidersConfig(t *testing.T) {
 }
 
 func TestLoadRegistryFromConfig(t *testing.T) {
-	// Skip if ollama provider doesn't exist
-	if _, err := os.Stat("../../providers/ollama/ollama-provider"); os.IsNotExist(err) {
-		t.Skip("ollama-provider not built, skipping test")
-	}
+	server := testhelpers.StartFakeOllamaServer(t)
+	defer server.Close()
 
 	// Create a temporary config file with ollama enabled
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "providers.yaml")
 
-	providerPath, err := filepath.Abs("../../providers/ollama/ollama-provider")
-	if err != nil {
-		t.Fatalf("Failed to get absolute path: %v", err)
-	}
-
 	config := &ProvidersConfig{
 		Providers: []ProviderConfig{
 			{
 				Name:    "ollama",
-				Type:    ProviderTypeCLI,
+				Type:    ProviderTypeNative,
 				Enabled: true,
-				Source:  "local",
+				Source:  "builtin",
 				Version: "1.0.0",
 				Config: map[string]interface{}{
-					"path": providerPath,
+					"base_url": server.URL,
 				},
 			},
 		},

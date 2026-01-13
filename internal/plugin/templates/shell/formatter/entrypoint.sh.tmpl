@@ -1,0 +1,29 @@
+#!/bin/bash
+# {{.Name}} - A Specular formatter plugin
+# Type: formatter
+
+set -e
+
+VERSION="{{.Version}}"
+
+INPUT=$(cat)
+ACTION=$(echo "$INPUT" | jq -r '.action // "format"')
+
+case "$ACTION" in
+  "health")
+    echo "{\"success\": true, \"result\": {\"status\": \"healthy\", \"version\": \"$VERSION\"}}"
+    ;;
+  "format")
+    CONTENT=$(echo "$INPUT" | jq -r '.data.content // ""')
+    FORMAT=$(echo "$INPUT" | jq -r '.data.format // "text"')
+
+    # TODO: Implement your formatting logic here
+    # Example: FORMATTED=$(my_formatter "$CONTENT" "$FORMAT")
+
+    echo "{\"success\": true, \"result\": {\"formatted\": \"$CONTENT\", \"format\": \"$FORMAT\"}}"
+    ;;
+  *)
+    echo "{\"success\": false, \"error\": \"Unknown action: $ACTION\"}"
+    exit 1
+    ;;
+esac

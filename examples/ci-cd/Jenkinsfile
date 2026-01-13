@@ -28,7 +28,6 @@ pipeline {
         LOCK_FILE = '.specular/spec.lock.json'
         PLAN_FILE = 'plan.json'
         POLICY_FILE = '.specular/policy.yaml'
-        ROUTER_FILE = '.specular/router.yaml'
 
         // API keys (configured in Jenkins credentials)
         ANTHROPIC_API_KEY = credentials('specular-anthropic-key')
@@ -109,7 +108,7 @@ pipeline {
                     unstash 'spec-lock'
 
                     sh '''
-                        specular plan --spec "$LOCK_FILE" --out "$PLAN_FILE" --router "$ROUTER_FILE"
+                        specular plan create --in "$SPEC_FILE" --lock "$LOCK_FILE" --out "$PLAN_FILE"
                     '''
 
                     echo "Plan generated successfully"
@@ -139,7 +138,7 @@ pipeline {
                     def exitCode = sh(
                         script: '''
                             set +e
-                            specular eval --spec "$LOCK_FILE" --policy "$POLICY_FILE"
+                            specular eval drift --spec "$SPEC_FILE" --plan "$PLAN_FILE" --lock "$LOCK_FILE" --policy "$POLICY_FILE" --report .specular/drift.sarif
                             echo $?
                         ''',
                         returnStdout: true
@@ -207,7 +206,7 @@ pipeline {
                     unstash 'execution-plan'
 
                     sh '''
-                        specular build --plan "$PLAN_FILE" --policy "$POLICY_FILE"
+                        specular build run --plan "$PLAN_FILE" --policy "$POLICY_FILE"
                     '''
 
                     // Archive run manifests

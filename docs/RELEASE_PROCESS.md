@@ -4,12 +4,93 @@ This document describes the release process for Specular, including versioning, 
 
 ## Table of Contents
 
+- [Quick Start (relicta)](#quick-start-relicta)
 - [Versioning Strategy](#versioning-strategy)
 - [Pre-Release Checklist](#pre-release-checklist)
 - [Release Process](#release-process)
 - [Post-Release Verification](#post-release-verification)
 - [Rollback Procedure](#rollback-procedure)
 - [Distribution Channels](#distribution-channels)
+
+---
+
+## Quick Start (relicta)
+
+The recommended release workflow uses [relicta](https://github.com/relicta-io/relicta) for orchestration:
+
+### Full Automated Release
+
+```bash
+make release
+```
+
+This runs: `check → plan → bump → notes → evaluate → approve → publish`
+
+### Step-by-Step Release
+
+```bash
+# 1. Analyze commits and suggest version bump
+make release-plan
+
+# 2. Bump version based on conventional commits
+make release-bump
+
+# 3. Generate changelog and release notes
+make release-notes
+
+# 4. Evaluate release risk (CGP)
+make release-evaluate
+
+# 5. Approve release for publishing
+make release-approve
+
+# 6. Publish (creates tag, GitHub release, runs plugins)
+make release-publish
+
+# 7. Verify the published release
+make verify-release VERSION=v1.6.0
+```
+
+### Dry Run
+
+```bash
+make release-publish-dry-run
+```
+
+### Release Status & Recovery
+
+```bash
+# Check current release status
+make release-status
+
+# Cancel in-progress release
+make release-cancel
+
+# Reset failed release state
+make release-reset
+```
+
+### Available Make Targets
+
+| Target | Description |
+|--------|-------------|
+| `release-plan` | Analyze commits, suggest version bump |
+| `release-bump` | Auto-bump version based on commits |
+| `release-bump-version VERSION=x.y.z` | Bump to specific version |
+| `release-notes` | Generate changelog and release notes |
+| `release-evaluate` | Evaluate release risk (CGP) |
+| `release-validate` | Validate release before publishing |
+| `release-approve` | Approve release for publishing |
+| `release-publish` | Publish release (creates tag, runs plugins) |
+| `release-publish-dry-run` | Dry-run publish (no changes) |
+| `release` | Full release workflow |
+| `release-status` | Check current release status |
+| `release-cancel` | Cancel in-progress release |
+| `release-reset` | Reset failed release state |
+| `release-blast-radius` | Analyze monorepo impact |
+| `release-snapshot` | Build snapshot with goreleaser |
+| `release-local` | Local release (skip docker/sign) |
+| `verify-release VERSION=vx.y.z` | Verify published release |
 
 ---
 
@@ -357,6 +438,13 @@ specular generate "Hello world" --provider anthropic
 # Auto mode dry-run
 specular auto "Build a hello world API" --dry-run --profile ci
 ```
+
+### 5. Ollama Provider Validation
+
+- Run `scripts/ollama-test-suite.sh` in a clean workspace after packaging or descriptor changes to rehearse the Ollama workflow (init → doctor → provider list/assess health → spec generation).
+- Confirm the generated `reports/ollama-test-summary.md` and `reports/ollama-test.log` are updated with the workspace path and command outputs; these files stay in the repository as the living record for the greenfield path.
+- Ensure `dist/providers/` contains the packaged wrapper binaries before publishing; `scripts/package-cli-wrappers.sh` and `scripts/verify-dist-providers.sh` run as part of the goreleaser hooks so failures block the release.
+- Mention the validation run in the release notes or follow-up changelog so downstream consumers can trace the successful check.
 
 ---
 

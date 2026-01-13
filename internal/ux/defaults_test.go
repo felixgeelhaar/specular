@@ -42,7 +42,7 @@ func TestPathDefaults_PlanFile(t *testing.T) {
 	defaults := NewPathDefaults()
 	planFile := defaults.PlanFile()
 
-	expected := "plan.json"
+	expected := filepath.Join(".specular", "plan.json")
 	if planFile != expected {
 		t.Errorf("PlanFile() = %s, want %s", planFile, expected)
 	}
@@ -221,7 +221,7 @@ func TestSuggestNextSteps_NoSpec(t *testing.T) {
 	}
 
 	suggestion := SuggestNextSteps()
-	if suggestion != "Create a spec with 'specular interview' or 'specular spec generate'" {
+	if suggestion != "Create a spec with 'specular spec new' or 'specular spec new --from PRD.md'" {
 		t.Errorf("SuggestNextSteps() = %q, want spec creation suggestion", suggestion)
 	}
 }
@@ -284,7 +284,7 @@ func TestSuggestNextSteps_NoPlan(t *testing.T) {
 	}
 
 	suggestion := SuggestNextSteps()
-	if suggestion != "Generate a plan with 'specular plan'" {
+	if suggestion != "Generate a plan with 'specular plan create'" {
 		t.Errorf("SuggestNextSteps() = %q, want plan suggestion", suggestion)
 	}
 }
@@ -307,7 +307,7 @@ func TestSuggestNextSteps_AllExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	planFile := filepath.Join(tmpDir, "plan.json")
+	planFile := filepath.Join(specularDir, "plan.json")
 	if err := os.WriteFile(planFile, []byte("{}"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -323,7 +323,7 @@ func TestSuggestNextSteps_AllExists(t *testing.T) {
 	}
 
 	suggestion := SuggestNextSteps()
-	if suggestion != "Execute your plan with 'specular build'" {
+	if suggestion != "Execute your plan with 'specular build run'" {
 		t.Errorf("SuggestNextSteps() = %q, want build suggestion", suggestion)
 	}
 }

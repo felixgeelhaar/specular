@@ -17,8 +17,8 @@ cd examples/projects/data-pipeline-etl
 specular init --template data-pipeline
 
 # Generate and execute
-specular plan
-specular build --dry-run
+specular plan create
+specular build run --dry-run
 ```
 
 ## Spec Overview

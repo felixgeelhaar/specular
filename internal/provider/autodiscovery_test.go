@@ -85,8 +85,8 @@ func TestGenerateProviderConfig_Ollama(t *testing.T) {
 		t.Errorf("Expected name 'ollama', got %s", config.Name)
 	}
 
-	if config.Type != ProviderTypeCLI {
-		t.Errorf("Expected type CLI, got %s", config.Type)
+	if config.Type != ProviderTypeNative {
+		t.Errorf("Expected type native, got %s", config.Type)
 	}
 
 	if !config.Enabled {

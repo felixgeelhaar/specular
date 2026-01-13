@@ -219,12 +219,59 @@ func runQuickstart(cmd *cobra.Command, args []string) error {
 
 	// Optional demo
 	if quickstartDemo {
-		fmt.Println("  Running demo (dry-run mode)...")
+		fmt.Println("  Running demo...")
 		fmt.Println()
-		// TODO: Implement demo mode by calling auto with --dry-run
-		fmt.Println("  Demo mode coming soon!")
-		fmt.Println()
+		if err := runQuickstartDemo(); err != nil {
+			fmt.Printf("  Demo encountered an issue: %v\n", err)
+			fmt.Println("  This doesn't affect your setup - you're still ready to go!")
+			fmt.Println()
+		}
 	}
+
+	return nil
+}
+
+// runQuickstartDemo demonstrates the Specular workflow
+func runQuickstartDemo() error {
+	fmt.Println("  ┌─────────────────────────────────────────────────┐")
+	fmt.Println("  │           Specular Workflow Demo                │")
+	fmt.Println("  └─────────────────────────────────────────────────┘")
+	fmt.Println()
+
+	// Step 1: Show the typical workflow
+	fmt.Println("  The typical Specular workflow:")
+	fmt.Println()
+	fmt.Println("  1️⃣  specular auto \"<your request>\"")
+	fmt.Println("      → AI analyzes your request")
+	fmt.Println("      → Generates a structured specification")
+	fmt.Println("      → Creates an execution plan")
+	fmt.Println("      → Executes in Docker sandbox")
+	fmt.Println()
+
+	fmt.Println("  2️⃣  specular drift detect")
+	fmt.Println("      → Compares spec to implementation")
+	fmt.Println("      → Reports any drift or gaps")
+	fmt.Println()
+
+	fmt.Println("  3️⃣  specular doctor")
+	fmt.Println("      → Checks system health")
+	fmt.Println("      → Validates configuration")
+	fmt.Println()
+
+	// Step 2: Run doctor as a live demo
+	fmt.Println("  Running 'specular doctor' to verify your setup...")
+	fmt.Println()
+
+	// Execute doctor command
+	doctorCmd.SetArgs([]string{})
+	if err := doctorCmd.Execute(); err != nil {
+		return fmt.Errorf("doctor check failed: %w", err)
+	}
+
+	fmt.Println()
+	fmt.Println("  ✓ Demo complete! Try running:")
+	fmt.Println("    specular auto \"Create a hello world REST API\"")
+	fmt.Println()
 
 	return nil
 }

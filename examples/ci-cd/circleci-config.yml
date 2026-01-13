@@ -51,7 +51,7 @@ commands:
             echo 'export LOCK_FILE=.specular/spec.lock.json' >> $BASH_ENV
             echo 'export PLAN_FILE=plan.json' >> $BASH_ENV
             echo 'export POLICY_FILE=.specular/policy.yaml' >> $BASH_ENV
-            echo 'export ROUTER_FILE=.specular/router.yaml' >> $BASH_ENV
+            # Router config is discovered automatically from .specular/providers.yaml
 
 # Job definitions
 jobs:
@@ -104,7 +104,7 @@ jobs:
       - run:
           name: Generate execution plan
           command: |
-            specular plan --spec "$LOCK_FILE" --out "$PLAN_FILE" --router "$ROUTER_FILE"
+            specular plan create --in "$SPEC_FILE" --lock "$LOCK_FILE" --out "$PLAN_FILE"
             echo "Plan generated successfully"
       - persist_to_workspace:
           root: .
@@ -131,7 +131,7 @@ jobs:
           name: Run drift detection
           command: |
             set +e
-            specular eval --spec "$LOCK_FILE" --policy "$POLICY_FILE"
+            specular eval drift --spec "$SPEC_FILE" --plan "$PLAN_FILE" --lock "$LOCK_FILE" --policy "$POLICY_FILE" --report .specular/drift.sarif
             EXIT_CODE=$?
             set -e
 
@@ -183,7 +183,7 @@ jobs:
       - run:
           name: Execute build with policy enforcement
           command: |
-            specular build --plan "$PLAN_FILE" --policy "$POLICY_FILE"
+            specular build run --plan "$PLAN_FILE" --policy "$POLICY_FILE"
       - persist_to_workspace:
           root: .
           paths:

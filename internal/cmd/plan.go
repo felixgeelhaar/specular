@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/felixgeelhaar/specular/internal/plan"
+	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/tui"
@@ -298,13 +300,18 @@ func runPlanCreate(cmd *cobra.Command, args []string) error {
 			task.ID, task.Priority, task.FeatureID, task.Skill, deps)
 	}
 
+	if summary := planProviderSummary(); summary != "" {
+		fmt.Println()
+		fmt.Println(summary)
+	}
+
 	fmt.Println("\nNext steps:")
 	if featureID != "" {
 		fmt.Printf("  1. Review plan: specular plan review\n")
-		fmt.Printf("  2. Execute feature: specular build --plan %s\n", out)
+		fmt.Printf("  2. Execute feature: specular build run --plan %s\n", out)
 	} else {
 		fmt.Printf("  1. Review plan: specular plan review\n")
-		fmt.Printf("  2. Execute plan: specular build\n")
+		fmt.Printf("  2. Execute plan: specular build run\n")
 	}
 
 	// Record success with metrics
@@ -320,6 +327,18 @@ func runPlanCreate(cmd *cobra.Command, args []string) error {
 func runPlanReview(cmd *cobra.Command, args []string) error {
 	defaults := ux.NewPathDefaults()
 	planPath := cmd.Flags().Lookup("plan").Value.String()
+
+	nonInteractive := cmd.Flags().Lookup("non-interactive").Value.String() == "true"
+	autoApprove := cmd.Flags().Lookup("auto-approve").Value.String() == "true"
+	format := cmd.Flags().Lookup("format").Value.String()
+
+	if format != "text" && format != "json" {
+		return fmt.Errorf("unsupported format %s (supported: text, json)", format)
+	}
+
+	if autoApprove && !nonInteractive {
+		return fmt.Errorf("--auto-approve makes sense only with --non-interactive")
+	}
 
 	// Use smart default if not changed
 	if !cmd.Flags().Changed("plan") {
@@ -337,6 +356,30 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 		return ux.FormatError(err, "loading plan file")
 	}
 
+	if nonInteractive {
+		nextSteps := []string{"Execute plan: specular build run"}
+		if !autoApprove {
+			nextSteps = append(nextSteps, "Approve plan: specular plan review --non-interactive --auto-approve")
+		}
+
+		if err := printPlanSummary(planPath, p, format, nextSteps, autoApprove); err != nil {
+			return err
+		}
+
+		if format == "text" {
+			if autoApprove {
+				fmt.Printf("\n✓ Plan approved\n\n")
+				fmt.Println("Next steps:")
+				fmt.Printf("  1. Execute plan: specular build run\n")
+			} else {
+				fmt.Println("\nNext steps:")
+				fmt.Printf("  1. Execute plan: specular build run\n")
+				fmt.Printf("  2. Approve plan: specular plan review --non-interactive --auto-approve\n")
+			}
+		}
+		return nil
+	}
+
 	fmt.Printf("=== Plan Review (TUI) ===\n")
 	fmt.Printf("Plan: %s (%d tasks)\n\n", planPath, len(p.Tasks))
 
@@ -350,7 +393,7 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 	if result.Approved {
 		fmt.Printf("\n✓ Plan approved\n")
 		fmt.Println("\nNext steps:")
-		fmt.Printf("  1. Execute plan: specular build\n")
+		fmt.Printf("  1. Execute plan: specular build run\n")
 	} else {
 		fmt.Printf("\n✗ Plan rejected\n")
 		if result.Reason != "" {
@@ -362,6 +405,80 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+type planTaskSummary struct {
+	ID        string   `json:"id"`
+	Feature   string   `json:"feature"`
+	Skill     string   `json:"skill"`
+	Priority  string   `json:"priority"`
+	ModelHint string   `json:"model_hint"`
+	DependsOn []string `json:"depends_on"`
+}
+
+type planSummary struct {
+	Plan      string            `json:"plan"`
+	TaskCount int               `json:"task_count"`
+	Tasks     []planTaskSummary `json:"tasks"`
+	NextSteps []string          `json:"next_steps,omitempty"`
+	Approved  bool              `json:"approved"`
+}
+
+func buildPlanSummary(planPath string, p *plan.Plan) planSummary {
+	tasks := make([]planTaskSummary, 0, len(p.Tasks))
+	for _, task := range p.Tasks {
+		deps := make([]string, 0, len(task.DependsOn))
+		for _, dep := range task.DependsOn {
+			deps = append(deps, string(dep))
+		}
+		if len(deps) == 0 {
+			deps = append(deps, "none")
+		}
+		tasks = append(tasks, planTaskSummary{
+			ID:        task.ID.String(),
+			Feature:   string(task.FeatureID),
+			Skill:     task.Skill,
+			Priority:  string(task.Priority),
+			ModelHint: task.ModelHint,
+			DependsOn: deps,
+		})
+	}
+
+	return planSummary{
+		Plan:      planPath,
+		TaskCount: len(p.Tasks),
+		Tasks:     tasks,
+	}
+}
+
+func printPlanSummary(planPath string, p *plan.Plan, format string, nextSteps []string, approved bool) error {
+	summary := buildPlanSummary(planPath, p)
+	summary.NextSteps = nextSteps
+	summary.Approved = approved
+
+	switch format {
+	case "json":
+		data, err := json.MarshalIndent(summary, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to format plan summary as JSON: %w", err)
+		}
+		fmt.Println(string(data))
+	default: // text
+		printPlanSummaryText(summary)
+	}
+
+	return nil
+}
+
+func printPlanSummaryText(summary planSummary) {
+	fmt.Printf("=== Plan Summary ===\n\n")
+	fmt.Printf("Plan: %s (%d tasks)\n\n", summary.Plan, summary.TaskCount)
+	fmt.Println("Tasks:")
+	for _, task := range summary.Tasks {
+		deps := strings.Join(task.DependsOn, ", ")
+		fmt.Printf("  • %s: feature=%s, skill=%s, priority=%s, model_hint=%s, deps=%s\n",
+			task.ID, task.Feature, task.Skill, task.Priority, task.ModelHint, deps)
+	}
 }
 
 func runPlanExplain(cmd *cobra.Command, args []string) error {
@@ -496,7 +613,7 @@ func runPlanVisualize(cmd *cobra.Command, args []string) error {
 	fmt.Println("Next steps:")
 	fmt.Printf("  1. Validate plan: specular plan validate\n")
 	fmt.Printf("  2. Review plan: specular plan review\n")
-	fmt.Printf("  3. Execute plan: specular build\n")
+	fmt.Printf("  3. Execute plan: specular build run\n")
 
 	return nil
 }
@@ -582,7 +699,7 @@ func runPlanValidate(cmd *cobra.Command, args []string) error {
 		fmt.Printf("✓ Plan is valid (%d tasks, %d checks passed)\n", len(p.Tasks), 3)
 		fmt.Println("\nNext steps:")
 		fmt.Printf("  1. Review plan: specular plan review\n")
-		fmt.Printf("  2. Execute plan: specular build\n")
+		fmt.Printf("  2. Execute plan: specular build run\n")
 	} else {
 		fmt.Printf("❌ Plan has %d validation error(s)\n", validationErrors)
 		fmt.Println("\nRecommendations:")
@@ -669,6 +786,9 @@ func init() {
 
 	// plan review flags
 	planReviewCmd.Flags().String("plan", "plan.json", "Plan file to review")
+	planReviewCmd.Flags().Bool("non-interactive", false, "Summarize plan without launching TUI")
+	planReviewCmd.Flags().Bool("auto-approve", false, "Automatically approve plan (requires --non-interactive)")
+	planReviewCmd.Flags().String("format", "text", "Output format for non-interactive summary (text,json)")
 
 	// plan explain flags
 	planExplainCmd.Flags().String("plan", "plan.json", "Plan file to explain")
@@ -678,4 +798,30 @@ func init() {
 
 	// plan validate flags
 	planValidateCmd.Flags().String("plan", "plan.json", "Plan file to validate")
+}
+
+func planProviderSummary() string {
+	defaults := ux.NewPathDefaults()
+	config, err := provider.LoadProvidersConfig(defaults.ProvidersFile())
+	if err != nil {
+		return ""
+	}
+
+	var enabled []string
+	for _, p := range config.Providers {
+		if !p.Enabled {
+			continue
+		}
+		if desc := provider.DescriptorByName(p.Name); desc != nil {
+			enabled = append(enabled, fmt.Sprintf("%s (trust: %s)", providerDisplayName(p.Name), desc.TrustLevel))
+			continue
+		}
+		enabled = append(enabled, providerDisplayName(p.Name))
+	}
+
+	if len(enabled) == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("Providers in use: %s", strings.Join(enabled, ", "))
 }

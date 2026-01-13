@@ -12,11 +12,11 @@ Specular currently operates as a **manual CLI tool** where users explicitly run 
 
 ```bash
 # Current workflow requires 5+ manual steps
-specular interview --tui               # 1. Generate spec
+specular spec new --tui                # 1. Generate spec
 specular spec lock --in spec.yaml      # 2. Lock spec
-specular plan --in spec.yaml           # 3. Generate plan
-specular build --plan plan.json        # 4. Execute
-specular eval --plan plan.json         # 5. Quality gate
+specular plan create --in spec.yaml    # 3. Generate plan
+specular build run --plan plan.json    # 4. Execute
+specular eval drift --plan plan.json   # 5. Quality gate
 ```
 
 This approach provides **explicit control** but requires:
@@ -42,13 +42,13 @@ Modern development tools follow two distinct philosophies:
 
 **User Experience:**
 ```bash
-$ specular plan --in spec.yaml
+$ specular plan create --in spec.yaml --lock spec.lock.json
 Plan generated: 12 tasks
 
-$ specular build --plan plan.json
+$ specular build run --plan plan.json
 Building...
 
-$ specular eval --plan plan.json
+$ specular eval drift --plan plan.json
 Tests passed ✓
 ```
 
@@ -108,9 +108,9 @@ During development, patterns emerged showing users want:
 ### 1. Manual Mode (Current - Keep)
 ```bash
 # Explicit step-by-step control
-specular plan --in spec.yaml
-specular build --plan plan.json
-specular eval --plan plan.json
+specular plan create --in spec.yaml --lock spec.lock.json
+specular build run --plan plan.json
+specular eval drift --plan plan.json
 ```
 
 **Use cases:**

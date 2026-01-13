@@ -2,53 +2,40 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/felixgeelhaar/specular/internal/provider"
+	"github.com/felixgeelhaar/specular/internal/provider/testhelpers"
 )
 
 func TestRouterIntegration_OllamaProvider(t *testing.T) {
-	// Check if ollama is available
-	if _, err := exec.LookPath("ollama"); err != nil {
-		t.Skip("ollama not available, skipping integration test")
-	}
+	server := testhelpers.StartFakeOllamaServer(t)
+	defer server.Close()
 
-	// Check if ollama service is running
-	cmd := exec.Command("curl", "-s", "http://localhost:11434/api/tags")
-	if err := cmd.Run(); err != nil {
-		t.Skip("ollama service not running, skipping integration test")
-	}
-
-	// Get absolute path to ollama provider executable
-	providerPath, err := filepath.Abs("../../providers/ollama/ollama-provider")
-	if err != nil {
-		t.Fatalf("Failed to get absolute path: %v", err)
-	}
-
-	// Check if provider executable exists
-	if _, err := os.Stat(providerPath); os.IsNotExist(err) {
-		t.Skip("ollama-provider executable not built, skipping integration test")
-	}
-
-	// Create provider registry and load ollama
 	registry := provider.NewRegistry()
 	config := &provider.ProviderConfig{
 		Name:    "ollama",
-		Type:    provider.ProviderTypeCLI,
+		Type:    provider.ProviderTypeNative,
 		Enabled: true,
-		Source:  "local",
+		Source:  "builtin",
 		Version: "1.0.0",
 		Config: map[string]interface{}{
-			"path": providerPath,
+			"base_url": server.URL,
+			"model":    "llama3.2",
 		},
 		Models: map[string]string{
 			"fast": "llama3.2",
 		},
 	}
 
+	ensureRouterStubRegistered()
+	ensureRouterStubRegistered()
 	if err := registry.LoadFromConfig(config); err != nil {
 		t.Fatalf("Failed to load provider: %v", err)
 	}
@@ -317,4 +304,65 @@ func TestRouterIntegration_BudgetExhaustion(t *testing.T) {
 	} else {
 		t.Logf("Second request correctly failed with exhausted budget: %v", err)
 	}
+}
+
+var (
+	routerStubOnce sync.Once
+)
+
+func ensureRouterStubRegistered() {
+	routerStubOnce.Do(func() {
+		provider.RegisterNativeProvider("ollama", func(_ *provider.ProviderConfig) (provider.ProviderClient, error) {
+			return &routerStubNativeProvider{
+				info: &provider.ProviderInfo{
+					Name:        "ollama",
+					Type:        provider.ProviderTypeNative,
+					Description: "router stub provider",
+				},
+				caps: &provider.ProviderCapabilities{
+					SupportsMultiTurn: true,
+				},
+			}, nil
+		})
+	})
+}
+
+type routerStubNativeProvider struct {
+	info *provider.ProviderInfo
+	caps *provider.ProviderCapabilities
+}
+
+func (s *routerStubNativeProvider) Generate(_ context.Context, _ *provider.GenerateRequest) (*provider.GenerateResponse, error) {
+	return &provider.GenerateResponse{
+		Content:      "stub",
+		Model:        "llama3.2",
+		TokensUsed:   1,
+		FinishReason: "stop",
+		Provider:     "ollama",
+		Latency:      time.Millisecond,
+	}, nil
+}
+
+func (s *routerStubNativeProvider) Stream(_ context.Context, _ *provider.GenerateRequest) (<-chan provider.StreamChunk, error) {
+	return nil, fmt.Errorf("streaming not supported")
+}
+
+func (s *routerStubNativeProvider) GetCapabilities() *provider.ProviderCapabilities {
+	return s.caps
+}
+
+func (s *routerStubNativeProvider) GetInfo() *provider.ProviderInfo {
+	return s.info
+}
+
+func (s *routerStubNativeProvider) IsAvailable() bool {
+	return true
+}
+
+func (s *routerStubNativeProvider) Health(_ context.Context) error {
+	return nil
+}
+
+func (s *routerStubNativeProvider) Close() error {
+	return nil
 }

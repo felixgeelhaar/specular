@@ -53,6 +53,8 @@ type Manifest struct {
 	License string `json:"license" yaml:"license"`
 	// Homepage is the URL to the plugin's homepage or repository
 	Homepage string `json:"homepage,omitempty" yaml:"homepage,omitempty"`
+	// Repository is the source repository URL (e.g., "github.com/user/repo")
+	Repository string `json:"repository,omitempty" yaml:"repository,omitempty"`
 	// Type specifies what kind of extension this plugin provides
 	Type PluginType `json:"type" yaml:"type"`
 	// Entrypoint is the executable or script to run
@@ -63,6 +65,20 @@ type Manifest struct {
 	Config []ConfigField `json:"config,omitempty" yaml:"config,omitempty"`
 	// Capabilities lists the specific capabilities the plugin provides
 	Capabilities []string `json:"capabilities,omitempty" yaml:"capabilities,omitempty"`
+	// Dependencies lists required plugins with version constraints
+	Dependencies []PluginDependency `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
+	// Keywords are tags for search indexing in registries
+	Keywords []string `json:"keywords,omitempty" yaml:"keywords,omitempty"`
+}
+
+// PluginDependency represents a required plugin dependency
+type PluginDependency struct {
+	// Name is the name of the required plugin
+	Name string `json:"name" yaml:"name"`
+	// Version is a semver constraint (e.g., ">=1.0.0", "^2.0.0", "~1.2.0")
+	Version string `json:"version,omitempty" yaml:"version,omitempty"`
+	// Optional indicates if this dependency is optional
+	Optional bool `json:"optional,omitempty" yaml:"optional,omitempty"`
 }
 
 // ConfigField defines a configuration field for a plugin

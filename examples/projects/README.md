@@ -11,6 +11,7 @@ A collection of sample projects demonstrating Specular's spec-first, AI-driven d
 | [api-bookstore](./api-bookstore) | `api-service` | RESTful bookstore API | Go/Chi |
 | [microservice-orders](./microservice-orders) | `microservice` | Order processing service | Go/gRPC |
 | [data-pipeline-etl](./data-pipeline-etl) | `data-pipeline` | Analytics ETL pipeline | Python/Airflow |
+| [mobile-backend](./mobile-backend) | `api-service` | Mobile BaaS with Firebase | Go/Firebase |
 
 ## Quick Start
 
@@ -24,17 +25,17 @@ A collection of sample projects demonstrating Specular's spec-first, AI-driven d
 
 3. **Review the spec** in `spec.yaml` and customize:
    ```bash
-   specular interview --tui
+   specular spec new --tui
    ```
 
 4. **Generate a plan**:
    ```bash
-   specular plan
+   specular plan create
    ```
 
 5. **Execute with governance**:
    ```bash
-   specular build --dry-run
+   specular build run --dry-run
    ```
 
 ## Using Templates
@@ -50,7 +51,7 @@ cd my-new-api
 specular init --template api-service
 
 # Customize through interview
-specular interview --tui
+specular spec new --tui
 ```
 
 Available templates:

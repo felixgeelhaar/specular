@@ -319,7 +319,7 @@ func analyzeStatus(report *StatusReport) {
 
 	// Spec issues
 	if !report.Spec.Exists {
-		report.NextSteps = append(report.NextSteps, "Create specification with 'specular interview' or 'specular spec generate'")
+		report.NextSteps = append(report.NextSteps, "Create specification with 'specular spec new' or 'specular spec new --from PRD.md'")
 		return
 	}
 
@@ -331,13 +331,13 @@ func analyzeStatus(report *StatusReport) {
 
 	// Plan issues
 	if !report.Plan.Exists {
-		report.NextSteps = append(report.NextSteps, "Generate plan with 'specular plan'")
+		report.NextSteps = append(report.NextSteps, "Generate plan with 'specular plan create'")
 		return
 	}
 
 	// If we got here, ready to build
 	if len(report.NextSteps) == 0 {
-		report.NextSteps = append(report.NextSteps, "Execute plan with 'specular build'")
+		report.NextSteps = append(report.NextSteps, "Execute plan with 'specular build run'")
 	}
 
 	// Git warnings

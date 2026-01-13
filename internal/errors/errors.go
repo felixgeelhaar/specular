@@ -155,7 +155,7 @@ func (e *SpecularError) WithDocs(url string) *SpecularError {
 // NewSpecNotFoundError creates a spec file not found error
 func NewSpecNotFoundError(path string) *SpecularError {
 	return New(ErrCodeSpecNotFound, fmt.Sprintf("specification file not found: %s", path)).
-		WithSuggestion("Run 'specular interview' to create a new spec").
+		WithSuggestion("Run 'specular spec new' to create a new spec").
 		WithSuggestion("Check if the file path is correct").
 		WithDocs("https://github.com/felixgeelhaar/specular#specification-management")
 }
@@ -181,7 +181,7 @@ func NewProviderAuthError(provider string) *SpecularError {
 	return New(ErrCodeProviderAuth, fmt.Sprintf("authentication failed for provider: %s", provider)).
 		WithSuggestion(fmt.Sprintf("Set the %s_API_KEY environment variable", strings.ToUpper(provider))).
 		WithSuggestion("Check if your API key is valid and not expired").
-		WithSuggestion("Run 'specular provider health <provider>' to verify connectivity").
+		WithSuggestion("Run 'specular provider doctor <provider>' to verify connectivity").
 		WithDocs("https://github.com/felixgeelhaar/specular#provider-configuration")
 }
 
@@ -211,7 +211,7 @@ func NewExecDockerNotAvailableError() *SpecularError {
 // NewInterviewPresetUnknownError creates an unknown preset error
 func NewInterviewPresetUnknownError(preset string) *SpecularError {
 	return New(ErrCodeInterviewPresetUnknown, fmt.Sprintf("unknown interview preset: %s", preset)).
-		WithSuggestion("Run 'specular interview --list' to see available presets").
+		WithSuggestion("Run 'specular spec new --list' to see available presets").
 		WithSuggestion("Use one of: web-app, api-service, cli-tool, microservice, data-pipeline").
 		WithDocs("https://github.com/felixgeelhaar/specular#interview-presets")
 }
@@ -233,7 +233,7 @@ func NewInterviewAnswerInvalidError(question string, expected string) *SpecularE
 // NewPlanDriftError creates a plan drift detection error
 func NewPlanDriftError(featureID string, expectedHash string, actualHash string) *SpecularError {
 	return New(ErrCodePlanDriftDetected, fmt.Sprintf("plan drift detected for feature: %s", featureID)).
-		WithSuggestion("Regenerate the plan with 'specular plan' to sync with spec").
+		WithSuggestion("Regenerate the plan with 'specular plan create' to sync with spec").
 		WithSuggestion("Review changes in the specification file").
 		WithSuggestion(fmt.Sprintf("Expected hash: %s, got: %s", expectedHash, actualHash)).
 		WithDocs("https://github.com/felixgeelhaar/specular#drift-detection")

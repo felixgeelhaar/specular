@@ -76,6 +76,11 @@ func (m *Manager) Save(state *State) error {
 
 	// Write checkpoint file
 	checkpointPath := filepath.Join(m.checkpointDir, fmt.Sprintf("%s.json", state.OperationID))
+
+	// Ensures intermediate directories exist (operation IDs may contain slashes)
+	if err := os.MkdirAll(filepath.Dir(checkpointPath), 0o750); err != nil {
+		return fmt.Errorf("failed to create checkpoint parent directory: %w", err)
+	}
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal checkpoint state: %w", err)

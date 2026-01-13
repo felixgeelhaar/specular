@@ -43,7 +43,7 @@ jobs:
           prd-file: 'PRD.md'
           spec-file: '.specular/spec.yaml'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          verbose: 'true'
+          additional-args: '--verbose'
 
       - name: Upload Spec Artifact
         uses: actions/upload-artifact@v6
@@ -72,7 +72,7 @@ jobs:
         with:
           command: 'plan'
           spec-file: '.specular/spec.yaml'
-          policy-file: '.specular/policy.yaml'
+          lock-file: '.specular/spec.lock.json'
           plan-file: 'build-plan.json'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -106,9 +106,8 @@ jobs:
           command: 'build'
           plan-file: 'build-plan.json'
           policy-file: '.specular/policy.yaml'
-          checkpoint-resume: 'true'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          verbose: 'true'
+          additional-args: '--resume --verbose'
 
       - name: Upload Build Artifacts
         if: success()
@@ -143,12 +142,13 @@ jobs:
       - name: Run Drift Detection
         uses: ./
         with:
-          command: 'eval'
+          command: 'drift'
           spec-file: '.specular/spec.yaml'
+          lock-file: '.specular/spec.lock.json'
           plan-file: 'build-plan.json'
           policy-file: '.specular/policy.yaml'
-          report-file: 'validation-report.sarif'
-          fail-on-drift: 'true'
+          sarif-output: 'validation-report.sarif'
+          fail-on: 'drift'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Upload SARIF Report

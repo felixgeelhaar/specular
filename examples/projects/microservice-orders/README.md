@@ -17,8 +17,8 @@ cd examples/projects/microservice-orders
 specular init --template microservice
 
 # Generate and execute
-specular plan
-specular build --dry-run
+specular plan create
+specular build run --dry-run
 ```
 
 ## Spec Overview

@@ -17,7 +17,6 @@ variables:
   LOCK_FILE: ".specular/spec.lock.json"
   PLAN_FILE: "plan.json"
   POLICY_FILE: ".specular/policy.yaml"
-  ROUTER_FILE: ".specular/router.yaml"
 
 # Install Specular binary (reusable script)
 .install_specular: &install_specular
@@ -84,7 +83,7 @@ generate_plan:
     - *install_specular
   script:
     - echo "Generating execution plan..."
-    - specular plan --spec "$LOCK_FILE" --out "$PLAN_FILE" --router "$ROUTER_FILE"
+    - specular plan create --in "$SPEC_FILE" --lock "$LOCK_FILE" --out "$PLAN_FILE"
     - echo "Plan generated successfully"
   artifacts:
     paths:
@@ -107,7 +106,7 @@ detect_drift:
     - echo "Running drift detection..."
     - |
       set +e
-      specular eval --spec "$LOCK_FILE" --policy "$POLICY_FILE"
+      specular eval drift --spec "$SPEC_FILE" --plan "$PLAN_FILE" --lock "$LOCK_FILE" --policy "$POLICY_FILE" --report .specular/drift.sarif
       EXIT_CODE=$?
       set -e
 
@@ -155,7 +154,7 @@ execute_build:
     - *install_specular
   script:
     - echo "Executing build with policy enforcement..."
-    - specular build --plan "$PLAN_FILE" --policy "$POLICY_FILE"
+    - specular build run --plan "$PLAN_FILE" --policy "$POLICY_FILE"
   artifacts:
     paths:
       - .specular/runs/

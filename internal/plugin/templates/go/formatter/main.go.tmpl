@@ -1,0 +1,81 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+const Version = "{{.Version}}"
+
+// PluginRequest represents incoming plugin requests
+type PluginRequest struct {
+	Action string                 `json:"action"`
+	Data   map[string]interface{} `json:"data,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
+}
+
+// PluginResponse represents plugin responses
+type PluginResponse struct {
+	Success bool        `json:"success"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
+// FormatterResult for format responses
+type FormatterResult struct {
+	Formatted string `json:"formatted"`
+	Format    string `json:"format,omitempty"`
+}
+
+func main() {
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		var req PluginRequest
+		if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("invalid JSON: %v", err)})
+			continue
+		}
+
+		switch req.Action {
+		case "health":
+			respond(PluginResponse{
+				Success: true,
+				Result: map[string]string{
+					"status":  "healthy",
+					"version": Version,
+				},
+			})
+		case "format":
+			result, err := format(req)
+			if err != nil {
+				respond(PluginResponse{Success: false, Error: err.Error()})
+			} else {
+				respond(PluginResponse{Success: true, Result: result})
+			}
+		default:
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("unknown action: %s", req.Action)})
+		}
+	}
+}
+
+func format(req PluginRequest) (*FormatterResult, error) {
+	content, _ := req.Data["content"].(string)
+	outputFormat, _ := req.Data["format"].(string)
+	if outputFormat == "" {
+		outputFormat = "text"
+	}
+
+	// TODO: Implement your formatting logic here
+	// Example: formatted := myFormatter(content, outputFormat, req.Config)
+
+	return &FormatterResult{
+		Formatted: content,
+		Format:    outputFormat,
+	}, nil
+}
+
+func respond(resp PluginResponse) {
+	json.NewEncoder(os.Stdout).Encode(resp)
+}

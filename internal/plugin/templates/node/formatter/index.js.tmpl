@@ -1,0 +1,71 @@
+#!/usr/bin/env node
+/**
+ * {{.Name}} - A Specular formatter plugin
+ */
+
+const readline = require('readline');
+
+const VERSION = '{{.Version}}';
+
+/**
+ * Health check response
+ * @returns {Object} Health status
+ */
+function healthCheck() {
+  return { status: 'healthy', version: VERSION };
+}
+
+/**
+ * Format content
+ * @param {Object} data - Request data
+ * @param {Object} config - Plugin configuration
+ * @returns {Promise<Object>} Formatter result
+ */
+async function format(data, config) {
+  const content = data.content || '';
+  const outputFormat = data.format || 'text';
+
+  // TODO: Implement your formatting logic here
+  // Example: const formatted = myFormatter(content, outputFormat, config);
+  const formatted = content;
+
+  return {
+    formatted,
+    format: outputFormat,
+  };
+}
+
+/**
+ * Main entry point
+ */
+async function main() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false,
+  });
+
+  for await (const line of rl) {
+    try {
+      const request = JSON.parse(line);
+      const action = request.action || 'format';
+
+      let result;
+      if (action === 'health') {
+        result = healthCheck();
+      } else if (action === 'format') {
+        result = await format(request.data || {}, request.config || {});
+      } else {
+        console.log(JSON.stringify({ success: false, error: `Unknown action: ${action}` }));
+        continue;
+      }
+
+      console.log(JSON.stringify({ success: true, result }));
+
+    } catch (error) {
+      console.log(JSON.stringify({ success: false, error: error.message }));
+    }
+  }
+}
+
+main().catch(console.error);

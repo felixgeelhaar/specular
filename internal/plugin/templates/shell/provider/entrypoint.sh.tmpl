@@ -1,0 +1,36 @@
+#!/bin/bash
+# {{.Name}} - A Specular provider plugin
+# Type: provider
+#
+# This plugin receives JSON input on stdin and outputs JSON on stdout.
+# Input format: { "action": "...", "data": {...}, "config": {...} }
+# Output format: { "success": true, "result": {...} } or { "success": false, "error": "..." }
+
+set -e
+
+VERSION="{{.Version}}"
+
+# Read input
+INPUT=$(cat)
+ACTION=$(echo "$INPUT" | jq -r '.action // "execute"')
+
+case "$ACTION" in
+  "health")
+    # Health check
+    echo "{\"success\": true, \"result\": {\"status\": \"healthy\", \"version\": \"$VERSION\"}}"
+    ;;
+  "execute")
+    # Extract prompt from data
+    PROMPT=$(echo "$INPUT" | jq -r '.data.prompt // ""')
+
+    # TODO: Implement your provider logic here
+    # Example: RESPONSE=$(call_my_api "$PROMPT")
+
+    RESPONSE="Echo: $PROMPT"
+    echo "{\"success\": true, \"result\": {\"response\": \"$RESPONSE\", \"model\": \"{{.Name}}-model\"}}"
+    ;;
+  *)
+    echo "{\"success\": false, \"error\": \"Unknown action: $ACTION\"}"
+    exit 1
+    ;;
+esac

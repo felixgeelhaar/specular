@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -273,30 +274,123 @@ var pluginDisableCmd = &cobra.Command{
 	},
 }
 
+var (
+	installForce   bool
+	installUpgrade bool
+	installVersion string
+)
+
 var pluginInstallCmd = &cobra.Command{
 	Use:   "install <source>",
 	Short: "Install a plugin",
 	Long: `Install a plugin from a source.
 
 Sources can be:
-  - Local directory path
+  - Local directory path (e.g., ./my-plugin)
   - GitHub repository URL (e.g., github.com/user/repo)
-  - Plugin registry name (coming soon)
+  - GitHub with version (e.g., github.com/user/repo@v1.0.0)
+  - Plugin registry name (e.g., registry:plugin-name@1.0.0)
 
 Examples:
   specular plugin install ./my-plugin
-  specular plugin install github.com/felixgeelhaar/specular-slack-notifier`,
+  specular plugin install github.com/felixgeelhaar/specular-slack-notifier
+  specular plugin install github.com/felixgeelhaar/specular-slack-notifier@v1.2.0
+  specular plugin install github.com/user/monorepo@main/plugins/my-plugin`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		source := args[0]
 
 		manager := plugin.NewManager(plugin.DefaultManagerConfig())
 
-		if err := manager.Install(source); err != nil {
+		opts := plugin.InstallOptions{
+			Force:   installForce,
+			Upgrade: installUpgrade,
+			Version: installVersion,
+		}
+
+		if err := manager.InstallWithOptions(source, opts); err != nil {
 			return fmt.Errorf("failed to install plugin: %w", err)
 		}
 
-		fmt.Printf("✓ Plugin installed from %s\n", source)
+		return nil
+	},
+}
+
+var pluginUpdateCmd = &cobra.Command{
+	Use:   "update [plugin-name]",
+	Short: "Update installed plugins",
+	Long: `Update one or all installed plugins to their latest versions.
+
+If a plugin name is provided, only that plugin is updated.
+If no arguments are given, all plugins are updated.
+
+Version can be specified with @version suffix:
+  specular plugin update slack-notifier@v2.0.0
+
+Examples:
+  specular plugin update                    # Update all plugins
+  specular plugin update slack-notifier     # Update specific plugin
+  specular plugin update slack-notifier@v2.0.0  # Update to specific version`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		manager := plugin.NewManager(plugin.DefaultManagerConfig())
+
+		if err := manager.Discover(); err != nil {
+			return fmt.Errorf("failed to discover plugins: %w", err)
+		}
+
+		if len(args) == 0 {
+			// Update all plugins
+			fmt.Println("Updating all plugins...")
+			results, err := manager.UpdateAll()
+			if err != nil {
+				return fmt.Errorf("failed to update plugins: %w", err)
+			}
+
+			var updated, failed int
+			for _, r := range results {
+				if r.Error != nil {
+					fmt.Printf("✗ %s: %v\n", r.Name, r.Error)
+					failed++
+				} else if r.Updated {
+					fmt.Printf("✓ %s: %s → %s\n", r.Name, r.OldVersion, r.NewVersion)
+					updated++
+				} else {
+					fmt.Printf("  %s: already at latest (%s)\n", r.Name, r.OldVersion)
+				}
+			}
+
+			fmt.Printf("\nUpdated %d plugin(s), %d failed\n", updated, failed)
+			return nil
+		}
+
+		// Update specific plugin
+		pluginSpec := args[0]
+		name := pluginSpec
+		version := ""
+
+		// Parse version from plugin@version format
+		if idx := len(pluginSpec) - 1; idx > 0 {
+			for i := len(pluginSpec) - 1; i >= 0; i-- {
+				if pluginSpec[i] == '@' {
+					name = pluginSpec[:i]
+					version = pluginSpec[i+1:]
+					break
+				}
+			}
+		}
+
+		result, err := manager.Update(name, version)
+		if err != nil {
+			return fmt.Errorf("failed to update plugin: %w", err)
+		}
+
+		if result.Updated {
+			fmt.Printf("✓ Updated %s: %s → %s\n", name, result.OldVersion, result.NewVersion)
+		} else {
+			fmt.Printf("  %s: already at latest (%s)\n", name, result.OldVersion)
+		}
+
 		return nil
 	},
 }
@@ -342,6 +436,7 @@ var pluginUninstallCmd = &cobra.Command{
 var (
 	pluginCreateType   string
 	pluginCreateAuthor string
+	pluginCreateLang   string
 )
 
 var pluginCreateCmd = &cobra.Command{
@@ -350,23 +445,31 @@ var pluginCreateCmd = &cobra.Command{
 	Short:   "Create a new plugin scaffold",
 	Long: `Create a new plugin directory with manifest and entrypoint template.
 
-This generates a basic plugin structure that you can customize:
+This generates a plugin structure in your chosen language:
   - plugin.yaml: Plugin manifest with metadata
-  - entrypoint.sh: Shell script entrypoint (or .py for Python)
-  - README.md: Basic documentation
+  - Language-specific entrypoint (main.go, main.py, index.js, or entrypoint.sh)
+  - Build/dependency files (go.mod, requirements.txt, package.json)
+
+Supported languages: go, python, node, shell
 
 Examples:
-  # Create a provider plugin
-  specular plugin create my-provider --type provider
+  # Create a Go provider plugin
+  specular plugin create my-provider --type provider --lang go
 
-  # Create a notifier plugin with author info
-  specular plugin create slack-notifier --type notifier --author "Your Name"`,
+  # Create a Python notifier plugin
+  specular plugin create slack-notifier --type notifier --lang python
+
+  # Create a Node.js validator plugin
+  specular plugin create json-validator --type validator --lang node
+
+  # Create a shell hook plugin (default)
+  specular plugin create pre-commit-hook --type hook`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		pluginName := args[0]
 
 		// Validate plugin type
-		validTypes := []string{"provider", "validator", "formatter", "hook", "notifier"}
+		validTypes := GetPluginTypes()
 		typeValid := false
 		for _, t := range validTypes {
 			if pluginCreateType == t {
@@ -378,118 +481,271 @@ Examples:
 			return fmt.Errorf("invalid plugin type: %s (valid: %v)", pluginCreateType, validTypes)
 		}
 
+		// Validate language
+		validLangs := plugin.GetSupportedLanguages()
+		langValid := false
+		for _, l := range validLangs {
+			if pluginCreateLang == l {
+				langValid = true
+				break
+			}
+		}
+		if !langValid {
+			return fmt.Errorf("invalid language: %s (valid: %v)", pluginCreateLang, validLangs)
+		}
+
 		// Create plugin directory
 		pluginDir := filepath.Join(".", pluginName)
 		if _, err := os.Stat(pluginDir); err == nil {
 			return fmt.Errorf("directory already exists: %s", pluginDir)
 		}
 
-		if err := os.MkdirAll(pluginDir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory: %w", err)
+		// Use scaffold to create plugin
+		cfg := plugin.ScaffoldConfig{
+			Name:    pluginName,
+			Type:    pluginCreateType,
+			Lang:    pluginCreateLang,
+			Author:  pluginCreateAuthor,
+			Version: "0.1.0",
 		}
 
-		// Create plugin.yaml manifest
-		manifest := fmt.Sprintf(`# Specular Plugin Manifest
-name: %s
-version: "0.1.0"
-type: %s
-description: "A Specular %s plugin"
-author: "%s"
-license: "MIT"
-entrypoint: "./entrypoint.sh"
-
-# Capabilities this plugin provides
-capabilities:
-  - %s
-
-# Configuration options (optional)
-config: []
-`, pluginName, pluginCreateType, pluginCreateType, pluginCreateAuthor, pluginCreateType)
-
-		if err := os.WriteFile(filepath.Join(pluginDir, "plugin.yaml"), []byte(manifest), 0644); err != nil {
-			return fmt.Errorf("failed to create manifest: %w", err)
+		if err := plugin.Scaffold(pluginDir, cfg); err != nil {
+			return fmt.Errorf("failed to scaffold plugin: %w", err)
 		}
 
-		// Create entrypoint script
-		entrypoint := fmt.Sprintf(`#!/bin/bash
-# Specular Plugin: %s
-# Type: %s
-#
-# This plugin receives JSON input on stdin and outputs JSON on stdout.
-# Input format: { "action": "...", "data": {...} }
-# Output format: { "success": true, "result": {...} } or { "success": false, "error": "..." }
+		fmt.Printf("✓ Created %s plugin: %s\n\n", pluginCreateLang, pluginDir)
+		plugin.PrintNextSteps(pluginName, pluginCreateLang)
 
-set -e
+		return nil
+	},
+}
 
-# Read input
-INPUT=$(cat)
-ACTION=$(echo "$INPUT" | jq -r '.action // "execute"')
+var (
+	searchType   string
+	searchLimit  int
+	registryURL  string
+	clearCache   bool
+)
 
-case "$ACTION" in
-  "health")
-    # Health check
-    echo '{"success": true, "result": {"status": "healthy", "version": "0.1.0"}}'
-    ;;
-  "execute")
-    # Main execution logic
-    # TODO: Implement your plugin logic here
-    echo '{"success": true, "result": {"message": "Plugin executed successfully"}}'
-    ;;
-  *)
-    echo "{\"success\": false, \"error\": \"Unknown action: $ACTION\"}"
-    exit 1
-    ;;
-esac
-`, pluginName, pluginCreateType)
+var pluginSearchCmd = &cobra.Command{
+	Use:   "search [query]",
+	Short: "Search the plugin registry",
+	Long: `Search for plugins in the Specular plugin registry.
 
-		entrypointPath := filepath.Join(pluginDir, "entrypoint.sh")
-		if err := os.WriteFile(entrypointPath, []byte(entrypoint), 0755); err != nil {
-			return fmt.Errorf("failed to create entrypoint: %w", err)
+If no query is provided, lists all available plugins.
+Results are sorted by relevance and popularity.
+
+Examples:
+  specular plugin search                    # List all plugins
+  specular plugin search slack              # Search by name/keyword
+  specular plugin search --type notifier    # Filter by type
+  specular plugin search notifications      # Search by description`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmdCtx, err := NewCommandContext(cmd)
+		if err != nil {
+			return fmt.Errorf("failed to create command context: %w", err)
 		}
 
-		// Create README.md
-		readme := fmt.Sprintf(`# %s
+		// Initialize registry
+		opts := []plugin.RegistryOption{}
+		if registryURL != "" {
+			opts = append(opts, plugin.WithRegistryURL(registryURL))
+		}
+		registry := plugin.NewRegistry(opts...)
 
-A Specular %s plugin.
-
-## Installation
-
-`+"```bash"+`
-specular plugin install ./%s
-`+"```"+`
-
-## Usage
-
-After installation, this plugin will be available for use with Specular.
-
-## Configuration
-
-Edit `+"`plugin.yaml`"+` to configure the plugin options.
-
-## Development
-
-1. Edit `+"`entrypoint.sh`"+` to implement your plugin logic
-2. Test locally: `+"`echo '{}' | ./entrypoint.sh`"+`
-3. Install: `+"`specular plugin install ./%s`"+`
-
-## License
-
-MIT
-`, pluginName, pluginCreateType, pluginName, pluginName)
-
-		if err := os.WriteFile(filepath.Join(pluginDir, "README.md"), []byte(readme), 0644); err != nil {
-			return fmt.Errorf("failed to create README: %w", err)
+		if clearCache {
+			if err := registry.ClearCache(); err != nil && !os.IsNotExist(err) {
+				fmt.Fprintf(os.Stderr, "Warning: failed to clear cache: %v\n", err)
+			}
 		}
 
-		fmt.Printf("✓ Created plugin scaffold: %s\n", pluginDir)
-		fmt.Printf("\nFiles created:\n")
-		fmt.Printf("  %s/plugin.yaml    - Plugin manifest\n", pluginName)
-		fmt.Printf("  %s/entrypoint.sh  - Plugin entrypoint script\n", pluginName)
-		fmt.Printf("  %s/README.md      - Documentation\n", pluginName)
-		fmt.Printf("\nNext steps:\n")
-		fmt.Printf("  1. Edit %s/entrypoint.sh to implement your plugin logic\n", pluginName)
-		fmt.Printf("  2. Test: echo '{}' | ./%s/entrypoint.sh\n", pluginName)
-		fmt.Printf("  3. Install: specular plugin install ./%s\n", pluginName)
+		// Perform search
+		query := ""
+		if len(args) > 0 {
+			query = args[0]
+		}
+
+		var results []plugin.SearchResult
+
+		if searchType != "" {
+			// Search by type
+			pluginType := plugin.PluginType(searchType)
+			results, err = registry.SearchByType(pluginType)
+			if err != nil {
+				return fmt.Errorf("failed to search registry: %w", err)
+			}
+			// If query also provided, filter results
+			if query != "" {
+				var filtered []plugin.SearchResult
+				queryLower := strings.ToLower(query)
+				for _, r := range results {
+					if strings.Contains(strings.ToLower(r.Plugin.Name), queryLower) ||
+						strings.Contains(strings.ToLower(r.Plugin.Description), queryLower) {
+						filtered = append(filtered, r)
+					}
+				}
+				results = filtered
+			}
+		} else {
+			results, err = registry.Search(query)
+			if err != nil {
+				return fmt.Errorf("failed to search registry: %w", err)
+			}
+		}
+
+		// Apply limit
+		if searchLimit > 0 && len(results) > searchLimit {
+			results = results[:searchLimit]
+		}
+
+		// JSON/YAML output
+		if cmdCtx.Format == "json" || cmdCtx.Format == "yaml" {
+			formatter, err := ux.NewFormatter(cmdCtx.Format, &ux.FormatterOptions{
+				NoColor: cmdCtx.NoColor,
+			})
+			if err != nil {
+				return err
+			}
+			return formatter.Format(results)
+		}
+
+		if len(results) == 0 {
+			fmt.Println("No plugins found.")
+			return nil
+		}
+
+		// Print results table
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+		fmt.Fprintln(w, "NAME\tVERSION\tTYPE\tDOWNLOADS\tDESCRIPTION") //nolint:errcheck
+		fmt.Fprintln(w, "----\t-------\t----\t---------\t-----------") //nolint:errcheck
+
+		for _, r := range results {
+			description := r.Plugin.Description
+			if len(description) > 50 {
+				description = description[:47] + "..."
+			}
+
+			deprecatedMark := ""
+			if r.Plugin.Deprecated {
+				deprecatedMark = " [DEPRECATED]"
+			}
+
+			fmt.Fprintf(w, "%s%s\t%s\t%s\t%d\t%s\n", //nolint:errcheck
+				r.Plugin.Name,
+				deprecatedMark,
+				r.Plugin.Latest,
+				r.Plugin.Type,
+				r.Plugin.Downloads,
+				description)
+		}
+
+		w.Flush() //#nosec G104 -- Tabwriter flush errors not critical
+
+		fmt.Printf("\nFound %d plugin(s). Use 'specular plugin registry-info <name>' for details.\n", len(results))
+
+		return nil
+	},
+}
+
+var pluginRegistryInfoCmd = &cobra.Command{
+	Use:     "registry-info <plugin-name>",
+	Aliases: []string{"reg-info"},
+	Short:   "Show registry information about a plugin",
+	Long: `Show detailed registry information about a plugin.
+
+This shows the plugin's registry entry including:
+  - All available versions
+  - Author and license information
+  - Download statistics
+  - Keywords and dependencies
+
+Examples:
+  specular plugin registry-info slack-notifier`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmdCtx, err := NewCommandContext(cmd)
+		if err != nil {
+			return fmt.Errorf("failed to create command context: %w", err)
+		}
+
+		pluginName := args[0]
+
+		// Initialize registry
+		opts := []plugin.RegistryOption{}
+		if registryURL != "" {
+			opts = append(opts, plugin.WithRegistryURL(registryURL))
+		}
+		registry := plugin.NewRegistry(opts...)
+
+		// Get plugin info
+		info, err := registry.GetPluginInfo(pluginName)
+		if err != nil {
+			return fmt.Errorf("failed to get plugin info: %w", err)
+		}
+
+		// JSON/YAML output
+		if cmdCtx.Format == "json" || cmdCtx.Format == "yaml" {
+			formatter, err := ux.NewFormatter(cmdCtx.Format, &ux.FormatterOptions{
+				NoColor: cmdCtx.NoColor,
+			})
+			if err != nil {
+				return err
+			}
+			return formatter.Format(info)
+		}
+
+		// Print plugin details
+		fmt.Printf("Name:        %s\n", info.Name)
+		fmt.Printf("Type:        %s\n", info.Type)
+		fmt.Printf("Latest:      %s\n", info.Latest)
+		fmt.Printf("Author:      %s\n", info.Author)
+		if info.License != "" {
+			fmt.Printf("License:     %s\n", info.License)
+		}
+		if info.Repository != "" {
+			fmt.Printf("Repository:  %s\n", info.Repository)
+		}
+		if info.Homepage != "" {
+			fmt.Printf("Homepage:    %s\n", info.Homepage)
+		}
+		fmt.Printf("Downloads:   %d\n", info.Downloads)
+		fmt.Printf("Stars:       %d\n", info.Stars)
+
+		if info.Description != "" {
+			fmt.Printf("\nDescription:\n  %s\n", info.Description)
+		}
+
+		if len(info.Keywords) > 0 {
+			fmt.Printf("\nKeywords:\n  %s\n", strings.Join(info.Keywords, ", "))
+		}
+
+		if info.Deprecated {
+			fmt.Printf("\n⚠️  This plugin is DEPRECATED\n")
+		}
+
+		if len(info.Versions) > 0 {
+			fmt.Println("\nAvailable Versions:")
+			// Show up to 10 most recent versions
+			count := len(info.Versions)
+			if count > 10 {
+				count = 10
+			}
+			for i := 0; i < count; i++ {
+				v := info.Versions[i]
+				marker := ""
+				if v == info.Latest {
+					marker = " (latest)"
+				}
+				fmt.Printf("  - %s%s\n", v, marker)
+			}
+			if len(info.Versions) > 10 {
+				fmt.Printf("  ... and %d more\n", len(info.Versions)-10)
+			}
+		}
+
+		fmt.Printf("\nInstall:\n  specular plugin install registry:%s\n", info.Name)
+		fmt.Printf("  specular plugin install registry:%s@%s\n", info.Name, info.Latest)
 
 		return nil
 	},
@@ -512,7 +768,15 @@ func init() {
 	pluginCmd.AddCommand(pluginDisableCmd)
 	pluginCmd.AddCommand(pluginInstallCmd)
 	pluginCmd.AddCommand(pluginUninstallCmd)
+	pluginCmd.AddCommand(pluginUpdateCmd)
 	pluginCmd.AddCommand(pluginCreateCmd)
+	pluginCmd.AddCommand(pluginSearchCmd)
+	pluginCmd.AddCommand(pluginRegistryInfoCmd)
+
+	// Flags for install command
+	pluginInstallCmd.Flags().BoolVarP(&installForce, "force", "f", false, "Overwrite existing plugin")
+	pluginInstallCmd.Flags().BoolVarP(&installUpgrade, "upgrade", "u", false, "Upgrade existing plugin")
+	pluginInstallCmd.Flags().StringVar(&installVersion, "version", "", "Specific version to install")
 
 	// Flags for uninstall command
 	pluginUninstallCmd.Flags().Bool("force", false, "Skip confirmation prompt")
@@ -520,4 +784,14 @@ func init() {
 	// Flags for create command
 	pluginCreateCmd.Flags().StringVar(&pluginCreateType, "type", "provider", "Plugin type (provider, validator, formatter, hook, notifier)")
 	pluginCreateCmd.Flags().StringVar(&pluginCreateAuthor, "author", "", "Plugin author name")
+	pluginCreateCmd.Flags().StringVar(&pluginCreateLang, "lang", "shell", "Template language (go, python, node, shell)")
+
+	// Flags for search command
+	pluginSearchCmd.Flags().StringVar(&searchType, "type", "", "Filter by plugin type (provider, validator, formatter, hook, notifier)")
+	pluginSearchCmd.Flags().IntVarP(&searchLimit, "limit", "n", 0, "Limit number of results (0 = unlimited)")
+	pluginSearchCmd.Flags().StringVar(&registryURL, "registry", "", "Custom registry URL")
+	pluginSearchCmd.Flags().BoolVar(&clearCache, "clear-cache", false, "Clear registry cache before searching")
+
+	// Flags for registry-info command
+	pluginRegistryInfoCmd.Flags().StringVar(&registryURL, "registry", "", "Custom registry URL")
 }

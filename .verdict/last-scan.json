@@ -1,0 +1,4180 @@
+{
+  "scan_time": "2026-01-08T12:46:54.987059Z",
+  "target": "/Users/felixgeelhaar/Developer/projects/specular/cli",
+  "findings": [
+    {
+      "id": "finding-3a44cd4d9d7a8b59",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func maxInt is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/auto/estimate.go",
+        "line": 147,
+        "column": 6,
+        "end_line": 147,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "697386ac2c3ea40fcb45d3293bfab80a",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522467Z"
+    },
+    {
+      "id": "finding-7340f4fe887eb830",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func convertToReport is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/context.go",
+        "line": 153,
+        "column": 6,
+        "end_line": 153,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "5175a393bd8e949d87feff3d7248b11d",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522832Z"
+    },
+    {
+      "id": "finding-63e39966d795d34b",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func determineDependencies is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/plan/generator.go",
+        "line": 233,
+        "column": 6,
+        "end_line": 233,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "5a175de07b917371eafdcc54c5532f0e",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522843Z"
+    },
+    {
+      "id": "finding-97508feb8bbb40c4",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func estimateComplexity is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/plan/generator.go",
+        "line": 248,
+        "column": 6,
+        "end_line": 248,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "d6014670ac12d212e91ad977c09dcf27",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522847Z"
+    },
+    {
+      "id": "finding-131396962cf5178f",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func mockExecCommand is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/claude-code/main_test.go",
+        "line": 281,
+        "column": 6,
+        "end_line": 281,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "9b1ad867ab490ba5afc5f25a30b9cf89",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522851Z"
+    },
+    {
+      "id": "finding-6661cf8c930fd724",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func mockExecCommand is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/claude/main_test.go",
+        "line": 359,
+        "column": 6,
+        "end_line": 359,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "9cd7ac89cb83c5165b3b0de4eb2b1e70",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522854Z"
+    },
+    {
+      "id": "finding-8de0e017a1990921",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func mockExecCommand is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/codex-cli/main_test.go",
+        "line": 308,
+        "column": 6,
+        "end_line": 308,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "6c7309505b1c0d46da7a7677b08c906d",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522858Z"
+    },
+    {
+      "id": "finding-ee4698f703bb0412",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func mockExecCommand is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/codex/main_test.go",
+        "line": 366,
+        "column": 6,
+        "end_line": 366,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "2212094c871f71ce162f43cae2a052dd",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522861Z"
+    },
+    {
+      "id": "finding-efc727e7d81d03ac",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func mockExecCommand is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/gemini-cli/main_test.go",
+        "line": 293,
+        "column": 6,
+        "end_line": 293,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "10ecaff7352a54707d4a1cecf1245f8a",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522864Z"
+    },
+    {
+      "id": "finding-ac8823e1c46542c7",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func mockExecCommand is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/gemini/main_test.go",
+        "line": 364,
+        "column": 6,
+        "end_line": 364,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "894033cae5c735274ba53d6ad30905f4",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522868Z"
+    },
+    {
+      "id": "finding-85208ab5b1df8907",
+      "type": "sast",
+      "engine_id": "staticcheck",
+      "rule_id": "U1000",
+      "title": "func mockExecCommand is unused",
+      "normalized_severity": "INFO",
+      "effective_severity": "INFO",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/ollama/main_test.go",
+        "line": 551,
+        "column": 6,
+        "end_line": 551,
+        "end_column": 26
+      },
+      "fingerprint": {
+        "value": "e221710bf63eaed428a6332814c92801",
+        "version": "v1"
+      },
+      "metadata": {
+        "check_code": "U1000"
+      },
+      "detected_at": "2026-01-08T12:43:49.522871Z"
+    },
+    {
+      "id": "finding-8f7324555d2c7809",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G101",
+      "title": "Potential hardcoded credentials",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "LOW",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/auth/errors.go",
+        "line": 37,
+        "column": 2,
+        "end_line": 37,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "c0193e5ff164760a10c04589ee84e1d0",
+        "version": "v1"
+      },
+      "cwe_id": "798",
+      "metadata": {
+        "snippet": "36: \tErrOIDCTokenExchangeFailed = \"AUTH_OIDC_TOKEN_EXCHANGE_FAILED\" //nolint:gosec // Error constant, not a credential\n37: \tErrOIDCIDTokenInvalid      = \"AUTH_OIDC_ID_TOKEN_INVALID\"      //nolint:gosec // Error constant, not a credential\n38: )\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98595Z"
+    },
+    {
+      "id": "finding-573c5be7e33dd8e3",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G101",
+      "title": "Potential hardcoded credentials",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "LOW",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/auth/errors.go",
+        "line": 36,
+        "column": 2,
+        "end_line": 36,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "76845f4984c9b903d8f29c6a91f15cae",
+        "version": "v1"
+      },
+      "cwe_id": "798",
+      "metadata": {
+        "snippet": "35: \tErrOIDCAuthorizationFailed = \"AUTH_OIDC_AUTHORIZATION_FAILED\"\n36: \tErrOIDCTokenExchangeFailed = \"AUTH_OIDC_TOKEN_EXCHANGE_FAILED\" //nolint:gosec // Error constant, not a credential\n37: \tErrOIDCIDTokenInvalid      = \"AUTH_OIDC_ID_TOKEN_INVALID\"      //nolint:gosec // Error constant, not a credential\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985959Z"
+    },
+    {
+      "id": "finding-cd513fb145d37410",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G101",
+      "title": "Potential hardcoded credentials",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "LOW",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/auth/errors.go",
+        "line": 27,
+        "column": 2,
+        "end_line": 27,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "6061336e7037a9015f253ec23476e23b",
+        "version": "v1"
+      },
+      "cwe_id": "798",
+      "metadata": {
+        "snippet": "26: \tErrTokenMalformed     = \"AUTH_TOKEN_MALFORMED\"      //nolint:gosec // Error constant, not a credential\n27: \tErrTokenSigningFailed = \"AUTH_TOKEN_SIGNING_FAILED\" //nolint:gosec // Error constant, not a credential\n28: \n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985962Z"
+    },
+    {
+      "id": "finding-bddc4818f6b39c39",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G101",
+      "title": "Potential hardcoded credentials",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "LOW",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/auth/errors.go",
+        "line": 26,
+        "column": 2,
+        "end_line": 26,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "e177dd042ea81239a8f5498f55c06666",
+        "version": "v1"
+      },
+      "cwe_id": "798",
+      "metadata": {
+        "snippet": "25: \tErrTokenExpired       = \"AUTH_TOKEN_EXPIRED\"        //nolint:gosec // Error constant, not a credential\n26: \tErrTokenMalformed     = \"AUTH_TOKEN_MALFORMED\"      //nolint:gosec // Error constant, not a credential\n27: \tErrTokenSigningFailed = \"AUTH_TOKEN_SIGNING_FAILED\" //nolint:gosec // Error constant, not a credential\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985964Z"
+    },
+    {
+      "id": "finding-c20748c157a709e8",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G101",
+      "title": "Potential hardcoded credentials",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "LOW",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/auth/errors.go",
+        "line": 25,
+        "column": 2,
+        "end_line": 25,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "6f1ba22163faf7470d38705a90110c25",
+        "version": "v1"
+      },
+      "cwe_id": "798",
+      "metadata": {
+        "snippet": "24: \tErrTokenInvalid       = \"AUTH_TOKEN_INVALID\"        //nolint:gosec // Error constant, not a credential\n25: \tErrTokenExpired       = \"AUTH_TOKEN_EXPIRED\"        //nolint:gosec // Error constant, not a credential\n26: \tErrTokenMalformed     = \"AUTH_TOKEN_MALFORMED\"      //nolint:gosec // Error constant, not a credential\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985965Z"
+    },
+    {
+      "id": "finding-286e009ae2f99688",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G101",
+      "title": "Potential hardcoded credentials",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "LOW",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/auth/errors.go",
+        "line": 24,
+        "column": 2,
+        "end_line": 24,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "e3570d20c299f1a5df0a680d1400f5e0",
+        "version": "v1"
+      },
+      "cwe_id": "798",
+      "metadata": {
+        "snippet": "23: \t// Token errors\n24: \tErrTokenInvalid       = \"AUTH_TOKEN_INVALID\"        //nolint:gosec // Error constant, not a credential\n25: \tErrTokenExpired       = \"AUTH_TOKEN_EXPIRED\"        //nolint:gosec // Error constant, not a credential\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985968Z"
+    },
+    {
+      "id": "finding-d3de10fe27bf337e",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G101",
+      "title": "Potential hardcoded credentials",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "LOW",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/auth/errors.go",
+        "line": 10,
+        "column": 2,
+        "end_line": 10,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "7ee3c2b1d6f9ed8abcc5165cc17dcbba",
+        "version": "v1"
+      },
+      "cwe_id": "798",
+      "metadata": {
+        "snippet": "9: \t// Authentication errors\n10: \tErrInvalidCredentials  = \"AUTH_INVALID_CREDENTIALS\" //nolint:gosec // Error constant, not a credential\n11: \tErrProviderUnavailable = \"AUTH_PROVIDER_UNAVAILABLE\"\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98597Z"
+    },
+    {
+      "id": "finding-70b7617517382f33",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/gemini/main.go",
+        "line": 229,
+        "column": 9,
+        "end_line": 229,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "f93daac06ef011aa6eebb0df56ca3f8f",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "228: \n229: \tcmd := exec.CommandContext(ctx, \"gemini\", args...)\n230: \toutput, err := cmd.CombinedOutput()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985971Z"
+    },
+    {
+      "id": "finding-de0ef4d6a0d1a22c",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/gemini/main.go",
+        "line": 165,
+        "column": 9,
+        "end_line": 165,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "2ed5a6d854406c4eecc638180b761ea3",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "164: \n165: \tcmd := exec.CommandContext(ctx, cliCommand, args...)\n166: \toutput, err := cmd.CombinedOutput()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985974Z"
+    },
+    {
+      "id": "finding-57126d63d2d29991",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/gemini-cli/main.go",
+        "line": 102,
+        "column": 9,
+        "end_line": 102,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "7fdb83cf427fed81ed61434151a3564a",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "101: \n102: \tcmd := exec.CommandContext(ctx, \"gemini\", args...)\n103: \toutput, err := cmd.CombinedOutput()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985976Z"
+    },
+    {
+      "id": "finding-732a4f48face3a4e",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/codex/main.go",
+        "line": 212,
+        "column": 9,
+        "end_line": 212,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "41db1cb36d274c181880603c149f70d3",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "211: \n212: \tcmd := exec.CommandContext(ctx, \"openai\", args...)\n213: \toutput, err := cmd.CombinedOutput()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985978Z"
+    },
+    {
+      "id": "finding-f3df334db98580ea",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/claude/main.go",
+        "line": 218,
+        "column": 9,
+        "end_line": 218,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "fafb33eae1780fb19799cd220b3bdaf7",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "217: \n218: \tcmd := exec.CommandContext(ctx, \"claude\", args...)\n219: \toutput, err := cmd.CombinedOutput()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985979Z"
+    },
+    {
+      "id": "finding-e80177b54b991080",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/claude/main.go",
+        "line": 144,
+        "column": 9,
+        "end_line": 144,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "b3717fb7e4c54c17c19e8d345ecad193",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "143: \n144: \tcmd := exec.CommandContext(ctx, \"claude\", args...)\n145: \toutput, err := cmd.CombinedOutput()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985981Z"
+    },
+    {
+      "id": "finding-4d8d9507dc3fd494",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/plugin/manager.go",
+        "line": 438,
+        "column": 9,
+        "end_line": 438,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "e5e0717cdd005d844ec38c8f48d3a2cc",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "437: \n438: \tcmd := exec.Command(\"git\", \"clone\", \"--depth\", \"1\", cloneURL, tmpDir)\n439: \tif output, err := cmd.CombinedOutput(); err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985983Z"
+    },
+    {
+      "id": "finding-b97c0c31558a367d",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/plugin/manager.go",
+        "line": 241,
+        "column": 9,
+        "end_line": 241,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "0b85bee857ff1ee8d548814a59df54fb",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "240: \t// Execute plugin\n241: \tcmd := exec.CommandContext(execCtx, entrypointPath)\n242: \tcmd.Stdin = bytes.NewReader(requestData)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985985Z"
+    },
+    {
+      "id": "finding-20f3b628f591282a",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/health/git_checker.go",
+        "line": 40,
+        "column": 9,
+        "end_line": 40,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "134b6804b746cba240332322d51c2b7a",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "39: \t// Run git --version to check installation and version\n40: \tcmd := exec.CommandContext(ctx, gitPath, \"--version\")\n41: \toutput, err := cmd.CombinedOutput()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985987Z"
+    },
+    {
+      "id": "finding-15b14d3916da6b6f",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/health/docker_checker.go",
+        "line": 38,
+        "column": 9,
+        "end_line": 38,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "d9a042b08beab178545b39a275fbabf6",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "37: \t// Run docker info to check daemon connectivity\n38: \tcmd := exec.CommandContext(ctx, dockerPath, \"info\", \"--format\", \"{{.ServerVersion}}\")\n39: \toutput, err := cmd.CombinedOutput()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985988Z"
+    },
+    {
+      "id": "finding-040be207985d9b38",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/exec/docker.go",
+        "line": 21,
+        "column": 9,
+        "end_line": 21,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "43f8124209d38bbbb9ca41c10a577b46",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "20: \t// Execute command with context for cancellation support\n21: \tcmd := exec.CommandContext(ctx, \"docker\", args...)\n22: \n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98599Z"
+    },
+    {
+      "id": "finding-51e673001a3917ca",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/exec/cache.go",
+        "line": 378,
+        "column": 10,
+        "end_line": 378,
+        "end_column": 30
+      },
+      "fingerprint": {
+        "value": "f1f7a29220df332816c830d6e28431c6",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "377: \n378: \t\tcmd := exec.Command(\"docker\", \"load\", \"-i\", tarPath)\n379: \t\tvar stdout, stderr bytes.Buffer\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985992Z"
+    },
+    {
+      "id": "finding-c2520e4ddd4a063b",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/exec/cache.go",
+        "line": 319,
+        "column": 10,
+        "end_line": 319,
+        "end_column": 30
+      },
+      "fingerprint": {
+        "value": "e71ff7ce8abc5c0d56553c97b340012f",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "318: \t\t// Export to tar\n319: \t\tcmd := exec.Command(\"docker\", \"save\", \"-o\", tarPath, image)\n320: \t\tvar stderr bytes.Buffer\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985993Z"
+    },
+    {
+      "id": "finding-a6bffcb427726e77",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/exec/cache.go",
+        "line": 277,
+        "column": 11,
+        "end_line": 277,
+        "end_column": 31
+      },
+      "fingerprint": {
+        "value": "e53182a9e4180d7b884ac897312bfb28",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "276: \t\t\t// Remove from Docker daemon\n277: \t\t\tcmd := exec.Command(\"docker\", \"rmi\", image)\n278: \t\t\tif err := cmd.Run(); err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.985995Z"
+    },
+    {
+      "id": "finding-8fd9dddab6b9b73c",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/detect/detect.go",
+        "line": 221,
+        "column": 10,
+        "end_line": 221,
+        "end_column": 30
+      },
+      "fingerprint": {
+        "value": "426fb8172766522f99eb2613d5d46f7e",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "220: \n221: \t\tcmd := exec.Command(path, \"--version\")\n222: \t\tvar output []byte\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986013Z"
+    },
+    {
+      "id": "finding-b95d1862f9aa3b3c",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/detect/detect.go",
+        "line": 198,
+        "column": 9,
+        "end_line": 198,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "b2aba79fecffcb53fdc618dc226d9d33",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "197: \t// Get version if available\n198: \tcmd := exec.Command(path, \"--version\")\n199: \toutput, err := cmd.Output()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986014Z"
+    },
+    {
+      "id": "finding-fef5c3a37aacb625",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/detect/detect.go",
+        "line": 172,
+        "column": 9,
+        "end_line": 172,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "99bcaea8ae6f32c01d59f9949796f4a3",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "171: \t// Get version\n172: \tcmd := exec.Command(path, \"--version\")\n173: \toutput, err := cmd.Output()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986016Z"
+    },
+    {
+      "id": "finding-93c763cc9a6642d2",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/detect/detect.go",
+        "line": 143,
+        "column": 9,
+        "end_line": 143,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "8d2014ea8d0f0e948cce7f29d06ada3a",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "142: \n143: \tcmd := exec.Command(path, \"--version\")\n144: \toutput, err := cmd.Output()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986018Z"
+    },
+    {
+      "id": "finding-75912a9f2a7a9904",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/detect/detect.go",
+        "line": 118,
+        "column": 9,
+        "end_line": 118,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "8aee212183a9612c794d04cec3023028",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "117: \t\t// Docker CLI exists but daemon might not be running\n118: \t\tcmd = exec.Command(path, \"--version\")\n119: \t\toutput, err = cmd.Output()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986019Z"
+    },
+    {
+      "id": "finding-37f7063b31b30388",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/detect/detect.go",
+        "line": 111,
+        "column": 9,
+        "end_line": 111,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "204d057f09f82de4e10c7f7efe6d6074",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "110: \t// Get version\n111: \tcmd := exec.Command(path, \"version\", \"--format\", \"{{.Server.Version}}\")\n112: \toutput, err := cmd.Output()\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986021Z"
+    },
+    {
+      "id": "finding-60eee354aa5ded46",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/spec.go",
+        "line": 569,
+        "column": 15,
+        "end_line": 569,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "7d2857272b9da872c0dc67a1453c67c9",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "568: \t// Open editor\n569: \teditorCmd := exec.Command(editor, specPath)\n570: \teditorCmd.Stdin = os.Stdin\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986022Z"
+    },
+    {
+      "id": "finding-2ebe3cc316ecf896",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/eval.go",
+        "line": 412,
+        "column": 16,
+        "end_line": 412,
+        "end_column": 36
+      },
+      "fingerprint": {
+        "value": "76693349be3df47b91ae13b2e5e3c252",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "411: \t\tfmt.Printf(\"Opening %s in %s...\\n\", policyFile, editor)\n412: \t\teditorCmd := exec.Command(editor, policyFile)\n413: \t\teditorCmd.Stdin = os.Stdin\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986024Z"
+    },
+    {
+      "id": "finding-5a28e910fbc2c766",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with variable",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/config.go",
+        "line": 744,
+        "column": 15,
+        "end_line": 744,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "14f24c344ed59589c001b59b217ed10e",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "743: \t// Open editor\n744: \teditorCmd := exec.Command(editor, configPath)\n745: \teditorCmd.Stdin = os.Stdin\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986026Z"
+    },
+    {
+      "id": "finding-d2f71975f9b3a4c8",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with a potential tainted input or cmd arguments",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/ollama/main.go",
+        "line": 281,
+        "column": 9,
+        "end_line": 281,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "8d8b208fc1b82dfee2c86ee894178343",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "280: \n281: \tcmd := exec.CommandContext(ctx, \"curl\", \"-s\", \"-N\", \"http://localhost:11434/api/generate\",\n282: \t\t\"-d\", string(reqJSON))\n283: \n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986028Z"
+    },
+    {
+      "id": "finding-b2fc403becbf4642",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with a potential tainted input or cmd arguments",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/providers/ollama/main.go",
+        "line": 178,
+        "column": 9,
+        "end_line": 178,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "9235f932fa2428e855cefa6596cc5bdc",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "177: \t// Use curl to call ollama API directly for clean JSON\n178: \tcmd := exec.CommandContext(ctx, \"curl\", \"-s\", \"http://localhost:11434/api/generate\",\n179: \t\t\"-d\", string(reqJSON))\n180: \n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98603Z"
+    },
+    {
+      "id": "finding-c1d7e50a8bda9ace",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with a potential tainted input or cmd arguments",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/provider/executable.go",
+        "line": 255,
+        "column": 9,
+        "end_line": 255,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "5636f7f5e5f2a7b5d4291ab85cab6f47",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "254: \n255: \tcmd := exec.CommandContext(healthCtx, e.path, cmdArgs...)\n256: \n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986032Z"
+    },
+    {
+      "id": "finding-867c70445f39ddc6",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with a potential tainted input or cmd arguments",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/provider/executable.go",
+        "line": 170,
+        "column": 9,
+        "end_line": 170,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "aa70477148fb145b1f58fa447f880541",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "169: \tcmdArgs := append([]string{\"stream\"}, e.args...)\n170: \tcmd := exec.CommandContext(ctx, e.path, cmdArgs...)\n171: \tcmd.Stdin = bytes.NewReader(reqJSON)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986034Z"
+    },
+    {
+      "id": "finding-77bb982656c88209",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with a potential tainted input or cmd arguments",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/provider/executable.go",
+        "line": 106,
+        "column": 9,
+        "end_line": 106,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "aca751754580ede2bbc465e41846c022",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "105: \tcmdArgs := append(e.args, \"generate\")\n106: \tcmd := exec.CommandContext(ctx, e.path, cmdArgs...)\n107: \n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986035Z"
+    },
+    {
+      "id": "finding-959bc5c8ae4e80bd",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with a potential tainted input or cmd arguments",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/hooks/builtin.go",
+        "line": 76,
+        "column": 9,
+        "end_line": 76,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "df55608a81d6a1fa00dc7dd107383b7b",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "75: \targs := append([]string{h.scriptPath}, h.args...)\n76: \tcmd := exec.CommandContext(ctx, h.shell, args...)\n77: \tcmd.Env = env\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986037Z"
+    },
+    {
+      "id": "finding-4e5ec71f6c9dfd82",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G204",
+      "title": "Subprocess launched with a potential tainted input or cmd arguments",
+      "normalized_severity": "CRITICAL",
+      "effective_severity": "CRITICAL",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/eval/test_runner.go",
+        "line": 118,
+        "column": 9,
+        "end_line": 118,
+        "end_column": 29
+      },
+      "fingerprint": {
+        "value": "8b43223075f7bf98a156761039be15bd",
+        "version": "v1"
+      },
+      "cwe_id": "78",
+      "metadata": {
+        "snippet": "117: \n118: \tcmd := exec.Command(parts[0], parts[1:]...)\n119: \tcmd.Dir = projectRoot\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986039Z"
+    },
+    {
+      "id": "finding-59e738bb989b94cd",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/vault/client.go",
+        "line": 166,
+        "column": 23,
+        "end_line": 166,
+        "end_column": 43
+      },
+      "fingerprint": {
+        "value": "8e32171ad232541d3ca4838a8e75c8c8",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "165: \t\t\t\t\tcertPath := fmt.Sprintf(\"%s/%s\", tlsCfg.CAPath, entry.Name())\n166: \t\t\t\t\tcert, certErr := os.ReadFile(certPath)\n167: \t\t\t\t\tif certErr != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98604Z"
+    },
+    {
+      "id": "finding-6eaec14259765d95",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/trace/logger.go",
+        "line": 307,
+        "column": 18,
+        "end_line": 307,
+        "end_column": 38
+      },
+      "fingerprint": {
+        "value": "518d876beb9a929e0c4a9f28bfce4703",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "306: \t// Open new file\n307: \tlogFile, err := os.OpenFile(currentPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)\n308: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986042Z"
+    },
+    {
+      "id": "finding-0551245f4f2f2cb8",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/trace/logger.go",
+        "line": 88,
+        "column": 18,
+        "end_line": 88,
+        "end_column": 38
+      },
+      "fingerprint": {
+        "value": "b2a4893530a1776fea0b9fbb873dc2be",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "87: \tlogPath := filepath.Join(config.LogDir, fmt.Sprintf(\"trace_%s.json\", config.WorkflowID))\n88: \tlogFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)\n89: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986043Z"
+    },
+    {
+      "id": "finding-08eef0cb27ac2d70",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/spec/lock.go",
+        "line": 61,
+        "column": 15,
+        "end_line": 61,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "7fe3c9362ba65f55bda62c73c63cf849",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "60: func LoadSpecLock(path string) (*SpecLock, error) {\n61: \tdata, err := os.ReadFile(path)\n62: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986045Z"
+    },
+    {
+      "id": "finding-0431013ccc63f32f",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/spec/loader.go",
+        "line": 31,
+        "column": 15,
+        "end_line": 31,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "5781aff336eb23271a7bc021bda93813",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "30: func (r *FileSpecRepository) Load(path string) (*ProductSpec, error) {\n31: \tdata, err := os.ReadFile(path)\n32: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986046Z"
+    },
+    {
+      "id": "finding-bc6e347f7fb94cdd",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/slo/config.go",
+        "line": 77,
+        "column": 15,
+        "end_line": 77,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "7257759d7baf79625cc3b2c4e904f471",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "76: func LoadSLOsFromFile(path string) ([]*SLO, error) {\n77: \tdata, err := os.ReadFile(path)\n78: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986048Z"
+    },
+    {
+      "id": "finding-80c93112d7f172cc",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/security/secrets.go",
+        "line": 194,
+        "column": 15,
+        "end_line": 194,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "f02d1fb9671ae035be0b8236d3d2626a",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "193: \n194: \tfile, err := os.Open(filePath)\n195: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986049Z"
+    },
+    {
+      "id": "finding-0b3561e332c7f2ce",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/security/audit.go",
+        "line": 425,
+        "column": 15,
+        "end_line": 425,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "daa4feb77439f90e40dd148b8bc6d82a",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "424: func (l *AuditLogger) readLogFile(filename string) ([]*AuditEvent, error) {\n425: \tdata, err := os.ReadFile(filename)\n426: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986051Z"
+    },
+    {
+      "id": "finding-e697c005a64df7ef",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/security/audit.go",
+        "line": 377,
+        "column": 15,
+        "end_line": 377,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "d7908cf4dabdd6f69c905806f70c5990",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "376: \tfilename := filepath.Join(l.logPath, fmt.Sprintf(\"audit-%s.log\", currentDate))\n377: \tfile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)\n378: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986053Z"
+    },
+    {
+      "id": "finding-4c30d7f1d32733b2",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/router/config.go",
+        "line": 12,
+        "column": 15,
+        "end_line": 12,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "2afe88fe6561aebf91f1c7bca96680e5",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "11: func LoadConfig(path string) (*RouterConfig, error) {\n12: \tdata, err := os.ReadFile(path)\n13: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986054Z"
+    },
+    {
+      "id": "finding-0987add3568b6e5f",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/provider/config.go",
+        "line": 49,
+        "column": 15,
+        "end_line": 49,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "df508442cfad15716d7c536eda597f51",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "48: func LoadProvidersConfig(path string) (*ProvidersConfig, error) {\n49: \tdata, err := os.ReadFile(path)\n50: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986056Z"
+    },
+    {
+      "id": "finding-8a630265afffdc16",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/profiles/loader.go",
+        "line": 236,
+        "column": 15,
+        "end_line": 236,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "c56bb9b93ee2ad5a8f328566ed716904",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "235: func (l *Loader) parseYAMLFile(path string) (*ProfileCollection, error) {\n236: \tdata, err := os.ReadFile(path)\n237: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986057Z"
+    },
+    {
+      "id": "finding-2b92f5ac39bc1cda",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/policy/loader.go",
+        "line": 12,
+        "column": 15,
+        "end_line": 12,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "d5849824646fdd822158dbd646680d31",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "11: func LoadPolicy(path string) (*Policy, error) {\n12: \tdata, err := os.ReadFile(path)\n13: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986059Z"
+    },
+    {
+      "id": "finding-6b40e38a12b60d73",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/plugin/manager.go",
+        "line": 477,
+        "column": 15,
+        "end_line": 477,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "a59199968db1c7a9c0b57c75273be74a",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "476: func copyFile(src, dst string, mode os.FileMode) error {\n477: \tdata, err := os.ReadFile(src)\n478: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986061Z"
+    },
+    {
+      "id": "finding-9ef5e4e075cef6ba",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/plugin/manager.go",
+        "line": 123,
+        "column": 15,
+        "end_line": 123,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "6f1dbd10af4b5b48256f122a503fadf3",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "122: func (m *Manager) loadPlugin(pluginPath, manifestPath string) (*Plugin, error) {\n123: \tdata, err := os.ReadFile(manifestPath)\n124: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986062Z"
+    },
+    {
+      "id": "finding-02613eae09bd69c9",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/plan/loader.go",
+        "line": 11,
+        "column": 15,
+        "end_line": 11,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "ae5c8842445ce1edd24d31a2997645c1",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "10: func LoadPlan(path string) (*Plan, error) {\n11: \tdata, err := os.ReadFile(path)\n12: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986063Z"
+    },
+    {
+      "id": "finding-36c3430b2aaa1ba7",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/patch/writer.go",
+        "line": 74,
+        "column": 16,
+        "end_line": 74,
+        "end_column": 36
+      },
+      "fingerprint": {
+        "value": "beba25ccd795033ecaf9b861eefb0971",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "73: \tfor _, file := range files {\n74: \t\tdata, err := os.ReadFile(file)\n75: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986065Z"
+    },
+    {
+      "id": "finding-d00e0a56fea918dc",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/patch/writer.go",
+        "line": 51,
+        "column": 15,
+        "end_line": 51,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "6ec9a6ea9ba4c4b1b7fdbedb103fb4ba",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "50: \n51: \tdata, err := os.ReadFile(patchPath)\n52: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986066Z"
+    },
+    {
+      "id": "finding-4c4cbb880f4dedf6",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/patch/rollback.go",
+        "line": 213,
+        "column": 27,
+        "end_line": 213,
+        "end_column": 47
+      },
+      "fingerprint": {
+        "value": "a5838e62229756926466b7832b03749d",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "212: \t\t\t// Check if current content matches what we expect\n213: \t\t\tcurrentContent, err := os.ReadFile(fullPath)\n214: \t\t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986068Z"
+    },
+    {
+      "id": "finding-c282ad2796467911",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/patch/diff.go",
+        "line": 315,
+        "column": 19,
+        "end_line": 315,
+        "end_column": 39
+      },
+      "fingerprint": {
+        "value": "e0f5f1e00b9dbe86937504e01ac560c3",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "314: \t\t// Read file content\n315: \t\tcontent, err := os.ReadFile(path)\n316: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98607Z"
+    },
+    {
+      "id": "finding-5cae89ab268d6cce",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/patch/diff.go",
+        "line": 270,
+        "column": 19,
+        "end_line": 270,
+        "end_column": 39
+      },
+      "fingerprint": {
+        "value": "e4c28a3b768fc8762f3c8e6d8679e245",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "269: \t\tfullPath := filepath.Join(workingDir, path)\n270: \t\tcontent, err := os.ReadFile(fullPath)\n271: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986072Z"
+    },
+    {
+      "id": "finding-c3c89878e48005b4",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/patch/diff.go",
+        "line": 100,
+        "column": 27,
+        "end_line": 100,
+        "end_column": 47
+      },
+      "fingerprint": {
+        "value": "ec60e1bd66a54f82f82317c105400671",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "99: \t\t// This is a new file\n100: \t\tnewContentBytes, err := os.ReadFile(path)\n101: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986073Z"
+    },
+    {
+      "id": "finding-871718429c0f2558",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/patch/diff.go",
+        "line": 47,
+        "column": 27,
+        "end_line": 47,
+        "end_column": 47
+      },
+      "fingerprint": {
+        "value": "19188e86e45521c55efb3fa272b67ad9",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "46: \t\tfullPath := filepath.Join(g.workingDir, path)\n47: \t\tnewContentBytes, err := os.ReadFile(fullPath)\n48: \n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986075Z"
+    },
+    {
+      "id": "finding-2da726858da0fe8c",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/license/license.go",
+        "line": 124,
+        "column": 15,
+        "end_line": 124,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "7735e25228595286e97e9412277f0125",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "123: \n124: \tdata, err := os.ReadFile(licensePath)\n125: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986077Z"
+    },
+    {
+      "id": "finding-3e4f8880acd1a9a7",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/exec/manifest.go",
+        "line": 58,
+        "column": 15,
+        "end_line": 58,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "30620acc548b402b2e19cfbaeb915159",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "57: func HashFile(path string) (string, error) {\n58: \tfile, err := os.Open(path)\n59: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986079Z"
+    },
+    {
+      "id": "finding-d70643ce59f7c54f",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/exec/cache.go",
+        "line": 59,
+        "column": 15,
+        "end_line": 59,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "88ae904e18e3dd523e6b96c376ed9df4",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "58: \tmanifestPath := filepath.Join(c.CacheDir, \"manifest.json\")\n59: \tdata, err := os.ReadFile(manifestPath)\n60: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98608Z"
+    },
+    {
+      "id": "finding-a460b87be5a74adb",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/drift/code.go",
+        "line": 213,
+        "column": 12,
+        "end_line": 213,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "77f5df1ed6da3b9ae357e9e8d4a5c5b0",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "212: func hashFile(path string) (string, error) {\n213: \tf, err := os.Open(path)\n214: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986082Z"
+    },
+    {
+      "id": "finding-d473437c110db26c",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/detect/detect.go",
+        "line": 393,
+        "column": 18,
+        "end_line": 393,
+        "end_column": 38
+      },
+      "fingerprint": {
+        "value": "24b69381138511fb67e54e7ccb6c6c7e",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "392: func hasInFile(filename, searchString string) bool {\n393: \tcontent, err := os.ReadFile(filename)\n394: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986084Z"
+    },
+    {
+      "id": "finding-237f271b1d469c53",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/status.go",
+        "line": 283,
+        "column": 15,
+        "end_line": 283,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "9f6e9c5e1b8c1b4504db89d616f5af65",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "282: \t// Load the manifest\n283: \tdata, err := os.ReadFile(latestManifest)\n284: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986085Z"
+    },
+    {
+      "id": "finding-3119163117d4fbcb",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/spec.go",
+        "line": 356,
+        "column": 21,
+        "end_line": 356,
+        "end_column": 41
+      },
+      "fingerprint": {
+        "value": "62d390922a12c6948834e98f4f40c5fb",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "355: \t// Read PRD file\n356: \tprdContent, err := os.ReadFile(prdFile)\n357: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986087Z"
+    },
+    {
+      "id": "finding-90bdcd5c90246e3d",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/spec.go",
+        "line": 76,
+        "column": 22,
+        "end_line": 76,
+        "end_column": 42
+      },
+      "fingerprint": {
+        "value": "e6143dc76decb8e9ccfa4dd5c57615e4",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "75: \t\t// Read PRD file\n76: \t\tprdContent, err := os.ReadFile(in)\n77: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986089Z"
+    },
+    {
+      "id": "finding-f8c7560057b53054",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/policy.go",
+        "line": 440,
+        "column": 23,
+        "end_line": 440,
+        "end_column": 43
+      },
+      "fingerprint": {
+        "value": "ae7f16a35b689d403a221126c7f154ac",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "439: \n440: \tapprovalData, err := os.ReadFile(approvalPath)\n441: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98609Z"
+    },
+    {
+      "id": "finding-0e4a0cab9fc48f95",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/policy.go",
+        "line": 419,
+        "column": 22,
+        "end_line": 419,
+        "end_column": 42
+      },
+      "fingerprint": {
+        "value": "a3783c268962d73c66a9009970d47ec5",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "418: \t// Load current policies\n419: \tcurrentData, err := os.ReadFile(policyPath)\n420: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986092Z"
+    },
+    {
+      "id": "finding-d54bed5c696e1748",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/policy.go",
+        "line": 346,
+        "column": 15,
+        "end_line": 346,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "25613681ed86c21f714a349f59a85554",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "345: \t// Load policy file\n346: \tdata, err := os.ReadFile(policyPath)\n347: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986093Z"
+    },
+    {
+      "id": "finding-e7401c0eed7fb124",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/policy.go",
+        "line": 287,
+        "column": 15,
+        "end_line": 287,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "e6369e6e8433841bd2e79668c6fed5d2",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "286: \t// Validate first\n287: \tdata, err := os.ReadFile(policyPath)\n288: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986095Z"
+    },
+    {
+      "id": "finding-b0a2f08cd4e2b859",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/policy.go",
+        "line": 218,
+        "column": 15,
+        "end_line": 218,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "d2618fabf5c77e2130b932534777e0ac",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "217: \t// Load and parse YAML\n218: \tdata, err := os.ReadFile(policyPath)\n219: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986096Z"
+    },
+    {
+      "id": "finding-8a1636bd897e24cd",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/observability.go",
+        "line": 190,
+        "column": 14,
+        "end_line": 190,
+        "end_column": 34
+      },
+      "fingerprint": {
+        "value": "6fc8d146c0a162e9a1934a66aef69217",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "189: \t\t\tpath := filepath.Join(dir, \"specular.log\")\n190: \t\t\tf, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)\n191: \t\t\tif err == nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986098Z"
+    },
+    {
+      "id": "finding-5ed4d7d19e04f0e5",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/logs.go",
+        "line": 324,
+        "column": 15,
+        "end_line": 324,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "101dddb03fc7efe96abd325675ac4220",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "323: func tailFile(path string, numLines int) error {\n324: \tfile, err := os.Open(path)\n325: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.9861Z"
+    },
+    {
+      "id": "finding-3b414612395b76b5",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/logs.go",
+        "line": 226,
+        "column": 15,
+        "end_line": 226,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "0b79984ae5600741e97f13e33686573a",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "225: \t// Read and display the entire file\n226: \tfile, err := os.Open(tracePath)\n227: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986101Z"
+    },
+    {
+      "id": "finding-856542466310dc1c",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/init.go",
+        "line": 971,
+        "column": 18,
+        "end_line": 971,
+        "end_column": 38
+      },
+      "fingerprint": {
+        "value": "eb8c9e78dcc76d5fcfcad17871bd77c5",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "970: \t// Read router.yaml\n971: \tcontent, err := os.ReadFile(routerPath)\n972: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986103Z"
+    },
+    {
+      "id": "finding-518f353ef23f8d5c",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/config.go",
+        "line": 421,
+        "column": 15,
+        "end_line": 421,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "78602e38b0a2bf73080916751e72916f",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "420: \t// Load existing config\n421: \tdata, err := os.ReadFile(configPath)\n422: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986104Z"
+    },
+    {
+      "id": "finding-e5e0fca5dc36ff39",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/bundle.go",
+        "line": 886,
+        "column": 16,
+        "end_line": 886,
+        "end_column": 36
+      },
+      "fingerprint": {
+        "value": "761a61f4a69a4212e3812fe3bf9163fe",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "885: \tfor _, approvalPath := range approvalPaths {\n886: \t\tdata, err := os.ReadFile(approvalPath)\n887: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986106Z"
+    },
+    {
+      "id": "finding-50403bdecc9ff21d",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/build.go",
+        "line": 648,
+        "column": 18,
+        "end_line": 648,
+        "end_column": 38
+      },
+      "fingerprint": {
+        "value": "f43a514bbf8275f780693536f5aae703",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "647: \tif _, err := os.Stat(approvalFile); err == nil {\n648: \t\tapproval, _ := os.ReadFile(approvalFile)\n649: \t\tfmt.Printf(\"\\nApproval Status:\\n\")\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986107Z"
+    },
+    {
+      "id": "finding-64a97b385b5ccfad",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/build.go",
+        "line": 630,
+        "column": 20,
+        "end_line": 630,
+        "end_column": 40
+      },
+      "fingerprint": {
+        "value": "b603c5c0adf7300d37ee090454ce3862",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "629: \t\tfmt.Printf(\"Execution Logs:\\n\")\n630: \t\tlogs, readErr := os.ReadFile(logsFile)\n631: \t\tif readErr == nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986109Z"
+    },
+    {
+      "id": "finding-89db65d82946eb0b",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/build.go",
+        "line": 537,
+        "column": 15,
+        "end_line": 537,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "552b417736e66479425cef90ed6374ce",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "536: \t// Load and validate manifest\n537: \tdata, err := os.ReadFile(latestManifest)\n538: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986111Z"
+    },
+    {
+      "id": "finding-c6666eceb90a8c20",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/auto_verify.go",
+        "line": 130,
+        "column": 23,
+        "end_line": 130,
+        "end_column": 43
+      },
+      "fingerprint": {
+        "value": "3a0f28fae42bd7aba4c66ac6b941282b",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "129: \t\t\t// Read output file\n130: \t\t\toutputData, err := os.ReadFile(outputPath)\n131: \t\t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986112Z"
+    },
+    {
+      "id": "finding-666160b0ef360b45",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/auto_verify.go",
+        "line": 124,
+        "column": 21,
+        "end_line": 124,
+        "end_column": 41
+      },
+      "fingerprint": {
+        "value": "2ca4d3c7d4b3a2e25dfe55861da4d44f",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "123: \t\t\t// Read plan file\n124: \t\t\tplanData, err := os.ReadFile(planPath)\n125: \t\t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986114Z"
+    },
+    {
+      "id": "finding-396e65d1ffd36841",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/auto_verify.go",
+        "line": 45,
+        "column": 27,
+        "end_line": 45,
+        "end_column": 47
+      },
+      "fingerprint": {
+        "value": "afcf3953bec666173cb79d67f6fd8000",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "44: \t\t// Read attestation file\n45: \t\tattestationData, err := os.ReadFile(attestationPath)\n46: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986125Z"
+    },
+    {
+      "id": "finding-900c682448e9af48",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/approve.go",
+        "line": 381,
+        "column": 17,
+        "end_line": 381,
+        "end_column": 37
+      },
+      "fingerprint": {
+        "value": "d3ae2608778dc336e98eaae21ba68245",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "380: \t\t\tapprovalPath := filepath.Join(approvalsDir, entry.Name())\n381: \t\t\tdata, err := os.ReadFile(approvalPath)\n382: \t\t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986127Z"
+    },
+    {
+      "id": "finding-ad99ea3d8375cc2e",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/approve.go",
+        "line": 331,
+        "column": 16,
+        "end_line": 331,
+        "end_column": 36
+      },
+      "fingerprint": {
+        "value": "b8484ade0e59e8307d4e41960573f743",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "330: \t\tapprovalPath := filepath.Join(approvalsDir, entry.Name())\n331: \t\tdata, err := os.ReadFile(approvalPath)\n332: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986129Z"
+    },
+    {
+      "id": "finding-cd238385430f02bd",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/approve.go",
+        "line": 195,
+        "column": 16,
+        "end_line": 195,
+        "end_column": 36
+      },
+      "fingerprint": {
+        "value": "ab0ef432c3d1b77c450d02ad35d868fd",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "194: \t\tapprovalPath := filepath.Join(approvalsDir, entry.Name())\n195: \t\tdata, err := os.ReadFile(approvalPath)\n196: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98613Z"
+    },
+    {
+      "id": "finding-4ca06bd883a6d183",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/checkpoint/checkpoint.go",
+        "line": 96,
+        "column": 15,
+        "end_line": 96,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "90e3f40c84ddc9ce21d71538f5592183",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "95: \n96: \tdata, err := os.ReadFile(checkpointPath)\n97: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986132Z"
+    },
+    {
+      "id": "finding-1e823d91c64aa0b3",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/validator.go",
+        "line": 354,
+        "column": 19,
+        "end_line": 354,
+        "end_column": 39
+      },
+      "fingerprint": {
+        "value": "7c62a49a4ed7cc09da3d8d6826984618",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "353: \n354: \tdata, readErr := os.ReadFile(attestationPath)\n355: \tif readErr != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986133Z"
+    },
+    {
+      "id": "finding-29abc4dee71b2fe8",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/validator.go",
+        "line": 238,
+        "column": 20,
+        "end_line": 238,
+        "end_column": 40
+      },
+      "fingerprint": {
+        "value": "bd3d78a57464969c5a6f1d9372614570",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "237: \t\tapprovalPath := filepath.Join(approvalsDir, entry.Name())\n238: \t\tdata, readErr := os.ReadFile(approvalPath)\n239: \t\tif readErr != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986135Z"
+    },
+    {
+      "id": "finding-00c0969a0cca0405",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/validator.go",
+        "line": 198,
+        "column": 19,
+        "end_line": 198,
+        "end_column": 39
+      },
+      "fingerprint": {
+        "value": "969f471c78ad86c170ca6b2c21e73a4e",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "197: func (v *Validator) calculateFileChecksum(filePath string) (string, error) {\n198: \tfile, openErr := os.Open(filePath)\n199: \tif openErr != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986137Z"
+    },
+    {
+      "id": "finding-502b5e69d5506d8b",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/validator.go",
+        "line": 131,
+        "column": 19,
+        "end_line": 131,
+        "end_column": 39
+      },
+      "fingerprint": {
+        "value": "2059d5f3c06120d87bd5a1c791e59922",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "130: \tmanifestPath := filepath.Join(tempDir, ManifestFileName)\n131: \tdata, readErr := os.ReadFile(manifestPath)\n132: \tif readErr != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986138Z"
+    },
+    {
+      "id": "finding-ace2534b55e6a3ba",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/signing.go",
+        "line": 471,
+        "column": 15,
+        "end_line": 471,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "4daf58a9046d17419d761a72d33188c4",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "470: func ComputeBundleDigest(bundlePath string) (string, error) {\n471: \tdata, err := os.ReadFile(bundlePath)\n472: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98614Z"
+    },
+    {
+      "id": "finding-caad0f59dfc57254",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/signing.go",
+        "line": 95,
+        "column": 26,
+        "end_line": 95,
+        "end_column": 46
+      },
+      "fingerprint": {
+        "value": "6ce8f6b2dc25084a064bb2577912454d",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "94: \t// Read private key\n95: \tprivateKeyBytes, err := os.ReadFile(keyPath)\n96: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986141Z"
+    },
+    {
+      "id": "finding-a6bb4dd04d48a94a",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/oci.go",
+        "line": 337,
+        "column": 27,
+        "end_line": 337,
+        "end_column": 47
+      },
+      "fingerprint": {
+        "value": "f29e94874f4ff95b2172ee526b17c669",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "336: \n337: \toutputFile, createErr := os.Create(outputPath)\n338: \tif createErr != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986143Z"
+    },
+    {
+      "id": "finding-5e194e4aa717082b",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/extractor.go",
+        "line": 537,
+        "column": 15,
+        "end_line": 537,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "01143e19a128110ba2cbee33bffbe547",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "536: \t// Open bundle file\n537: \tfile, err := os.Open(bundlePath)\n538: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986145Z"
+    },
+    {
+      "id": "finding-174c4dbd40a20555",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/extractor.go",
+        "line": 402,
+        "column": 21,
+        "end_line": 402,
+        "end_column": 41
+      },
+      "fingerprint": {
+        "value": "7d1ebaa5c766c4760b1e3b27020657e3",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "401: \t// Create target file\n402: \ttargetFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, sourceInfo.Mode())\n403: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986146Z"
+    },
+    {
+      "id": "finding-ad79b39ec950ab0f",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/extractor.go",
+        "line": 389,
+        "column": 21,
+        "end_line": 389,
+        "end_column": 41
+      },
+      "fingerprint": {
+        "value": "fe560ae42cd120b8b3615048293a92c1",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "388: \t// Open source file\n389: \tsourceFile, err := os.Open(sourcePath)\n390: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986148Z"
+    },
+    {
+      "id": "finding-2058abcc137fc14e",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/extractor.go",
+        "line": 82,
+        "column": 15,
+        "end_line": 82,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "a07636ccf691ed0c3fcd4b1d820d6822",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "81: \t// Open bundle file\n82: \tfile, err := os.Open(bundlePath)\n83: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98615Z"
+    },
+    {
+      "id": "finding-d0bb229aa9e10e66",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/builder.go",
+        "line": 554,
+        "column": 15,
+        "end_line": 554,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "9f4910fa1ce095a17cd81322684adbe5",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "553: func (b *Builder) writeFileToTar(tw *tar.Writer, sourcePath, bundlePath string) error {\n554: \tfile, err := os.Open(sourcePath)\n555: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986151Z"
+    },
+    {
+      "id": "finding-a365c12014ff4dd3",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/builder.go",
+        "line": 427,
+        "column": 18,
+        "end_line": 427,
+        "end_column": 38
+      },
+      "fingerprint": {
+        "value": "2f9521805673e8973bd4a8c2d56dff70",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "426: \t// Create output file\n427: \toutFile, err := os.Create(outputPath)\n428: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986153Z"
+    },
+    {
+      "id": "finding-a96dd3aad49e9772",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/builder.go",
+        "line": 379,
+        "column": 15,
+        "end_line": 379,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "f3d0246241190dd0b29e48b016478e98",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "378: func (b *Builder) checksumFile(filePath, bundlePath string) (*FileEntry, error) {\n379: \tfile, err := os.Open(filePath)\n380: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986154Z"
+    },
+    {
+      "id": "finding-66688e49b11342fa",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/builder.go",
+        "line": 233,
+        "column": 15,
+        "end_line": 233,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "018db9df6e5847cefb3e1d327a5908cb",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "232: func (b *Builder) loadFile(filePath string) error {\n233: \tdata, err := os.ReadFile(filePath)\n234: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986156Z"
+    },
+    {
+      "id": "finding-cf6f767e2084e0a1",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/builder.go",
+        "line": 177,
+        "column": 16,
+        "end_line": 177,
+        "end_column": 36
+      },
+      "fingerprint": {
+        "value": "617eab0d9c038a653798c93d535aeb5e",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "176: \tfor _, policyPath := range b.opts.PolicyPaths {\n177: \t\tdata, err := os.ReadFile(policyPath)\n178: \t\tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986157Z"
+    },
+    {
+      "id": "finding-1fd99da62658f951",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/attestation_helper.go",
+        "line": 111,
+        "column": 27,
+        "end_line": 111,
+        "end_column": 47
+      },
+      "fingerprint": {
+        "value": "3c296b3845c49e156eaddfa7a3628064",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "110: \t\tif info.Mode().IsRegular() {\n111: \t\t\tfileHandle, openErr := os.Open(path)\n112: \t\t\tif openErr != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986159Z"
+    },
+    {
+      "id": "finding-89cc7555a51fd316",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/attestation_helper.go",
+        "line": 53,
+        "column": 18,
+        "end_line": 53,
+        "end_column": 38
+      },
+      "fingerprint": {
+        "value": "4e01d26c1a3c70aab22d0e4463ca4539",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "52: \t// Create output file\n53: \toutFile, err := os.Create(bundlePath)\n54: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986161Z"
+    },
+    {
+      "id": "finding-fb4b76d6fe95161b",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/archive.go",
+        "line": 185,
+        "column": 22,
+        "end_line": 185,
+        "end_column": 42
+      },
+      "fingerprint": {
+        "value": "9ce07943448ee3bee750c04be12a6cd4",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "184: \tmode := sanitizeFileMode(header.Mode, header.Typeflag)\n185: \toutFile, openErr := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, mode)\n186: \tif openErr != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986162Z"
+    },
+    {
+      "id": "finding-4bf7161ecd64accc",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G304",
+      "title": "Potential file inclusion via variable",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/bundle/archive.go",
+        "line": 63,
+        "column": 15,
+        "end_line": 63,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "8c158a75c27112fc8e858c27811fc46f",
+        "version": "v1"
+      },
+      "cwe_id": "22",
+      "metadata": {
+        "snippet": "62: func openBundleReaders(bundlePath, tempDir string) (*tar.Reader, func(), error) {\n63: \tfile, err := os.Open(bundlePath)\n64: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986164Z"
+    },
+    {
+      "id": "finding-96dc6e25167e0300",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G107",
+      "title": "Potential HTTP request made with variable url",
+      "normalized_severity": "HIGH",
+      "effective_severity": "HIGH",
+      "confidence": "MEDIUM",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/examples/plugins/slack-notifier/main.go",
+        "line": 228,
+        "column": 15,
+        "end_line": 228,
+        "end_column": 35
+      },
+      "fingerprint": {
+        "value": "bc1060c104bf3195081a17532c8092dd",
+        "version": "v1"
+      },
+      "cwe_id": "88",
+      "metadata": {
+        "snippet": "227: \n228: \tresp, err := http.Post(webhookURL, \"application/json\", bytes.NewReader(payload))\n229: \tif err != nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986165Z"
+    },
+    {
+      "id": "finding-7f485ac3d6599c8c",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/license/license.go",
+        "line": 145,
+        "column": 12,
+        "end_line": 145,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "70f89940b7bf8d0d1dec6a99bdee1b6c",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "144: \tspecularDir := \".specular\"\n145: \tif err := os.MkdirAll(specularDir, 0755); err != nil {\n146: \t\treturn fmt.Errorf(\"creating .specular directory: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986167Z"
+    },
+    {
+      "id": "finding-a6f179ae9888c785",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/eval/test_runner.go",
+        "line": 221,
+        "column": 13,
+        "end_line": 221,
+        "end_column": 33
+      },
+      "fingerprint": {
+        "value": "b09e4053a7b95734c50cb04c858595d5",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "220: \t\tdir := filepath.Join(os.TempDir(), \"specular-go-cache\")\n221: \t\tif err := os.MkdirAll(dir, 0o755); err == nil {\n222: \t\t\tgoCacheDir = dir\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986168Z"
+    },
+    {
+      "id": "finding-06f3566b816b38f6",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/policy.go",
+        "line": 312,
+        "column": 12,
+        "end_line": 312,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "0f263979367015f9200e6ba9798bd5d7",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "311: \tapprovalsDir := filepath.Join(\".specular\", \"approvals\")\n312: \tif err := os.MkdirAll(approvalsDir, 0755); err != nil {\n313: \t\treturn fmt.Errorf(\"creating approvals directory: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98617Z"
+    },
+    {
+      "id": "finding-25da2fcb7b042ac0",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/policy.go",
+        "line": 177,
+        "column": 12,
+        "end_line": 177,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "89befc265f6a54cc9b7d1730fa25c928",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "176: \t// Ensure directory exists\n177: \tif err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {\n178: \t\treturn fmt.Errorf(\"creating directory: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986171Z"
+    },
+    {
+      "id": "finding-1d9c05d8bb5934ef",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/governance.go",
+        "line": 112,
+        "column": 13,
+        "end_line": 112,
+        "end_column": 33
+      },
+      "fingerprint": {
+        "value": "494675bd4558d1d9ecd2d915665ab5f2",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "111: \tfor _, dir := range dirs {\n112: \t\tif err := os.MkdirAll(dir, 0755); err != nil {\n113: \t\t\treturn fmt.Errorf(\"creating directory %s: %w\", dir, err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986173Z"
+    },
+    {
+      "id": "finding-dd78dda7bc7d5019",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/drift.go",
+        "line": 220,
+        "column": 12,
+        "end_line": 220,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "0ea59507ea41d52ae73413f9c3681008",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "219: \tapprovalsDir := filepath.Join(\".specular\", \"approvals\")\n220: \tif err := os.MkdirAll(approvalsDir, 0755); err != nil {\n221: \t\treturn fmt.Errorf(\"creating approvals directory: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986175Z"
+    },
+    {
+      "id": "finding-70fb827081af0e47",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/config.go",
+        "line": 393,
+        "column": 12,
+        "end_line": 393,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "c8bb78910e32989d5a70ae648c948999",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "392: \t// Ensure config directory exists\n393: \tif err := os.MkdirAll(configDir, 0755); err != nil {\n394: \t\treturn \"\", fmt.Errorf(\"failed to create config directory: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986177Z"
+    },
+    {
+      "id": "finding-de05c17e15fc4675",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/auth_platform.go",
+        "line": 127,
+        "column": 12,
+        "end_line": 127,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "c8e5118b495954d4eb8a688e9d7dd609",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "126: func savePlatformToken(accessToken, refreshToken, email string) error {\n127: \tif err := os.MkdirAll(\".specular\", 0755); err != nil {\n128: \t\treturn err\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986178Z"
+    },
+    {
+      "id": "finding-9fc454b64a6cf411",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/approve.go",
+        "line": 131,
+        "column": 12,
+        "end_line": 131,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "06e912d126321b660fd96ff5b4aefb9f",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "130: \tapprovalsDir := filepath.Join(\".specular\", \"approvals\")\n131: \tif err := os.MkdirAll(approvalsDir, 0755); err != nil {\n132: \t\treturn fmt.Errorf(\"creating approvals directory: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98618Z"
+    },
+    {
+      "id": "finding-1b5b046421706db3",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/examples/projects/cli-task-manager/internal/storage/storage.go",
+        "line": 34,
+        "column": 12,
+        "end_line": 34,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "c5e427ef65dec5660b7486ada26231cf",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "33: \tdir := filepath.Dir(path)\n34: \tif err := os.MkdirAll(dir, 0o755); err != nil {\n35: \t\treturn nil, err\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986181Z"
+    },
+    {
+      "id": "finding-b7686b0d57cd5e13",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G301",
+      "title": "Expect directory permissions to be 0750 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/examples/projects/cli-task-manager/internal/config/config.go",
+        "line": 102,
+        "column": 12,
+        "end_line": 102,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "8208b833a10d03ecc0d375419ebd68f0",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "101: \tdir := filepath.Dir(path)\n102: \tif err := os.MkdirAll(dir, 0o755); err != nil {\n103: \t\treturn err\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986183Z"
+    },
+    {
+      "id": "finding-9b23cc4da62218dd",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/slo/config.go",
+        "line": 109,
+        "column": 12,
+        "end_line": 109,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "37447cd164f65a12c956716b0908e9f8",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "108: \n109: \tif err := os.WriteFile(path, data, 0644); err != nil {\n110: \t\treturn fmt.Errorf(\"failed to write SLO file: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986185Z"
+    },
+    {
+      "id": "finding-f7b1660c372bfc75",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/policy/loader.go",
+        "line": 62,
+        "column": 12,
+        "end_line": 62,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "b3c30afa359ca0f8bbb1112e537bc742",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "61: \n62: \tif err := os.WriteFile(path, data, 0644); err != nil {\n63: \t\treturn fmt.Errorf(\"write policy file: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986187Z"
+    },
+    {
+      "id": "finding-4c959a6dbfa7e36e",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/license/license.go",
+        "line": 155,
+        "column": 12,
+        "end_line": 155,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "a05edf89fcbdd52e713d78433e616067",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "154: \tlicensePath := filepath.Join(specularDir, \"license.json\")\n155: \tif err := os.WriteFile(licensePath, data, 0644); err != nil {\n156: \t\treturn fmt.Errorf(\"writing license file: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986188Z"
+    },
+    {
+      "id": "finding-fabbeb50f51b95ca",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/spec.go",
+        "line": 742,
+        "column": 12,
+        "end_line": 742,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "bf3dfd4f9de78c2b5b05d3b92f4b5d0e",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "741: \n742: \tif err := os.WriteFile(approvalFile, []byte(approvalData), 0644); err != nil {\n743: \t\treturn ux.FormatError(err, \"creating approval record\")\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.98619Z"
+    },
+    {
+      "id": "finding-9e1bb1fe11a3b42d",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/spec.go",
+        "line": 261,
+        "column": 14,
+        "end_line": 261,
+        "end_column": 34
+      },
+      "fingerprint": {
+        "value": "a293f6354f0b6fce3ef438f46b7d4d07",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "260: \t\t\tnoteData := fmt.Sprintf(\"Created: %s\\n%s\\n\", time.Now().Format(time.RFC3339), note)\n261: \t\t\tif err := os.WriteFile(noteFile, []byte(noteData), 0644); err != nil {\n262: \t\t\t\tfmt.Fprintf(os.Stderr, \"Warning: Failed to save note file: %v\\n\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986192Z"
+    },
+    {
+      "id": "finding-6e978eee0ebeb235",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/quickstart.go",
+        "line": 179,
+        "column": 13,
+        "end_line": 179,
+        "end_column": 33
+      },
+      "fingerprint": {
+        "value": "dafb20f241097a89639c12f523928911",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "178: \n179: \t\tif err := os.WriteFile(specPath, specData, 0644); err != nil {\n180: \t\t\treturn fmt.Errorf(\"failed to write spec: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986193Z"
+    },
+    {
+      "id": "finding-d098a27d40d24607",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/policy.go",
+        "line": 322,
+        "column": 12,
+        "end_line": 322,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "24f19e9f3ab709d03ac8377363049040",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "321: \n322: \tif err := os.WriteFile(approvalPath, approvalData, 0644); err != nil {\n323: \t\treturn fmt.Errorf(\"writing approval: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986195Z"
+    },
+    {
+      "id": "finding-dce8d46e2153f895",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/policy.go",
+        "line": 182,
+        "column": 12,
+        "end_line": 182,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "34b80f395db67a005d856601b6c58ca5",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "181: \t// Write policy file\n182: \tif err := os.WriteFile(path, []byte(content), 0644); err != nil {\n183: \t\treturn fmt.Errorf(\"writing policy file: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986197Z"
+    },
+    {
+      "id": "finding-03b7e2a0fbfb9221",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/governance.go",
+        "line": 216,
+        "column": 12,
+        "end_line": 216,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "89614b875f220b7fc3ca74fb6f7915b7",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "215: \tgitignorePath := filepath.Join(path, \".gitignore\")\n216: \tif err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {\n217: \t\treturn fmt.Errorf(\"creating .gitignore: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986198Z"
+    },
+    {
+      "id": "finding-58736d9f6c924ab8",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/governance.go",
+        "line": 196,
+        "column": 12,
+        "end_line": 196,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "f5feea0148e69aa2d323945256cfde42",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "195: \tpoliciesPath := filepath.Join(path, \"policies.yaml\")\n196: \tif err := os.WriteFile(policiesPath, []byte(policiesTemplate), 0644); err != nil {\n197: \t\treturn fmt.Errorf(\"creating policies.yaml: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.9862Z"
+    },
+    {
+      "id": "finding-94b36c330265106f",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/governance.go",
+        "line": 158,
+        "column": 12,
+        "end_line": 158,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "aa42b685c46a1c77b60871a7d9ac181a",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "157: \tprovidersPath := filepath.Join(path, \"providers.yaml\")\n158: \tif err := os.WriteFile(providersPath, []byte(providersTemplate), 0644); err != nil {\n159: \t\treturn fmt.Errorf(\"creating providers.yaml: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986202Z"
+    },
+    {
+      "id": "finding-856e84551d1e1ba5",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/drift.go",
+        "line": 233,
+        "column": 12,
+        "end_line": 233,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "15faf8d090675c900c32dc97052de0dd",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "232: \n233: \tif err := os.WriteFile(approvalPath, data, 0644); err != nil {\n234: \t\treturn fmt.Errorf(\"writing approval: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986203Z"
+    },
+    {
+      "id": "finding-6a05bdf5cd8a7452",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/build.go",
+        "line": 566,
+        "column": 12,
+        "end_line": 566,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "de3de8dcd80d17b1acf173213402a12a",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "565: \n566: \tif err := os.WriteFile(approvalFile, []byte(approvalData), 0644); err != nil {\n567: \t\treturn fmt.Errorf(\"failed to create approval marker: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986205Z"
+    },
+    {
+      "id": "finding-b33b689a80f2672f",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/approve.go",
+        "line": 144,
+        "column": 12,
+        "end_line": 144,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "55c1ba9496bcd498bd19507624866375",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "143: \n144: \tif err := os.WriteFile(approvalPath, data, 0644); err != nil {\n145: \t\treturn fmt.Errorf(\"writing approval: %w\", err)\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986206Z"
+    },
+    {
+      "id": "finding-b9743b6e89dc4ae9",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/examples/projects/cli-task-manager/internal/storage/storage.go",
+        "line": 185,
+        "column": 12,
+        "end_line": 185,
+        "end_column": 32
+      },
+      "fingerprint": {
+        "value": "3a0386cd668dfa75ae28357e59a72966",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "184: \ttmpPath := s.path + \".tmp\"\n185: \tif err := os.WriteFile(tmpPath, data, 0o644); err != nil {\n186: \t\treturn err\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986208Z"
+    },
+    {
+      "id": "finding-6bfbdc7bf501bab3",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G306",
+      "title": "Expect WriteFile permissions to be 0600 or less",
+      "normalized_severity": "MEDIUM",
+      "effective_severity": "MEDIUM",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/examples/platform_integration.go",
+        "line": 171,
+        "column": 10,
+        "end_line": 171,
+        "end_column": 30
+      },
+      "fingerprint": {
+        "value": "3cb06c1c7c102c94858b761c4d79a09c",
+        "version": "v1"
+      },
+      "cwe_id": "276",
+      "metadata": {
+        "snippet": "170: \t\tdata, _ := json.MarshalIndent(output, \"\", \"  \")\n171: \t\terr := os.WriteFile(\"platform_integration_output.json\", data, 0644)\n172: \t\tif err == nil {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986209Z"
+    },
+    {
+      "id": "finding-df42accc39b313a0",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G104",
+      "title": "Errors unhandled",
+      "normalized_severity": "LOW",
+      "effective_severity": "LOW",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/spec/traceresolver.go",
+        "line": 180,
+        "column": 2,
+        "end_line": 180,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "d0616c55ebb31477f51711dff263456e",
+        "version": "v1"
+      },
+      "cwe_id": "703",
+      "metadata": {
+        "snippet": "179: \t}\n180: \tfilepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {\n181: \t\tif err != nil {\n182: \t\t\treturn nil\n183: \t\t}\n184: \t\tif d.IsDir() {\n185: \t\t\tif path == root {\n186: \t\t\t\treturn nil\n187: \t\t\t}\n188: \t\t\tif _, skip := skipDirNames[strings.ToLower(d.Name())]; skip {\n189: \t\t\t\treturn filepath.SkipDir\n190: \t\t\t}\n191: \t\t\treturn nil\n192: \t\t}\n193: \t\thandler(path, d)\n194: \t\treturn nil\n195: \t})\n196: }\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986211Z"
+    },
+    {
+      "id": "finding-11db56155489ec24",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G104",
+      "title": "Errors unhandled",
+      "normalized_severity": "LOW",
+      "effective_severity": "LOW",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/cmd/plugin.go",
+        "line": 290,
+        "column": 4,
+        "end_line": 290,
+        "end_column": 24
+      },
+      "fingerprint": {
+        "value": "3a9c665a1b75e37a5d0a4069941d2ac8",
+        "version": "v1"
+      },
+      "cwe_id": "703",
+      "metadata": {
+        "snippet": "289: \t\t\tvar confirm string\n290: \t\t\tfmt.Scanln(\u0026confirm)\n291: \t\t\tif confirm != \"yes\" {\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986212Z"
+    },
+    {
+      "id": "finding-e6df2531b60e2c23",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G104",
+      "title": "Errors unhandled",
+      "normalized_severity": "LOW",
+      "effective_severity": "LOW",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/authz/middleware.go",
+        "line": 307,
+        "column": 2,
+        "end_line": 307,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "49a96acdab0831ace7ab0cff7ce47dce",
+        "version": "v1"
+      },
+      "cwe_id": "703",
+      "metadata": {
+        "snippet": "306: \tw.WriteHeader(http.StatusInternalServerError)\n307: \tjson.NewEncoder(w).Encode(ErrorResponse{ //nolint:errcheck,gosec // Response headers already sent\n308: \t\tError:   \"internal_server_error\",\n309: \t\tMessage: message,\n310: \t})\n311: }\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986214Z"
+    },
+    {
+      "id": "finding-6bd7d840ffda7635",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G104",
+      "title": "Errors unhandled",
+      "normalized_severity": "LOW",
+      "effective_severity": "LOW",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/authz/middleware.go",
+        "line": 296,
+        "column": 2,
+        "end_line": 296,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "dae23de0e8fe633addd59ddb17eedea9",
+        "version": "v1"
+      },
+      "cwe_id": "703",
+      "metadata": {
+        "snippet": "295: \tw.WriteHeader(http.StatusForbidden)\n296: \tjson.NewEncoder(w).Encode(ErrorResponse{ //nolint:errcheck,gosec // Response headers already sent\n297: \t\tError:   \"forbidden\",\n298: \t\tMessage: decision.Reason,\n299: \t\tDetails: decision.PolicyIDs,\n300: \t})\n301: }\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986216Z"
+    },
+    {
+      "id": "finding-864dc893ad65be54",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G104",
+      "title": "Errors unhandled",
+      "normalized_severity": "LOW",
+      "effective_severity": "LOW",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/authz/middleware.go",
+        "line": 286,
+        "column": 2,
+        "end_line": 286,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "b4d3a036755ec8c4d67c35c6fe374a31",
+        "version": "v1"
+      },
+      "cwe_id": "703",
+      "metadata": {
+        "snippet": "285: \tw.WriteHeader(http.StatusUnauthorized)\n286: \tjson.NewEncoder(w).Encode(ErrorResponse{ //nolint:errcheck,gosec // Response headers already sent\n287: \t\tError:   \"unauthorized\",\n288: \t\tMessage: message,\n289: \t})\n290: }\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986217Z"
+    },
+    {
+      "id": "finding-2916148818242246",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G104",
+      "title": "Errors unhandled",
+      "normalized_severity": "LOW",
+      "effective_severity": "LOW",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/authz/handlers.go",
+        "line": 399,
+        "column": 2,
+        "end_line": 399,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "a68869fba944babb204520f77263a68e",
+        "version": "v1"
+      },
+      "cwe_id": "703",
+      "metadata": {
+        "snippet": "398: \tw.WriteHeader(status)\n399: \tjson.NewEncoder(w).Encode(data) //nolint:errcheck,gosec // Response headers already sent\n400: }\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986219Z"
+    },
+    {
+      "id": "finding-4e7ca31be535fd45",
+      "type": "sast",
+      "engine_id": "gosec",
+      "rule_id": "G104",
+      "title": "Errors unhandled",
+      "normalized_severity": "LOW",
+      "effective_severity": "LOW",
+      "confidence": "HIGH",
+      "reachability": "UNKNOWN",
+      "location": {
+        "file": "/Users/felixgeelhaar/Developer/projects/specular/cli/internal/authz/authz.go",
+        "line": 553,
+        "column": 2,
+        "end_line": 553,
+        "end_column": 22
+      },
+      "fingerprint": {
+        "value": "ef7bd512040f46ecea85f7da9af8e07d",
+        "version": "v1"
+      },
+      "cwe_id": "703",
+      "metadata": {
+        "snippet": "552: \t// In production, you might want to send this to a monitoring system\n553: \te.auditLogger.LogDecision(ctx, entry) //nolint:errcheck,gosec // Audit errors should not block authorization\n554: }\n"
+      },
+      "detected_at": "2026-01-08T12:46:54.986221Z"
+    }
+  ]
+}

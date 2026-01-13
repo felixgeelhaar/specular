@@ -156,49 +156,65 @@ func (r *Registry) LoadFromConfig(config *ProviderConfig) error {
 		return nil
 	}
 
-	// Create provider based on type
-	var provider ProviderClient
-	var err error
-
-	switch config.Type {
-	case ProviderTypeCLI:
-		// All CLI providers use the generic ExecutableProvider
-		// which expects executables that implement generate/stream/health commands
-		path, ok := config.Config["path"].(string)
-		if !ok || path == "" {
-			return fmt.Errorf("executable path required for CLI provider %s", config.Name)
-		}
-		provider, err = NewExecutableProvider(path, config)
-
-	case ProviderTypeAPI:
-		// Determine which API provider to create based on name
-		switch config.Name {
-		case "openai":
-			provider, err = NewOpenAIProvider(config)
-		case "anthropic":
-			provider, err = NewAnthropicProvider(config)
-		case "gemini":
-			provider, err = NewGeminiProvider(config)
-		default:
-			return fmt.Errorf("unknown API provider: %s", config.Name)
-		}
-
-	case ProviderTypeGRPC:
-		return fmt.Errorf("gRPC providers not yet implemented")
-
-	case ProviderTypeNative:
-		return fmt.Errorf("native Go plugins not yet implemented")
-
-	default:
-		return fmt.Errorf("unknown provider type: %s", config.Type)
-	}
-
+	// Create provider based on descriptor/constructor
+	providerClient, err := newProviderClientFromConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create provider %s: %w", config.Name, err)
 	}
 
+	if desc := DescriptorByName(config.Name); desc != nil {
+		RecordProviderRegistered(config.Name, desc.Source, string(desc.TrustLevel))
+	}
+
 	// Register the provider
-	return r.Register(config.Name, provider, config)
+	return r.Register(config.Name, providerClient, config)
+}
+
+func nativeConstructorFor(name string) (NativeConstructor, bool) {
+	if desc := DescriptorByName(name); desc != nil && desc.Constructor != nil {
+		return desc.Constructor, true
+	}
+	return lookupNativeConstructor(name)
+}
+
+func newProviderClientFromConfig(config *ProviderConfig) (ProviderClient, error) {
+	if desc := DescriptorByName(config.Name); desc != nil && desc.Constructor != nil {
+		return desc.Constructor(config)
+	}
+
+	switch config.Type {
+	case ProviderTypeCLI:
+		path, ok := config.Config["path"].(string)
+		if !ok || path == "" {
+			return nil, fmt.Errorf("executable path required for CLI provider %s", config.Name)
+		}
+		return NewExecutableProvider(path, config)
+
+	case ProviderTypeAPI:
+		switch config.Name {
+		case "openai":
+			return NewOpenAIProvider(config)
+		case "anthropic":
+			return NewAnthropicProvider(config)
+		case "gemini":
+			return NewGeminiProvider(config)
+		default:
+			return nil, fmt.Errorf("unknown API provider: %s", config.Name)
+		}
+
+	case ProviderTypeGRPC:
+		return nil, fmt.Errorf("gRPC providers not yet implemented")
+
+	case ProviderTypeNative:
+		constructor, ok := nativeConstructorFor(config.Name)
+		if !ok {
+			return nil, fmt.Errorf("native provider %s not registered", config.Name)
+		}
+		return constructor(config)
+
+	default:
+		return nil, fmt.Errorf("unknown provider type: %s", config.Type)
+	}
 }
 
 // Compile-time verification that Registry implements ProviderRegistry

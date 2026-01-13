@@ -31,6 +31,34 @@ type ManagerConfig struct {
 	Timeout time.Duration
 	// PluginDirs are directories to search for plugins
 	PluginDirs []string
+	// LockfilePath is the path to the plugin lockfile
+	LockfilePath string
+}
+
+// InstallOptions configures plugin installation behavior
+type InstallOptions struct {
+	// Force overwrites existing plugins without prompting
+	Force bool
+	// Upgrade updates existing plugins to newer versions
+	Upgrade bool
+	// Version specifies a specific version to install
+	Version string
+	// SkipDependencies skips installing plugin dependencies
+	SkipDependencies bool
+}
+
+// UpdateResult contains the result of an update operation
+type UpdateResult struct {
+	// Name is the plugin name
+	Name string
+	// OldVersion is the version before update
+	OldVersion string
+	// NewVersion is the version after update
+	NewVersion string
+	// Updated indicates if the plugin was actually updated
+	Updated bool
+	// Error contains any error that occurred
+	Error error
 }
 
 // DefaultManagerConfig returns default configuration
@@ -496,6 +524,312 @@ func (m *Manager) Uninstall(name string) error {
 		return fmt.Errorf("remove plugin directory: %w", err)
 	}
 
+	// Update lockfile
+	lock, err := LoadPluginLock(m.config.LockfilePath)
+	if err == nil {
+		lock.Remove(name)
+		_ = lock.Save() // Best effort
+	}
+
 	delete(m.plugins, name)
 	return nil
+}
+
+// InstallWithOptions installs a plugin with additional options
+func (m *Manager) InstallWithOptions(source string, opts InstallOptions) error {
+	// Parse source
+	src, err := ParseSource(source)
+	if err != nil {
+		return fmt.Errorf("parse source: %w", err)
+	}
+
+	// Apply version override if specified
+	if opts.Version != "" && !src.IsLocal() {
+		src = src.WithVersion(opts.Version)
+	}
+
+	// Validate version
+	if err := src.ValidateVersion(); err != nil {
+		return err
+	}
+
+	switch src.Type {
+	case SourceTypeLocal:
+		return m.installFromLocalWithOptions(src.Path, opts)
+	case SourceTypeGitHub:
+		return m.installFromGitHubWithOptions(src, opts)
+	case SourceTypeRegistry:
+		return fmt.Errorf("registry installation not yet implemented")
+	default:
+		return fmt.Errorf("unsupported source type: %s", src.Type)
+	}
+}
+
+// installFromLocalWithOptions installs from local path with options
+func (m *Manager) installFromLocalWithOptions(sourcePath string, opts InstallOptions) error {
+	// Verify source exists and is a directory
+	info, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("source path: %w", err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("source must be a directory")
+	}
+
+	// Find manifest file
+	manifestPath := filepath.Join(sourcePath, "plugin.yaml")
+	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+		manifestPath = filepath.Join(sourcePath, "plugin.json")
+		if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+			return fmt.Errorf("no plugin.yaml or plugin.json found in %s", sourcePath)
+		}
+	}
+
+	// Load and validate manifest
+	plugin, err := m.loadPlugin(sourcePath, manifestPath)
+	if err != nil {
+		return fmt.Errorf("invalid plugin: %w", err)
+	}
+
+	// Get user plugin directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("get home directory: %w", err)
+	}
+	pluginDir := filepath.Join(homeDir, ".specular", "plugins")
+
+	// Create plugin directory if needed
+	if err := os.MkdirAll(pluginDir, 0750); err != nil {
+		return fmt.Errorf("create plugin directory: %w", err)
+	}
+
+	// Destination path
+	destPath := filepath.Join(pluginDir, plugin.Manifest.Name)
+
+	// Check if plugin already exists
+	if _, err := os.Stat(destPath); err == nil {
+		if !opts.Force && !opts.Upgrade {
+			return fmt.Errorf("plugin %s already installed (use --force to overwrite or --upgrade to update)",
+				plugin.Manifest.Name)
+		}
+		// Remove existing
+		if err := os.RemoveAll(destPath); err != nil {
+			return fmt.Errorf("remove existing plugin: %w", err)
+		}
+	}
+
+	// Copy plugin directory
+	if err := copyDir(sourcePath, destPath); err != nil {
+		return fmt.Errorf("copy plugin: %w", err)
+	}
+
+	// Update lockfile
+	lock, err := LoadPluginLock(m.config.LockfilePath)
+	if err != nil {
+		lock = NewPluginLock(m.config.LockfilePath)
+	}
+
+	checksum, _ := ComputeChecksum(destPath)
+	lock.Add(LockedPlugin{
+		Name:          plugin.Manifest.Name,
+		Version:       plugin.Manifest.Version,
+		InstalledFrom: sourcePath,
+		Source:        string(SourceTypeLocal),
+		Checksum:      checksum,
+		Enabled:       true,
+	})
+
+	if err := lock.Save(); err != nil {
+		fmt.Printf("Warning: failed to update lockfile: %v\n", err)
+	}
+
+	fmt.Printf("✓ Installed plugin: %s v%s\n", plugin.Manifest.Name, plugin.Manifest.Version)
+	fmt.Printf("  Path: %s\n", destPath)
+
+	return nil
+}
+
+// installFromGitHubWithOptions installs from GitHub with options
+func (m *Manager) installFromGitHubWithOptions(src *PluginSource, opts InstallOptions) error {
+	// Create temporary directory for cloning
+	tmpDir, err := os.MkdirTemp("", "specular-plugin-*")
+	if err != nil {
+		return fmt.Errorf("create temp directory: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Clone repository
+	fmt.Printf("Cloning %s...\n", src.String())
+	cloneURL := src.GitHubCloneURL()
+
+	var cmd *exec.Cmd
+	if src.Version != "" {
+		// Clone specific branch/tag
+		cmd = exec.Command("git", "clone", "--depth", "1", "--branch", src.Version, cloneURL, tmpDir)
+	} else {
+		cmd = exec.Command("git", "clone", "--depth", "1", cloneURL, tmpDir)
+	}
+
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("git clone failed: %w\nOutput: %s", err, output)
+	}
+
+	// If there's a subpath, use that as the source
+	sourcePath := tmpDir
+	if src.Subpath != "" {
+		sourcePath = filepath.Join(tmpDir, src.Subpath)
+		if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
+			return fmt.Errorf("subpath not found in repository: %s", src.Subpath)
+		}
+	}
+
+	// Install from cloned directory
+	if err := m.installFromLocalWithOptions(sourcePath, opts); err != nil {
+		return err
+	}
+
+	// Update lockfile with GitHub source info
+	lock, err := LoadPluginLock(m.config.LockfilePath)
+	if err == nil {
+		pluginName := src.GetPluginName()
+		if p, exists := lock.Get(pluginName); exists {
+			p.InstalledFrom = src.String()
+			p.Source = string(SourceTypeGitHub)
+			lock.Add(p)
+			_ = lock.Save()
+		}
+	}
+
+	return nil
+}
+
+// Update updates a specific plugin to a new version
+func (m *Manager) Update(name string, version string) (*UpdateResult, error) {
+	result := &UpdateResult{Name: name}
+
+	// Get plugin info from lockfile
+	lock, err := LoadPluginLock(m.config.LockfilePath)
+	if err != nil {
+		return nil, fmt.Errorf("load lockfile: %w", err)
+	}
+
+	lockedPlugin, exists := lock.Get(name)
+	if !exists {
+		return nil, fmt.Errorf("plugin not found in lockfile: %s", name)
+	}
+
+	result.OldVersion = lockedPlugin.Version
+
+	// Parse the original source
+	src, err := ParseSource(lockedPlugin.InstalledFrom)
+	if err != nil {
+		// If source parsing fails, try to construct from repository field
+		if plugin, ok := m.Get(name); ok && plugin.Manifest.Repository != "" {
+			src, err = ParseSource(plugin.Manifest.Repository)
+			if err != nil {
+				return nil, fmt.Errorf("cannot determine plugin source: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("cannot determine plugin source for update")
+		}
+	}
+
+	// Local plugins can't be updated automatically
+	if src.IsLocal() {
+		return nil, fmt.Errorf("cannot update local plugin %s (reinstall from source)", name)
+	}
+
+	// Apply version
+	if version != "" {
+		src = src.WithVersion(version)
+	}
+
+	// Install with upgrade flag
+	opts := InstallOptions{
+		Upgrade: true,
+		Version: version,
+	}
+
+	if err := m.InstallWithOptions(src.String(), opts); err != nil {
+		result.Error = err
+		return result, err
+	}
+
+	// Get new version
+	lock, _ = LoadPluginLock(m.config.LockfilePath)
+	if updated, exists := lock.Get(name); exists {
+		result.NewVersion = updated.Version
+		result.Updated = result.OldVersion != result.NewVersion
+	}
+
+	return result, nil
+}
+
+// UpdateAll updates all installed plugins
+func (m *Manager) UpdateAll() ([]UpdateResult, error) {
+	lock, err := LoadPluginLock(m.config.LockfilePath)
+	if err != nil {
+		return nil, fmt.Errorf("load lockfile: %w", err)
+	}
+
+	var results []UpdateResult
+	for _, p := range lock.List() {
+		// Skip local plugins
+		if p.Source == string(SourceTypeLocal) {
+			results = append(results, UpdateResult{
+				Name:       p.Name,
+				OldVersion: p.Version,
+				NewVersion: p.Version,
+				Updated:    false,
+				Error:      fmt.Errorf("local plugin, cannot auto-update"),
+			})
+			continue
+		}
+
+		result, err := m.Update(p.Name, "")
+		if err != nil {
+			results = append(results, UpdateResult{
+				Name:       p.Name,
+				OldVersion: p.Version,
+				NewVersion: p.Version,
+				Updated:    false,
+				Error:      err,
+			})
+			continue
+		}
+		results = append(results, *result)
+	}
+
+	return results, nil
+}
+
+// GetLockfile returns the plugin lockfile
+func (m *Manager) GetLockfile() (*PluginLock, error) {
+	return LoadPluginLock(m.config.LockfilePath)
+}
+
+// VerifyIntegrity checks all installed plugins against their checksums
+func (m *Manager) VerifyIntegrity() (map[string]bool, error) {
+	lock, err := LoadPluginLock(m.config.LockfilePath)
+	if err != nil {
+		return nil, fmt.Errorf("load lockfile: %w", err)
+	}
+
+	results := make(map[string]bool)
+	for _, p := range lock.List() {
+		plugin, ok := m.Get(p.Name)
+		if !ok {
+			results[p.Name] = false
+			continue
+		}
+
+		valid, err := lock.VerifyChecksum(p.Name, plugin.Path)
+		if err != nil {
+			results[p.Name] = false
+			continue
+		}
+		results[p.Name] = valid
+	}
+
+	return results, nil
 }

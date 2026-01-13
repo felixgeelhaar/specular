@@ -1,0 +1,88 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+const Version = "{{.Version}}"
+
+// PluginRequest represents incoming plugin requests
+type PluginRequest struct {
+	Action string                 `json:"action"`
+	Data   map[string]interface{} `json:"data,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
+}
+
+// PluginResponse represents plugin responses
+type PluginResponse struct {
+	Success bool        `json:"success"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
+// ValidatorResult for validation responses
+type ValidatorResult struct {
+	Valid    bool              `json:"valid"`
+	Errors   []ValidationError `json:"errors,omitempty"`
+	Warnings []ValidationError `json:"warnings,omitempty"`
+}
+
+// ValidationError represents a validation issue
+type ValidationError struct {
+	Line    int    `json:"line,omitempty"`
+	Column  int    `json:"column,omitempty"`
+	Message string `json:"message"`
+	Rule    string `json:"rule,omitempty"`
+}
+
+func main() {
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		var req PluginRequest
+		if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("invalid JSON: %v", err)})
+			continue
+		}
+
+		switch req.Action {
+		case "health":
+			respond(PluginResponse{
+				Success: true,
+				Result: map[string]string{
+					"status":  "healthy",
+					"version": Version,
+				},
+			})
+		case "validate":
+			result, err := validate(req)
+			if err != nil {
+				respond(PluginResponse{Success: false, Error: err.Error()})
+			} else {
+				respond(PluginResponse{Success: true, Result: result})
+			}
+		default:
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("unknown action: %s", req.Action)})
+		}
+	}
+}
+
+func validate(req PluginRequest) (*ValidatorResult, error) {
+	content, _ := req.Data["content"].(string)
+
+	// TODO: Implement your validation logic here
+	// Example: errors := runMyValidation(content, req.Config)
+	_ = content
+
+	return &ValidatorResult{
+		Valid:    true,
+		Errors:   []ValidationError{},
+		Warnings: []ValidationError{},
+	}, nil
+}
+
+func respond(resp PluginResponse) {
+	json.NewEncoder(os.Stdout).Encode(resp)
+}

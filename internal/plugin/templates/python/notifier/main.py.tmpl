@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""{{.Name}} - A Specular notifier plugin."""
+
+import json
+import sys
+from typing import Any, Dict, Optional
+
+VERSION = "{{.Version}}"
+
+
+def health_check() -> Dict[str, str]:
+    """Return health status."""
+    return {"status": "healthy", "version": VERSION}
+
+
+def notify(data: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
+    """Send notification.
+
+    Args:
+        data: Request data containing 'message' and 'channel'
+        config: Plugin configuration from manifest
+
+    Returns:
+        Notifier result with 'sent', 'message_id', and 'channel'
+    """
+    message = data.get("message", "")
+    channel = data.get("channel", "")
+
+    # TODO: Implement your notification logic here
+    # Example: message_id = send_notification(message, channel, config)
+
+    return {
+        "sent": True,
+        "message_id": "msg-001",
+        "channel": channel,
+    }
+
+
+def main() -> None:
+    """Main entry point - reads JSON from stdin, writes JSON to stdout."""
+    for line in sys.stdin:
+        try:
+            request = json.loads(line.strip())
+            action = request.get("action", "notify")
+
+            if action == "health":
+                result = health_check()
+            elif action in ("notify", "send"):
+                result = notify(
+                    request.get("data", {}),
+                    request.get("config", {})
+                )
+            else:
+                print(json.dumps({"success": False, "error": f"Unknown action: {action}"}))
+                continue
+
+            print(json.dumps({"success": True, "result": result}))
+
+        except json.JSONDecodeError as e:
+            print(json.dumps({"success": False, "error": f"Invalid JSON: {e}"}))
+        except Exception as e:
+            print(json.dumps({"success": False, "error": str(e)}))
+
+        sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    main()

@@ -327,19 +327,19 @@ fallback:
 ### Usage Examples
 ```bash
 # Fast iteration
-specular plan --model-hint fast
+specular generate "Summarize requirements" --model-hint fast
 
 # Best value (default)
-specular plan --model-hint balanced
+specular generate "Summarize requirements" --model-hint balanced
 
 # Maximum quality
-specular plan --model-hint quality
+specular generate "Summarize requirements" --model-hint quality
 
 # Optimized for code
 specular generate "Implement auth" --model-hint codegen
 
 # Explicit model selection
-specular plan --model anthropic:claude-3-opus-20240229
+specular generate "Summarize requirements" --model anthropic:claude-3-opus-20240229
 ```
 
 ## Consequences

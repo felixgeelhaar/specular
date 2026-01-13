@@ -78,9 +78,11 @@ func DetectAll() (*Context, error) {
 
 	// Detect AI providers
 	ctx.Providers["ollama"] = detectOllama()
-	ctx.Providers["claude"] = detectClaude()
+	ctx.Providers["claude-code"] = detectClaudeCode()
+	ctx.Providers["codex-cli"] = detectCodexCLI()
+	ctx.Providers["gemini-cli"] = detectGeminiCLI()
 	ctx.Providers["openai"] = detectOpenAI()
-	ctx.Providers["gemini"] = detectGemini()
+	ctx.Providers["gemini"] = detectGeminiAPI()
 	ctx.Providers["anthropic"] = detectAnthropic()
 
 	// Detect languages and frameworks
@@ -178,12 +180,11 @@ func detectOllama() ProviderInfo {
 	return info
 }
 
-// detectClaude checks if Claude CLI is available
-func detectClaude() ProviderInfo {
+// detectClaudeCode checks if Claude Code CLI is available
+func detectClaudeCode() ProviderInfo {
 	info := ProviderInfo{
-		Name:   "claude",
-		Type:   "cli",
-		EnvVar: "ANTHROPIC_API_KEY",
+		Name: "claude-code",
+		Type: "cli",
 	}
 
 	path, err := exec.LookPath("claude")
@@ -192,7 +193,6 @@ func detectClaude() ProviderInfo {
 	}
 
 	info.Available = true
-	info.EnvSet = os.Getenv(info.EnvVar) != ""
 
 	// Get version if available
 	cmd := exec.Command(path, "--version")
@@ -204,45 +204,63 @@ func detectClaude() ProviderInfo {
 	return info
 }
 
-// detectProviderWithCLI checks if a provider is available via CLI or API key
-func detectProviderWithCLI(name, cliName, envVar string) ProviderInfo {
+func detectCLIProvider(name, cliName string) ProviderInfo {
 	info := ProviderInfo{
-		Name:   name,
-		Type:   "api",
-		EnvVar: envVar,
+		Name: name,
+		Type: "cli",
 	}
 
-	// Check for CLI
 	path, err := exec.LookPath(cliName)
-	if err == nil {
-		info.Available = true
-		info.Type = "cli"
-
-		cmd := exec.Command(path, "--version")
-		var output []byte
-		output, err = cmd.Output()
-		if err == nil {
-			info.Version = strings.TrimSpace(string(output))
-		}
+	if err != nil {
+		return info
 	}
 
-	// Check for API key (always check, even if CLI not found)
-	info.EnvSet = os.Getenv(info.EnvVar) != ""
-	if info.EnvSet {
-		info.Available = true
+	info.Available = true
+	cmd := exec.Command(path, "--version")
+	output, err := cmd.Output()
+	if err == nil {
+		info.Version = strings.TrimSpace(string(output))
 	}
 
 	return info
 }
 
-// detectOpenAI checks if OpenAI is available (API or CLI)
+// detectOpenAI checks if OpenAI API is available
 func detectOpenAI() ProviderInfo {
-	return detectProviderWithCLI("openai", "openai", "OPENAI_API_KEY")
+	info := ProviderInfo{
+		Name:   "openai",
+		Type:   "api",
+		EnvVar: "OPENAI_API_KEY",
+	}
+
+	info.EnvSet = os.Getenv(info.EnvVar) != ""
+	info.Available = info.EnvSet
+
+	return info
 }
 
-// detectGemini checks if Gemini is available
-func detectGemini() ProviderInfo {
-	return detectProviderWithCLI("gemini", "gemini", "GEMINI_API_KEY")
+// detectGeminiAPI checks if Gemini API is available
+func detectGeminiAPI() ProviderInfo {
+	info := ProviderInfo{
+		Name:   "gemini",
+		Type:   "api",
+		EnvVar: "GEMINI_API_KEY",
+	}
+
+	info.EnvSet = os.Getenv(info.EnvVar) != ""
+	info.Available = info.EnvSet
+
+	return info
+}
+
+// detectGeminiCLI checks if Gemini CLI is available
+func detectGeminiCLI() ProviderInfo {
+	return detectCLIProvider("gemini-cli", "gemini")
+}
+
+// detectCodexCLI checks if Codex CLI is available
+func detectCodexCLI() ProviderInfo {
+	return detectCLIProvider("codex-cli", "codex")
 }
 
 // detectAnthropic checks if Anthropic API is available
@@ -400,22 +418,54 @@ func hasInFile(filename, searchString string) bool {
 // GetRecommendedProviders returns a list of recommended providers based on detected context
 func (c *Context) GetRecommendedProviders() []string {
 	recommended := []string{}
+	seen := map[string]bool{}
 
-	// Prioritize local-first if ollama is available
-	if p, ok := c.Providers["ollama"]; ok && p.Available {
-		recommended = append(recommended, "ollama")
+	// Prefer local/CLI providers in order
+	localOrder := []string{"ollama", "claude-code", "codex-cli", "gemini-cli"}
+	for _, name := range localOrder {
+		if info, ok := c.Providers[name]; ok && info.Available {
+			recommended = append(recommended, name)
+			seen[name] = true
+		}
 	}
 
 	// Add API providers that have keys set
 	for name, info := range c.Providers {
-		if name != "ollama" && info.Available && info.EnvSet {
+		if seen[name] {
+			continue
+		}
+		if info.Type == "api" && info.Available && info.EnvSet {
 			recommended = append(recommended, name)
+			seen[name] = true
 		}
 	}
 
-	// If no providers detected, recommend ollama as default
+	// Add additional CLI providers that were not covered yet
+	for name, info := range c.Providers {
+		if seen[name] || !info.Available {
+			continue
+		}
+		if info.Type == "cli" {
+			recommended = append(recommended, name)
+			seen[name] = true
+		}
+	}
+
+	// Fallback to a default ordering if still empty
 	if len(recommended) == 0 {
-		recommended = append(recommended, "ollama")
+		fallbacks := []string{"ollama", "claude-code", "codex-cli", "gemini-cli", "openai", "anthropic", "gemini"}
+		for _, name := range fallbacks {
+			if info, ok := c.Providers[name]; ok && info.Available {
+				if info.Type == "api" && !info.EnvSet {
+					continue
+				}
+				recommended = append(recommended, name)
+				break
+			}
+		}
+		if len(recommended) == 0 {
+			recommended = append(recommended, "ollama")
+		}
 	}
 
 	return recommended

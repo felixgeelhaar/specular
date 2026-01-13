@@ -2171,7 +2171,7 @@ func FormatResource(resourceType, resourceID string) string
 - [ADR-0013: ABAC Authorization Engine](./adr/0013-abac-authorization-engine.md)
 - [Authorization Tutorial](./tutorials/08-authorization.md)
 - [Policy Management Tutorial](./tutorials/05-policy-management.md)
-- [API Reference](./API_REFERENCE.md)
+- [CLI Reference](./CLI_REFERENCE.md)
 
 ---
 

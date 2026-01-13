@@ -1,0 +1,16 @@
+{
+  "initialized": "2026-01-09T16:23:37+01:00",
+  "version": "1.2.0",
+  "template": "api-service",
+  "provider_strategy": "manual",
+  "governance": "L2",
+  "mcp_enabled": false,
+  "telemetry": false,
+  "detected_context": {
+    "docker": false,
+    "languages": [],
+    "frameworks": [],
+    "git": false,
+    "ci": ""
+  }
+}

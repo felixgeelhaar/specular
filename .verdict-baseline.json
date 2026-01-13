@@ -1,0 +1,1248 @@
+{
+  "version": "1",
+  "created_at": "2026-01-07T22:27:17.834693Z",
+  "updated_at": "2026-01-07T22:27:17.834693Z",
+  "scope": {},
+  "fingerprints": [
+    {
+      "fingerprint": "697386ac2c3ea40fcb45d3293bfab80a",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833766Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "5175a393bd8e949d87feff3d7248b11d",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833775Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "5a175de07b917371eafdcc54c5532f0e",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833776Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "d6014670ac12d212e91ad977c09dcf27",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833781Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "9b1ad867ab490ba5afc5f25a30b9cf89",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833782Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "9cd7ac89cb83c5165b3b0de4eb2b1e70",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833783Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "6c7309505b1c0d46da7a7677b08c906d",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833783Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "2212094c871f71ce162f43cae2a052dd",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833784Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "10ecaff7352a54707d4a1cecf1245f8a",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833785Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "894033cae5c735274ba53d6ad30905f4",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833813Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "e221710bf63eaed428a6332814c92801",
+      "rule_id": "U1000",
+      "engine_id": "staticcheck",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833814Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "c0193e5ff164760a10c04589ee84e1d0",
+      "rule_id": "G101",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833814Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "76845f4984c9b903d8f29c6a91f15cae",
+      "rule_id": "G101",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833815Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "6061336e7037a9015f253ec23476e23b",
+      "rule_id": "G101",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833815Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "e177dd042ea81239a8f5498f55c06666",
+      "rule_id": "G101",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833815Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "6f1ba22163faf7470d38705a90110c25",
+      "rule_id": "G101",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833825Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "e3570d20c299f1a5df0a680d1400f5e0",
+      "rule_id": "G101",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833825Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "7ee3c2b1d6f9ed8abcc5165cc17dcbba",
+      "rule_id": "G101",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833825Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "f93daac06ef011aa6eebb0df56ca3f8f",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833826Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "2ed5a6d854406c4eecc638180b761ea3",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833846Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "7fdb83cf427fed81ed61434151a3564a",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833846Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "41db1cb36d274c181880603c149f70d3",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833847Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "fafb33eae1780fb19799cd220b3bdaf7",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833847Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "b3717fb7e4c54c17c19e8d345ecad193",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833848Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "47b2e84fe1692c6f25c8bafbb50aa283",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833848Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "9df631f46d16518a936bf9eb82ebff9d",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833849Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "134b6804b746cba240332322d51c2b7a",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833849Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "d9a042b08beab178545b39a275fbabf6",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833849Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "42d15ad819ffbeec9c2f51f005680f40",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83385Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "da30d52f258af699db71b75e4c588f23",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833855Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "a193be6c937febd03423d4d77a0f4159",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833856Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "91d80c9dea496d1615ae778780149374",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833856Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "426fb8172766522f99eb2613d5d46f7e",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833857Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "b2aba79fecffcb53fdc618dc226d9d33",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833857Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "99bcaea8ae6f32c01d59f9949796f4a3",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833857Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "8d2014ea8d0f0e948cce7f29d06ada3a",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833858Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "8aee212183a9612c794d04cec3023028",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833858Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "204d057f09f82de4e10c7f7efe6d6074",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833859Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "cd86188cd198dac8e1d2e014fd7984c2",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833875Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "76693349be3df47b91ae13b2e5e3c252",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833875Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "fb9aa5e162ebde24e5efe68df5a297db",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833876Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "8d8b208fc1b82dfee2c86ee894178343",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833876Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "9235f932fa2428e855cefa6596cc5bdc",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833877Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "5636f7f5e5f2a7b5d4291ab85cab6f47",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833877Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "aa70477148fb145b1f58fa447f880541",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833877Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "aca751754580ede2bbc465e41846c022",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833878Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "df55608a81d6a1fa00dc7dd107383b7b",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833878Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "8b43223075f7bf98a156761039be15bd",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833879Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "8e32171ad232541d3ca4838a8e75c8c8",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833879Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "518d876beb9a929e0c4a9f28bfce4703",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833879Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "b2a4893530a1776fea0b9fbb873dc2be",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83388Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "7fe3c9362ba65f55bda62c73c63cf849",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83388Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "5781aff336eb23271a7bc021bda93813",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833881Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "7257759d7baf79625cc3b2c4e904f471",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833881Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "f02d1fb9671ae035be0b8236d3d2626a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833882Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "daa4feb77439f90e40dd148b8bc6d82a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833882Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "d7908cf4dabdd6f69c905806f70c5990",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833883Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "2afe88fe6561aebf91f1c7bca96680e5",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833895Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "df508442cfad15716d7c536eda597f51",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833895Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "c56bb9b93ee2ad5a8f328566ed716904",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833896Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "d5849824646fdd822158dbd646680d31",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833896Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "82c7083581de56050d8a40e4415fad4a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833897Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "4f488036405647eebd095df6883e67e0",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833897Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "ae5c8842445ce1edd24d31a2997645c1",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833897Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "beba25ccd795033ecaf9b861eefb0971",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833898Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "6ec9a6ea9ba4c4b1b7fdbedb103fb4ba",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833898Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "a5838e62229756926466b7832b03749d",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833898Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "e0f5f1e00b9dbe86937504e01ac560c3",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833899Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "e4c28a3b768fc8762f3c8e6d8679e245",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833899Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "ec60e1bd66a54f82f82317c105400671",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.8339Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "19188e86e45521c55efb3fa272b67ad9",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.8339Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "7735e25228595286e97e9412277f0125",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.8339Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "30620acc548b402b2e19cfbaeb915159",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833901Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "78f7eedf57d86546e37a0e3046ef3fe1",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833901Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "77f5df1ed6da3b9ae357e9e8d4a5c5b0",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833901Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "24b69381138511fb67e54e7ccb6c6c7e",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.833902Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "9f6e9c5e1b8c1b4504db89d616f5af65",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834619Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "80e257dd3e6ef9d8eeda9ffd3e50f798",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834619Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "1bf97c43d0ffc375d920e773583cd6a9",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83462Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "ae7f16a35b689d403a221126c7f154ac",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83462Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "a3783c268962d73c66a9009970d47ec5",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83462Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "25613681ed86c21f714a349f59a85554",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834621Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "e6369e6e8433841bd2e79668c6fed5d2",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834621Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "d2618fabf5c77e2130b932534777e0ac",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834622Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "6fc8d146c0a162e9a1934a66aef69217",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834622Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "101dddb03fc7efe96abd325675ac4220",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834622Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "0b79984ae5600741e97f13e33686573a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834623Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "7a76a2e5fba96162c4e7f5ffb1361f1a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834623Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "2660be10878240bf0505df32347e8e12",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834623Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "761a61f4a69a4212e3812fe3bf9163fe",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834624Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "257044e633955e5ba999c2bc1b813e8c",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834624Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "8aa4b5fe4d0215d6fa2bba5a65bf222a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834624Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "d7151c63264a514aa850427acdfe235a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834625Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "3a0f28fae42bd7aba4c66ac6b941282b",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834625Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "2ca4d3c7d4b3a2e25dfe55861da4d44f",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834625Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "afcf3953bec666173cb79d67f6fd8000",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834626Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "d3ae2608778dc336e98eaae21ba68245",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834626Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "b8484ade0e59e8307d4e41960573f743",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834626Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "ab0ef432c3d1b77c450d02ad35d868fd",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834627Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "90e3f40c84ddc9ce21d71538f5592183",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834627Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "7c62a49a4ed7cc09da3d8d6826984618",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834628Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "bd3d78a57464969c5a6f1d9372614570",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834628Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "969f471c78ad86c170ca6b2c21e73a4e",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834628Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "2059d5f3c06120d87bd5a1c791e59922",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834629Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "4daf58a9046d17419d761a72d33188c4",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834629Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "6ce8f6b2dc25084a064bb2577912454d",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834629Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "f29e94874f4ff95b2172ee526b17c669",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83463Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "01143e19a128110ba2cbee33bffbe547",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83463Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "7d1ebaa5c766c4760b1e3b27020657e3",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834631Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "fe560ae42cd120b8b3615048293a92c1",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834631Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "a07636ccf691ed0c3fcd4b1d820d6822",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834631Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "9f4910fa1ce095a17cd81322684adbe5",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834632Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "2f9521805673e8973bd4a8c2d56dff70",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834632Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "f3d0246241190dd0b29e48b016478e98",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83466Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "018db9df6e5847cefb3e1d327a5908cb",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83466Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "617eab0d9c038a653798c93d535aeb5e",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834661Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "3c296b3845c49e156eaddfa7a3628064",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834661Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "4e01d26c1a3c70aab22d0e4463ca4539",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834661Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "9ce07943448ee3bee750c04be12a6cd4",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834661Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "8c158a75c27112fc8e858c27811fc46f",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834662Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "bc1060c104bf3195081a17532c8092dd",
+      "rule_id": "G107",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834662Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "70f89940b7bf8d0d1dec6a99bdee1b6c",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834662Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "b09e4053a7b95734c50cb04c858595d5",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834663Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "0f263979367015f9200e6ba9798bd5d7",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834663Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "89befc265f6a54cc9b7d1730fa25c928",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834663Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "494675bd4558d1d9ecd2d915665ab5f2",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834664Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "0ea59507ea41d52ae73413f9c3681008",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834664Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "38aa4c72bf4c2ad2f0688bdd068fe5c6",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834664Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "c8e5118b495954d4eb8a688e9d7dd609",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834664Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "06e912d126321b660fd96ff5b4aefb9f",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834665Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "c5e427ef65dec5660b7486ada26231cf",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834665Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "8208b833a10d03ecc0d375419ebd68f0",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834665Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "37447cd164f65a12c956716b0908e9f8",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834665Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "b3c30afa359ca0f8bbb1112e537bc742",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834666Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "a05edf89fcbdd52e713d78433e616067",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834666Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "ed3f95aa638ea46399e3508f3926a8b9",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834666Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "73203b1d4fa94ea15e1a5f6a13468806",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834666Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "dafb20f241097a89639c12f523928911",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834667Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "24f19e9f3ab709d03ac8377363049040",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834667Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "34b80f395db67a005d856601b6c58ca5",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834667Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "89614b875f220b7fc3ca74fb6f7915b7",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834667Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "f5feea0148e69aa2d323945256cfde42",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834668Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "aa42b685c46a1c77b60871a7d9ac181a",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834668Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "15faf8d090675c900c32dc97052de0dd",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834668Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "f462ffbf8316abcd6cde788cd80eab1a",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834668Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "55c1ba9496bcd498bd19507624866375",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834668Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "3a0386cd668dfa75ae28357e59a72966",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834669Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "3cb06c1c7c102c94858b761c4d79a09c",
+      "rule_id": "G306",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834669Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "d0616c55ebb31477f51711dff263456e",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834669Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "3a9c665a1b75e37a5d0a4069941d2ac8",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834669Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "3a012ba321b1e9d4f61b4a3c974a7949",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83467Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "7d03b2c1df9a63293beed9bb5c80daf5",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.83467Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "b9bdf0c889817862b7a31bd74d5a3f1b",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834691Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "a68869fba944babb204520f77263a68e",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834691Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    },
+    {
+      "fingerprint": "ef7bd512040f46ecea85f7da9af8e07d",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-07T22:27:17.834691Z",
+      "reason": "G101: Error code constants, not credentials. G204: Expected - CLI tool executes external provider commands. G304: Expected - CLI tool reads user-specified config files."
+    }
+  ]
+}

@@ -100,11 +100,15 @@ func (e *Executor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionResult,
 			// Create manifest
 			if e.ManifestDir != "" {
 				manifest := CreateManifest(step, taskResult)
-				if err := SaveManifest(manifest, e.ManifestDir); err != nil {
-					fmt.Printf("  ⚠ Warning: failed to save manifest: %v\n", err)
-				} else {
-					result.Manifests = append(result.Manifests, manifest)
+			manifestPath, err := SaveManifest(manifest, e.ManifestDir)
+			if err != nil {
+				fmt.Printf("  ⚠ Warning: failed to save manifest: %v\n", err)
+			} else {
+				result.Manifests = append(result.Manifests, manifest)
+				if writeErr := WriteLatestManifest(e.ManifestDir, manifest, manifestPath); writeErr != nil {
+					fmt.Printf("  ⚠ Warning: failed to persist latest manifest metadata: %v\n", writeErr)
 				}
+			}
 			}
 		}
 	}

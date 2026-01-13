@@ -23,27 +23,27 @@ echo
 
 # Step 2: Validate spec
 echo "Step 2: Validating spec..."
-./ai-dev spec validate --in .specular/spec.yaml
+./specular spec validate --in .specular/spec.yaml
 echo
 
 # Step 3: Generate SpecLock
 echo "Step 3: Generating SpecLock..."
-./ai-dev spec lock --in .specular/spec.yaml --out .specular/spec.lock.json
+./specular spec lock --in .specular/spec.yaml --out .specular/spec.lock.json
 echo
 
 # Step 4: Generate plan
 echo "Step 4: Generating execution plan..."
-./ai-dev plan --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
+./specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
 echo
 
 # Step 5: Run build (dry-run mode)
 echo "Step 5: Running build (dry-run)..."
-./ai-dev build --plan plan.json --policy .specular/policy.yaml --dry-run
+./specular build run --plan plan.json --policy .specular/policy.yaml --dry-run
 echo
 
 # Step 6: Run drift detection
 echo "Step 6: Running drift detection..."
-./ai-dev eval --plan plan.json --lock .specular/spec.lock.json --report drift.sarif
+./specular eval drift --plan plan.json --lock .specular/spec.lock.json --spec .specular/spec.yaml --policy "" --report drift.sarif
 echo
 
 # Verify generated files exist

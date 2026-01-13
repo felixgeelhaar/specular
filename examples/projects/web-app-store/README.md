@@ -18,10 +18,10 @@ cd examples/projects/web-app-store
 specular init --template web-app
 
 # Generate plan from spec
-specular plan
+specular plan create
 
 # Review and execute
-specular build --dry-run
+specular build run --dry-run
 ```
 
 ## Spec Overview
@@ -39,6 +39,6 @@ The specification defines:
 
 ## Next Steps
 
-1. Run `specular interview --tui` to customize the spec
-2. Generate an execution plan with `specular plan`
-3. Build with governance using `specular build`
+1. Run `specular spec new --tui` to customize the spec
+2. Generate an execution plan with `specular plan create`
+3. Build with governance using `specular build run`

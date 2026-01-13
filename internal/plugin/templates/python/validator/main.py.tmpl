@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""{{.Name}} - A Specular validator plugin."""
+
+import json
+import sys
+from typing import Any, Dict, List, Optional
+
+VERSION = "{{.Version}}"
+
+
+def health_check() -> Dict[str, str]:
+    """Return health status."""
+    return {"status": "healthy", "version": VERSION}
+
+
+def validate(data: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate content.
+
+    Args:
+        data: Request data containing 'content' and optional 'rules'
+        config: Plugin configuration from manifest
+
+    Returns:
+        Validation result with 'valid', 'errors', and 'warnings'
+    """
+    content = data.get("content", "")
+    rules = data.get("rules", [])
+
+    # TODO: Implement your validation logic here
+    # Example: errors = run_my_validation(content, rules, config)
+    errors: List[Dict[str, Any]] = []
+    warnings: List[Dict[str, Any]] = []
+
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings,
+    }
+
+
+def main() -> None:
+    """Main entry point - reads JSON from stdin, writes JSON to stdout."""
+    for line in sys.stdin:
+        try:
+            request = json.loads(line.strip())
+            action = request.get("action", "validate")
+
+            if action == "health":
+                result = health_check()
+            elif action == "validate":
+                result = validate(
+                    request.get("data", {}),
+                    request.get("config", {})
+                )
+            else:
+                print(json.dumps({"success": False, "error": f"Unknown action: {action}"}))
+                continue
+
+            print(json.dumps({"success": True, "result": result}))
+
+        except json.JSONDecodeError as e:
+            print(json.dumps({"success": False, "error": f"Invalid JSON: {e}"}))
+        except Exception as e:
+            print(json.dumps({"success": False, "error": str(e)}))
+
+        sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    main()

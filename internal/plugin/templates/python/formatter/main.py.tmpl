@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""{{.Name}} - A Specular formatter plugin."""
+
+import json
+import sys
+from typing import Any, Dict
+
+VERSION = "{{.Version}}"
+
+
+def health_check() -> Dict[str, str]:
+    """Return health status."""
+    return {"status": "healthy", "version": VERSION}
+
+
+def format_content(data: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
+    """Format content.
+
+    Args:
+        data: Request data containing 'content' and 'format'
+        config: Plugin configuration from manifest
+
+    Returns:
+        Formatter result with 'formatted' and 'format'
+    """
+    content = data.get("content", "")
+    output_format = data.get("format", "text")
+
+    # TODO: Implement your formatting logic here
+    # Example: formatted = my_formatter(content, output_format, config)
+    formatted = content
+
+    return {
+        "formatted": formatted,
+        "format": output_format,
+    }
+
+
+def main() -> None:
+    """Main entry point - reads JSON from stdin, writes JSON to stdout."""
+    for line in sys.stdin:
+        try:
+            request = json.loads(line.strip())
+            action = request.get("action", "format")
+
+            if action == "health":
+                result = health_check()
+            elif action == "format":
+                result = format_content(
+                    request.get("data", {}),
+                    request.get("config", {})
+                )
+            else:
+                print(json.dumps({"success": False, "error": f"Unknown action: {action}"}))
+                continue
+
+            print(json.dumps({"success": True, "result": result}))
+
+        except json.JSONDecodeError as e:
+            print(json.dumps({"success": False, "error": f"Invalid JSON: {e}"}))
+        except Exception as e:
+            print(json.dumps({"success": False, "error": str(e)}))
+
+        sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    main()

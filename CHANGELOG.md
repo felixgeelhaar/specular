@@ -7,7 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Release 1.7.0
 
+Release 1.9.0
+
 ## [Unreleased]
+
+### Added
+
+- **Release Automation (M8.1)**
+  - Relicta integration for release orchestration
+  - New Makefile targets: release-plan, release-bump, release-notes, release-evaluate
+  - Full workflow automation: release-validate, release-approve, release-publish
+  - Dry-run support for safe release previews
+
+- **Performance Optimization (M8.2)**
+  - Startup time optimization with fast command detection
+  - Skip observability initialization for version, help, completion commands
+  - Reduced startup time from ~700ms to <10ms for fast commands
+  - New benchmark framework in `internal/benchmark/`
+  - Makefile targets: bench, bench-startup, bench-binary, perf-report
+  - Performance documentation in `docs/PERFORMANCE.md`
+
+- **Sample Projects (M8.4)**
+  - Mobile Backend example with Go + Firebase integration
+  - Push notifications, real-time sync, authentication, file storage
+  - Complete spec.yaml demonstrating api-service template
+
+- **Documentation (M8.5)**
+  - Spec Schema Reference (`docs/spec-schema.md`)
+  - Complete YAML format documentation with examples
+  - Field reference tables and validation rules
+  - Updated Quick Links in README.md
+
+### Fixed
+
+- Quickstart demo mode now demonstrates workflow and runs doctor
+- Fixed broken documentation links (API_REFERENCE.md, best-practices.md)
+- Fixed flag shorthand conflict (`-v`) in plugin install command
+
+### Changed
+
+- Updated dependencies to latest versions
+- Go upgraded from 1.24 to 1.25
+- OpenTelemetry upgraded to v1.39.0
+- Various security and performance dependency updates
 
 ## [1.6.0] - 2025-11-20
 

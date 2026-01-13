@@ -46,9 +46,9 @@ jobs:
         uses: ./.github/actions/specular
         with:
           command: plan
+          spec-file: .specular/spec.yaml
           lock-file: .specular/spec.lock.json
           plan-file: plan.json
-          router-file: .specular/router.yaml
 
       - name: Upload plan
         uses: actions/upload-artifact@v4
@@ -66,10 +66,12 @@ jobs:
       - name: Run drift detection
         uses: ./.github/actions/specular
         with:
-          command: eval
+          command: drift
+          spec-file: .specular/spec.yaml
           lock-file: .specular/spec.lock.json
+          plan-file: plan.json
           policy-file: .specular/policy.yaml
-          fail-on-drift: true
+          fail-on: drift
 
       - name: Comment PR with drift report
         if: always()

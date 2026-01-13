@@ -69,13 +69,13 @@ This directory contains complete examples demonstrating Specular workflows for d
 cd examples/web-app  # or api-service
 
 # 2. Generate implementation plan
-specular plan --spec .specular/spec.yaml --output plan.json
+specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
 
 # 3. Execute the plan
-specular build --plan plan.json --policy .specular/policy.yaml
+specular build run --plan plan.json --policy .specular/policy.yaml
 
 # 4. Detect drift (after making changes)
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
   --plan plan.json \
   --lock .specular/spec.lock.json \
@@ -103,7 +103,7 @@ example-name/
 ### Plan Generation
 ```bash
 # Generate plan from specification
-specular plan --spec .specular/spec.yaml --output plan.json
+specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
 
 # View plan summary
 cat plan.json | jq '.tasks[] | {id, title, priority, complexity}'
@@ -115,42 +115,42 @@ cat plan.json | jq '.tasks | group_by(.priority) | map({priority: .[0].priority,
 ### Build Execution
 ```bash
 # Execute with policy enforcement
-specular build --plan plan.json --policy .specular/policy.yaml
+specular build run --plan plan.json --policy .specular/policy.yaml
 
 # Dry-run mode (show what would be executed)
-specular build --plan plan.json --policy .specular/policy.yaml --dry-run
+specular build run --plan plan.json --policy .specular/policy.yaml --dry-run
 
 # Verbose output
-specular build --plan plan.json --policy .specular/policy.yaml --verbose
+specular build run --plan plan.json --policy .specular/policy.yaml --verbose
 
 # Resume from checkpoint
-specular build --plan plan.json --policy .specular/policy.yaml --resume
+specular build run --plan plan.json --policy .specular/policy.yaml --resume
 ```
 
 ### Drift Detection
 ```bash
 # Check for plan drift
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
   --plan plan.json \
   --lock .specular/spec.lock.json
 
 # Check for code drift (API conformance)
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
   --plan plan.json \
   --lock .specular/spec.lock.json \
   --api-spec openapi.yaml
 
 # Fail on any drift
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
   --plan plan.json \
   --lock .specular/spec.lock.json \
   --fail-on-drift
 
 # Generate SARIF report
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
   --plan plan.json \
   --lock .specular/spec.lock.json \
@@ -247,7 +247,7 @@ features:
 
 Then regenerate the plan:
 ```bash
-specular plan --spec .specular/spec.yaml --output plan.json
+specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
 ```
 
 ### Adjust Policies
@@ -272,8 +272,9 @@ performance:
 Edit `openapi.yaml` to match your API changes, then validate:
 
 ```bash
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
+  --plan plan.json \
   --api-spec openapi.yaml \
   --fail-on-drift
 ```
@@ -353,7 +354,7 @@ cat .specular/policy.yaml | grep -A 5 "require"
 ### Slow CI/CD Runs
 ```bash
 # Enable Docker image caching
-specular build --enable-cache --cache-dir .specular/cache
+specular build run --plan plan.json --enable-cache --cache-dir .specular/cache
 
 # Pre-warm images before build
 specular prewarm --plan plan.json

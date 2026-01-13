@@ -218,7 +218,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate plan file exists with helpful error
-	if err := ux.ValidateRequiredFile(planFile, "Plan file", "specular plan gen"); err != nil {
+	if err := ux.ValidateRequiredFile(planFile, "Plan file", "specular plan create"); err != nil {
 		telemetry.RecordError(span, err)
 		return ux.EnhanceError(err)
 	}
@@ -267,7 +267,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 
 	// Generate operation ID from plan file if not provided
 	if checkpointID == "" {
-		checkpointID = fmt.Sprintf("build-%s-%d", planFile, time.Now().Unix())
+		checkpointID = fmt.Sprintf("build-%s-%d", sanitizeIdentifier(planFile), time.Now().Unix())
 	}
 
 	// Initialize progress indicator
@@ -637,68 +637,42 @@ func runBuildExplain(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check if manifest directory exists
-	if _, err := os.Stat(manifestDir); os.IsNotExist(err) {
-		return fmt.Errorf("no build manifests found\n\nRun 'specular build run' first")
-	}
-
-	// Find most recent manifest
-	entries, err := os.ReadDir(manifestDir)
+	info, err := findLatestManifestInfo(manifestDir)
 	if err != nil {
-		return fmt.Errorf("failed to read manifest directory: %w", err)
-	}
-
-	if len(entries) == 0 {
 		return fmt.Errorf("no build manifests found\n\nRun 'specular build run' first")
 	}
-
-	// Get most recent directory
-	var latestDir string
-	var latestTime time.Time
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		info, _ := entry.Info()
-		if info.ModTime().After(latestTime) {
-			latestTime = info.ModTime()
-			latestDir = entry.Name()
-		}
-	}
-
-	if latestDir == "" {
-		return fmt.Errorf("no valid build manifests found")
-	}
-
-	manifestPath := filepath.Join(manifestDir, latestDir)
 
 	fmt.Printf("=== Build Execution Explanation ===\n\n")
-	fmt.Printf("Build ID: %s\n", latestDir)
-	fmt.Printf("Manifest: %s\n", manifestPath)
-	fmt.Printf("Timestamp: %s\n\n", latestTime.Format(time.RFC3339))
+	fmt.Printf("Build ID: %s\n", filepath.Base(info.LatestDir))
+	fmt.Printf("Manifest: %s\n", info.ManifestFile)
+	fmt.Printf("Timestamp: %s\n\n", info.LatestTime.Format(time.RFC3339))
 
-	// Check for logs
-	logsFile := filepath.Join(manifestPath, "logs.txt")
-	if _, err := os.Stat(logsFile); err == nil {
-		fmt.Printf("Execution Logs:\n")
-		logs, readErr := os.ReadFile(logsFile)
-		if readErr == nil {
-			fmt.Printf("%s\n", string(logs))
+	if info.IsDir {
+		logsFile := filepath.Join(info.LatestDir, "logs.txt")
+		if _, err := os.Stat(logsFile); err == nil {
+			fmt.Printf("Execution Logs:\n")
+			if logs, readErr := os.ReadFile(logsFile); readErr == nil {
+				fmt.Printf("%s\n", string(logs))
+			}
+		} else {
+			fmt.Printf("No execution logs found\n")
 		}
 	} else {
 		fmt.Printf("No execution logs found\n")
 	}
 
-	// Check for manifest.json
-	manifestFile := filepath.Join(manifestPath, "manifest.json")
-	if _, err := os.Stat(manifestFile); err == nil {
-		fmt.Printf("\nManifest file: %s\n", manifestFile)
-		fmt.Printf("  Use 'cat %s | jq' to inspect\n", manifestFile)
+	if _, err := os.Stat(info.ManifestFile); err == nil {
+		fmt.Printf("\nManifest file: %s\n", info.ManifestFile)
+		fmt.Printf("  Use 'cat %s | jq' to inspect\n", info.ManifestFile)
 	}
 
-	// Check for approval
-	approvalFile := filepath.Join(manifestPath, "approved")
-	if _, err := os.Stat(approvalFile); err == nil {
-		approval, _ := os.ReadFile(approvalFile)
+	var approvalFile string
+	if info.IsDir {
+		approvalFile = filepath.Join(info.LatestDir, "approved")
+	} else {
+		approvalFile = info.ManifestFile + ".approved"
+	}
+	if approval, err := os.ReadFile(approvalFile); err == nil {
 		fmt.Printf("\nApproval Status:\n")
 		fmt.Printf("%s\n", string(approval))
 	} else {
@@ -707,6 +681,42 @@ func runBuildExplain(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+type manifestInfo struct {
+	LatestDir    string
+	ManifestFile string
+	LatestTime   time.Time
+	IsDir        bool
+}
+
+func findLatestManifestInfo(dir string) (*manifestInfo, error) {
+	meta, err := execpkg.LoadLatestManifest(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	info := &manifestInfo{
+		ManifestFile: meta.ManifestPath,
+		LatestDir:    filepath.Dir(meta.ManifestPath),
+		LatestTime:   meta.Timestamp,
+	}
+
+	if stat, statErr := os.Stat(meta.ManifestPath); statErr == nil {
+		info.IsDir = stat.IsDir()
+	}
+
+	return info, nil
+}
+
+func sanitizeIdentifier(value string) string {
+	replacer := strings.NewReplacer(
+		"/", "-",
+		"\\", "-",
+		" ", "-",
+		".", "-",
+	)
+	return replacer.Replace(value)
 }
 
 func init() {

@@ -17,7 +17,7 @@ This GitHub Action integrates Specular AI Governance into your CI/CD pipeline fo
 
 | Name | Description | Default |
 |------|-------------|---------|
-| `command` | Specular command to run (`spec`, `plan`, `build`, `eval`, `doctor`) | **Required** |
+| `command` | Specular command to run (`spec`, `plan`, `build`, `eval`, `drift`, `doctor`) | **Required** |
 
 ### Optional
 
@@ -25,17 +25,17 @@ This GitHub Action integrates Specular AI Governance into your CI/CD pipeline fo
 |------|-------------|---------|
 | `version` | Specular version to install | `latest` |
 | `spec-file` | Path to spec.yaml file | `.specular/spec.yaml` |
+| `prd-file` | Path to PRD markdown file (used when `command: spec`) | - |
 | `lock-file` | Path to spec.lock.json file | `.specular/spec.lock.json` |
 | `plan-file` | Path to plan.json file | `plan.json` |
 | `policy-file` | Path to policy.yaml file | `.specular/policy.yaml` |
-| `router-file` | Path to router.yaml file | `.specular/router.yaml` |
-| `fail-on-drift` | Fail the build if drift is detected | `true` |
+| `scenario` | Eval scenario (`smoke`, `integration`, `security`, `performance`) | `smoke` |
+| `fail-on` | Fail conditions for drift command | `drift,test,security` |
+| `sarif-output` | SARIF output file | `specular-results.sarif` |
+| `upload-sarif` | Upload SARIF to code scanning | `true` |
 | `anthropic-api-key` | Anthropic API key for Claude models | - |
 | `openai-api-key` | OpenAI API key for GPT models | - |
 | `gemini-api-key` | Google Gemini API key | - |
-| `enable-cache` | Enable Docker image caching | `true` |
-| `cache-dir` | Directory for Docker image cache | `.specular/cache` |
-| `cache-max-age` | Maximum cache age (e.g., 168h for 7 days) | `168h` |
 | `additional-args` | Additional arguments to pass to specular | - |
 
 ## Outputs
@@ -43,8 +43,10 @@ This GitHub Action integrates Specular AI Governance into your CI/CD pipeline fo
 | Name | Description |
 |------|-------------|
 | `result` | Command execution result (`success`/`failure`) |
-| `exit-code` | Exit code from specular command |
-| `drift-detected` | Whether drift was detected (`true`/`false`) |
+| `drift-count` | Number of drift violations detected |
+| `test-count` | Number of test failures |
+| `security-count` | Number of security issues found |
+| `sarif-file` | Path to generated SARIF file |
 
 ## Usage Examples
 
@@ -67,9 +69,12 @@ jobs:
       - name: Detect Drift
         uses: ./.github/actions/specular
         with:
-          command: eval
+          command: drift
+          spec-file: .specular/spec.yaml
+          lock-file: .specular/spec.lock.json
+          plan-file: plan.json
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          fail-on-drift: 'true'
+          fail-on: 'drift'
 ```
 
 ### Complete CI Pipeline with Docker Caching
@@ -99,6 +104,8 @@ jobs:
         uses: ./.github/actions/specular
         with:
           command: eval
+          scenario: integration
+          policy-file: .specular/policy.yaml
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 
@@ -106,8 +113,7 @@ jobs:
         uses: ./.github/actions/specular
         with:
           command: build
-          enable-cache: 'true'  # Cache Docker images (enabled by default)
-          cache-max-age: '168h'  # Keep cache for 7 days
+          additional-args: '--enable-cache --cache-max-age 168h'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -119,7 +125,8 @@ jobs:
   with:
     version: 'v1.4.0'
     command: eval
-    additional-args: '--verbose --json'
+    scenario: integration
+    additional-args: '--verbose'
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -147,22 +154,27 @@ Store your API keys as GitHub Secrets:
 
 ## SARIF Drift Reporting
 
-When running the `eval` command, drift findings are automatically uploaded to GitHub's Security tab:
+When running the `drift` command, drift findings are uploaded to GitHub's Security tab:
 
 ```yaml
 - name: Detect Drift
   uses: ./.github/actions/specular
   with:
-    command: eval
+    command: drift
+    spec-file: .specular/spec.yaml
+    lock-file: .specular/spec.lock.json
+    plan-file: plan.json
+    sarif-output: drift.sarif
+    fail-on: drift
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
 The action will:
 1. Run drift detection
-2. Generate `.specular/drift.sarif` report
+2. Generate a SARIF report
 3. Upload findings to GitHub Security
 4. Annotate PR with drift warnings (if any)
-5. Fail the build if `fail-on-drift: true` and drift is detected
+5. Fail the build if `fail-on: drift` and drift is detected
 
 ## Exit Codes
 
@@ -200,9 +212,7 @@ The action automatically caches Docker images between runs to significantly impr
   uses: ./.github/actions/specular
   with:
     command: build
-    enable-cache: 'true'
-    cache-dir: '.specular/cache'
-    cache-max-age: '336h'  # 14 days
+    additional-args: '--enable-cache --cache-dir .specular/cache --cache-max-age 336h'
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -215,7 +225,7 @@ To disable caching (not recommended for CI):
   uses: ./.github/actions/specular
   with:
     command: build
-    enable-cache: 'false'
+    additional-args: '--enable-cache=false'
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -260,7 +270,7 @@ Check:
 ### Slow Build Times
 
 Enable Docker caching:
-1. Verify `enable-cache: 'true'` in action inputs
+1. Verify `additional-args: '--enable-cache'` in action inputs
 2. Check GitHub Actions cache is available (not disabled)
 3. Ensure cache size is under repository limit (10GB)
 4. Review cache hit rate in workflow logs
@@ -284,6 +294,8 @@ Enable Docker caching:
   uses: ./.github/actions/specular
   with:
     command: eval
+    scenario: integration
+    policy-file: .specular/policy.yaml
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
     openai-api-key: ${{ secrets.OPENAI_API_KEY }}
     gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
@@ -295,8 +307,11 @@ Enable Docker caching:
 - name: Detect Drift (Warning Only)
   uses: ./.github/actions/specular
   with:
-    command: eval
-    fail-on-drift: 'false'
+    command: drift
+    spec-file: .specular/spec.yaml
+    lock-file: .specular/spec.lock.json
+    plan-file: plan.json
+    fail-on: ''
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 

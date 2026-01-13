@@ -1,0 +1,84 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+const Version = "{{.Version}}"
+
+// PluginRequest represents incoming plugin requests
+type PluginRequest struct {
+	Action string                 `json:"action"`
+	Data   map[string]interface{} `json:"data,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
+}
+
+// PluginResponse represents plugin responses
+type PluginResponse struct {
+	Success bool        `json:"success"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
+// HealthResult for health check responses
+type HealthResult struct {
+	Status  string `json:"status"`
+	Version string `json:"version"`
+}
+
+// ProviderResult for provider execute responses
+type ProviderResult struct {
+	Response string                 `json:"response"`
+	Model    string                 `json:"model,omitempty"`
+	Usage    map[string]interface{} `json:"usage,omitempty"`
+}
+
+func main() {
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		var req PluginRequest
+		if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("invalid JSON: %v", err)})
+			continue
+		}
+
+		switch req.Action {
+		case "health":
+			respond(PluginResponse{
+				Success: true,
+				Result: HealthResult{
+					Status:  "healthy",
+					Version: Version,
+				},
+			})
+		case "execute":
+			result, err := execute(req)
+			if err != nil {
+				respond(PluginResponse{Success: false, Error: err.Error()})
+			} else {
+				respond(PluginResponse{Success: true, Result: result})
+			}
+		default:
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("unknown action: %s", req.Action)})
+		}
+	}
+}
+
+func execute(req PluginRequest) (*ProviderResult, error) {
+	prompt, _ := req.Data["prompt"].(string)
+
+	// TODO: Implement your provider logic here
+	// Example: response, err := callMyAPI(prompt, req.Config)
+
+	return &ProviderResult{
+		Response: fmt.Sprintf("Echo: %s", prompt),
+		Model:    "{{.Name}}-model",
+	}, nil
+}
+
+func respond(resp PluginResponse) {
+	json.NewEncoder(os.Stdout).Encode(resp)
+}

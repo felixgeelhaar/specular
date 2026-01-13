@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""{{.Name}} - A Specular provider plugin."""
+
+import json
+import sys
+from typing import Any, Dict, Optional
+
+VERSION = "{{.Version}}"
+
+
+def health_check() -> Dict[str, str]:
+    """Return health status."""
+    return {"status": "healthy", "version": VERSION}
+
+
+def execute(data: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute the provider logic.
+
+    Args:
+        data: Request data containing 'prompt' and other fields
+        config: Plugin configuration from manifest
+
+    Returns:
+        Provider result with 'response', 'model', and optional 'usage'
+    """
+    prompt = data.get("prompt", "")
+
+    # TODO: Implement your provider logic here
+    # Example: response = call_my_api(prompt, config)
+
+    return {
+        "response": f"Echo: {prompt}",
+        "model": "{{.Name}}-model",
+    }
+
+
+def main() -> None:
+    """Main entry point - reads JSON from stdin, writes JSON to stdout."""
+    for line in sys.stdin:
+        try:
+            request = json.loads(line.strip())
+            action = request.get("action", "execute")
+
+            if action == "health":
+                result = health_check()
+            elif action == "execute":
+                result = execute(
+                    request.get("data", {}),
+                    request.get("config", {})
+                )
+            else:
+                print(json.dumps({"success": False, "error": f"Unknown action: {action}"}))
+                continue
+
+            print(json.dumps({"success": True, "result": result}))
+
+        except json.JSONDecodeError as e:
+            print(json.dumps({"success": False, "error": f"Invalid JSON: {e}"}))
+        except Exception as e:
+            print(json.dumps({"success": False, "error": str(e)}))
+
+        sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    main()

@@ -287,7 +287,7 @@ func mapSeverity(severity string) string {
 ```yaml
 # .github/workflows/specular.yml
 - name: Detect Drift
-  run: specular eval --fail-on-drift --report drift.sarif
+  run: specular eval drift --fail-on-drift --report drift.sarif
 
 - name: Upload SARIF
   uses: github/codeql-action/upload-sarif@v2
@@ -343,8 +343,8 @@ jobs:
     steps:
       - uses: felixgeelhaar/specular-action@v1
         with:
-          command: eval
-          fail-on-drift: true
+          command: drift
+          fail-on: drift
 ```
 
 **Frequency**: Every commit

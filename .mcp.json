@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "relicta": {
+      "command": "relicta",
+      "args": ["mcp", "serve"],
+      "cwd": "/Users/felixgeelhaar/Developer/projects/specular/cli"
+    }
+  }
+}

@@ -111,11 +111,11 @@ func ExecuteInDocker(task Task, policy *Policy) (*Result, error) {
 ### Local Execution (Opt-In with Warnings)
 ```bash
 # Local execution is DISABLED by default
-specular build --plan plan.json
-# Error: Local execution is disabled. Enable with --allow-local
+specular build run --plan plan.json
+# Error: Local execution is disabled. Update policy to allow non-Docker execution.
 
-# Must explicitly enable with warning
-specular build --plan plan.json --allow-local
+# Explicitly allow in policy, then rerun
+specular build run --plan plan.json
 # WARNING: Executing generated code locally without Docker isolation!
 # WARNING: This could delete files, exfiltrate data, or damage your system!
 # Are you sure? (yes/no):

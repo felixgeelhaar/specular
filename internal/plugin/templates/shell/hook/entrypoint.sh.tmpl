@@ -1,0 +1,28 @@
+#!/bin/bash
+# {{.Name}} - A Specular hook plugin
+# Type: hook
+
+set -e
+
+VERSION="{{.Version}}"
+
+INPUT=$(cat)
+ACTION=$(echo "$INPUT" | jq -r '.action // "execute"')
+
+case "$ACTION" in
+  "health")
+    echo "{\"success\": true, \"result\": {\"status\": \"healthy\", \"version\": \"$VERSION\"}}"
+    ;;
+  "pre"|"post"|"execute")
+    EVENT=$(echo "$INPUT" | jq -r '.data.event // ""')
+
+    # TODO: Implement your hook logic here
+    # Example: handle_event "$EVENT" "$INPUT"
+
+    echo "{\"success\": true, \"result\": {\"executed\": true, \"data\": {}}}"
+    ;;
+  *)
+    echo "{\"success\": false, \"error\": \"Unknown action: $ACTION\"}"
+    exit 1
+    ;;
+esac

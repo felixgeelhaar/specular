@@ -11,13 +11,18 @@ inputs:
     default: 'latest'
 
   command:
-    description: 'Specular command to run (spec, plan, build, eval, doctor)'
+    description: 'Specular command to run (spec, plan, build, eval, drift, doctor)'
     required: true
 
   spec-file:
     description: 'Path to spec.yaml file'
     required: false
     default: '.specular/spec.yaml'
+
+  prd-file:
+    description: 'Path to PRD markdown file (optional, used to generate spec)'
+    required: false
+    default: ''
 
   lock-file:
     description: 'Path to spec.lock.json file'
@@ -34,13 +39,23 @@ inputs:
     required: false
     default: '.specular/policy.yaml'
 
-  router-file:
-    description: 'Path to router.yaml file'
+  scenario:
+    description: 'Eval scenario (smoke, integration, security, performance)'
     required: false
-    default: '.specular/router.yaml'
+    default: 'smoke'
 
-  fail-on-drift:
-    description: 'Fail the build if drift is detected'
+  fail-on:
+    description: 'Fail conditions for drift command'
+    required: false
+    default: 'drift,test,security'
+
+  sarif-output:
+    description: 'Path to SARIF output file'
+    required: false
+    default: 'specular-results.sarif'
+
+  upload-sarif:
+    description: 'Upload SARIF to code scanning'
     required: false
     default: 'true'
 
@@ -61,33 +76,18 @@ inputs:
     required: false
     default: ''
 
-  enable-cache:
-    description: 'Enable Docker image caching'
-    required: false
-    default: 'true'
-
-  cache-dir:
-    description: 'Directory for Docker image cache'
-    required: false
-    default: '.specular/cache'
-
-  cache-max-age:
-    description: 'Maximum cache age (e.g., 168h for 7 days)'
-    required: false
-    default: '168h'
-
 outputs:
   result:
     description: 'Command execution result (success/failure)'
     value: ${{ steps.run-specular.outputs.result }}
 
-  exit-code:
-    description: 'Exit code from specular command'
-    value: ${{ steps.run-specular.outputs.exit-code }}
+  drift-count:
+    description: 'Number of drift violations detected'
+    value: ${{ steps.check-drift.outputs.drift-count }}
 
-  drift-detected:
-    description: 'Whether drift was detected (true/false)'
-    value: ${{ steps.check-drift.outputs.drift-detected }}
+  sarif-file:
+    description: 'Path to generated SARIF file'
+    value: ${{ steps.check-drift.outputs.sarif-file }}
 
 runs:
   using: 'composite'
@@ -147,22 +147,7 @@ runs:
         # Disable telemetry in CI
         echo "SPECULAR_NO_TELEMETRY=true" >> $GITHUB_ENV
 
-        # Create cache directory if caching is enabled
-        if [ "${{ inputs.enable-cache }}" = "true" ]; then
-          mkdir -p "${{ inputs.cache-dir }}"
-        fi
-
         echo "::endgroup::"
-
-    - name: Restore Docker cache
-      id: restore-cache
-      if: inputs.enable-cache == 'true' && inputs.command == 'build'
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ inputs.cache-dir }}
-        key: specular-docker-${{ runner.os }}-${{ hashFiles('**/*.yaml', '**/*.json') }}
-        restore-keys: |
-          specular-docker-${{ runner.os }}-
 
     - name: Run Specular diagnostics
       id: doctor
@@ -182,48 +167,78 @@ runs:
 
         case "${{ inputs.command }}" in
           spec)
-            specular spec lock \
+            if [ -n "${{ inputs.prd-file }}" ]; then
+              specular spec new \
+                --from "${{ inputs.prd-file }}" \
+                --out "${{ inputs.spec-file }}" \
+                ${{ inputs.additional-args }}
+              EXIT_CODE=$?
+            else
+              EXIT_CODE=0
+            fi
+
+            if [ $EXIT_CODE -ne 0 ]; then
+              break
+            fi
+
+            specular spec validate \
               --in "${{ inputs.spec-file }}" \
-              --out "${{ inputs.lock-file }}" \
               ${{ inputs.additional-args }}
             EXIT_CODE=$?
+
+            if [ $EXIT_CODE -eq 0 ]; then
+              specular spec lock \
+                --in "${{ inputs.spec-file }}" \
+                --out "${{ inputs.lock-file }}" \
+                ${{ inputs.additional-args }}
+              EXIT_CODE=$?
+            fi
             ;;
 
           plan)
-            specular plan \
-              --spec "${{ inputs.lock-file }}" \
+            specular plan create \
+              --in "${{ inputs.spec-file }}" \
+              --lock "${{ inputs.lock-file }}" \
               --out "${{ inputs.plan-file }}" \
-              --router "${{ inputs.router-file }}" \
               ${{ inputs.additional-args }}
             EXIT_CODE=$?
             ;;
 
           build)
-            CACHE_ARGS=""
-            if [ "${{ inputs.enable-cache }}" = "true" ]; then
-              CACHE_ARGS="--enable-cache --cache-dir ${{ inputs.cache-dir }} --cache-max-age ${{ inputs.cache-max-age }}"
-            else
-              CACHE_ARGS="--enable-cache=false"
-            fi
-
-            specular build \
+            specular build run \
               --plan "${{ inputs.plan-file }}" \
               --policy "${{ inputs.policy-file }}" \
-              $CACHE_ARGS \
               ${{ inputs.additional-args }}
             EXIT_CODE=$?
             ;;
 
           eval)
-            specular eval \
-              --spec "${{ inputs.lock-file }}" \
+            specular eval run \
+              --scenario "${{ inputs.scenario }}" \
               --policy "${{ inputs.policy-file }}" \
               ${{ inputs.additional-args }}
             EXIT_CODE=$?
             ;;
 
+          drift)
+            FAIL_ON_DRIFT=""
+            if [[ "${{ inputs.fail-on }}" == *drift* ]]; then
+              FAIL_ON_DRIFT="--fail-on-drift"
+            fi
+
+            specular eval drift \
+              --spec "${{ inputs.spec-file }}" \
+              --plan "${{ inputs.plan-file }}" \
+              --lock "${{ inputs.lock-file }}" \
+              --policy "${{ inputs.policy-file }}" \
+              --report "${{ inputs.sarif-output }}" \
+              $FAIL_ON_DRIFT \
+              ${{ inputs.additional-args }}
+            EXIT_CODE=$?
+            ;;
+
           doctor)
-            specular doctor --format json ${{ inputs.additional-args }}
+            specular doctor ${{ inputs.additional-args }}
             EXIT_CODE=$?
             ;;
 
@@ -247,50 +262,39 @@ runs:
 
     - name: Check for drift
       id: check-drift
-      if: always() && inputs.command == 'eval'
+      if: always() && inputs.command == 'drift'
       shell: bash
       run: |
         echo "::group::Checking for drift"
 
-        # Check if SARIF report exists
-        if [ -f ".specular/drift.sarif" ]; then
-          # Parse SARIF to check for drift
-          DRIFT_COUNT=$(jq '.runs[0].results | length' .specular/drift.sarif)
+        REPORT_FILE="${{ inputs.sarif-output }}"
+
+        if [ -f "$REPORT_FILE" ]; then
+          DRIFT_COUNT=$(jq '.runs[0].results | length' "$REPORT_FILE" 2>/dev/null || echo "0")
+          echo "drift-count=$DRIFT_COUNT" >> $GITHUB_OUTPUT
+          echo "sarif-file=$REPORT_FILE" >> $GITHUB_OUTPUT
 
           if [ "$DRIFT_COUNT" -gt 0 ]; then
-            echo "drift-detected=true" >> $GITHUB_OUTPUT
             echo "::warning::Drift detected: $DRIFT_COUNT issue(s) found"
-
-            # Output drift summary
-            jq -r '.runs[0].results[] | "::warning file=\(.locations[0].physicalLocation.artifactLocation.uri),line=\(.locations[0].physicalLocation.region.startLine)::\(.message.text)"' .specular/drift.sarif || true
-          else
-            echo "drift-detected=false" >> $GITHUB_OUTPUT
+            jq -r '.runs[0].results[] | "::warning file=\(.locations[0].physicalLocation.artifactLocation.uri),line=\(.locations[0].physicalLocation.region.startLine)::\(.message.text)"' "$REPORT_FILE" || true
           fi
         else
-          echo "drift-detected=false" >> $GITHUB_OUTPUT
+          echo "drift-count=0" >> $GITHUB_OUTPUT
         fi
 
         echo "::endgroup::"
 
     - name: Upload SARIF report
-      if: always() && inputs.command == 'eval'
+      if: always() && inputs.command == 'drift' && inputs.upload-sarif == 'true'
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: .specular/drift.sarif
+        sarif_file: ${{ inputs.sarif-output }}
         category: specular-drift
       continue-on-error: true
 
     - name: Fail on drift
-      if: steps.check-drift.outputs.drift-detected == 'true' && inputs.fail-on-drift == 'true'
+      if: steps.check-drift.outputs.drift-count != '0' && contains(inputs.fail-on, 'drift')
       shell: bash
       run: |
-        echo "::error::Drift detected and fail-on-drift is enabled"
+        echo "::error::Drift detected and fail-on includes drift"
         exit 4
-
-    - name: Save Docker cache
-      id: save-cache
-      if: always() && inputs.enable-cache == 'true' && inputs.command == 'build'
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ inputs.cache-dir }}
-        key: specular-docker-${{ runner.os }}-${{ hashFiles('**/*.yaml', '**/*.json') }}

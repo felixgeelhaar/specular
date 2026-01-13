@@ -126,7 +126,7 @@ Users must be able to mark tasks as complete.
 Convert the PRD into a technical specification:
 
 ```bash
-specular spec generate --in PRD.md --out .specular/spec.yaml
+specular spec new --from PRD.md --out .specular/spec.yaml
 ```
 
 This creates a structured YAML specification with:
@@ -140,7 +140,17 @@ View the generated spec:
 cat .specular/spec.yaml
 ```
 
-### 4. Create Policy File
+### 4. Lock the Spec
+
+Lock the specification so drift detection and planning can use stable hashes:
+
+```bash
+specular spec lock
+```
+
+This creates `.specular/spec.lock.json`.
+
+### 5. Create Policy File
 
 Define organizational guardrails at `.specular/policy.yaml`:
 
@@ -172,15 +182,15 @@ constraints:
   required_tests: true
 ```
 
-### 5. Generate Implementation Plan
+### 6. Generate Implementation Plan
 
 Create an executable plan from the spec:
 
 ```bash
-specular plan generate \
-  --spec .specular/spec.yaml \
-  --policy .specular/policy.yaml \
-  --out plan.json
+specular plan create \
+  --in .specular/spec.yaml \
+  --lock .specular/spec.lock.json \
+  --out .specular/plan.json
 ```
 
 Example plan output:
@@ -212,13 +222,13 @@ Example plan output:
 }
 ```
 
-### 6. Build with AI Assistance
+### 7. Build with AI Assistance
 
 Execute the plan with AI-powered implementation:
 
 ```bash
-specular build \
-  --plan plan.json \
+specular build run \
+  --plan .specular/plan.json \
   --policy .specular/policy.yaml \
   --verbose
 ```
@@ -230,20 +240,20 @@ Specular will:
 4. 📊 Validate against policy constraints
 5. ✅ Run tests and verify acceptance criteria
 
-### 7. Checkpoint and Resume (Long-Running Operations)
+### 8. Checkpoint and Resume (Long-Running Operations)
 
 For large projects with many tasks, builds and evaluations can be interrupted. Specular supports checkpoint/resume to continue from where you left off:
 
 ```bash
 # Start a build with automatic checkpointing
-specular build \
-  --plan plan.json \
+specular build run \
+  --plan .specular/plan.json \
   --policy .specular/policy.yaml \
   --checkpoint-dir .specular/checkpoints
 
 # If interrupted, resume from the checkpoint
-specular build \
-  --plan plan.json \
+specular build run \
+  --plan .specular/plan.json \
   --policy .specular/policy.yaml \
   --resume
 ```
@@ -266,19 +276,19 @@ specular build \
 
 ```bash
 # Specify custom checkpoint ID
-specular build \
-  --plan plan.json \
+specular build run \
+  --plan .specular/plan.json \
   --checkpoint-id my-custom-checkpoint \
   --resume
 
 # Keep checkpoint after completion (for inspection)
-specular build \
-  --plan plan.json \
+specular build run \
+  --plan .specular/plan.json \
   --keep-checkpoint
 
 # Use custom checkpoint directory
-specular build \
-  --plan plan.json \
+specular build run \
+  --plan .specular/plan.json \
   --checkpoint-dir /path/to/checkpoints
 ```
 
@@ -322,15 +332,15 @@ Example checkpoint content:
 }
 ```
 
-### 8. Verify Implementation
+### 9. Verify Implementation
 
 Check that requirements are met:
 
 ```bash
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
-  --plan plan.json \
-  --results .specular/results.json
+  --plan .specular/plan.json \
+  --report .specular/drift.sarif
 ```
 
 This validates:
@@ -343,9 +353,9 @@ The eval command also supports checkpoint/resume for long-running evaluations:
 
 ```bash
 # Run evaluation with checkpointing
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
-  --plan plan.json \
+  --plan .specular/plan.json \
   --resume
 
 # Evaluation checkpoints track each phase
@@ -364,6 +374,7 @@ specular eval \
   - Generated from PRD
   - Requirements and acceptance criteria
   - Static, version-controlled
+  - See [Spec Schema Reference](./spec-schema.md) for complete format
 
 - **Plan** (`plan.json`): HOW to build
   - Generated from spec
@@ -414,10 +425,10 @@ providers:
 Specular tracks drift between spec and implementation:
 
 ```bash
-specular drift detect \
+specular eval drift \
   --spec .specular/spec.yaml \
-  --codebase ./src \
-  --out drift-report.json
+  --plan .specular/plan.json \
+  --report drift-report.sarif
 ```
 
 Drift types:
@@ -434,20 +445,20 @@ Drift types:
 echo "### R4: Task Priority" >> PRD.md
 
 # 2. Regenerate spec
-specular spec generate --in PRD.md --out .specular/spec.yaml --incremental
+specular spec new --from PRD.md --out .specular/spec.yaml
 
-# 3. Generate plan for new requirement only
-specular plan generate \
-  --spec .specular/spec.yaml \
-  --policy .specular/policy.yaml \
-  --filter "priority=P0" \
+# 3. Generate plan for the new feature only (use the feature ID from the spec)
+specular plan create \
+  --in .specular/spec.yaml \
+  --lock .specular/spec.lock.json \
+  --feature feat-004 \
   --out plan-feature.json
 
 # 4. Implement
-specular build --plan plan-feature.json --policy .specular/policy.yaml
+specular build run --plan plan-feature.json --policy .specular/policy.yaml
 
 # 5. Verify
-specular eval --spec .specular/spec.yaml --plan plan-feature.json
+specular eval drift --spec .specular/spec.yaml --plan plan-feature.json
 ```
 
 ### Workflow 2: Refactoring
@@ -462,18 +473,19 @@ cat >> .specular/policy.yaml << EOF
 EOF
 
 # 2. Detect violations
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
   --plan plan.json \
   --policy .specular/policy.yaml
 
-# 3. Generate refactoring plan
-specular plan refactor \
-  --violations violations.json \
+# 3. Update the spec with refactor work and generate a new plan
+specular plan create \
+  --in .specular/spec.yaml \
+  --lock .specular/spec.lock.json \
   --out refactor-plan.json
 
 # 4. Execute refactoring
-specular build --plan refactor-plan.json --policy .specular/policy.yaml
+specular build run --plan refactor-plan.json --policy .specular/policy.yaml
 ```
 
 ### Workflow 3: Resuming Interrupted Builds
@@ -482,7 +494,7 @@ When a long-running build is interrupted (network failure, system crash, etc.), 
 
 ```bash
 # Start a build (automatically checkpointed)
-specular build \
+specular build run \
   --plan large-plan.json \
   --policy .specular/policy.yaml
 
@@ -490,7 +502,7 @@ specular build \
 # Press Ctrl+C or system crashes
 
 # Resume from where you left off
-specular build \
+specular build run \
   --plan large-plan.json \
   --policy .specular/policy.yaml \
   --resume
@@ -508,7 +520,7 @@ specular build \
 # ⟲ Task52 (starting)
 
 # After successful completion, inspect checkpoint before cleanup
-specular build \
+specular build run \
   --plan large-plan.json \
   --keep-checkpoint
 
@@ -523,9 +535,9 @@ rm .specular/checkpoints/build-large-plan.json-*.json
 
 ```bash
 # In CI/CD pipeline
-specular drift detect --spec .specular/spec.yaml --codebase ./src
-specular eval --spec .specular/spec.yaml --plan plan.json
-specular policy check --policy .specular/policy.yaml --codebase ./src
+specular eval drift --spec .specular/spec.yaml --plan .specular/plan.json
+specular eval run --scenario integration
+specular policy validate --strict
 ```
 
 ## CI/CD Integration with GitHub Actions
@@ -592,12 +604,13 @@ jobs:
       - name: Run Drift Detection
         uses: ./
         with:
-          command: 'eval'
+          command: 'drift'
           spec-file: '.specular/spec.yaml'
+          lock-file: '.specular/spec.lock.json'
           plan-file: 'plan.json'
           policy-file: '.specular/policy.yaml'
-          report-file: 'drift-report.sarif'
-          fail-on-drift: 'true'
+          sarif-output: 'drift-report.sarif'
+          fail-on: 'drift'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Comment PR with Results
@@ -694,7 +707,7 @@ jobs:
           prd-file: 'PRD.md'
           spec-file: '.specular/spec.yaml'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          verbose: 'true'
+          additional-args: '--verbose'
 
       - name: Upload Spec Artifact
         uses: actions/upload-artifact@v4
@@ -757,9 +770,8 @@ jobs:
           command: 'build'
           plan-file: 'build-plan.json'
           policy-file: '.specular/policy.yaml'
-          checkpoint-resume: 'true'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          verbose: 'true'
+          additional-args: '--resume --verbose'
 
       - name: Upload Build Artifacts
         if: success()
@@ -794,12 +806,13 @@ jobs:
       - name: Run Drift Detection
         uses: ./
         with:
-          command: 'eval'
+          command: 'drift'
           spec-file: '.specular/spec.yaml'
+          lock-file: '.specular/spec.lock.json'
           plan-file: 'build-plan.json'
           policy-file: '.specular/policy.yaml'
-          report-file: 'validation-report.sarif'
-          fail-on-drift: 'true'
+          sarif-output: 'validation-report.sarif'
+          fail-on: 'drift'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Upload SARIF Report
@@ -822,20 +835,21 @@ jobs:
 
 | Input | Description | Default | Required |
 |-------|-------------|---------|----------|
-| `command` | Specular command to run | - | ✅ |
-| `prd-file` | Path to PRD (for spec command) | `PRD.md` | ❌ |
+| `version` | Specular version to install | `latest` | ❌ |
+| `command` | Specular command to run (`spec`, `plan`, `build`, `eval`, `drift`) | - | ✅ |
+| `prd-file` | Path to PRD markdown (used when `command: spec`) | - | ❌ |
 | `spec-file` | Path to spec file | `.specular/spec.yaml` | ❌ |
+| `lock-file` | Path to spec lock file | `.specular/spec.lock.json` | ❌ |
 | `plan-file` | Path to plan file | `plan.json` | ❌ |
 | `policy-file` | Path to policy file | `.specular/policy.yaml` | ❌ |
-| `fail-on-drift` | Fail if drift detected | `true` | ❌ |
-| `report-file` | SARIF report output path | `drift.sarif` | ❌ |
+| `scenario` | Evaluation scenario (`smoke`, `integration`, `security`, `performance`) | `smoke` | ❌ |
+| `fail-on` | Fail conditions for drift command | `drift,test,security` | ❌ |
+| `sarif-output` | SARIF report output path | `specular-results.sarif` | ❌ |
+| `upload-sarif` | Upload SARIF to code scanning | `true` | ❌ |
 | `anthropic-api-key` | Anthropic API key | - | ❌ |
 | `openai-api-key` | OpenAI API key | - | ❌ |
-| `gemini-api-key` | Google Gemini API key | - | ❌ |
-| `project-root` | Project root directory | `.` | ❌ |
-| `checkpoint-resume` | Resume from checkpoint | `false` | ❌ |
-| `dry-run` | Show what would be executed | `false` | ❌ |
-| `verbose` | Enable verbose output | `false` | ❌ |
+| `google-api-key` | Google API key | - | ❌ |
+| `additional-args` | Additional CLI args | - | ❌ |
 
 ### Available Commands
 
@@ -845,8 +859,8 @@ jobs:
 - uses: ./
   with:
     command: 'spec'
-    prd-file: 'PRD.md'
     spec-file: '.specular/spec.yaml'
+    lock-file: '.specular/spec.lock.json'
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -859,7 +873,7 @@ jobs:
   with:
     command: 'plan'
     spec-file: '.specular/spec.yaml'
-    policy-file: '.specular/policy.yaml'
+    lock-file: '.specular/spec.lock.json'
     plan-file: 'build-plan.json'
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -874,7 +888,7 @@ jobs:
     command: 'build'
     plan-file: 'build-plan.json'
     policy-file: '.specular/policy.yaml'
-    checkpoint-resume: 'true'
+    additional-args: '--resume'
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -886,11 +900,8 @@ jobs:
 - uses: ./
   with:
     command: 'eval'
-    spec-file: '.specular/spec.yaml'
-    plan-file: 'build-plan.json'
+    scenario: 'integration'
     policy-file: '.specular/policy.yaml'
-    report-file: 'drift-report.sarif'
-    fail-on-drift: 'true'
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -903,9 +914,10 @@ jobs:
   with:
     command: 'drift'
     spec-file: '.specular/spec.yaml'
+    lock-file: '.specular/spec.lock.json'
     plan-file: 'build-plan.json'
-    report-file: 'drift-report.sarif'
-    fail-on-drift: 'true'
+    sarif-output: 'drift-report.sarif'
+    fail-on: 'drift'
 ```
 
 **Use when:** You only need drift detection without full evaluation.
@@ -971,8 +983,8 @@ For builds with many tasks, enable checkpoint/resume to handle interruptions:
   with:
     command: 'build'
     plan-file: 'build-plan.json'
-    checkpoint-resume: 'true'
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    additional-args: '--resume'
 ```
 
 This allows builds to resume from the last successful checkpoint if GitHub Actions times out or encounters failures.
@@ -987,9 +999,8 @@ Docker image caching dramatically speeds up CI/CD runs by caching pulled images 
   with:
     command: 'build'
     plan-file: 'build-plan.json'
-    enable-cache: 'true'  # Default: true
-    cache-dir: '.specular/cache'  # Default cache location
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    additional-args: '--enable-cache --cache-dir .specular/cache'
 ```
 
 **How it works:**
@@ -1022,7 +1033,7 @@ Total: 5 seconds
 - uses: ./
   with:
     command: 'build'
-    enable-cache: 'false'  # Disable caching
+    additional-args: '--enable-cache=false'  # Disable caching
 ```
 
 **Pre-warm cache:**
@@ -1036,7 +1047,7 @@ For faster first runs, pre-warm the Docker cache:
 - uses: ./
   with:
     command: 'build'
-    enable-cache: 'true'
+    additional-args: '--enable-cache'
 ```
 
 #### 3. Cache Specular Binary
@@ -1055,7 +1066,7 @@ Speed up workflow runs by caching the Specular binary:
 
 #### 4. Run Drift Detection on Every PR
 
-Catch specification drift early by running `eval` on all pull requests:
+Catch specification drift early by running drift checks on all pull requests:
 
 ```yaml
 on:
@@ -1069,8 +1080,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./
         with:
-          command: 'eval'
-          fail-on-drift: 'true'
+          command: 'drift'
+          spec-file: '.specular/spec.yaml'
+          lock-file: '.specular/spec.lock.json'
+          plan-file: 'plan.json'
+          fail-on: 'drift'
 ```
 
 #### 5. Use Artifacts for Multi-Job Workflows
@@ -1102,7 +1116,7 @@ Configure strict policy enforcement to maintain code quality:
   with:
     command: 'build'
     policy-file: '.specular/policy.yaml'
-    fail-on-drift: 'true'  # Fail immediately on violations
+    additional-args: '--fail-on drift,lint,test,security'
 ```
 
 #### 7. Separate Workflows for Different Triggers
@@ -1130,10 +1144,9 @@ jobs:
       - uses: ./
         with:
           command: 'eval'
-          spec-file: '.specular/spec.yaml'
-          plan-file: 'plan.json'
           policy-file: '.specular/policy.yaml'
-          verbose: 'true'
+          scenario: 'integration'
+          additional-args: '--verbose'
 ```
 
 #### 8. Protect Sensitive Data
@@ -1167,7 +1180,7 @@ If you hit AI provider rate limits, use checkpoint/resume:
 - uses: ./
   with:
     command: 'build'
-    checkpoint-resume: 'true'  # Resume after rate limit resets
+    additional-args: '--resume'  # Resume after rate limit resets
 ```
 
 #### Workflow Times Out
@@ -1225,9 +1238,11 @@ jobs:
       - name: Validate Against Spec
         uses: ./
         with:
-          command: 'eval'
+          command: 'drift'
           spec-file: '.specular/spec.yaml'
-          fail-on-drift: 'true'
+          lock-file: '.specular/spec.lock.json'
+          plan-file: 'plan.json'
+          fail-on: 'drift'
 ```
 
 #### Example: Integration with Deployment Pipeline
@@ -1241,8 +1256,11 @@ jobs:
       - name: Pre-deployment Validation
         uses: ./
         with:
-          command: 'eval'
-          fail-on-drift: 'true'
+          command: 'drift'
+          spec-file: '.specular/spec.yaml'
+          lock-file: '.specular/spec.lock.json'
+          plan-file: 'plan.json'
+          fail-on: 'drift'
 
       # Deploy only if validation passes
       - name: Deploy to Production
@@ -1265,10 +1283,10 @@ Start with P0 requirements, then expand:
 
 ```bash
 # Iteration 1: Critical features only
-specular plan generate --filter "priority=P0" --out plan-mvp.json
+specular plan create --feature feat-001 --out plan-mvp.json
 
 # Iteration 2: Add P1 features
-specular plan generate --filter "priority in [P0,P1]" --out plan-v1.json
+specular plan create --feature feat-002 --out plan-v1.json
 ```
 
 ### 3. Test-First Approach
@@ -1290,7 +1308,7 @@ Add to your git hooks:
 ```bash
 # .git/hooks/pre-commit
 #!/bin/bash
-specular drift detect --spec .specular/spec.yaml --codebase ./src --threshold 0.1
+specular eval drift --spec .specular/spec.yaml --plan .specular/plan.json --report drift.sarif
 ```
 
 ### 5. Document Decisions
@@ -1337,32 +1355,25 @@ docker run hello-world
 
 ```bash
 # View detailed policy violations
-specular policy check \
-  --policy .specular/policy.yaml \
-  --codebase ./src \
-  --verbose
+specular policy validate --strict
 
-# Generate fix suggestions
-specular policy fix \
-  --violations violations.json \
-  --out fixes.json
+# Review drift report for policy-related findings
+specular eval drift --report drift-detail.sarif
 ```
 
 ### Spec-Code Drift
 
 ```bash
 # Detailed drift analysis
-specular drift detect \
+specular eval drift \
   --spec .specular/spec.yaml \
-  --codebase ./src \
-  --verbose \
-  --out drift-detail.json
+  --plan .specular/plan.json \
+  --report drift-detail.sarif
 
-# Sync spec to match code
-specular spec sync --codebase ./src --spec .specular/spec.yaml
+# Update the spec or code to resolve drift, then re-lock and re-plan
+specular spec lock
 
-# Or sync code to match spec
-specular build --plan plan.json --sync-mode strict
+specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json
 ```
 
 ### Checkpoint Issues
@@ -1388,7 +1399,7 @@ mkdir -p .specular/checkpoints
 rm .specular/checkpoints/build-plan.json-*.json
 
 # Start new execution
-specular build --plan plan.json --policy .specular/policy.yaml
+specular build run --plan plan.json --policy .specular/policy.yaml
 ```
 
 #### Multiple Checkpoints
@@ -1398,7 +1409,7 @@ specular build --plan plan.json --policy .specular/policy.yaml
 ls -la .specular/checkpoints/
 
 # Resume from specific checkpoint by ID
-specular build \
+specular build run \
   --plan plan.json \
   --checkpoint-id build-plan.json-1234567890 \
   --resume
@@ -1423,7 +1434,7 @@ cat .specular/checkpoints/build-plan.json-*.json | jq '.tasks[] | select(.status
 # }
 
 # Resume with increased timeout or adjusted policy
-specular build \
+specular build run \
   --plan plan.json \
   --policy .specular/policy.yaml \
   --resume

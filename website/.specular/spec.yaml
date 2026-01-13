@@ -1,0 +1,38 @@
+# Specular Product Specification - API Service
+# Project: website
+# Template: api-service
+# Date: 2026-01-09
+
+project:
+  name: "website"
+  version: "0.1.0"
+  description: "API service specification"
+  type: "api-service"
+
+features:
+  - id: api-endpoints
+    name: "REST API Endpoints"
+    description: "Core RESTful API endpoints"
+    priority: P0
+    acceptance_criteria:
+      - "OpenAPI specification complete"
+      - "All endpoints functional"
+      - "Input validation working"
+
+  - id: authentication
+    name: "API Authentication"
+    description: "JWT-based authentication"
+    priority: P0
+    acceptance_criteria:
+      - "JWT tokens generated"
+      - "Protected endpoints secured"
+      - "Refresh tokens working"
+
+  - id: database
+    name: "Database Layer"
+    description: "Database schema and migrations"
+    priority: P0
+    acceptance_criteria:
+      - "Schema migrations working"
+      - "CRUD operations complete"
+      - "Indexes optimized"

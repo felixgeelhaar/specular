@@ -118,8 +118,8 @@ func TestContext_GetRecommendedProviders(t *testing.T) {
 			name: "ollama available prioritized",
 			ctx: &Context{
 				Providers: map[string]ProviderInfo{
-					"ollama": {Available: true},
-					"openai": {Available: true, EnvSet: true},
+					"ollama": {Available: true, Type: "local"},
+					"openai": {Available: true, EnvSet: true, Type: "api"},
 				},
 			},
 			wantCount: 2,
@@ -129,9 +129,9 @@ func TestContext_GetRecommendedProviders(t *testing.T) {
 			name: "only API providers with keys",
 			ctx: &Context{
 				Providers: map[string]ProviderInfo{
-					"openai":    {Available: true, EnvSet: true},
-					"anthropic": {Available: true, EnvSet: true},
-					"gemini":    {Available: true, EnvSet: false},
+					"openai":    {Available: true, EnvSet: true, Type: "api"},
+					"anthropic": {Available: true, EnvSet: true, Type: "api"},
+					"gemini":    {Available: true, EnvSet: false, Type: "api"},
 				},
 			},
 			wantCount: 2,
@@ -148,8 +148,8 @@ func TestContext_GetRecommendedProviders(t *testing.T) {
 			name: "providers available but no API keys",
 			ctx: &Context{
 				Providers: map[string]ProviderInfo{
-					"openai": {Available: true, EnvSet: false},
-					"claude": {Available: true, EnvSet: false},
+					"openai": {Available: true, EnvSet: false, Type: "api"},
+					"claude": {Available: true, EnvSet: false, Type: "api"},
 				},
 			},
 			wantCount: 1,

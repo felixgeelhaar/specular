@@ -967,7 +967,8 @@ jobs:
         uses: ./.github/actions/specular
         with:
           command: eval
-          enable-cache: 'true'
+          scenario: integration
+          additional-args: '--enable-cache'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 

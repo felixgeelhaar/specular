@@ -376,7 +376,7 @@ docker run --rm \
   -v $(pwd):/workspace \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -w /workspace \
-  ghcr.io/felixgeelhaar/specular:latest build --plan plan.json
+  ghcr.io/felixgeelhaar/specular:latest build run --plan plan.json
 ```
 
 #### Create Shell Alias
@@ -387,7 +387,7 @@ alias specular='docker run --rm -v $(pwd):/workspace -v /var/run/docker.sock:/va
 
 # Usage
 specular version
-specular plan --spec .specular/spec.yaml
+specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json
 ```
 
 #### Docker Compose
@@ -412,7 +412,7 @@ services:
 Usage:
 ```bash
 docker-compose run --rm specular version
-docker-compose run --rm specular plan --spec .specular/spec.yaml
+docker-compose run --rm specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json
 ```
 
 ### Build from Source
@@ -970,11 +970,11 @@ If you encounter issues not covered here:
 4. **Enable Debug Logging**:
    ```bash
    # Run with verbose output
-   specular --verbose plan --spec .specular/spec.yaml
+   specular --verbose plan create --in .specular/spec.yaml --lock .specular/spec.lock.json
 
    # Or set environment variable
    export SPECULAR_LOG_LEVEL=debug
-   specular plan --spec .specular/spec.yaml
+   specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json
    ```
 
 ---
@@ -986,6 +986,6 @@ After installation:
 1. **Read the Getting Started Guide**: [docs/getting-started.md](./getting-started.md)
 2. **Configure AI Providers**: [docs/provider-guide.md](./provider-guide.md)
 3. **Explore Examples**: [examples/README.md](../examples/README.md)
-4. **Review Best Practices**: [docs/best-practices.md](./best-practices.md) (if available)
+4. **Review Production Guide**: [docs/PRODUCTION_GUIDE.md](./PRODUCTION_GUIDE.md)
 
 Happy building with Specular! 🚀

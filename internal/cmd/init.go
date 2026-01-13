@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/detect"
+	"github.com/felixgeelhaar/specular/internal/docgen"
+	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
@@ -121,8 +124,15 @@ func detectProjectContext() *detect.Context {
 		return &detect.Context{}
 	}
 
+	recordDetectionEvents(ctx)
 	printDetectionSummary(ctx)
 	return ctx
+}
+
+func recordDetectionEvents(ctx *detect.Context) {
+	for name, info := range ctx.Providers {
+		provider.RecordProviderDetected(name, info.EnvVar, info.Version, info.Available)
+	}
 }
 
 // buildInitConfig creates the initialization configuration
@@ -245,12 +255,7 @@ func printDetectionSummary(ctx *detect.Context) {
 	}
 
 	// AI Providers
-	providers := ctx.GetRecommendedProviders()
-	if len(providers) > 0 {
-		fmt.Printf("  ✓ AI Providers: %s\n", strings.Join(providers, ", "))
-	} else {
-		fmt.Println("  ○ No AI providers detected")
-	}
+	printProviderSummary(ctx)
 
 	// Languages/Frameworks
 	if len(ctx.Languages) > 0 {
@@ -271,6 +276,125 @@ func printDetectionSummary(ctx *detect.Context) {
 	}
 
 	fmt.Println()
+}
+
+func printProviderSummary(ctx *detect.Context) {
+	if ctx == nil {
+		fmt.Println("  ○ AI Providers: none detected")
+		return
+	}
+
+	aggregates := provider.AggregatesFromDetection(ctx)
+	if len(aggregates) == 0 {
+		fmt.Println("  ○ AI Providers: none detected")
+		return
+	}
+
+	sort.Slice(aggregates, func(i, j int) bool {
+		return aggregates[i].Descriptor.Name < aggregates[j].Descriptor.Name
+	})
+
+	fmt.Println("  AI Providers:")
+	available := false
+	for _, agg := range aggregates {
+		info := ctx.Providers[agg.Descriptor.Name]
+		display := providerDisplayName(agg.Descriptor.Name)
+		status := "○"
+		if info.Available {
+			status = "✓"
+			available = true
+		}
+		details := []string{
+			fmt.Sprintf("%s", strings.ToUpper(string(agg.Descriptor.Type))),
+		}
+		if info.Version != "" {
+			details = append(details, fmt.Sprintf("version %s", info.Version))
+		}
+		if info.EnvVar != "" {
+			details = append(details, fmt.Sprintf("env %s", info.EnvVar))
+		}
+
+		fmt.Printf("    %s %s (%s)\n", status, display, strings.Join(details, ", "))
+		if info.EnvVar != "" && !info.EnvSet {
+			fmt.Printf("       ⚠ Missing: %s\n", info.EnvVar)
+		}
+		if agg.Status.VisibleReason != "" {
+			fmt.Printf("       %s\n", agg.Status.VisibleReason)
+		}
+	}
+
+	if !available {
+		fmt.Println("    ○ No AI providers are available")
+	} else {
+		recommended := ctx.GetRecommendedProviders()
+		if len(recommended) > 0 {
+			fmt.Printf("    ⚡ Recommended: %s\n", strings.Join(recommended, ", "))
+			if insight := providerStrategyInsight(ctx); insight != "" {
+				fmt.Printf("       %s\n", insight)
+				fmt.Println("       (These recommendations become the enabled providers in .specular/providers.yaml once initialization finishes.)")
+			}
+		}
+	}
+}
+
+func providerDisplayName(name string) string {
+	switch name {
+	case "claude-code":
+		return "Claude Code CLI"
+	case "claude-cli":
+		return "Claude CLI"
+	case "gemini-cli":
+		return "Gemini CLI"
+	case "codex-cli":
+		return "Codex CLI"
+	case "gemini":
+		return "Google Gemini API"
+	case "anthropic":
+		return "Anthropic Claude API"
+	case "openai":
+		return "OpenAI API"
+	case "ollama":
+		return "Ollama"
+	default:
+		return strings.Title(name)
+	}
+}
+
+func filterRouterProviders(recommended []string) []string {
+	if len(recommended) == 0 {
+		return nil
+	}
+
+	supported := map[string]struct{}{
+		"ollama":    {},
+		"openai":    {},
+		"anthropic": {},
+		"gemini":    {},
+	}
+
+	var result []string
+	seen := map[string]struct{}{}
+	for _, name := range recommended {
+		if _, ok := supported[name]; !ok {
+			continue
+		}
+		if _, added := seen[name]; added {
+			continue
+		}
+		result = append(result, name)
+		seen[name] = struct{}{}
+	}
+
+	return result
+}
+
+func containsString(slice []string, item string) bool {
+	for _, val := range slice {
+		if val == item {
+			return true
+		}
+	}
+	return false
 }
 
 // checkExplicitProviderFlags returns strategy if explicit flags are set
@@ -349,8 +473,8 @@ func confirmInitialization(config *InitConfig) bool {
 	if config.Template != "" {
 		fmt.Printf("  Template:   %s\n", config.Template)
 	}
-	fmt.Printf("  Strategy:   %s providers\n", config.ProviderStrategy)
-	fmt.Printf("  Governance: %s\n", config.Governance)
+	fmt.Printf("  Strategy:   %s providers (%s)\n", config.ProviderStrategy, describeProviderStrategy(config.ProviderStrategy))
+	fmt.Printf("  Governance: %s (%s)\n", config.Governance, describeGovernance(config.Governance))
 	fmt.Printf("  MCP:        %v\n", config.MCPEnabled)
 	fmt.Println()
 	fmt.Print("Proceed with initialization? [Y/n]: ")
@@ -414,7 +538,96 @@ func generateConfigFiles(config *InitConfig) error {
 	}
 	fmt.Println("✓ Created settings.json")
 
+	// Generate provider configuration
+	if err := createProviderConfig(config.SpecDir, config.Context); err != nil {
+		return err
+	}
+
+	// Generate governance docs
+	if err := generateGovernanceDocs(config); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func createProviderConfig(specDir string, ctx *detect.Context) error {
+	exampleConfig := provider.DefaultProvidersConfig()
+	examplePath := filepath.Join(specDir, "providers.yaml.example")
+	if err := provider.SaveProvidersConfigExample(exampleConfig, examplePath); err != nil {
+		return fmt.Errorf("saving provider example: %w", err)
+	}
+	fmt.Println("✓ Created providers.yaml.example")
+
+	config := provider.DefaultProvidersConfig()
+	if ctx != nil {
+		provider.ApplyRecommendedProviders(config, ctx.GetRecommendedProviders())
+	}
+
+	targetPath := filepath.Join(specDir, "providers.yaml")
+	if err := provider.SaveProvidersConfig(config, targetPath); err != nil {
+		return fmt.Errorf("saving provider config: %w", err)
+	}
+
+	fmt.Println("✓ Created providers.yaml")
+	return nil
+}
+
+func generateGovernanceDocs(config *InitConfig) error {
+	docCtx := buildDocContext(config)
+	docsDir := filepath.Join(config.SpecDir, "docs")
+	if err := docgen.WriteDocs(docsDir, docCtx); err != nil {
+		return fmt.Errorf("writing governance docs: %w", err)
+	}
+
+	fmt.Println("✓ Created governance docs")
+	return nil
+}
+
+func buildDocContext(config *InitConfig) docgen.DocContext {
+	projectName := filepath.Base(config.TargetDir)
+	recommended := []string{}
+	if config.Context != nil {
+		for _, name := range config.Context.GetRecommendedProviders() {
+			if desc := provider.DescriptorByName(name); desc != nil {
+				recommended = append(recommended, fmt.Sprintf("%s (%s)", providerDisplayName(name), desc.TrustLevel))
+				continue
+			}
+			recommended = append(recommended, providerDisplayName(name))
+		}
+	}
+
+	docProviders := make([]docgen.DocProvider, 0, len(provider.Descriptors()))
+	for _, desc := range provider.Descriptors() {
+		capabilities := strings.Join(desc.Capabilities, ", ")
+		hints := docgen.FormatDetectionHints(desc.Hints)
+		docProviders = append(docProviders, docgen.DocProvider{
+			Name:         providerDisplayName(desc.Name),
+			Source:       desc.Source,
+			TrustLevel:   string(desc.TrustLevel),
+			Description:  desc.Description,
+			Capabilities: capabilities,
+			Hints:        hints,
+		})
+	}
+
+	features := []string{
+		"Document governance level, provider strategy, and recommended providers",
+		"Outline the success criteria for governance-first spec generation",
+		"Highlight provider capabilities and detection hints for transparency",
+	}
+
+	return docgen.DocContext{
+		ProjectName:                 projectName,
+		Timestamp:                   config.Timestamp,
+		Governance:                  config.Governance,
+		GovernanceDescription:       describeGovernance(config.Governance),
+		ProviderStrategy:            config.ProviderStrategy,
+		ProviderStrategyDescription: describeProviderStrategy(config.ProviderStrategy),
+		RecommendedProviders:        recommended,
+		Providers:                   docProviders,
+		Features:                    features,
+	}
 }
 
 func generateRouterYAML(config *InitConfig) string {
@@ -890,52 +1103,52 @@ func runSmartProviderSetup(specDir string, ctx *detect.Context) error {
 		return fmt.Errorf("no providers detected")
 	}
 
+	recommended := ctx.GetRecommendedProviders()
+	if len(recommended) == 0 {
+		return fmt.Errorf("no providers detected")
+	}
+
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println("  Smart Provider Setup")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println()
+	fmt.Printf("Recommended providers: %s\n", strings.Join(recommended, ", "))
 
-	// Show detected providers
-	fmt.Println("Detected Providers:")
-	for name, info := range ctx.Providers {
-		if info.Available {
-			status := "✓"
-			if info.EnvVar != "" && !info.EnvSet {
-				status = "⚠"
-			}
-			fmt.Printf("  %s %s (%s)\n", status, name, info.Type)
-			if info.EnvVar != "" && !info.EnvSet {
-				fmt.Printf("     Missing: %s\n", info.EnvVar)
-			}
-		}
+	routerTargets := filterRouterProviders(recommended)
+	if len(routerTargets) == 0 {
+		fmt.Println("\nNote: None of the recommended providers are managed by router.yaml. You can edit router.yaml later to enable additional providers.")
+		return nil
 	}
+
 	fmt.Println()
+	fmt.Print("Enable recommended router providers? [Y/n]: ")
+	response, _ := reader.ReadString('\n') //nolint:errcheck // Interactive prompt, empty response on error is acceptable
+	response = strings.TrimSpace(strings.ToLower(response))
 
-	// Recommend providers
-	recommended := ctx.GetRecommendedProviders()
-	if len(recommended) > 0 {
-		fmt.Printf("Recommended: %s\n", strings.Join(recommended, ", "))
-		fmt.Println()
-		fmt.Print("Use recommended providers? [Y/n]: ")
-
-		response, _ := reader.ReadString('\n') //nolint:errcheck // Interactive prompt, empty response on error is acceptable
-		response = strings.TrimSpace(strings.ToLower(response))
-
-		if response == "" || response == "y" || response == "yes" {
-			routerPath := filepath.Join(specDir, "router.yaml")
-			for _, provider := range recommended {
-				if err := enableProvider(routerPath, provider); err != nil {
-					fmt.Printf("⚠  Failed to enable %s: %v\n", provider, err)
-				}
+	if response == "" || response == "y" || response == "yes" {
+		routerPath := filepath.Join(specDir, "router.yaml")
+		for _, provider := range routerTargets {
+			if err := enableProvider(routerPath, provider); err != nil {
+				fmt.Printf("⚠  Failed to enable %s: %v\n", provider, err)
 			}
-			return nil
 		}
 	}
 
-	// Manual provider selection
-	return runProviderSetup(specDir)
+	if len(recommended) != len(routerTargets) {
+		var extra []string
+		for _, name := range recommended {
+			if !containsString(routerTargets, name) {
+				extra = append(extra, providerDisplayName(name))
+			}
+		}
+		if len(extra) > 0 {
+			fmt.Printf("\nAdditional detected providers (%s) are not listed in router.yaml and must be configured manually if needed.\n", strings.Join(extra, ", "))
+		}
+	}
+
+	return nil
 }
 
 func runProviderSetup(specDir string) error {
@@ -1032,13 +1245,20 @@ func printSmartSuccessMessage(config *InitConfig) {
 	fmt.Println("  • .specular/policy.yaml    - Security policies")
 	fmt.Println("  • .specular/spec.yaml      - Product specification")
 	fmt.Println("  • .specular/settings.json  - Project settings")
+	fmt.Println("  • .specular/providers.yaml - Provider configuration")
+	fmt.Println("  • .specular/docs          - Governance source documents (PRD, Vision, Roadmap, TDD)")
+	fmt.Println("  • .specular/providers.yaml.example - Provider configuration example")
 	fmt.Println()
 
 	if config.Template != "" {
 		fmt.Printf("Template: %s\n", config.Template)
 	}
-	fmt.Printf("Provider Strategy: %s\n", config.ProviderStrategy)
-	fmt.Printf("Governance Level: %s\n", config.Governance)
+	fmt.Printf("Provider Strategy: %s (%s)\n", config.ProviderStrategy, describeProviderStrategy(config.ProviderStrategy))
+	if rationale := describeStrategyRationale(config.Context, config.ProviderStrategy); rationale != "" {
+		fmt.Printf("Strategy rationale: %s\n", rationale)
+	}
+	fmt.Printf("Governance Level: %s (%s)\n", config.Governance, describeGovernance(config.Governance))
+	fmt.Printf("Provider configuration: %s (edit to adjust which descriptors are enabled)\n", filepath.Join(config.SpecDir, "providers.yaml"))
 	fmt.Println()
 
 	fmt.Println("Next steps:")
@@ -1051,20 +1271,92 @@ func printSmartSuccessMessage(config *InitConfig) {
 	fmt.Println("     $ specular route show")
 	fmt.Println()
 	fmt.Println("  3. Create your spec (interactive):")
-	fmt.Println("     $ specular interview")
+	fmt.Println("     $ specular spec new --tui")
 	fmt.Println()
 	fmt.Println("  4. Or edit the spec template:")
 	fmt.Println("     $ vim .specular/spec.yaml")
 	fmt.Println()
 	fmt.Println("  5. Generate a plan:")
-	fmt.Println("     $ specular plan")
+	fmt.Println("     $ specular plan create")
 	fmt.Println()
 	fmt.Println("  6. Execute your plan:")
-	fmt.Println("     $ specular build")
+	fmt.Println("     $ specular build run")
 	fmt.Println()
 
 	fmt.Printf("Project: %s\n", projectName)
 	fmt.Println("Documentation: https://github.com/felixgeelhaar/specular")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println()
+}
+
+func describeProviderStrategy(strategy string) string {
+	switch strategy {
+	case "local":
+		return "Prefer local providers (Ollama/CLI)"
+	case "cloud":
+		return "Prefer cloud APIs (OpenAI, Anthropic, Gemini)"
+	case "hybrid":
+		return "Mix of local and cloud providers detected"
+	case "explicit":
+		return "Using the explicit provider list you requested"
+	case "manual":
+		return "Manual provider selection"
+	default:
+		return "Custom strategy"
+	}
+}
+
+func describeGovernance(level string) string {
+	if val, ok := ux.GovernanceLevels.FindByValue(level); ok && val.Description != "" {
+		return val.Description
+	}
+	return "Governance level"
+}
+
+func describeStrategyRationale(ctx *detect.Context, strategy string) string {
+	if ctx == nil {
+		return ""
+	}
+
+	hasLocal, hasCloud := analyzeProviderAvailability(ctx.Providers)
+	switch strategy {
+	case "local":
+		if hasLocal && !hasCloud {
+			return "Local providers (Ollama/CLI wrappers) were detected while cloud APIs lacked keys, so the local stack is preferred."
+		}
+		if hasLocal && hasCloud {
+			return "Both local and cloud providers are available, but the local stack is preferred (via --local or defaults)."
+		}
+		return "Local strategy enforced explicitly."
+	case "cloud":
+		keys := cloudAPIProvidersWithKeys(ctx)
+		if len(keys) > 0 {
+			return fmt.Sprintf("Cloud API keys detected (%s); the cloud providers are enabled.", strings.Join(keys, ", "))
+		}
+		return "Cloud strategy enforced explicitly."
+	case "hybrid":
+		if hasLocal && hasCloud {
+			return "A hybrid mix of local models and cloud APIs was detected, so both types stay available."
+		}
+		return "Hybrid strategy requested but one provider type was missing; adjust .specular/providers.yaml if needed."
+	case "explicit":
+		return "You provided an explicit provider list via --providers."
+	case "manual":
+		return "No providers were auto-detected or requested; add providers to .specular/providers.yaml manually or run 'specular provider add'."
+	default:
+		return ""
+	}
+}
+
+func cloudAPIProvidersWithKeys(ctx *detect.Context) []string {
+	if ctx == nil {
+		return nil
+	}
+	var names []string
+	for _, name := range []string{"openai", "anthropic", "gemini"} {
+		if info, ok := ctx.Providers[name]; ok && info.Available && info.EnvSet {
+			names = append(names, providerDisplayName(name))
+		}
+	}
+	return names
 }

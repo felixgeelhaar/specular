@@ -49,7 +49,7 @@ The template provides a starting point. You'll see:
 ### Option A: Interactive Customization
 
 ```bash
-specular interview --tui
+specular spec new --tui
 ```
 
 The interview will:
@@ -81,10 +81,10 @@ Once customized:
 specular spec lock
 
 # Generate plan
-specular plan
+specular plan create
 
 # Build
-specular build --dry-run
+specular build run --dry-run
 ```
 
 ---

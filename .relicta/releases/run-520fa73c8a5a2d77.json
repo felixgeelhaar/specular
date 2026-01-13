@@ -1,0 +1,130 @@
+{
+  "id": "run-520fa73c8a5a2d77",
+  "plan_hash": "a9ecff639929990847d37c26cf0f95e8991d6650085efff936fde9398a28c39e",
+  "repo_id": "git@github.com:felixgeelhaar/specular.git",
+  "repo_root": "/Users/felixgeelhaar/Developer/projects/specular/cli",
+  "base_ref": "v1.8.0",
+  "head_sha": "4a552819ecf747d19a04d83bd1349c2a976432e8",
+  "commits": [
+    "4a552819ecf747d19a04d83bd1349c2a976432e8",
+    "56059d895982bb868987e525572f1dbdfc3ab695",
+    "89f0c2ddd3c1666303c22a950ff9c49bbd4071d9",
+    "f955302c5e4b5731796f158383c778e166d23816",
+    "46ec671de3cf2ecd6f73e8ca7b527effced70d3b",
+    "a64d28c2c2c5c3040d73b50ded7fa7c286026886",
+    "a4aaffd78580b746b050c9f84bfd871092cedb91"
+  ],
+  "config_hash": "",
+  "plugin_plan_hash": "",
+  "version_current": "1.8.0",
+  "version_next": "1.9.0",
+  "bump_kind": "minor",
+  "confidence": 0,
+  "risk_score": 0,
+  "reasons": null,
+  "actor_type": "user",
+  "actor_id": "cli",
+  "thresholds": {
+    "auto_approve_risk_threshold": 0,
+    "require_approval_above": 0,
+    "block_release_above": 0
+  },
+  "tag_name": "v1.9.0",
+  "notes": {
+    "text": "Release 1.9.0",
+    "audience_preset": "",
+    "tone_preset": "",
+    "provider": "basic",
+    "model": "",
+    "generated_at": "2026-01-09T12:09:43.032776+01:00"
+  },
+  "approval": {
+    "approved_by": "felixgeelhaar",
+    "approved_at": "2026-01-09T12:16:57.405933+01:00",
+    "auto_approved": false,
+    "plan_hash": "a9ecff639929990847d37c26cf0f95e8991d6650085efff936fde9398a28c39e",
+    "risk_score": 0,
+    "approver_type": "user"
+  },
+  "steps": [
+    {
+      "name": "create-tag",
+      "type": "tag",
+      "config_hash": "",
+      "idempotency_key": ""
+    }
+  ],
+  "step_status": {
+    "create-tag": {
+      "state": "done",
+      "attempts": 1,
+      "started_at": "2026-01-09T12:24:14.244719+01:00",
+      "completed_at": "2026-01-09T12:24:15.401577+01:00",
+      "output": "Created and pushed tag v1.9.0"
+    }
+  },
+  "state": "published",
+  "history": [
+    {
+      "at": "2026-01-09T12:09:18.999051+01:00",
+      "from": "draft",
+      "to": "planned",
+      "event": "PLAN",
+      "actor": "cli",
+      "reason": "Release planned"
+    },
+    {
+      "at": "2026-01-09T12:09:36.487412+01:00",
+      "from": "planned",
+      "to": "versioned",
+      "event": "BUMP",
+      "actor": "cli",
+      "reason": "Version applied",
+      "metadata": {
+        "tag_name": "v1.9.0",
+        "version": "1.9.0"
+      }
+    },
+    {
+      "at": "2026-01-09T12:09:43.032802+01:00",
+      "from": "versioned",
+      "to": "notes_ready",
+      "event": "GENERATE_NOTES",
+      "actor": "cli",
+      "reason": "Notes generated"
+    },
+    {
+      "at": "2026-01-09T12:16:57.405944+01:00",
+      "from": "notes_ready",
+      "to": "approved",
+      "event": "APPROVE",
+      "actor": "felixgeelhaar",
+      "reason": "Release approved",
+      "metadata": {
+        "auto_approved": "false",
+        "plan_hash": "a9ecff639929990847d37c26cf0f95e8991d6650085efff936fde9398a28c39e",
+        "risk_score": "0.00"
+      }
+    },
+    {
+      "at": "2026-01-09T12:24:14.243423+01:00",
+      "from": "approved",
+      "to": "publishing",
+      "event": "START_PUBLISH",
+      "actor": "cli",
+      "reason": "Publishing started"
+    },
+    {
+      "at": "2026-01-09T12:24:15.402364+01:00",
+      "from": "publishing",
+      "to": "published",
+      "event": "PUBLISH_COMPLETE",
+      "actor": "cli",
+      "reason": "Release published"
+    }
+  ],
+  "changeset_id": "cs-1767956958756866000",
+  "created_at": "2026-01-09T12:09:18.998794+01:00",
+  "updated_at": "2026-01-09T12:24:15.402365+01:00",
+  "published_at": "2026-01-09T12:24:15.402356+01:00"
+}

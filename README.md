@@ -38,8 +38,10 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 🛠️ **[Installation Guide](docs/installation.md)** – Package, binary, and Docker installs
 🔧 **[Provider Guide](docs/provider-guide.md)** – Configure local/cloud AI providers
 📘 **[CLI Reference](docs/CLI_REFERENCE.md)** – Command/flag reference
+📐 **[Spec Schema Reference](docs/spec-schema.md)** – Complete spec.yaml format guide
 📦 **[Bundle User Guide](docs/BUNDLE_USER_GUIDE.md)** – Governed bundle workflows
 🚀 **[Production Guide](docs/PRODUCTION_GUIDE.md)** – Production deployment, security, monitoring
+🔌 **[Plugin Development](docs/plugin-development/README.md)** – Build custom plugins
 
 ---
 
@@ -345,7 +347,7 @@ specular provider list
 # openai       api    yes       builtin   1.0.0
 # anthropic    api    yes       builtin   1.0.0
 # gemini       api    no        builtin   1.0.0
-# claude-cli   cli    no        local     1.0.0
+# claude-code   cli    no        local     1.0.0
 
 # Check health of all configured providers
 specular provider doctor
@@ -457,10 +459,10 @@ Create a specification using interview mode:
 
 ```bash
 # List available presets (web-app, api-service, cli-tool, microservice, data-pipeline)
-specular interview --list
+specular spec new --list
 
 # Run interactive TUI interview (recommended)
-specular interview --preset cli-tool --out .specular/spec.yaml --tui
+specular spec new --preset cli-tool --out .specular/spec.yaml --tui
 
 # Review the generated specification
 cat .specular/spec.yaml
@@ -481,10 +483,10 @@ Generate an execution plan from your specification:
 specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
 
 # Visualize task dependencies
-specular plan visualize --in plan.json
+specular plan visualize --plan plan.json
 
 # Validate plan structure
-specular plan validate --in plan.json
+specular plan validate --plan plan.json
 ```
 
 ### Step 5: Execute with Policy Enforcement
@@ -511,7 +513,7 @@ Monitor drift between spec, plan, and implementation:
 
 ```bash
 # Run drift detection (plan + code + infrastructure)
-specular drift check --plan plan.json --lock .specular/spec.lock.json \
+specular eval drift --plan plan.json --lock .specular/spec.lock.json \
   --spec .specular/spec.yaml --policy .specular/policies.yaml \
   --report drift.sarif
 
@@ -4502,7 +4504,7 @@ strategy:
   # Prefer providers in this order when multiple are available
   preference:
     - ollama      # Local first (fastest, free)
-    - claude-cli  # Local Claude CLI (free)
+    - claude-code  # Local Claude CLI (free)
     - anthropic   # Cloud API (high quality)
     - openai      # Cloud API (fallback)
 

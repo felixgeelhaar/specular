@@ -1,0 +1,47 @@
+name: markdown-formatter
+version: "1.0.0"
+type: formatter
+description: Formats content as Markdown with customizable options
+author: Specular Team
+license: MIT
+homepage: https://github.com/specular/specular-plugins
+repository: github.com/specular/markdown-formatter
+entrypoint: node index.js
+
+min_specular_version: "1.6.0"
+
+keywords:
+  - formatter
+  - markdown
+  - documentation
+  - export
+
+capabilities:
+  - formatting
+  - markdown
+  - export
+
+config:
+  - name: include_toc
+    type: bool
+    description: Include table of contents
+    required: false
+    default: false
+
+  - name: include_metadata
+    type: bool
+    description: Include metadata header
+    required: false
+    default: true
+
+  - name: heading_level
+    type: int
+    description: Starting heading level (1-6)
+    required: false
+    default: 1
+
+  - name: code_fence_style
+    type: string
+    description: Code fence style (backtick or tilde)
+    required: false
+    default: backtick

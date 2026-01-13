@@ -45,7 +45,7 @@ specular provider health
 
 The system supports four provider types:
 
-- **CLI** (`ProviderTypeCLI`): Command-line executables (ollama, claude-cli)
+- **CLI** (`ProviderTypeCLI`): Command-line executables (ollama, claude-code)
 - **API** (`ProviderTypeAPI`): Native Go HTTP API clients (OpenAI, Anthropic, Gemini) - ✅ **Implemented**
 - **gRPC** (`ProviderTypeGRPC`): gRPC services - *Coming soon*
 - **Native** (`ProviderTypeNative`): Go native plugins (.so files) - *Coming soon*
@@ -99,7 +99,7 @@ Budget Constraints:
 
 Provider Preference Order:
   1. ollama
-  2. claude-cli
+  2. claude-code
   3. anthropic
   4. openai
 ```

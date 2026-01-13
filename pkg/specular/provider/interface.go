@@ -60,7 +60,7 @@ type ProviderCapabilities struct {
 
 // ProviderInfo contains metadata about a provider
 type ProviderInfo struct {
-	// Name is the provider identifier (e.g., "openai", "claude-cli", "ollama")
+	// Name is the provider identifier (e.g., "openai", "claude-code", "ollama")
 	Name string
 
 	// Version is the provider version (e.g., "1.0.0")

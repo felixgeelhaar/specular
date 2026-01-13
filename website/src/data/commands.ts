@@ -97,26 +97,26 @@ export const commandGroups: CommandGroup[] = [
     commands: [
       {
         name: "spec new",
-        description: "Create a new specification file with guided prompts or from a template.",
+        description: "Create a new specification file with guided prompts or from a preset.",
         usage: "specular spec new [flags]",
         examples: [
           "specular spec new",
-          "specular spec new --template api-service",
+          "specular spec new --preset api-service",
         ],
         flags: [
-          { name: "--template", description: "Use a specification template" },
+          { name: "--preset", description: "Use a specification preset" },
         ],
       },
       {
-        name: "spec generate",
+        name: "spec new --from",
         description: "Generate a structured specification from a PRD markdown file using AI.",
-        usage: "specular spec generate <prd-file> [flags]",
+        usage: "specular spec new --from <prd-file> [flags]",
         examples: [
-          "specular spec generate requirements.md",
-          "specular spec generate prd.md --output spec.yaml",
+          "specular spec new --from requirements.md",
+          "specular spec new --from prd.md --out spec.yaml",
         ],
         flags: [
-          { name: "--output", shorthand: "-o", description: "Output specification file path" },
+          { name: "--out", shorthand: "-o", description: "Output specification file path" },
         ],
       },
       {
@@ -127,9 +127,7 @@ export const commandGroups: CommandGroup[] = [
           "specular spec validate",
           "specular spec validate .specular/spec.yaml",
         ],
-        flags: [
-          { name: "--strict", description: "Enable strict validation mode" },
-        ],
+        flags: [],
       },
       {
         name: "spec approve",
@@ -137,11 +135,8 @@ export const commandGroups: CommandGroup[] = [
         usage: "specular spec approve [flags]",
         examples: [
           "specular spec approve",
-          "specular spec approve --message 'Ready for v1.0'",
         ],
-        flags: [
-          { name: "--message", shorthand: "-m", description: "Approval message" },
-        ],
+        flags: [],
       },
       {
         name: "spec diff",
@@ -166,10 +161,10 @@ export const commandGroups: CommandGroup[] = [
         usage: "specular spec lock [flags]",
         examples: [
           "specular spec lock",
-          "specular spec lock --output spec.lock.json",
+          "specular spec lock --out spec.lock.json",
         ],
         flags: [
-          { name: "--output", shorthand: "-o", description: "Output lock file path" },
+          { name: "--out", shorthand: "-o", description: "Output lock file path" },
         ],
       },
     ],
@@ -215,10 +210,10 @@ export const commandGroups: CommandGroup[] = [
         usage: "specular plan validate [flags]",
         examples: [
           "specular plan validate",
-          "specular plan validate --strict",
+          "specular plan validate --plan plan.json",
         ],
         flags: [
-          { name: "--strict", description: "Enable strict validation" },
+          { name: "--plan", description: "Plan file to validate", default: "plan.json" },
         ],
       },
       {
@@ -227,11 +222,11 @@ export const commandGroups: CommandGroup[] = [
         usage: "specular plan visualize [flags]",
         examples: [
           "specular plan visualize",
-          "specular plan visualize --output graph.svg",
+          "specular plan visualize --plan plan.json --format dot > plan.dot",
         ],
         flags: [
-          { name: "--output", shorthand: "-o", description: "Output file path" },
-          { name: "--format", description: "Output format (svg, png, dot)" },
+          { name: "--plan", description: "Plan file to visualize", default: "plan.json" },
+          { name: "--format", description: "Output format (text, dot, json)" },
         ],
       },
       {
@@ -240,10 +235,10 @@ export const commandGroups: CommandGroup[] = [
         usage: "specular plan explain <step-id>",
         examples: [
           "specular plan explain task-1",
-          "specular plan explain --all",
+          "specular plan explain task-1 --plan plan.json",
         ],
         flags: [
-          { name: "--all", description: "Explain all routing decisions" },
+          { name: "--plan", description: "Plan file to explain", default: "plan.json" },
         ],
       },
     ],
@@ -283,12 +278,10 @@ export const commandGroups: CommandGroup[] = [
         usage: "specular build verify [flags]",
         examples: [
           "specular build verify",
-          "specular build verify --skip-lint",
+          "specular build verify --policy .specular/policy.yaml",
         ],
         flags: [
-          { name: "--skip-lint", description: "Skip linting checks" },
-          { name: "--skip-tests", description: "Skip test execution" },
-          { name: "--skip-security", description: "Skip security scanning" },
+          { name: "--policy", description: "Policy file for verification", default: ".specular/policy.yaml" },
         ],
       },
       {
@@ -297,10 +290,10 @@ export const commandGroups: CommandGroup[] = [
         usage: "specular build approve [flags]",
         examples: [
           "specular build approve",
-          "specular build approve --message 'Ready for staging'",
+          "specular build approve --manifest-dir .specular/runs",
         ],
         flags: [
-          { name: "--message", shorthand: "-m", description: "Approval message" },
+          { name: "--manifest-dir", description: "Directory for run manifests", default: ".specular/runs" },
         ],
       },
       {
@@ -309,10 +302,10 @@ export const commandGroups: CommandGroup[] = [
         usage: "specular build explain [flags]",
         examples: [
           "specular build explain",
-          "specular build explain --task task-3",
+          "specular build explain --manifest-dir .specular/runs",
         ],
         flags: [
-          { name: "--task", description: "Show explanation for specific task" },
+          { name: "--manifest-dir", description: "Directory for run manifests", default: ".specular/runs" },
         ],
       },
     ],

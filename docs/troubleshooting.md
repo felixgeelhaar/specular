@@ -307,7 +307,7 @@ specular provider list
 
 3. **Re-plan with current state:**
    ```bash
-   specular plan "goal" --refresh
+   specular plan create
    ```
 
 ---

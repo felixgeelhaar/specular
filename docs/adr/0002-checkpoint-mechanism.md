@@ -160,16 +160,16 @@ os.Rename(tmpFile, filepath.Join(checkpointDir, id, "state.json"))
 ### CLI Integration
 ```bash
 # Auto-checkpoint with default ID
-specular build --plan plan.json
+specular build run --plan plan.json
 
 # Resume from last checkpoint
-specular build --plan plan.json --resume
+specular build run --plan plan.json --resume
 
 # Explicit checkpoint ID
-specular build --plan plan.json --checkpoint-id my-build-001
+specular build run --plan plan.json --checkpoint-id my-build-001
 
 # Keep checkpoint after success
-specular build --plan plan.json --keep-checkpoint
+specular build run --plan plan.json --keep-checkpoint
 
 # List checkpoints
 specular checkpoint list
@@ -210,12 +210,12 @@ Measured overhead:
 ### Pattern 1: Local Development (Interrupted Build)
 ```bash
 # Start build
-specular build --plan plan.json
+specular build run --plan plan.json
 
 # ... process interrupted at task 15/50 ...
 
 # Resume from task 16
-specular build --plan plan.json --resume
+specular build run --plan plan.json --resume
 ```
 
 ### Pattern 2: CI/CD (Timeout Recovery)
@@ -223,24 +223,24 @@ specular build --plan plan.json --resume
 # GitHub Actions workflow
 - name: Build (with checkpoint)
   id: build
-  run: specular build --plan plan.json --checkpoint-id ci-${{ github.run_id }}
+  run: specular build run --plan plan.json --checkpoint-id ci-${{ github.run_id }}
   continue-on-error: true
 
 - name: Resume if timed out
   if: steps.build.outcome == 'failure'
-  run: specular build --plan plan.json --resume --checkpoint-id ci-${{ github.run_id }}
+  run: specular build run --plan plan.json --resume --checkpoint-id ci-${{ github.run_id }}
 ```
 
 ### Pattern 3: Debugging Failed Execution
 ```bash
 # Build failed at task 8
-specular build --plan plan.json --checkpoint-id debug-001
+specular build run --plan plan.json --checkpoint-id debug-001
 
 # Inspect checkpoint
 cat .specular/checkpoints/debug-001/state.json
 
 # Resume with verbose logging
-specular build --plan plan.json --resume --checkpoint-id debug-001 --verbose
+specular build run --plan plan.json --resume --checkpoint-id debug-001 --verbose
 ```
 
 ## Future Enhancements

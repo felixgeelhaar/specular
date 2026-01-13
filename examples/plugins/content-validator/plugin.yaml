@@ -1,0 +1,50 @@
+name: content-validator
+version: "1.0.0"
+type: validator
+description: Validates content against configurable rules
+author: Specular Team
+license: MIT
+homepage: https://github.com/specular/specular-plugins
+repository: github.com/specular/content-validator
+entrypoint: python3 main.py
+
+min_specular_version: "1.6.0"
+
+keywords:
+  - validation
+  - content
+  - rules
+  - policy
+
+capabilities:
+  - validation
+  - content-analysis
+
+config:
+  - name: max_length
+    type: int
+    description: Maximum content length in characters
+    required: false
+    default: 10000
+
+  - name: min_length
+    type: int
+    description: Minimum content length in characters
+    required: false
+    default: 0
+
+  - name: required_keywords
+    type: string
+    description: Comma-separated list of required keywords
+    required: false
+
+  - name: forbidden_patterns
+    type: string
+    description: Comma-separated list of forbidden regex patterns
+    required: false
+
+  - name: severity_threshold
+    type: string
+    description: Minimum severity to report (error, warning, info)
+    required: false
+    default: warning

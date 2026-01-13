@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -51,7 +52,7 @@ var specGenerateCmd = &cobra.Command{
 		}
 
 		// Validate PRD file exists
-		if err := ux.ValidateRequiredFile(in, "PRD file", "Create a PRD markdown file or run 'specular interview'"); err != nil {
+		if err := ux.ValidateRequiredFile(in, "PRD file", "Create a PRD markdown file or run 'specular spec new'"); err != nil {
 			return ux.EnhanceError(err)
 		}
 
@@ -61,6 +62,13 @@ var specGenerateCmd = &cobra.Command{
 		}
 		if !cmd.Flags().Changed("config") {
 			configPath = defaults.ProvidersFile()
+		}
+
+		// Ensure provider configuration exists when using defaults
+		if !cmd.Flags().Changed("config") {
+			if err := ensureDefaultProvidersConfig(defaults); err != nil {
+				return ux.FormatError(err, "initializing provider configuration")
+			}
 		}
 
 		// Record span attributes
@@ -111,6 +119,7 @@ var specGenerateCmd = &cobra.Command{
 		if err != nil {
 			return ux.FormatError(err, "creating AI router")
 		}
+		provider.RecordSpecRequested(in, strings.Join(registry.List(), ","))
 
 		// Create PRD parser (router handles provider access internally)
 		parser := prd.NewParser(r)
@@ -160,7 +169,7 @@ var specValidateCmd = &cobra.Command{
 		}
 
 		// Validate file exists with helpful error
-		if err := ux.ValidateRequiredFile(in, "Spec file", "specular spec generate"); err != nil {
+		if err := ux.ValidateRequiredFile(in, "Spec file", "specular spec new"); err != nil {
 			return ux.EnhanceError(err)
 		}
 
@@ -199,6 +208,41 @@ var specValidateCmd = &cobra.Command{
 		fmt.Printf("✓ Spec is valid (%d features)\n", len(s.Features))
 		return nil
 	},
+}
+
+// ensureDefaultProvidersConfig creates a providers.yaml when the default config path is missing.
+// It runs detection to determine recommended providers, writes the analysis artifacts, and logs the enabled set.
+func ensureDefaultProvidersConfig(defaults *ux.PathDefaults) error {
+	configPath := defaults.ProvidersFile()
+	if _, err := os.Stat(configPath); err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("check providers config: %w", err)
+	}
+
+	if err := ux.EnsureSpecularDir(); err != nil {
+		return fmt.Errorf("ensure .specular directory: %w", err)
+	}
+
+	ctx := detectProjectContext()
+	recommended := ctx.GetRecommendedProviders()
+
+	specDir := defaults.SpecularDir
+	examplePath := filepath.Join(specDir, "providers.yaml.example")
+	if err := provider.SaveProvidersConfigExample(provider.DefaultProvidersConfig(), examplePath); err != nil {
+		return fmt.Errorf("write provider example: %w", err)
+	}
+
+	config := provider.ConfigFromRecommended(recommended)
+	if err := provider.SaveProvidersConfig(config, configPath); err != nil {
+		return fmt.Errorf("write provider config: %w", err)
+	}
+
+	fmt.Printf("✓ Created provider configuration at %s\n", configPath)
+	if len(recommended) > 0 {
+		fmt.Printf("⚡ Enabled recommended providers: %s\n", strings.Join(recommended, ", "))
+	}
+	return nil
 }
 
 var specLockCmd = &cobra.Command{
@@ -750,7 +794,7 @@ func runSpecApprove(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("\nNext steps:")
 	fmt.Printf("  1. Generate lock: specular spec lock\n")
-	fmt.Printf("  2. Create plan: specular plan\n")
+	fmt.Printf("  2. Create plan: specular plan create\n")
 
 	return nil
 }

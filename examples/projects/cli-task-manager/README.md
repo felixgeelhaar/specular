@@ -15,7 +15,9 @@ This project includes a Specular spec file demonstrating how to define your CLI 
 
 ```bash
 # Generate implementation from spec
-specular build run --spec spec.yaml
+specular spec lock --in spec.yaml --out spec.lock.json
+specular plan create --in spec.yaml --lock spec.lock.json --out plan.json
+specular build run --plan plan.json
 
 # Run in autonomous mode
 specular auto --spec spec.yaml --profile development

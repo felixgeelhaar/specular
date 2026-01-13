@@ -34,7 +34,7 @@ func (pd *PathDefaults) SpecLockFile() string {
 
 // PlanFile returns the default path to plan.json
 func (pd *PathDefaults) PlanFile() string {
-	return "plan.json"
+	return filepath.Join(pd.SpecularDir, "plan.json")
 }
 
 // PolicyFile returns the default path to policy.yaml
@@ -108,7 +108,7 @@ func SuggestNextSteps() string {
 	}
 
 	if os.IsNotExist(hasSpec) {
-		return "Create a spec with 'specular interview' or 'specular spec generate'"
+		return "Create a spec with 'specular spec new' or 'specular spec new --from PRD.md'"
 	}
 
 	if os.IsNotExist(hasLock) {
@@ -116,10 +116,10 @@ func SuggestNextSteps() string {
 	}
 
 	if os.IsNotExist(hasPlan) {
-		return "Generate a plan with 'specular plan'"
+		return "Generate a plan with 'specular plan create'"
 	}
 
-	return "Execute your plan with 'specular build'"
+	return "Execute your plan with 'specular build run'"
 }
 
 // ConfigPaths holds all discovered configuration file paths for a project.

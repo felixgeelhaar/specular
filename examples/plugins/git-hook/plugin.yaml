@@ -1,0 +1,45 @@
+name: git-hook
+version: "1.0.0"
+type: hook
+description: Git integration hooks for tracking Specular operations
+author: Specular Team
+license: MIT
+homepage: https://github.com/specular/specular-plugins
+repository: github.com/specular/git-hook
+entrypoint: bash entrypoint.sh
+
+min_specular_version: "1.6.0"
+
+keywords:
+  - git
+  - hook
+  - ci-cd
+  - automation
+  - tracking
+
+capabilities:
+  - hook
+  - git-integration
+
+config:
+  - name: auto_commit
+    type: bool
+    description: Automatically commit changes after generation
+    required: false
+    default: false
+
+  - name: commit_prefix
+    type: string
+    description: Prefix for auto-commit messages
+    required: false
+    default: "[specular]"
+
+  - name: log_file
+    type: string
+    description: Path to log file for operations
+    required: false
+
+  - name: branch_pattern
+    type: string
+    description: Branch pattern to allow operations on (regex)
+    required: false

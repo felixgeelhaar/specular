@@ -5,18 +5,22 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/felixgeelhaar/specular/internal/detect"
+	"github.com/felixgeelhaar/specular/internal/docgen"
 	"github.com/felixgeelhaar/specular/internal/provider"
+	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
 const (
 	defaultProviderConfigPath = ".specular/providers.yaml"
-	exampleProviderConfigPath = ".specular/providers.yaml.example"
 )
 
 var providerCmd = &cobra.Command{
@@ -113,8 +117,9 @@ var providerDoctorCmd = &cobra.Command{
 	Use:     "doctor [provider-name]",
 	Aliases: []string{"health"}, // Keep health for backward compatibility
 	Short:   "Check provider health and configuration",
-	Long:    `Check the health status of providers. If no provider name is specified, checks all enabled providers.`,
+	Long:    `Check the health status of providers. If no provider name is specified, checks all enabled providers. Use --quick to skip detailed health checks and list provider status only.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		quick := cmd.Flags().Lookup("quick").Value.String() == "true"
 		configPath := cmd.Flags().Lookup("config").Value.String()
 		if configPath == "" {
 			// Try to discover providers.yaml in multiple locations
@@ -164,11 +169,20 @@ var providerDoctorCmd = &cobra.Command{
 				continue
 			}
 
+			if quick {
+				info := prov.GetInfo()
+				fmt.Fprintf(w, "%s\t✅ HEALTHY\t%s (quick check)\n", name, info.Description) //nolint:errcheck
+				provider.RecordProviderHealth(name, true, "quick check")
+				continue
+			}
+
 			if healthErr := prov.Health(ctx); healthErr != nil {
 				fmt.Fprintf(w, "%s\t❌ UNHEALTHY\t%v\n", name, healthErr) //nolint:errcheck
+				provider.RecordProviderHealth(name, false, healthErr.Error())
 			} else {
 				info := prov.GetInfo()
 				fmt.Fprintf(w, "%s\t✅ HEALTHY\t%s\n", name, info.Description) //nolint:errcheck
+				provider.RecordProviderHealth(name, true, info.Description)
 			}
 		}
 
@@ -181,25 +195,13 @@ var providerDoctorCmd = &cobra.Command{
 var providerInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize provider configuration",
-	Long: `Initialize provider configuration by copying the example file.
-This creates a providers.yaml file from providers.yaml.example with default settings.`,
+	Long:  `Generate a providers.yaml file from the bundled descriptor catalog with sensible defaults.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		force := cmd.Flags().Lookup("force").Value.String() == "true"
-
-		// Check if example file exists
-		if _, err := os.Stat(exampleProviderConfigPath); os.IsNotExist(err) {
-			return fmt.Errorf("example config file not found at %s", exampleProviderConfigPath)
-		}
 
 		// Check if target file already exists
 		if _, err := os.Stat(defaultProviderConfigPath); err == nil && !force {
 			return fmt.Errorf("provider config already exists at %s (use --force to overwrite)", defaultProviderConfigPath)
-		}
-
-		// Read example file
-		data, err := os.ReadFile(exampleProviderConfigPath)
-		if err != nil {
-			return fmt.Errorf("failed to read example config: %w", err)
 		}
 
 		// Ensure .specular directory exists (with all subdirectories)
@@ -213,24 +215,40 @@ This creates a providers.yaml file from providers.yaml.example with default sett
 			return fmt.Errorf("failed to discover .specular directory: %w", discoverErr)
 		}
 
+		ctx := detectProviderContext()
+		recommended := ctx.GetRecommendedProviders()
+
+		exampleConfig := provider.DefaultProvidersConfig()
+		examplePath := filepath.Join(specularDir, "providers.yaml.example")
+		if err := provider.SaveProvidersConfigExample(exampleConfig, examplePath); err != nil {
+			return fmt.Errorf("failed to write provider example: %w", err)
+		}
+
+		config := provider.ConfigFromRecommended(recommended)
+
 		// Write to providers.yaml in discovered directory
 		targetPath := filepath.Join(specularDir, "providers.yaml")
-		if writeErr := os.WriteFile(targetPath, data, 0o600); writeErr != nil {
+		if writeErr := provider.SaveProvidersConfig(config, targetPath); writeErr != nil {
 			return fmt.Errorf("failed to write provider config: %w", writeErr)
 		}
 
 		fmt.Printf("✓ Created provider configuration at %s\n", targetPath)
+		fmt.Printf("✓ Created provider example at %s\n", examplePath)
+		if len(recommended) > 0 {
+			fmt.Printf("⚡ Enabled recommended providers: %s\n", strings.Join(recommended, ", "))
+		}
 		fmt.Println("\nNext steps:")
 		fmt.Println("  1. Edit .specular/providers.yaml to enable desired providers")
-		fmt.Println("  2. Set any required API keys as environment variables")
-		fmt.Println("  3. Run 'specular provider health' to check provider status")
+		fmt.Println("  2. Review the example at .specular/providers.yaml.example for reference")
+		fmt.Println("  3. Set any required API keys as environment variables")
+		fmt.Println("  4. Run 'specular provider health' to check provider status")
 
 		return nil
 	},
 }
 
 var providerAddCmd = &cobra.Command{
-	Use:   "add <provider-name>",
+	Use:   "add [provider-name]",
 	Short: "Add a provider to configuration",
 	Long: `Add a new provider to the providers.yaml configuration.
 
@@ -242,7 +260,7 @@ Supported providers:
   - gemini-cli (Gemini CLI)
   - codex-cli (Codex CLI)
   - copilot-cli (GitHub Copilot)`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: runProviderAdd,
 }
 
@@ -256,7 +274,20 @@ var providerRemoveCmd = &cobra.Command{
 }
 
 func runProviderAdd(cmd *cobra.Command, args []string) error {
-	providerName := args[0]
+	var providerName string
+	if len(args) > 0 {
+		providerName = args[0]
+	} else {
+		interactiveCfg := ux.NewInteractiveConfig()
+		if !ux.ShouldPrompt(interactiveCfg) {
+			return fmt.Errorf("provider name is required when running in non-interactive mode")
+		}
+		name, err := promptForProviderSelection()
+		if err != nil {
+			return err
+		}
+		providerName = name
+	}
 	configPath := cmd.Flags().Lookup("config").Value.String()
 	if configPath == "" {
 		configPath = defaultProviderConfigPath
@@ -287,6 +318,11 @@ func runProviderAdd(cmd *cobra.Command, args []string) error {
 	newProvider := generateProviderConfigForAdd(providerName)
 	if newProvider == nil {
 		return fmt.Errorf("unknown provider: %s", providerName)
+	}
+
+	// Let the user adjust defaults interactively when possible
+	if err := configureProviderInteractively(providerName, newProvider); err != nil {
+		return fmt.Errorf("configuring provider %s: %w", providerName, err)
 	}
 
 	// Add to config
@@ -348,138 +384,207 @@ func runProviderRemove(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func detectProviderContext() *detect.Context {
+	ctx, err := detect.DetectAll()
+	if err != nil {
+		fmt.Printf("⚠  Provider detection failed: %v\n", err)
+		fmt.Println("   Proceeding with the default provider catalog.")
+		return &detect.Context{Providers: make(map[string]detect.ProviderInfo)}
+	}
+
+	printDetectionSummary(ctx)
+	return ctx
+}
+
 // generateProviderConfigForAdd creates a provider config for the add command
 func generateProviderConfigForAdd(providerName string) *provider.ProviderConfig {
-	// Reuse the existing generateProviderConfig function from provider package
-	// But set enabled based on availability
-	switch providerName {
-	case "ollama":
-		return &provider.ProviderConfig{
-			Name:    "ollama",
-			Type:    provider.ProviderTypeCLI,
-			Enabled: false, // User must configure
-			Source:  "local",
-			Config: map[string]interface{}{
-				"path":     "ollama",
-				"base_url": "http://localhost:11434",
-			},
-			Models: map[string]string{
-				"fast":         "llama3.3:70b",
-				"codegen":      "qwen2.5-coder:7b",
-				"cheap":        "llama3.2",
-				"long-context": "llama3.3:70b",
-			},
+	if desc := provider.DescriptorByName(providerName); desc != nil {
+		cfg := desc.ToProviderConfig()
+		return &cfg
+	}
+	return nil
+}
+
+type configFieldKind int
+
+const (
+	fieldKindString configFieldKind = iota
+	fieldKindPath
+	fieldKindEnv
+)
+
+type interactiveField struct {
+	key          string
+	prompt       string
+	kind         configFieldKind
+	defaultValue string
+}
+
+var interactiveProviderFields = map[string][]interactiveField{
+	"ollama": {
+		{key: "path", prompt: "Path to Ollama CLI binary", kind: fieldKindPath, defaultValue: "ollama"},
+		{key: "base_url", prompt: "Base URL for the Ollama HTTP endpoint", kind: fieldKindString, defaultValue: "http://localhost:11434"},
+	},
+	"claude-code": {
+		{key: "path", prompt: "Path to Claude Code wrapper", kind: fieldKindPath},
+	},
+	"gemini-cli": {
+		{key: "path", prompt: "Path to Gemini CLI wrapper", kind: fieldKindPath},
+	},
+	"codex-cli": {
+		{key: "path", prompt: "Path to Codex CLI wrapper", kind: fieldKindPath},
+	},
+	"copilot-cli": {
+		{key: "path", prompt: "Path to GitHub Copilot CLI executable", kind: fieldKindPath},
+	},
+	"anthropic": {
+		{key: "api_key", prompt: "Environment variable for Anthropic API key", kind: fieldKindEnv, defaultValue: "ANTHROPIC_API_KEY"},
+	},
+	"openai": {
+		{key: "api_key", prompt: "Environment variable for OpenAI API key", kind: fieldKindEnv, defaultValue: "OPENAI_API_KEY"},
+	},
+}
+
+func configureProviderInteractively(providerName string, cfg *provider.ProviderConfig) error {
+	interactiveCfg := ux.NewInteractiveConfig()
+	shouldPrompt := ux.ShouldPrompt(interactiveCfg)
+
+	applyDefaultEnable(cfg)
+	if !shouldPrompt {
+		return nil
+	}
+
+	if desc := provider.DescriptorByName(providerName); desc != nil {
+		fmt.Printf("\nProvider %s metadata:\n", providerDisplayName(providerName))
+		fmt.Printf("  Source: %s | Trust: %s\n", desc.Source, desc.TrustLevel)
+		if desc.Description != "" {
+			fmt.Printf("  Description: %s\n", desc.Description)
 		}
-	case "anthropic":
-		return &provider.ProviderConfig{
-			Name:    "anthropic",
-			Type:    provider.ProviderTypeAPI,
-			Enabled: provider.IsEnvVarSet("ANTHROPIC_API_KEY"),
-			Source:  "api",
-			Config: map[string]interface{}{
-				"api_key":  "${ANTHROPIC_API_KEY}",
-				"base_url": "https://api.anthropic.com",
-			},
-			Models: map[string]string{
-				"fast":         "claude-haiku-4-5-20251015",
-				"codegen":      "claude-sonnet-4-5-20250929",
-				"agentic":      "claude-opus-4-1-20250805",
-				"long-context": "claude-sonnet-4-5-20250929",
-				"cheap":        "claude-haiku-4-5-20251015",
-			},
+		if hints := docgen.FormatDetectionHints(desc.Hints); hints != "" {
+			fmt.Printf("  %s\n", hints)
 		}
-	case "openai":
-		return &provider.ProviderConfig{
-			Name:    "openai",
-			Type:    provider.ProviderTypeAPI,
-			Enabled: provider.IsEnvVarSet("OPENAI_API_KEY"),
-			Source:  "api",
-			Config: map[string]interface{}{
-				"api_key":  "${OPENAI_API_KEY}",
-				"base_url": "https://api.openai.com/v1",
-			},
-			Models: map[string]string{
-				"fast":         "gpt-5-mini",
-				"codegen":      "gpt-5",
-				"cheap":        "gpt-5-nano",
-				"long-context": "gpt-5",
-				"agentic":      "gpt-5",
-			},
-		}
-	case "claude-code":
-		wrapperPath, _ := filepath.Abs("providers/claude-code/claude-code-provider")
-		return &provider.ProviderConfig{
-			Name:    "claude-code",
-			Type:    provider.ProviderTypeCLI,
-			Enabled: false,
-			Source:  "local",
-			Config: map[string]interface{}{
-				"path": wrapperPath,
-			},
-			Models: map[string]string{
-				"fast":         "claude-haiku-4-5-20251015",
-				"codegen":      "claude-sonnet-4-5-20250929",
-				"agentic":      "claude-opus-4-1-20250805",
-				"long-context": "claude-sonnet-4-5-20250929",
-				"cheap":        "claude-haiku-4-5-20251015",
-			},
-		}
-	case "gemini-cli":
-		wrapperPath, _ := filepath.Abs("providers/gemini-cli/gemini-cli-provider")
-		return &provider.ProviderConfig{
-			Name:    "gemini-cli",
-			Type:    provider.ProviderTypeCLI,
-			Enabled: false,
-			Source:  "local",
-			Config: map[string]interface{}{
-				"path": wrapperPath,
-			},
-			Models: map[string]string{
-				"fast":         "gemini-2.0-flash-exp",
-				"codegen":      "gemini-exp-1206",
-				"agentic":      "gemini-exp-1206",
-				"long-context": "gemini-exp-1206",
-				"cheap":        "gemini-2.0-flash-exp",
-			},
-		}
-	case "copilot-cli":
-		return &provider.ProviderConfig{
-			Name:    "copilot-cli",
-			Type:    provider.ProviderTypeCLI,
-			Enabled: false,
-			Source:  "local",
-			Config: map[string]interface{}{
-				"path": "copilot",
-			},
-			Models: map[string]string{
-				"fast":         "copilot",
-				"codegen":      "copilot",
-				"agentic":      "copilot",
-				"long-context": "copilot",
-				"cheap":        "copilot",
-			},
-		}
-	case "codex-cli":
-		wrapperPath, _ := filepath.Abs("providers/codex-cli/codex-cli-provider")
-		return &provider.ProviderConfig{
-			Name:    "codex-cli",
-			Type:    provider.ProviderTypeCLI,
-			Enabled: false,
-			Source:  "local",
-			Config: map[string]interface{}{
-				"path": wrapperPath,
-			},
-			Models: map[string]string{
-				"fast":         "codex",
-				"codegen":      "codex",
-				"agentic":      "codex",
-				"long-context": "codex",
-				"cheap":        "codex",
-			},
+		if len(desc.Capabilities) > 0 {
+			fmt.Printf("  Capabilities: %s\n", strings.Join(desc.Capabilities, ", "))
 		}
 	}
 
+	fmt.Printf("\nConfiguring provider %s (%s)\n", providerName, cfg.Type)
+
+	if fields, ok := interactiveProviderFields[providerName]; ok {
+		for _, field := range fields {
+			if err := promptProviderField(cfg, field); err != nil {
+				return err
+			}
+		}
+	}
+
+	enabled, err := tui.PromptForConfirmation(fmt.Sprintf("Enable %s now?", providerDisplayName(providerName)), cfg.Enabled)
+	if err != nil {
+		return fmt.Errorf("confirmation prompt failed: %w", err)
+	}
+	cfg.Enabled = enabled
+
 	return nil
+}
+
+func applyDefaultEnable(cfg *provider.ProviderConfig) {
+	if cfg.Type == provider.ProviderTypeCLI {
+		cfg.Enabled = true
+	}
+}
+
+func promptProviderField(cfg *provider.ProviderConfig, field interactiveField) error {
+	defaultValue := fieldDefaultValue(cfg, field)
+
+	switch field.kind {
+	case fieldKindPath:
+		cfg.Config[field.key] = ux.PromptForPath(field.prompt, defaultValue)
+	case fieldKindString:
+		value, err := promptString(field.prompt, defaultValue)
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(value) == "" {
+			value = defaultValue
+		}
+		cfg.Config[field.key] = value
+	case fieldKindEnv:
+		envValue, err := promptString(field.prompt, defaultValue)
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(envValue) == "" {
+			envValue = defaultValue
+		}
+		envValue = strings.TrimSpace(envValue)
+		cfg.Config[field.key] = fmt.Sprintf("${%s}", envValue)
+		cfg.Enabled = provider.IsEnvVarSet(envValue)
+	}
+
+	return nil
+}
+
+func fieldDefaultValue(cfg *provider.ProviderConfig, field interactiveField) string {
+	if raw, ok := cfg.Config[field.key]; ok && raw != nil {
+		value := fmt.Sprintf("%v", raw)
+		if field.kind == fieldKindEnv {
+			return envVarFromValue(value)
+		}
+		return value
+	}
+
+	return field.defaultValue
+}
+
+func promptString(message, defaultValue string) (string, error) {
+	return tui.PromptForString(tui.Prompt{
+		Message:     message,
+		Default:     defaultValue,
+		Placeholder: message,
+	})
+}
+
+func promptForProviderSelection() (string, error) {
+	descs := provider.Descriptors()
+	if len(descs) == 0 {
+		return "", fmt.Errorf("no provider descriptors registered")
+	}
+
+	fmt.Println("\nAvailable providers:")
+	for i, desc := range descs {
+		index := i + 1
+		fmt.Printf("  %d) %s (%s) - %s\n", index, desc.Name, desc.Source, desc.Description)
+		if hints := docgen.FormatDetectionHints(desc.Hints); hints != "" {
+			fmt.Printf("       %s\n", hints)
+		}
+		if len(desc.Capabilities) > 0 {
+			fmt.Printf("       Capabilities: %s\n", strings.Join(desc.Capabilities, ", "))
+		}
+	}
+
+	choice, err := promptString("Choose provider number", "1")
+	if err != nil {
+		return "", fmt.Errorf("failed to read provider choice: %w", err)
+	}
+
+	idx, err := strconv.Atoi(strings.TrimSpace(choice))
+	if err != nil {
+		return "", fmt.Errorf("invalid selection: %w", err)
+	}
+
+	if idx <= 0 || idx > len(descs) {
+		return "", fmt.Errorf("selection %d is out of range", idx)
+	}
+
+	return descs[idx-1].Name, nil
+}
+
+func envVarFromValue(value string) string {
+	value = strings.TrimSpace(value)
+	if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
+		return strings.TrimSuffix(strings.TrimPrefix(value, "${"), "}")
+	}
+	return value
 }
 
 func init() {
@@ -498,6 +603,7 @@ func init() {
 
 	// Flags for doctor command
 	providerDoctorCmd.Flags().String("config", "", "Path to provider config file (default: .specular/providers.yaml)")
+	providerDoctorCmd.Flags().Bool("quick", false, "Skip provider health checks and return quick summary")
 
 	// Flags for init command
 	providerInitCmd.Flags().Bool("force", false, "Overwrite existing provider config")

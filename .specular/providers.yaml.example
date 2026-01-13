@@ -2,24 +2,16 @@
 # This file configures AI providers that specular can use for various tasks
 
 providers:
-  # Local Ollama provider (requires ollama to be installed)
+  # Local Ollama provider (built-in native plugin)
   - name: ollama
-    type: cli
+    type: native
     enabled: true
-    source: local
+    source: builtin
     version: "1.0.0"
     config:
-      # Path to the ollama provider wrapper executable
-      path: ./providers/ollama/ollama-provider
-      # Trust level: builtin, verified, or community
-      trust_level: community
-      # Provider capabilities
-      capabilities:
-        streaming: true
-        tools: false
-        multi_turn: true
-        max_context_tokens: 8192
-    # Model hints mapping
+      base_url: http://localhost:11434
+      model: llama3.2
+      trust_level: builtin
     models:
       fast: llama3.2
       codegen: codellama
@@ -67,15 +59,35 @@ providers:
       agentic: claude-sonnet-4
       long-context: claude-sonnet-3.5
 
-  # Claude CLI provider (requires claude CLI to be installed)
-  - name: claude-cli
+  # Google Gemini API provider (requires GEMINI_API_KEY)
+  - name: gemini
+    type: api
+    enabled: false
+    source: builtin
+    version: "1.0.0"
+    config:
+      api_key: ${GEMINI_API_KEY}
+      base_url: https://generativelanguage.googleapis.com/v1beta
+      capabilities:
+        streaming: true
+        tools: true
+        multi_turn: true
+        vision: true
+        max_context_tokens: 1000000
+    models:
+      fast: gemini-2.0-flash-exp
+      codegen: gemini-2.0-flash-exp
+      agentic: gemini-2.5-pro-exp-03
+      long-context: gemini-2.5-pro-exp-03
+
+  # Claude Code CLI provider (requires claude CLI to be installed)
+  - name: claude-code
     type: cli
     enabled: false
     source: local
     version: "1.0.0"
     config:
-      path: /opt/homebrew/bin/claude
-      args: ["--print", "--output-format", "json"]
+      path: ./providers/claude-code/claude-code-provider
       trust_level: verified
       capabilities:
         streaming: false
@@ -83,30 +95,74 @@ providers:
         multi_turn: false
         max_context_tokens: 200000
     models:
-      fast: haiku
-      codegen: sonnet
-      agentic: opus
+      fast: claude-haiku-4-5-20251015
+      codegen: claude-sonnet-4-5-20250929
+      agentic: claude-opus-4-1-20250805
+      long-context: claude-sonnet-4-5-20250929
+      cheap: claude-haiku-4-5-20251015
+
+  # Gemini CLI provider (requires gemini CLI to be installed)
+  - name: gemini-cli
+    type: cli
+    enabled: false
+    source: local
+    version: "1.0.0"
+    config:
+      path: ./providers/gemini-cli/gemini-cli-provider
+      trust_level: community
+      capabilities:
+        streaming: true
+        tools: true
+        multi_turn: true
+        vision: true
+        max_context_tokens: 200000
+    models:
+      fast: gemini-2.0-flash-exp
+      codegen: gemini-exp-1206
+      agentic: gemini-exp-1206
+      long-context: gemini-exp-1206
+      cheap: gemini-2.0-flash-exp
+
+  # Codex CLI provider (requires codex CLI to be installed)
+  - name: codex-cli
+    type: cli
+    enabled: false
+    source: local
+    version: "1.0.0"
+    config:
+      path: ./providers/codex-cli/codex-cli-provider
+      trust_level: community
+      capabilities:
+        streaming: false
+        tools: true
+        multi_turn: true
+        max_context_tokens: 200000
+    models:
+      fast: codex
+      codegen: codex
+      agentic: codex
+      long-context: codex
+      cheap: codex
 
 # Provider selection strategy
 strategy:
-  # Prefer providers in this order when multiple are available
   preference:
     - ollama      # Local first (fastest, free)
-    - claude-cli  # Local Claude CLI (free)
+    - claude-code # Claude Code CLI (local)
+    - gemini-cli  # Gemini CLI wrapper
+    - codex-cli   # Codex CLI wrapper
     - anthropic   # Cloud API (high quality)
     - openai      # Cloud API (fallback)
+    - gemini      # Gemini API (vision)
 
-  # Budget constraints
   budget:
     max_cost_per_day: 20.0  # USD
     max_cost_per_request: 1.0  # USD
 
-  # Performance requirements
   performance:
     max_latency_ms: 60000  # 60 seconds
     prefer_cheap: true      # Prefer cheaper models when quality is similar
 
-  # Fallback behavior
   fallback:
     enabled: true
     max_retries: 3

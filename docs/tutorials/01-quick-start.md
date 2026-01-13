@@ -44,7 +44,7 @@ When prompted, select your AI provider and enter your API key:
 ### Option A: Interactive Interview (Recommended)
 
 ```bash
-specular interview --tui
+specular spec new --tui
 ```
 
 The TUI guides you through questions about:
@@ -58,7 +58,7 @@ The TUI guides you through questions about:
 If you have a PRD document:
 
 ```bash
-specular spec generate --in PRD.md --out .specular/spec.yaml
+specular spec new --from PRD.md --out .specular/spec.yaml
 ```
 
 ## Step 5: Review Your Spec
@@ -81,17 +81,17 @@ Now that you have a spec, you can:
 
 1. **Generate an execution plan:**
    ```bash
-   specular plan
+   specular plan create
    ```
 
 2. **Run a dry-run build:**
    ```bash
-   specular build --dry-run
+   specular build run --dry-run
    ```
 
 3. **Detect drift:**
    ```bash
-   specular eval
+   specular eval drift
    ```
 
 ## Troubleshooting
@@ -106,7 +106,7 @@ Check your API key is correct and has sufficient credits.
 
 ### "Interview stuck"
 
-Press `Ctrl+C` to cancel and restart with `specular interview --tui`.
+Press `Ctrl+C` to cancel and restart with `specular spec new --tui`.
 
 ## Learn More
 

@@ -1,0 +1,242 @@
+# Specular Product Specification - Mobile Backend API
+# Template: api-service
+# Example project for specular demonstration
+
+product:
+  name: "Mobile Backend API"
+  description: "Backend-as-a-Service for mobile applications with Firebase integration for push notifications, real-time sync, authentication, and file storage"
+  goals:
+    - "Provide secure user authentication with social login"
+    - "Enable real-time data synchronization across devices"
+    - "Support push notifications for iOS and Android"
+    - "Handle file uploads and media management"
+  tech_stack:
+    language: "Go"
+    framework: "Chi router"
+    database: "Cloud Firestore"
+    runtime: "Go 1.22"
+    services:
+      - "Firebase Admin SDK"
+      - "Firebase Cloud Messaging"
+      - "Firebase Authentication"
+      - "Cloud Storage"
+
+features:
+  - id: "feat-001"
+    title: "User Authentication"
+    description: "Firebase-based authentication with social login and token management"
+    priority: "P0"
+    api:
+      - method: "POST"
+        path: "/api/auth/register"
+        request_body:
+          email: "string"
+          password: "string"
+          displayName: "string"
+        response:
+          uid: "string"
+          token: "string"
+      - method: "POST"
+        path: "/api/auth/login"
+        request_body:
+          email: "string"
+          password: "string"
+        response:
+          token: "string"
+          refreshToken: "string"
+          expiresIn: "number"
+      - method: "POST"
+        path: "/api/auth/social"
+        request_body:
+          provider: "string"
+          idToken: "string"
+        response:
+          token: "string"
+          user: "object"
+      - method: "POST"
+        path: "/api/auth/refresh"
+        request_body:
+          refreshToken: "string"
+        response:
+          token: "string"
+      - method: "GET"
+        path: "/api/auth/profile"
+        response:
+          user: "object"
+      - method: "PUT"
+        path: "/api/auth/profile"
+        request_body:
+          displayName: "string"
+          photoURL: "string"
+    acceptance:
+      - "Users can register with email/password"
+      - "Social login supports Google, Apple, and Facebook"
+      - "JWT tokens expire after 1 hour"
+      - "Refresh tokens valid for 30 days"
+    trace:
+      - "internal/handlers/auth.go"
+      - "internal/firebase/auth.go"
+
+  - id: "feat-002"
+    title: "Push Notifications"
+    description: "Firebase Cloud Messaging for iOS and Android push notifications"
+    priority: "P0"
+    api:
+      - method: "POST"
+        path: "/api/notifications/register"
+        request_body:
+          deviceToken: "string"
+          platform: "string"
+        response:
+          success: "boolean"
+      - method: "POST"
+        path: "/api/notifications/send"
+        request_body:
+          userId: "string"
+          title: "string"
+          body: "string"
+          data: "object"
+        response:
+          messageId: "string"
+      - method: "POST"
+        path: "/api/notifications/topic"
+        request_body:
+          topic: "string"
+          title: "string"
+          body: "string"
+        response:
+          messageId: "string"
+      - method: "DELETE"
+        path: "/api/notifications/unregister"
+        request_body:
+          deviceToken: "string"
+    acceptance:
+      - "Device tokens stored per user"
+      - "Support both iOS and Android platforms"
+      - "Topic-based broadcast notifications"
+      - "Delivery tracking and receipts"
+    trace:
+      - "internal/handlers/notifications.go"
+      - "internal/firebase/messaging.go"
+
+  - id: "feat-003"
+    title: "Real-time Sync"
+    description: "Firestore-backed real-time data synchronization"
+    priority: "P0"
+    api:
+      - method: "GET"
+        path: "/api/sync/{collection}"
+        query_params:
+          since: "timestamp"
+          limit: "number"
+        response:
+          documents: "array"
+          lastSync: "timestamp"
+      - method: "POST"
+        path: "/api/sync/{collection}"
+        request_body:
+          documents: "array"
+        response:
+          synced: "number"
+          conflicts: "array"
+      - method: "WS"
+        path: "/api/sync/ws"
+        description: "WebSocket for real-time updates"
+    acceptance:
+      - "Offline-first with conflict resolution"
+      - "Incremental sync based on timestamp"
+      - "WebSocket for live updates"
+      - "Conflict detection with last-write-wins"
+    trace:
+      - "internal/handlers/sync.go"
+      - "internal/firebase/firestore.go"
+
+  - id: "feat-004"
+    title: "File Storage"
+    description: "Cloud Storage integration for media uploads"
+    priority: "P1"
+    api:
+      - method: "POST"
+        path: "/api/files/upload"
+        request_body:
+          file: "binary"
+          contentType: "string"
+          path: "string"
+        response:
+          url: "string"
+          size: "number"
+      - method: "GET"
+        path: "/api/files/{fileId}"
+        response:
+          url: "string"
+          metadata: "object"
+      - method: "DELETE"
+        path: "/api/files/{fileId}"
+      - method: "POST"
+        path: "/api/files/signed-url"
+        request_body:
+          path: "string"
+          contentType: "string"
+          expiresIn: "number"
+        response:
+          uploadUrl: "string"
+          downloadUrl: "string"
+    acceptance:
+      - "Support images, videos, and documents"
+      - "Automatic thumbnail generation for images"
+      - "Signed URLs for secure direct uploads"
+      - "File size limit: 100MB"
+    trace:
+      - "internal/handlers/files.go"
+      - "internal/firebase/storage.go"
+
+  - id: "feat-005"
+    title: "User Preferences"
+    description: "User settings and app configuration"
+    priority: "P2"
+    api:
+      - method: "GET"
+        path: "/api/users/{userId}/preferences"
+        response:
+          preferences: "object"
+      - method: "PUT"
+        path: "/api/users/{userId}/preferences"
+        request_body:
+          preferences: "object"
+      - method: "GET"
+        path: "/api/config"
+        response:
+          version: "string"
+          features: "object"
+          maintenance: "boolean"
+    acceptance:
+      - "Per-user preference storage"
+      - "App-wide feature flags"
+      - "Remote configuration updates"
+    trace:
+      - "internal/handlers/preferences.go"
+
+non_functional:
+  performance:
+    - "API response < 200ms p95"
+    - "Support 1000 concurrent WebSocket connections"
+    - "File upload: 10MB/s throughput"
+  security:
+    - "Firebase ID token verification"
+    - "Rate limiting: 1000 req/min per user"
+    - "File type validation and scanning"
+  observability:
+    - "Structured JSON logging with request tracing"
+    - "Prometheus metrics with Firebase operation latencies"
+    - "Cloud Trace integration"
+
+milestones:
+  - name: "MVP"
+    features: ["feat-001", "feat-002"]
+    date: "2025-02-15"
+  - name: "Beta"
+    features: ["feat-003", "feat-004"]
+    date: "2025-03-01"
+  - name: "GA"
+    features: ["feat-005"]
+    date: "2025-03-15"

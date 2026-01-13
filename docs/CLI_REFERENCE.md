@@ -247,6 +247,8 @@ Runs comprehensive system health checks across all Specular components:
 - **Project Structure**: Workspace and file structure validation
 - **Governance**: Governance workspace and policy checks
 - **Environment**: System environment and dependencies
+- **Provider Telemetry**: Dumps recent provider events to `.specular/provider-events.log` so you can trace detections/health/spec generation history.
+  Tail the log (for example `tail -f .specular/provider-events.log`) after running `specular doctor` to see the detailed history.
 
 **Example:**
 ```bash
@@ -914,7 +916,7 @@ Plan:
   ✓ Plan file exists (updated 1 hour ago)
 
 📋 Next Steps:
-   1. Execute plan with 'specular build'
+   1. Execute plan with 'specular build run'
 
 ✅ Project is healthy and ready
 ```
@@ -951,7 +953,7 @@ $ specular status --format json
   },
   "issues": [],
   "warnings": [],
-  "next_steps": ["Execute plan with 'specular build'"],
+  "next_steps": ["Execute plan with 'specular build run'"],
   "healthy": true
 }
 ```
@@ -1158,23 +1160,21 @@ specular spec <subcommand> [flags]
 
 **Subcommands:**
 
-- `spec generate` - Generate specification from description
+- `spec new` - Create specification (interactive or from PRD)
+- `spec generate` - Generate specification from PRD markdown (legacy)
 - `spec lock` - Lock specification to spec.lock.json
 - `spec validate` - Validate specification format
 - `spec show` - Display current specification
 
 ---
 
-### interview
+### interview (legacy)
 
-Interactive specification generation (legacy command).
+The legacy `specular interview` command has been removed. Use:
 
-**Usage:**
 ```bash
-specular interview [flags]
+specular spec new --tui
 ```
-
-**Note:** This command is being deprecated in favor of `specular spec new` in v1.4.x.
 
 ---
 
@@ -1313,7 +1313,7 @@ $ dot -Tpng plan.dot -o plan.png
 Validate plan structure and consistency.
 
 ```bash
-specular plan validate [--plan <file>] [--strict]
+specular plan validate [--plan <file>]
 ```
 
 **Description:**
@@ -1338,26 +1338,11 @@ $ specular plan validate --plan plan.json
 Plan validation passed.
 ```
 
-**Strict Mode:**
-```bash
-$ specular plan validate --plan plan.json --strict
-✓ Plan structure valid
-✓ All task IDs unique
-✓ Dependencies acyclic
-✓ All features covered
-⚠ Warning: 2 tasks missing effort estimates
-✗ Error: task-005 references non-existent dependency task-999
-
-Plan validation failed in strict mode.
-```
-
 **Flags:**
 
 | Flag | Type | Description |
 |------|------|-------------|
 | `--plan <file>` | string | Plan file to validate (default: plan.json) |
-| `--strict` | bool | Enable strict validation mode |
-| `--json` | bool | Output validation results as JSON |
 
 ---
 
@@ -1548,106 +1533,63 @@ $ specular build --plan plan.json
 
 #### build verify
 
-Run quality gate checks on build bundle.
+Run lint, tests, and policy checks.
 
 ```bash
-specular build verify --bundle <file> [--strict]
+specular build verify [--policy <file>]
 ```
 
 **Description:**
 
-Performs comprehensive verification of build artifacts:
-- Validates bundle structure and integrity
-- Verifies task completion status
-- Checks test results and coverage
-- Validates policy compliance
-- Inspects artifacts for quality standards
+Runs local quality gates before or after a build:
+- `go vet`
+- `golangci-lint` (if installed)
+- `go test -short`
+- Policy compliance checks (from policy file)
 
 **Example:**
 ```bash
-$ specular build verify --bundle .specular/bundles/build-abc123.tar
+$ specular build verify --policy .specular/policy.yaml
 
-Build Verification:
-
-Bundle Structure:
-  ✓ Manifest present
-  ✓ Task logs complete
-  ✓ Artifacts directory exists
-
-Task Completion:
-  ✓ All tasks completed successfully
-  ✓ No failed tasks
-  ✓ Exit codes valid
-
-Test Results:
-  ✓ All tests passed
-  ✓ Coverage: 85% (>= 80% required)
-
-Policy Compliance:
-  ✓ Docker images from allowlist
-  ✓ Resource limits enforced
-  ✓ Network isolation verified
-
-✓ Build verification passed
-```
-
-**Strict Mode:**
-```bash
-$ specular build verify --bundle build-abc123.tar --strict
-⚠ Warning: Test coverage 85% below recommended 90%
-⚠ Warning: 2 tasks missing effort tracking
-✗ Error: Container exited with non-zero code
-
-Build verification failed in strict mode.
+=== Build Verification ===
+✓ go vet passed
+✓ golangci-lint passed
+✓ Tests passed
+✓ Policy loaded
 ```
 
 **Flags:**
 
 | Flag | Type | Description |
 |------|------|-------------|
-| `--bundle <file>` | string | Build bundle to verify (required) |
-| `--strict` | bool | Enable strict verification mode |
-| `--format` | string | Output format: text, json, yaml |
+| `--policy <file>` | string | Policy file for verification |
 
 ---
 
 #### build approve
 
-Approve build for deployment or next stage.
+Approve the latest build manifest for auditability.
 
 ```bash
-specular build approve <bundle-id> [--reason <text>]
+specular build approve [--manifest-dir <dir>]
 ```
 
 **Description:**
 
-Records approval for build deployment:
-- Verifies build verification passed
-- Creates approval record with audit trail
-- Enables gated deployment workflow
-- Updates build approval status
+Creates an approval marker for the latest build manifest in the run directory.
 
 **Example:**
 ```bash
-$ specular build approve build-abc123 --reason "All tests passed, ready for staging"
+$ specular build approve
 ✓ Build approved
-  Build ID: build-abc123
-  Approver: user@example.com
-  Timestamp: 2025-11-17T10:30:00Z
-  Reason: All tests passed, ready for staging
-
-Approval recorded in .specular/approvals/build-abc123.json
-
-Next steps:
-  1. Deploy with 'specular deploy --bundle build-abc123'
+  Approval record: .specular/runs/<run-id>/approved
 ```
 
 **Flags:**
 
 | Flag | Type | Description |
 |------|------|-------------|
-| `--reason <text>` | string | Reason for approval (required) |
-| `--approver <email>` | string | Approver email (defaults to git config) |
+| `--manifest-dir <dir>` | string | Directory for run manifests |
 
 ---
 
@@ -1656,7 +1598,7 @@ Next steps:
 Explain build execution and task outcomes.
 
 ```bash
-specular build explain [--bundle <file>] [--task <id>]
+specular build explain [--manifest-dir <dir>]
 ```
 
 **Description:**
@@ -1670,80 +1612,22 @@ Provides detailed explanation of build execution:
 
 **Example:**
 ```bash
-$ specular build explain --bundle build-abc123.tar
+$ specular build explain
 
-Build Execution Summary:
+=== Build Execution Explanation ===
 
 Build ID: build-abc123
-Started: 2025-11-17T10:00:00Z
-Completed: 2025-11-17T10:11:30Z
-Duration: 11m30s
-
-Tasks Executed:
-  1. task-001: Database schema
-     Container: golang:1.22
-     Duration: 2m15s
-     Exit Code: 0
-     Resources: CPU 0.5, Memory 256MB
-
-  2. task-002: API endpoints
-     Container: golang:1.22
-     Duration: 5m30s
-     Exit Code: 0
-     Resources: CPU 1.0, Memory 512MB
-
-  3. task-003: UI components
-     Container: node:20-alpine
-     Duration: 3m45s
-     Exit Code: 0
-     Resources: CPU 0.8, Memory 384MB
-
-Policy Enforcement:
-  ✓ All containers from allowlist
-  ✓ Resource limits enforced
-  ✓ Network isolation active
-  ✓ No policy violations
-
-Build Status: Success
+Manifest: .specular/runs/build-abc123/manifest.json
+Timestamp: 2025-11-17T10:11:30Z
 ```
 
-**Task-Specific Explanation:**
-```bash
-$ specular build explain --bundle build-abc123.tar --task task-002
-
-Task: task-002 (API endpoints)
-
-Execution Details:
-  Container: golang:1.22
-  Command: go build ./cmd/api
-  Working Dir: /workspace
-  Environment: 5 variables
-  Duration: 5m30s
-  Exit Code: 0
-
-Resource Usage:
-  CPU: 1.0 cores (max allowed: 2.0)
-  Memory: 512MB (max allowed: 2GB)
-  Disk: 150MB written
-
-Standard Output (last 20 lines):
-  go: downloading github.com/gin-gonic/gin v1.9.1
-  ...
-  Build successful
-
-Policy Checks:
-  ✓ Image from allowlist
-  ✓ Resource limits respected
-  ✓ Network isolated
-```
+Inspect task-level details by opening the manifest and logs under `.specular/runs`.
 
 **Flags:**
 
 | Flag | Type | Description |
 |------|------|-------------|
-| `--bundle <file>` | string | Build bundle to explain |
-| `--task <id>` | string | Explain specific task only |
-| `--format` | string | Output format: text, json, yaml |
+| `--manifest-dir <dir>` | string | Directory for run manifests |
 
 ---
 
@@ -2110,16 +1994,6 @@ SARIF report saved to: drift.sarif
 | `--api-spec <file>` | string | OpenAPI specification for API drift |
 | `--report <file>` | string | SARIF report output file |
 | `--project-root <dir>` | string | Project root directory |
-
-**Backward Compatibility:**
-
-The deprecated form `plan drift` still works:
-```bash
-$ specular plan drift --spec spec.yaml
-⚠ Warning: 'plan drift' is deprecated. Use 'drift check' instead.
-```
-
----
 
 #### drift approve
 
@@ -2546,8 +2420,8 @@ $ specular provider set-default anthropic
 
 All operations will use Anthropic Claude unless overridden.
 
-To use a different provider for specific commands:
-  specular spec generate --provider ollama
+To use a different provider, update `.specular/providers.yaml` or run:
+  specular provider set-default ollama
 ```
 
 **Flags:**

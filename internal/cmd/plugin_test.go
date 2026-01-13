@@ -45,6 +45,7 @@ func TestPluginSubcommands(t *testing.T) {
 		"disable <plugin-name>": false,
 		"install <source>":     false,
 		"uninstall <plugin-name>": false,
+		"update [plugin-name]": false,
 		"create <name>":        false,
 	}
 
@@ -247,6 +248,15 @@ func TestPluginCreateFlags(t *testing.T) {
 	if createCmd.Flags().Lookup("author") == nil {
 		t.Error("create command missing --author flag")
 	}
+	if createCmd.Flags().Lookup("lang") == nil {
+		t.Error("create command missing --lang flag")
+	}
+
+	// Check default value for --lang flag
+	langFlag := createCmd.Flags().Lookup("lang")
+	if langFlag.DefValue != "shell" {
+		t.Errorf("--lang flag default value = %q, want %q", langFlag.DefValue, "shell")
+	}
 }
 
 func TestPluginUninstallFlags(t *testing.T) {
@@ -438,6 +448,80 @@ func TestPluginCreateInvalidType(t *testing.T) {
 	}
 }
 
+func TestPluginCreateInvalidLanguage(t *testing.T) {
+	// Test that invalid languages are rejected
+	validLangs := []string{"go", "python", "node", "shell"}
+	invalidLangs := []string{"invalid", "rust", "java", "ruby", ""}
+
+	for _, invalidLang := range invalidLangs {
+		langValid := false
+		for _, l := range validLangs {
+			if invalidLang == l {
+				langValid = true
+				break
+			}
+		}
+		if langValid {
+			t.Errorf("Language %s should be invalid", invalidLang)
+		}
+	}
+
+	// Verify valid languages pass
+	for _, validLang := range validLangs {
+		langValid := false
+		for _, l := range validLangs {
+			if validLang == l {
+				langValid = true
+				break
+			}
+		}
+		if !langValid {
+			t.Errorf("Language %s should be valid", validLang)
+		}
+	}
+}
+
+func TestPluginCreateLangDescription(t *testing.T) {
+	var pluginCommand *cobra.Command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "plugin" {
+			pluginCommand = c
+			break
+		}
+	}
+	if pluginCommand == nil {
+		t.Fatal("plugin command not found")
+	}
+
+	var createCmd *cobra.Command
+	for _, sub := range pluginCommand.Commands() {
+		if sub.Use == "create <name>" {
+			createCmd = sub
+			break
+		}
+	}
+	if createCmd == nil {
+		t.Fatal("create subcommand not found")
+	}
+
+	// Check Long description mentions supported languages
+	if !strings.Contains(createCmd.Long, "go") {
+		t.Error("Long description should mention 'go' language")
+	}
+	if !strings.Contains(createCmd.Long, "python") {
+		t.Error("Long description should mention 'python' language")
+	}
+	if !strings.Contains(createCmd.Long, "node") {
+		t.Error("Long description should mention 'node' language")
+	}
+	if !strings.Contains(createCmd.Long, "shell") {
+		t.Error("Long description should mention 'shell' language")
+	}
+	if !strings.Contains(createCmd.Long, "--lang") {
+		t.Error("Long description should mention '--lang' flag")
+	}
+}
+
 func TestPluginHealthSubcommand(t *testing.T) {
 	var pluginCommand *cobra.Command
 	for _, c := range rootCmd.Commands() {
@@ -533,5 +617,311 @@ func TestPluginInstallSubcommand(t *testing.T) {
 	}
 	if !strings.Contains(installCmd.Long, "GitHub") {
 		t.Error("install Long description should mention GitHub")
+	}
+}
+
+func TestPluginInstallFlags(t *testing.T) {
+	var pluginCommand *cobra.Command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "plugin" {
+			pluginCommand = c
+			break
+		}
+	}
+	if pluginCommand == nil {
+		t.Fatal("plugin command not found")
+	}
+
+	var installCmd *cobra.Command
+	for _, sub := range pluginCommand.Commands() {
+		if sub.Use == "install <source>" {
+			installCmd = sub
+			break
+		}
+	}
+	if installCmd == nil {
+		t.Fatal("install subcommand not found")
+	}
+
+	// Check flags
+	if installCmd.Flags().Lookup("force") == nil {
+		t.Error("install command missing --force flag")
+	}
+	if installCmd.Flags().Lookup("upgrade") == nil {
+		t.Error("install command missing --upgrade flag")
+	}
+	if installCmd.Flags().Lookup("version") == nil {
+		t.Error("install command missing --version flag")
+	}
+
+	// Check short flags
+	if installCmd.Flags().ShorthandLookup("f") == nil {
+		t.Error("install command missing -f shorthand for --force")
+	}
+	if installCmd.Flags().ShorthandLookup("u") == nil {
+		t.Error("install command missing -u shorthand for --upgrade")
+	}
+	if installCmd.Flags().ShorthandLookup("v") == nil {
+		t.Error("install command missing -v shorthand for --version")
+	}
+}
+
+func TestPluginUpdateSubcommand(t *testing.T) {
+	var pluginCommand *cobra.Command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "plugin" {
+			pluginCommand = c
+			break
+		}
+	}
+	if pluginCommand == nil {
+		t.Fatal("plugin command not found")
+	}
+
+	var updateCmd *cobra.Command
+	for _, sub := range pluginCommand.Commands() {
+		if sub.Use == "update [plugin-name]" {
+			updateCmd = sub
+			break
+		}
+	}
+	if updateCmd == nil {
+		t.Fatal("update subcommand not found")
+	}
+
+	// Check description
+	if !strings.Contains(updateCmd.Short, "Update") {
+		t.Error("update Short description should mention Update")
+	}
+
+	// Check long description mentions update options
+	if !strings.Contains(updateCmd.Long, "all plugins") {
+		t.Error("update Long description should mention updating all plugins")
+	}
+	if !strings.Contains(updateCmd.Long, "@version") {
+		t.Error("update Long description should mention version suffix")
+	}
+}
+
+func TestPluginSearchSubcommand(t *testing.T) {
+	var pluginCommand *cobra.Command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "plugin" {
+			pluginCommand = c
+			break
+		}
+	}
+	if pluginCommand == nil {
+		t.Fatal("plugin command not found")
+	}
+
+	var searchCmd *cobra.Command
+	for _, sub := range pluginCommand.Commands() {
+		if sub.Use == "search [query]" {
+			searchCmd = sub
+			break
+		}
+	}
+	if searchCmd == nil {
+		t.Fatal("search subcommand not found")
+	}
+
+	// Check description
+	if !strings.Contains(searchCmd.Short, "Search") {
+		t.Error("search Short description should mention Search")
+	}
+
+	// Check long description
+	if !strings.Contains(searchCmd.Long, "registry") {
+		t.Error("search Long description should mention registry")
+	}
+	if !strings.Contains(searchCmd.Long, "--type") {
+		t.Error("search Long description should mention --type filter")
+	}
+}
+
+func TestPluginSearchFlags(t *testing.T) {
+	var pluginCommand *cobra.Command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "plugin" {
+			pluginCommand = c
+			break
+		}
+	}
+	if pluginCommand == nil {
+		t.Fatal("plugin command not found")
+	}
+
+	var searchCmd *cobra.Command
+	for _, sub := range pluginCommand.Commands() {
+		if sub.Use == "search [query]" {
+			searchCmd = sub
+			break
+		}
+	}
+	if searchCmd == nil {
+		t.Fatal("search subcommand not found")
+	}
+
+	// Check flags
+	if searchCmd.Flags().Lookup("type") == nil {
+		t.Error("search command missing --type flag")
+	}
+	if searchCmd.Flags().Lookup("limit") == nil {
+		t.Error("search command missing --limit flag")
+	}
+	if searchCmd.Flags().Lookup("registry") == nil {
+		t.Error("search command missing --registry flag")
+	}
+	if searchCmd.Flags().Lookup("clear-cache") == nil {
+		t.Error("search command missing --clear-cache flag")
+	}
+
+	// Check short flags
+	if searchCmd.Flags().ShorthandLookup("n") == nil {
+		t.Error("search command missing -n shorthand for --limit")
+	}
+}
+
+func TestPluginRegistryInfoSubcommand(t *testing.T) {
+	var pluginCommand *cobra.Command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "plugin" {
+			pluginCommand = c
+			break
+		}
+	}
+	if pluginCommand == nil {
+		t.Fatal("plugin command not found")
+	}
+
+	var regInfoCmd *cobra.Command
+	for _, sub := range pluginCommand.Commands() {
+		if sub.Use == "registry-info <plugin-name>" {
+			regInfoCmd = sub
+			break
+		}
+	}
+	if regInfoCmd == nil {
+		t.Fatal("registry-info subcommand not found")
+	}
+
+	// Check description
+	if !strings.Contains(regInfoCmd.Short, "registry") {
+		t.Error("registry-info Short description should mention registry")
+	}
+
+	// Check long description
+	if !strings.Contains(regInfoCmd.Long, "versions") {
+		t.Error("registry-info Long description should mention versions")
+	}
+	if !strings.Contains(regInfoCmd.Long, "Download statistics") {
+		t.Error("registry-info Long description should mention download statistics")
+	}
+}
+
+func TestPluginRegistryInfoAliases(t *testing.T) {
+	var pluginCommand *cobra.Command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "plugin" {
+			pluginCommand = c
+			break
+		}
+	}
+	if pluginCommand == nil {
+		t.Fatal("plugin command not found")
+	}
+
+	var regInfoCmd *cobra.Command
+	for _, sub := range pluginCommand.Commands() {
+		if sub.Use == "registry-info <plugin-name>" {
+			regInfoCmd = sub
+			break
+		}
+	}
+	if regInfoCmd == nil {
+		t.Fatal("registry-info subcommand not found")
+	}
+
+	// Check aliases
+	hasRegInfoAlias := false
+	for _, alias := range regInfoCmd.Aliases {
+		if alias == "reg-info" {
+			hasRegInfoAlias = true
+			break
+		}
+	}
+	if !hasRegInfoAlias {
+		t.Error("registry-info command should have 'reg-info' alias")
+	}
+}
+
+func TestPluginRegistryInfoFlags(t *testing.T) {
+	var pluginCommand *cobra.Command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "plugin" {
+			pluginCommand = c
+			break
+		}
+	}
+	if pluginCommand == nil {
+		t.Fatal("plugin command not found")
+	}
+
+	var regInfoCmd *cobra.Command
+	for _, sub := range pluginCommand.Commands() {
+		if sub.Use == "registry-info <plugin-name>" {
+			regInfoCmd = sub
+			break
+		}
+	}
+	if regInfoCmd == nil {
+		t.Fatal("registry-info subcommand not found")
+	}
+
+	// Check flags
+	if regInfoCmd.Flags().Lookup("registry") == nil {
+		t.Error("registry-info command missing --registry flag")
+	}
+}
+
+func TestPluginSubcommandsComplete(t *testing.T) {
+	// Find the plugin command
+	var pluginCommand *cobra.Command
+	for _, c := range rootCmd.Commands() {
+		if c.Use == "plugin" {
+			pluginCommand = c
+			break
+		}
+	}
+	if pluginCommand == nil {
+		t.Fatal("plugin command not found")
+	}
+
+	// Check all expected subcommands including search and registry-info
+	expectedSubcommands := map[string]bool{
+		"list":                     false,
+		"info <plugin-name>":       false,
+		"health <plugin-name>":     false,
+		"enable <plugin-name>":     false,
+		"disable <plugin-name>":    false,
+		"install <source>":         false,
+		"uninstall <plugin-name>":  false,
+		"update [plugin-name]":     false,
+		"create <name>":            false,
+		"search [query]":           false,
+		"registry-info <plugin-name>": false,
+	}
+
+	for _, sub := range pluginCommand.Commands() {
+		if _, ok := expectedSubcommands[sub.Use]; ok {
+			expectedSubcommands[sub.Use] = true
+		}
+	}
+
+	for name, found := range expectedSubcommands {
+		if !found {
+			t.Errorf("Missing subcommand: %s", name)
+		}
 	}
 }

@@ -45,7 +45,7 @@ This generates `.specular/spec.lock.json` with:
 Convert the spec into an actionable task DAG:
 
 ```bash
-specular plan
+specular plan create
 ```
 
 Output: `.specular/plan.json`
@@ -53,7 +53,7 @@ Output: `.specular/plan.json`
 Review the plan:
 
 ```bash
-specular plan show
+specular plan review
 ```
 
 You'll see:
@@ -64,10 +64,10 @@ You'll see:
 
 ### Customizing the Plan
 
-Edit priorities or add dependencies:
+Use the interactive review UI to adjust priorities and approve the plan:
 
 ```bash
-specular plan edit
+specular plan review
 ```
 
 Or manually edit `.specular/plan.json`.
@@ -79,7 +79,7 @@ Or manually edit `.specular/plan.json`.
 Run the build with policy enforcement:
 
 ```bash
-specular build --plan .specular/plan.json
+specular build run --plan .specular/plan.json
 ```
 
 ### Dry Run First
@@ -87,7 +87,7 @@ specular build --plan .specular/plan.json
 Always preview before executing:
 
 ```bash
-specular build --dry-run
+specular build run --dry-run
 ```
 
 This shows:
@@ -109,7 +109,7 @@ This shows:
 Watch build progress:
 
 ```bash
-specular build --verbose
+specular build run --verbose
 ```
 
 Or check logs:
@@ -125,7 +125,7 @@ specular logs --follow
 After build, run evaluation to check quality:
 
 ```bash
-specular eval
+specular eval drift
 ```
 
 This performs:
@@ -137,11 +137,7 @@ This performs:
 
 Output: `.specular/drift.sarif`
 
-View human-readable summary:
-
-```bash
-specular eval show
-```
+View human-readable summary by opening the SARIF report in your preferred viewer.
 
 Types of drift:
 - **Plan drift** - Task hashes don't match spec
@@ -158,7 +154,7 @@ For each finding:
 ```bash
 # After fixing
 specular spec lock
-specular eval
+specular eval drift
 ```
 
 ---
@@ -175,13 +171,13 @@ vim .specular/spec.yaml
 specular spec lock
 
 # 3. Re-plan
-specular plan
+specular plan create
 
-# 4. Re-build (only changed tasks)
-specular build --incremental
+# 4. Re-build
+specular build run --plan .specular/plan.json
 
 # 5. Re-eval
-specular eval
+specular eval drift
 ```
 
 ---
@@ -193,19 +189,19 @@ Before shipping, verify:
 ### Run Full Evaluation
 
 ```bash
-specular eval --fail-on drift,lint,test,security
+specular eval run --scenario integration
 ```
 
-### Check Coverage
+### Run Security Checks
 
 ```bash
-specular eval --min-coverage 0.80
+specular eval run --scenario security
 ```
 
-### Generate Reports
+### Generate Drift Reports
 
 ```bash
-specular eval --report sarif --output results.sarif
+specular eval drift --report results.sarif
 ```
 
 ### Review Audit Trail
@@ -227,9 +223,9 @@ Each run has a manifest with:
 | Command | Purpose | Output |
 |---------|---------|--------|
 | `specular spec lock` | Lock spec with hashes | `spec.lock.json` |
-| `specular plan` | Generate task DAG | `plan.json` |
-| `specular build` | Execute with governance | Code artifacts |
-| `specular eval` | Check drift and quality | `drift.sarif` |
+| `specular plan create` | Generate task DAG | `plan.json` |
+| `specular build run` | Execute with governance | Code artifacts |
+| `specular eval drift` | Check drift and quality | `drift.sarif` |
 
 ---
 

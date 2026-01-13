@@ -1,0 +1,78 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+const Version = "{{.Version}}"
+
+// PluginRequest represents incoming plugin requests
+type PluginRequest struct {
+	Action string                 `json:"action"`
+	Data   map[string]interface{} `json:"data,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
+}
+
+// PluginResponse represents plugin responses
+type PluginResponse struct {
+	Success bool        `json:"success"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
+// HookResult for hook execution responses
+type HookResult struct {
+	Executed bool                   `json:"executed"`
+	Data     map[string]interface{} `json:"data,omitempty"`
+}
+
+func main() {
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		var req PluginRequest
+		if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("invalid JSON: %v", err)})
+			continue
+		}
+
+		switch req.Action {
+		case "health":
+			respond(PluginResponse{
+				Success: true,
+				Result: map[string]string{
+					"status":  "healthy",
+					"version": Version,
+				},
+			})
+		case "pre", "post", "execute":
+			result, err := executeHook(req)
+			if err != nil {
+				respond(PluginResponse{Success: false, Error: err.Error()})
+			} else {
+				respond(PluginResponse{Success: true, Result: result})
+			}
+		default:
+			respond(PluginResponse{Success: false, Error: fmt.Sprintf("unknown action: %s", req.Action)})
+		}
+	}
+}
+
+func executeHook(req PluginRequest) (*HookResult, error) {
+	event, _ := req.Data["event"].(string)
+
+	// TODO: Implement your hook logic here
+	// Example: result := handleEvent(event, req.Data, req.Config)
+	_ = event
+
+	return &HookResult{
+		Executed: true,
+		Data:     map[string]interface{}{},
+	}, nil
+}
+
+func respond(resp PluginResponse) {
+	json.NewEncoder(os.Stdout).Encode(resp)
+}

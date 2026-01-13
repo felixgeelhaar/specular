@@ -41,12 +41,13 @@ jobs:
       - name: Run Drift Detection
         uses: ./
         with:
-          command: 'eval'
+          command: 'drift'
           spec-file: '.specular/spec.yaml'
+          lock-file: '.specular/spec.lock.json'
           plan-file: 'plan.json'
           policy-file: '.specular/policy.yaml'
-          report-file: 'drift-report.sarif'
-          fail-on-drift: 'true'
+          sarif-output: 'drift-report.sarif'
+          fail-on: 'drift'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Comment PR with Results

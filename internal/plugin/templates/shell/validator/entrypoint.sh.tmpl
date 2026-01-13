@@ -1,0 +1,28 @@
+#!/bin/bash
+# {{.Name}} - A Specular validator plugin
+# Type: validator
+
+set -e
+
+VERSION="{{.Version}}"
+
+INPUT=$(cat)
+ACTION=$(echo "$INPUT" | jq -r '.action // "validate"')
+
+case "$ACTION" in
+  "health")
+    echo "{\"success\": true, \"result\": {\"status\": \"healthy\", \"version\": \"$VERSION\"}}"
+    ;;
+  "validate")
+    CONTENT=$(echo "$INPUT" | jq -r '.data.content // ""')
+
+    # TODO: Implement your validation logic here
+    # Example: ERRORS=$(run_my_validation "$CONTENT")
+
+    echo "{\"success\": true, \"result\": {\"valid\": true, \"errors\": [], \"warnings\": []}}"
+    ;;
+  *)
+    echo "{\"success\": false, \"error\": \"Unknown action: $ACTION\"}"
+    exit 1
+    ;;
+esac

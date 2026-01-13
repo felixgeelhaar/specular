@@ -99,7 +99,7 @@ const { version = "v1.9.0" } = Astro.props;
           <!-- Step 5: Build with Sandbox -->
           <div class="terminal-line cmd-line line-15">
             <span class="prompt">$</span>
-            <span class="command cmd-15">specular build --sandbox</span>
+            <span class="command cmd-15">specular build run --dry-run</span>
           </div>
           <div class="terminal-line line-16">
             <span class="output"><span class="success">✓</span> Docker sandbox created (isolated)</span>
@@ -354,7 +354,7 @@ const { version = "v1.9.0" } = Astro.props;
   .line-13 { animation-delay: 5.0s; }
   .line-14 { animation-delay: 5.7s; }
 
-  /* Step 5: specular build --sandbox (cmd types 6.2-6.7s, output starts 6.8s) */
+  /* Step 5: specular build run --dry-run (cmd types 6.2-6.7s, output starts 6.8s) */
   .line-15 { animation-delay: 6.2s; }
   .line-16 { animation-delay: 6.9s; }
   .line-17 { animation-delay: 7.3s; }

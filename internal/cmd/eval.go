@@ -512,13 +512,13 @@ func runEvalDrift(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate required files with helpful errors
-	if err := ux.ValidateRequiredFile(planFile, "Plan file", "specular plan"); err != nil {
+	if err := ux.ValidateRequiredFile(planFile, "Plan file", "specular plan create"); err != nil {
 		return ux.EnhanceError(err)
 	}
 	if err := ux.ValidateRequiredFile(lockFile, "SpecLock file", "specular spec lock"); err != nil {
 		return ux.EnhanceError(err)
 	}
-	if err := ux.ValidateRequiredFile(specFile, "Spec file", "specular spec generate"); err != nil {
+	if err := ux.ValidateRequiredFile(specFile, "Spec file", "specular spec new"); err != nil {
 		return ux.EnhanceError(err)
 	}
 

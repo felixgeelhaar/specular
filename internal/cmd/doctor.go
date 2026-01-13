@@ -115,6 +115,16 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		return ux.FormatError(err, "detecting system context")
 	}
 
+	// Persist provider telemetry if the workspace exists
+	if defaultsWithDiscovery, err := ux.NewPathDefaultsWithDiscovery(); err == nil {
+		if _, statErr := os.Stat(defaultsWithDiscovery.SpecularDir); statErr == nil {
+			logPath := filepath.Join(defaultsWithDiscovery.SpecularDir, "provider-events.log")
+			if persistErr := provider.PersistEvents(logPath, 20); persistErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to persist provider telemetry: %v\n", persistErr)
+			}
+		}
+	}
+
 	// Run all health checks
 	report := &DoctorReport{
 		Providers: make(map[string]*DoctorCheck),
@@ -243,6 +253,8 @@ func checkProvidersWithOptions(ctx *detect.Context, report *DoctorReport, includ
 				check.Message = fmt.Sprintf("%s is not available", providerName)
 			}
 
+			decorateDoctorCheckWithDescriptor(check, providerName)
+
 			mu.Lock()
 			report.Providers[providerName] = check
 			mu.Unlock()
@@ -259,6 +271,27 @@ func checkProvidersWithOptions(ctx *detect.Context, report *DoctorReport, includ
 	// Perform API health checks for configured providers (skip if quick mode)
 	if includeAPIHealth {
 		checkProviderHealth(report)
+	}
+}
+
+func decorateDoctorCheckWithDescriptor(check *DoctorCheck, name string) {
+	desc := provider.DescriptorByName(name)
+	if desc == nil {
+		return
+	}
+
+	if check.Details == nil {
+		check.Details = map[string]interface{}{}
+	}
+
+	if desc.Description != "" {
+		check.Details["description"] = desc.Description
+	}
+	if desc.Source != "" {
+		check.Details["source"] = desc.Source
+	}
+	if desc.TrustLevel != "" {
+		check.Details["trust_level"] = desc.TrustLevel
 	}
 }
 
@@ -363,7 +396,7 @@ func checkProjectStructure(report *DoctorReport) {
 			Status:  "missing",
 			Message: "Spec file not found",
 		}
-		report.NextSteps = append(report.NextSteps, "Create spec with 'specular interview' or 'specular spec generate'")
+		report.NextSteps = append(report.NextSteps, "Create spec with 'specular spec new' or 'specular spec new --from PRD.md'")
 	}
 
 	// Check lock file
@@ -626,7 +659,7 @@ func generateNextSteps(report *DoctorReport) {
 
 	// If spec and lock exist, suggest plan generation
 	if report.Spec.Status == "ok" && report.Lock.Status == "ok" {
-		report.NextSteps = append(report.NextSteps, "Generate plan with 'specular plan'")
+		report.NextSteps = append(report.NextSteps, "Generate plan with 'specular plan create'")
 	}
 
 	// If issues exist, prioritize fixing them
@@ -657,6 +690,7 @@ func outputText(report *DoctorReport, verbose bool) error {
 	printHeader()
 	printContainerRuntime(report, verbose)
 	printAIProviders(report, verbose)
+	printProviderTelemetry(report, verbose)
 	printProjectStructure(report, verbose)
 	printGitRepository(report, verbose)
 	printGovernance(report, verbose)
@@ -690,11 +724,29 @@ func printContainerRuntime(report *DoctorReport, verbose bool) {
 // printAIProviders prints AI provider checks
 func printAIProviders(report *DoctorReport, verbose bool) {
 	fmt.Println("AI Providers:")
-	for _, name := range []string{"ollama", "anthropic", "openai", "gemini", "claude"} {
-		if check, ok := report.Providers[name]; ok {
+	descriptors := provider.Descriptors()
+	printed := make(map[string]struct{}, len(descriptors))
+
+	for _, desc := range descriptors {
+		if check, ok := report.Providers[desc.Name]; ok {
+			printed[desc.Name] = struct{}{}
 			printCheck(check, verbose)
+			continue
 		}
+		fmt.Printf("  ○ %s (%s, trust: %s) - %s [status: missing]\n",
+			desc.Name, desc.Source, desc.TrustLevel, desc.Description)
 	}
+
+	for name, check := range report.Providers {
+		if _, ok := printed[name]; ok {
+			continue
+		}
+		if strings.Contains(name, "(API)") {
+			continue
+		}
+		printCheck(check, verbose)
+	}
+
 	// In verbose mode, also show API health checks
 	if verbose {
 		for name, check := range report.Providers {
@@ -702,6 +754,40 @@ func printAIProviders(report *DoctorReport, verbose bool) {
 				printCheck(check, verbose)
 			}
 		}
+	}
+
+	fmt.Println()
+	printProviderCatalogSummary(report.Providers)
+	printProviderTelemetry(report, verbose)
+}
+
+func printProviderCatalogSummary(checks map[string]*DoctorCheck) {
+	fmt.Println("Provider Catalog:")
+	for _, desc := range provider.Descriptors() {
+		status := "missing"
+		if check, ok := checks[desc.Name]; ok {
+			status = check.Status
+		}
+		fmt.Printf("  • %s (%s, trust: %s) - %s [status: %s]\n",
+			desc.Name, desc.Source, desc.TrustLevel, desc.Description, status)
+	}
+	fmt.Println()
+}
+
+func printProviderTelemetry(report *DoctorReport, verbose bool) {
+	events := provider.Events()
+	if len(events) == 0 {
+		return
+	}
+
+	fmt.Println("Provider Telemetry (recent events):")
+	start := 0
+	if !verbose && len(events) > 5 {
+		start = len(events) - 5
+	}
+
+	for _, evt := range events[start:] {
+		fmt.Printf("  • %s\n", provider.FormatEvent(evt))
 	}
 	fmt.Println()
 }

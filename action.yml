@@ -12,7 +12,7 @@ inputs:
     default: 'latest'
 
   command:
-    description: 'Specular command to run (drift, eval, build, plan)'
+    description: 'Specular command to run (spec, drift, eval, build, plan, doctor)'
     required: true
 
   spec-file:
@@ -20,10 +20,20 @@ inputs:
     required: false
     default: '.specular/spec.yaml'
 
+  prd-file:
+    description: 'Path to PRD markdown file (optional, used to generate spec)'
+    required: false
+    default: ''
+
   plan-file:
     description: 'Path to plan file'
     required: false
     default: 'plan.json'
+
+  lock-file:
+    description: 'Path to spec lock file'
+    required: false
+    default: '.specular/spec.lock.json'
 
   policy-file:
     description: 'Path to policy file'
@@ -34,6 +44,11 @@ inputs:
     description: 'Comma-separated list of conditions to fail on (drift,lint,test,security)'
     required: false
     default: 'drift,test,security'
+
+  scenario:
+    description: 'Evaluation scenario to run (smoke, integration, security, performance)'
+    required: false
+    default: 'smoke'
 
   sarif-output:
     description: 'Path to SARIF output file for GitHub Code Scanning'
@@ -158,13 +173,54 @@ runs:
         ARGS="${{ inputs.additional-args }}"
 
         case "$COMMAND" in
+          doctor)
+            specular doctor $ARGS
+            EXIT_CODE=$?
+            ;;
+
+          spec)
+            if [ -n "${{ inputs.prd-file }}" ]; then
+              specular spec new \
+                --from "${{ inputs.prd-file }}" \
+                --out "${{ inputs.spec-file }}" \
+                $ARGS
+              EXIT_CODE=$?
+            else
+              EXIT_CODE=0
+            fi
+
+            if [ $EXIT_CODE -ne 0 ]; then
+              break
+            fi
+
+            specular spec validate \
+              --in "${{ inputs.spec-file }}" \
+              $ARGS
+            EXIT_CODE=$?
+
+            if [ $EXIT_CODE -eq 0 ]; then
+              specular spec lock \
+                --in "${{ inputs.spec-file }}" \
+                --out "${{ inputs.lock-file }}" \
+                $ARGS
+              EXIT_CODE=$?
+            fi
+            ;;
+
           drift)
             OUTPUT_FILE="${{ inputs.sarif-output }}"
-            specular drift detect \
+            FAIL_ON_DRIFT=""
+            if [[ "${{ inputs.fail-on }}" == *drift* ]]; then
+              FAIL_ON_DRIFT="--fail-on-drift"
+            fi
+
+            specular eval drift \
               --spec "${{ inputs.spec-file }}" \
               --plan "${{ inputs.plan-file }}" \
-              --format sarif \
-              --output "$OUTPUT_FILE" \
+              --lock "${{ inputs.lock-file }}" \
+              --policy "${{ inputs.policy-file }}" \
+              --report "$OUTPUT_FILE" \
+              $FAIL_ON_DRIFT \
               $ARGS
             EXIT_CODE=$?
 
@@ -178,9 +234,8 @@ runs:
 
           eval)
             specular eval run \
-              --plan "${{ inputs.plan-file }}" \
+              --scenario "${{ inputs.scenario }}" \
               --policy "${{ inputs.policy-file }}" \
-              --fail-on "${{ inputs.fail-on }}" \
               $ARGS
             EXIT_CODE=$?
             ;;
@@ -196,6 +251,7 @@ runs:
           plan)
             specular plan create \
               --in "${{ inputs.spec-file }}" \
+              --lock "${{ inputs.lock-file }}" \
               --out "${{ inputs.plan-file }}" \
               $ARGS
             EXIT_CODE=$?

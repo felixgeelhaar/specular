@@ -122,7 +122,7 @@ func TestEnhanceError(t *testing.T) {
 		{
 			name:           "spec.yaml not found",
 			err:            errors.New("open spec.yaml: no such file or directory"),
-			wantSuggestion: "specular interview",
+			wantSuggestion: "specular spec new",
 		},
 		{
 			name:           "spec.lock.json not found",
@@ -132,7 +132,7 @@ func TestEnhanceError(t *testing.T) {
 		{
 			name:           "plan.json not found",
 			err:            errors.New("open plan.json: no such file or directory"),
-			wantSuggestion: "specular plan",
+			wantSuggestion: "specular plan create",
 		},
 		{
 			name:           "policy.yaml not found",
@@ -197,7 +197,7 @@ func TestEnhanceError(t *testing.T) {
 		{
 			name:           "drift detected",
 			err:            errors.New("drift detected in code implementation"),
-			wantSuggestion: "specular build drift",
+			wantSuggestion: "specular drift check",
 		},
 		{
 			name:           "connection refused",

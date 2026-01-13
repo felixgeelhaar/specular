@@ -7,15 +7,15 @@
 
 ## Context
 
-### Current CLI Structure (v1.0.0 - v1.1.0)
+### Current CLI Structure (v1.4+)
 
 Specular's current CLI is **spec-first oriented**, reflecting its origins as a specification and build assistant:
 
 ```
-specular interview            # Generate spec via Q&A
+specular spec new             # Generate spec via Q&A
 specular spec                 # Spec management (lock, validate)
-specular plan gen             # Generate plan from spec
-specular plan drift           # Drift detection (nested)
+specular plan create          # Generate plan from spec
+specular drift check          # Drift detection
 specular bundle build         # Create bundle
 specular bundle verify        # Verify bundle
 specular policy apply/new     # Basic policy operations
@@ -382,7 +382,7 @@ For internal team reference during transition:
 
 ```bash
 # OLD (v1.1.0)             → NEW (v1.2.0)
-specular interview         → specular new
+specular interview         → specular spec new
 specular plan gen          → specular plan create
 specular plan drift        → specular drift check
 specular bundle build      → specular bundle create

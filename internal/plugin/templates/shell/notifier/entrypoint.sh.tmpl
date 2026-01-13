@@ -1,0 +1,29 @@
+#!/bin/bash
+# {{.Name}} - A Specular notifier plugin
+# Type: notifier
+
+set -e
+
+VERSION="{{.Version}}"
+
+INPUT=$(cat)
+ACTION=$(echo "$INPUT" | jq -r '.action // "notify"')
+
+case "$ACTION" in
+  "health")
+    echo "{\"success\": true, \"result\": {\"status\": \"healthy\", \"version\": \"$VERSION\"}}"
+    ;;
+  "notify"|"send")
+    MESSAGE=$(echo "$INPUT" | jq -r '.data.message // ""')
+    CHANNEL=$(echo "$INPUT" | jq -r '.data.channel // ""')
+
+    # TODO: Implement your notification logic here
+    # Example: send_notification "$MESSAGE" "$CHANNEL"
+
+    echo "{\"success\": true, \"result\": {\"sent\": true, \"message_id\": \"msg-001\", \"channel\": \"$CHANNEL\"}}"
+    ;;
+  *)
+    echo "{\"success\": false, \"error\": \"Unknown action: $ACTION\"}"
+    exit 1
+    ;;
+esac

@@ -21,6 +21,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	_ "github.com/felixgeelhaar/specular/internal/provider/native/ollama"
 )
 
 // rootCmd is the base command for the Specular CLI.
@@ -51,10 +53,45 @@ func Execute() error {
 
 // ExecuteContext runs the root command with the given context
 func ExecuteContext(ctx context.Context) error {
-	cleanup := setupObservability(ctx)
-	defer cleanup()
+	// Skip observability setup for fast commands to improve startup time
+	if !isFastCommand() {
+		cleanup := setupObservability(ctx)
+		defer cleanup()
+	}
 
 	return rootCmd.ExecuteContext(ctx)
+}
+
+// isFastCommand checks if the current invocation is a "fast" command
+// that doesn't need observability (logging, metrics, telemetry).
+// This significantly improves startup time for simple commands.
+func isFastCommand() bool {
+	args := os.Args[1:]
+	if len(args) == 0 {
+		return false
+	}
+
+	// Commands that don't need observability
+	fastCommands := map[string]bool{
+		"version":    true,
+		"completion": true,
+		"help":       true,
+		"__complete": true, // Cobra completion helper
+	}
+
+	// Check first argument
+	if fastCommands[args[0]] {
+		return true
+	}
+
+	// Check for --help or -h flag anywhere
+	for _, arg := range args {
+		if arg == "--help" || arg == "-h" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func init() {

@@ -1,0 +1,24 @@
+{
+  "name": "markdown-formatter",
+  "version": "1.0.0",
+  "description": "Specular formatter plugin for Markdown output",
+  "main": "index.js",
+  "bin": {
+    "markdown-formatter": "index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "specular",
+    "plugin",
+    "formatter",
+    "markdown"
+  ],
+  "author": "Specular Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -14,13 +14,13 @@ High-performance REST API service built with Go demonstrating:
 cd examples/api-service
 
 # Generate implementation plan
-specular plan --spec .specular/spec.yaml --output plan.json
+specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
 
 # Execute build with policy enforcement
-specular build --plan plan.json --policy .specular/policy.yaml
+specular build run --plan plan.json --policy .specular/policy.yaml
 
 # Detect drift
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
   --plan plan.json \
   --lock .specular/spec.lock.json \
@@ -134,9 +134,8 @@ jobs:
       - uses: felixgeelhaar/specular-action@v1
         with:
           command: build
-          spec-file: .specular/spec.yaml
           policy-file: .specular/policy.yaml
-          enable-cache: true
+          additional-args: '--enable-cache'
 
       - name: Load Test
         run: k6 run loadtest.js

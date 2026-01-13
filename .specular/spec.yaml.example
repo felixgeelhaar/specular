@@ -14,8 +14,8 @@ features:
       follow-ups and preset templates.
     priority: P0
     api:
-      - method: CLI
-        path: specular interview
+      - method: POST
+        path: /interview
         request: User responses via stdin
         response: spec.yaml file
     success:

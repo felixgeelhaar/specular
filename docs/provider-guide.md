@@ -845,7 +845,7 @@ Reference table for planning context usage:
 
 ### Example 1: PRD → Spec Generation
 ```bash
-./specular spec generate --in PRD.md --out spec.yaml
+./specular spec new --from PRD.md --out spec.yaml
 ```
 
 **Router Decision:**
@@ -1111,10 +1111,10 @@ strategy:
 ./specular provider list
 
 # Check provider health
-./specular provider health
+./specular provider doctor
 
 # Test specific provider
-./specular provider health ollama
+./specular provider doctor ollama
 ```
 
 ### Test Model Selection
@@ -1138,12 +1138,12 @@ Description of feature
 EOF
 
 # Generate spec (shows provider selection)
-./specular spec generate --in test.md --out spec.yaml
+./specular spec new --from test.md --out spec.yaml
 
 # Validate workflow
 ./specular spec validate --in spec.yaml
 ./specular spec lock --in spec.yaml --out spec.lock.json
-./specular plan --in spec.yaml --lock spec.lock.json --out plan.json
+./specular plan create --in spec.yaml --lock spec.lock.json --out plan.json
 ```
 
 ## Troubleshooting
@@ -1151,7 +1151,7 @@ EOF
 ### Provider Not Available
 ```bash
 # Check provider status
-./specular provider health
+./specular provider doctor
 
 # Common issues:
 # - Ollama: Is ollama running? (ollama serve)

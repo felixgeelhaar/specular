@@ -27,10 +27,10 @@ func CreateManifest(step Step, result *Result) *RunManifest {
 }
 
 // SaveManifest writes a run manifest to disk
-func SaveManifest(manifest *RunManifest, dir string) error {
+func SaveManifest(manifest *RunManifest, dir string) (string, error) {
 	// Ensure directory exists
 	if err := os.MkdirAll(dir, 0750); err != nil {
-		return fmt.Errorf("create manifest directory: %w", err)
+		return "", fmt.Errorf("create manifest directory: %w", err)
 	}
 
 	// Generate filename with timestamp
@@ -42,15 +42,63 @@ func SaveManifest(manifest *RunManifest, dir string) error {
 	// Marshal to JSON
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
-		return fmt.Errorf("marshal manifest: %w", err)
+		return "", fmt.Errorf("marshal manifest: %w", err)
 	}
 
 	// Write to file
 	if err := os.WriteFile(path, data, 0600); err != nil {
-		return fmt.Errorf("write manifest: %w", err)
+		return "", fmt.Errorf("write manifest: %w", err)
+	}
+
+	return path, nil
+}
+
+// LatestManifest describes the most recent run manifest written by Executor.
+type LatestManifest struct {
+	Timestamp    time.Time `json:"timestamp"`
+	ManifestPath string    `json:"manifest_path"`
+	StepID       string    `json:"step_id"`
+	ExitCode     int       `json:"exit_code"`
+}
+
+// WriteLatestManifest writes metadata pointing to the most recent manifest file.
+func WriteLatestManifest(dir string, manifest *RunManifest, manifestPath string) error {
+	meta := LatestManifest{
+		Timestamp:    manifest.Timestamp,
+		ManifestPath: manifestPath,
+		StepID:       manifest.StepID,
+		ExitCode:     manifest.ExitCode,
+	}
+
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return fmt.Errorf("create manifest metadata directory: %w", err)
+	}
+
+	data, err := json.MarshalIndent(meta, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal latest manifest metadata: %w", err)
+	}
+
+	metaPath := filepath.Join(dir, "latest.json")
+	if err := os.WriteFile(metaPath, data, 0644); err != nil {
+		return fmt.Errorf("write latest manifest metadata: %w", err)
 	}
 
 	return nil
+}
+
+// LoadLatestManifest loads metadata about the last manifest written.
+func LoadLatestManifest(dir string) (*LatestManifest, error) {
+	metaPath := filepath.Join(dir, "latest.json")
+	data, err := os.ReadFile(metaPath)
+	if err != nil {
+		return nil, err
+	}
+	var meta LatestManifest
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return nil, err
+	}
+	return &meta, nil
 }
 
 // HashFile computes the SHA-256 hash of a file

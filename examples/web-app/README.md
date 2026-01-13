@@ -41,7 +41,7 @@ Generate a detailed plan from the specification:
 
 ```bash
 cd examples/web-app
-specular plan --spec .specular/spec.yaml --output plan.json
+specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
 ```
 
 This creates:
@@ -67,7 +67,7 @@ cat plan.json | jq '.tasks[] | {id, title, skill, priority}'
 Execute the plan with policy enforcement:
 
 ```bash
-specular build \
+specular build run \
   --plan plan.json \
   --policy .specular/policy.yaml \
   --verbose
@@ -86,7 +86,7 @@ This will:
 After making changes, check for drift from the specification:
 
 ```bash
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
   --plan plan.json \
   --lock .specular/spec.lock.json \
@@ -215,12 +215,13 @@ jobs:
 
       - uses: felixgeelhaar/specular-action@v1
         with:
-          command: eval
+          command: drift
           spec-file: .specular/spec.yaml
           plan-file: plan.json
           lock-file: .specular/spec.lock.json
-          api-spec: openapi.yaml
-          fail-on-drift: true
+          sarif-output: drift.sarif
+          fail-on: drift
+          additional-args: '--api-spec openapi.yaml'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Upload SARIF results
@@ -255,13 +256,13 @@ features:
 ### 2. Regenerate Plan
 
 ```bash
-specular plan --spec .specular/spec.yaml --output plan.json
+specular plan create --in .specular/spec.yaml --lock .specular/spec.lock.json --out plan.json
 ```
 
 ### 3. Detect Drift
 
 ```bash
-specular eval \
+specular eval drift \
   --spec .specular/spec.yaml \
   --plan plan.json \
   --lock .specular/spec.lock.json \
@@ -276,7 +277,7 @@ If drift detected, review the SARIF report:
 ### 4. Execute Changes
 
 ```bash
-specular build --plan plan.json --policy .specular/policy.yaml
+specular build run --plan plan.json --policy .specular/policy.yaml
 ```
 
 ### 5. Test and Validate
@@ -301,13 +302,13 @@ For long-running operations, use checkpoint/resume:
 
 ```bash
 # Start build (will save checkpoints)
-specular build \
+specular build run \
   --plan plan.json \
   --policy .specular/policy.yaml \
   --checkpoint-dir .specular/checkpoints
 
 # If interrupted, resume from last checkpoint
-specular build \
+specular build run \
   --plan plan.json \
   --policy .specular/policy.yaml \
   --resume \

@@ -76,14 +76,14 @@ fmt.Printf("Generated spec with %d features\n", len(spec.Features))
 
 ### CLI Usage
 
-The PRD parser is integrated into the `specular spec generate` command:
+The PRD parser is integrated into the `specular spec new` command:
 
 ```bash
 # Generate spec from PRD
-specular spec generate --in PRD.md --out .specular/spec.yaml
+specular spec new --from PRD.md --out .specular/spec.yaml
 
 # Use custom provider configuration
-specular spec generate --in PRD.md --out spec.yaml --config custom-providers.yaml
+specular spec new --from PRD.md --out spec.yaml --config custom-providers.yaml
 ```
 
 ## Prompt Engineering
