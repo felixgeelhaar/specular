@@ -154,7 +154,14 @@ Before creating a new release, ensure all items are complete:
 - [ ] Shell completions generated
 - [ ] Docker images build successfully
 - [ ] Homebrew formula syntax valid
+- [ ] Distribution workflows configured (Copr secrets, OBS secrets, Launchpad GPG)
 
+### Release Automation Verification
+
+- [ ] Copr workflow secrets configured (`COPR_USERNAME`, `COPR_API_TOKEN`, `COPR_PROJECT`)
+- [ ] OBS workflow secrets configured (`OBS_USERNAME`, `OBS_PASSWORD`, `OBS_PROJECT`, `OBS_API_URL`)
+- [ ] Launchpad PPA script has GPG signing secrets and `SPECULAR_VERSION`
+- [ ] Ensure release binaries trigger the Copr/OBS workflows by inspecting previous release logs
 ### Testing Across Platforms
 
 - [ ] Linux (amd64, arm64)
