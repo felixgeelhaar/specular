@@ -393,6 +393,16 @@ For each new release:
 4. [ ] Add GitHub Actions workflow that builds `.deb` packages, signs them with the GPG key, and publishes via `debian-pkg-upload` or `dput`.
 5. [ ] Update this guide with the upload command, workflow reference, and how to trigger rebuilds.
 
+## Fedora Copr & OBS Automation
+
+The Copr and OBS workflows live under `.github/workflows/` and rely on the `scripts/copr/build.sh` and `scripts/obs/build.sh` helpers. These scripts:
+
+- Build the Specular CLI binary (`go build`) and package it into a tarball.
+- Run `copr-cli build` (Copr) or `osc build`/commit (OBS) using project credentials provided via GitHub secrets.
+- Expect `COPR_PROJECT`, `COPR_API_TOKEN`, `OBS_PROJECT`, `OBS_API_URL`, `OBS_USERNAME`, and `OBS_PASSWORD` to be configured in the repository (set them before publishing a release).
+
+Keep the scripts and workflows up to date with any dependency changes (Go version, fpm, rpm, osc) by editing the workflow steps as necessary.
+
 ## Fedora Copr Setup (task-fedora-copr)
 
 1. [ ] Create a Copr project for the Specular CLI with the desired target releases (e.g., `fedora-40`, `fedora-rawhide`).
