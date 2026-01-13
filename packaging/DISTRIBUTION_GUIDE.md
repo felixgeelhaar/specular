@@ -382,3 +382,28 @@ For each new release:
 | OBS | ⏳ TODO | Need OBS account |
 | Debian Official | 🎯 Future | Requires 6+ months stability |
 | Fedora Official | 🎯 Future | Requires 3+ months stability |
+
+---
+
+## Launchpad PPA Setup (task-launchpad-ppa)
+
+1. [ ] Register on Launchpad and create a new PPA (`specular/cli` or similar owner).
+2. [ ] Configure GPG key signing for uploads (keep passphrase in GitHub Actions secrets).
+3. [ ] Create `packaging/launchpad/` directory with `debian/` tree and `rules` + `control` based on existing PKGBUILD.
+4. [ ] Add GitHub Actions workflow that builds `.deb` packages, signs them with the GPG key, and publishes via `debian-pkg-upload` or `dput`.
+5. [ ] Update this guide with the upload command, workflow reference, and how to trigger rebuilds.
+
+## Fedora Copr Setup (task-fedora-copr)
+
+1. [ ] Create a Copr project for the Specular CLI with the desired target releases (e.g., `fedora-40`, `fedora-rawhide`).
+2. [ ] Configure Fedora packaging files (`packaging/copr/`) including `.spec`, sources, and macros mirroring the Homebrew release steps.
+3. [ ] Store Copr API token as GitHub secret; update workflows to call `copr-cli build` after each release.
+4. [ ] Document the Copr build status URL and how to monitor/approve builds.
+
+## OBS Setup (task-obs)
+
+1. [ ] Create an OBS project (e.g., `home:felixgeelhaar:specular`) and define the builders for each Linux distribution.
+2. [ ] Configure OBS service files (`obs/service.yaml`) that describe the package build process and dependencies.
+3. [ ] Generate API credentials for uploading sources; store them in GitHub secrets or use a deployment script.
+4. [ ] Automate source tarball creation, upload to OBS, and trigger rebuilds from the release workflow.
+5. [ ] Document how to resubmit builds, check logs, and handle rebuild issues.
