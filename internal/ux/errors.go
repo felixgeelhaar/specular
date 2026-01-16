@@ -208,51 +208,61 @@ func (e *EnhancedError) addSuggestions() {
 		if len(lineMatch) > 1 {
 			e.Suggestions = append(e.Suggestions, fmt.Sprintf("Check YAML syntax at line %s", lineMatch[1]))
 		}
-		e.Suggestions = append(e.Suggestions, "Run: specular config validate")
-		e.Suggestions = append(e.Suggestions, "Use a YAML linter to check your configuration")
+		e.Suggestions = append(e.Suggestions,
+			"Run: specular config validate",
+			"Use a YAML linter to check your configuration")
 
 	case CategorySchemaViolation:
-		e.Suggestions = append(e.Suggestions, "Check documentation for valid field names and types")
-		e.Suggestions = append(e.Suggestions, "Run: specular config validate --verbose")
+		e.Suggestions = append(e.Suggestions,
+			"Check documentation for valid field names and types",
+			"Run: specular config validate --verbose")
 
 	case CategoryMissingFile:
 		if strings.Contains(msg, "spec.yaml") {
-			e.Suggestions = append(e.Suggestions, "Run: specular spec new")
-			e.Suggestions = append(e.Suggestions, "Run: specular spec new --from PRD.md")
+			e.Suggestions = append(e.Suggestions,
+				"Run: specular spec new",
+				"Run: specular spec new --from PRD.md")
 		} else if strings.Contains(msg, "providers.yaml") || strings.Contains(msg, "routing.yaml") {
 			e.Suggestions = append(e.Suggestions, "Run: specular init")
 		}
 
 	case CategoryAuth:
-		e.Suggestions = append(e.Suggestions, "Check your API key is set correctly")
-		e.Suggestions = append(e.Suggestions, "Run: specular auth login")
-		e.Suggestions = append(e.Suggestions, "Verify: echo $OPENAI_API_KEY or $ANTHROPIC_API_KEY")
+		e.Suggestions = append(e.Suggestions,
+			"Check your API key is set correctly",
+			"Run: specular auth login",
+			"Verify: echo $OPENAI_API_KEY or $ANTHROPIC_API_KEY")
 
 	case CategoryProvider:
-		e.Suggestions = append(e.Suggestions, "Run: specular provider list")
-		e.Suggestions = append(e.Suggestions, "Run: specular provider doctor")
-		e.Suggestions = append(e.Suggestions, "Check .specular/routing.yaml configuration")
+		e.Suggestions = append(e.Suggestions,
+			"Run: specular provider list",
+			"Run: specular provider doctor",
+			"Check .specular/routing.yaml configuration")
 
 	case CategoryNetwork:
-		e.Suggestions = append(e.Suggestions, "Check your internet connection")
-		e.Suggestions = append(e.Suggestions, "Verify firewall/proxy settings")
-		e.Suggestions = append(e.Suggestions, "Try: specular provider doctor")
+		e.Suggestions = append(e.Suggestions,
+			"Check your internet connection",
+			"Verify firewall/proxy settings",
+			"Try: specular provider doctor")
 
 	case CategoryDocker:
-		e.Suggestions = append(e.Suggestions, "Ensure Docker Desktop/daemon is running")
-		e.Suggestions = append(e.Suggestions, "Run: docker info (to verify)")
+		e.Suggestions = append(e.Suggestions,
+			"Ensure Docker Desktop/daemon is running",
+			"Run: docker info (to verify)")
 
 	case CategoryPolicy:
-		e.Suggestions = append(e.Suggestions, "Review policy constraints in .specular/policy.yaml")
-		e.Suggestions = append(e.Suggestions, "Consider increasing budget with --max-cost")
+		e.Suggestions = append(e.Suggestions,
+			"Review policy constraints in .specular/policy.yaml",
+			"Consider increasing budget with --max-cost")
 
 	case CategoryPermission:
-		e.Suggestions = append(e.Suggestions, "Check file/directory permissions")
-		e.Suggestions = append(e.Suggestions, "For Docker socket: sudo usermod -aG docker $USER")
+		e.Suggestions = append(e.Suggestions,
+			"Check file/directory permissions",
+			"For Docker socket: sudo usermod -aG docker $USER")
 
 	case CategoryValidation:
-		e.Suggestions = append(e.Suggestions, "Run: specular spec validate")
-		e.Suggestions = append(e.Suggestions, "Run: specular drift check")
+		e.Suggestions = append(e.Suggestions,
+			"Run: specular spec validate",
+			"Run: specular drift check")
 	}
 }
 

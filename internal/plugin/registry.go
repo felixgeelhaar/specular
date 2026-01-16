@@ -55,7 +55,7 @@ type RegistryPlugin struct {
 	Downloads int64 `json:"downloads,omitempty"`
 	// Stars is the star count
 	Stars int `json:"stars,omitempty"`
-	// Deprecated indicates if the plugin is deprecated
+	// IsDeprecated indicates if the plugin is deprecated
 	Deprecated bool `json:"deprecated,omitempty"`
 	// DeprecationMessage explains why the plugin is deprecated
 	DeprecationMessage string `json:"deprecation_message,omitempty"`
@@ -403,7 +403,7 @@ func (r *Registry) Search(query string) ([]SearchResult, error) {
 		// Check name match (highest priority)
 		if strings.Contains(strings.ToLower(name), query) {
 			score = 100
-			if strings.ToLower(name) == query {
+			if strings.EqualFold(name, query) {
 				score = 200 // Exact match
 			}
 			matchType = "name"

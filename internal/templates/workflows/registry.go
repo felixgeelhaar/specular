@@ -254,30 +254,30 @@ func (r *GenerateResult) PrintResult(w io.Writer, dryRun bool) {
 		prefix = "Would generate"
 	}
 
-	fmt.Fprintf(w, "\n%s workflow: %s (%s)\n\n", prefix, r.TemplateName, r.TemplateID)
+	_, _ = fmt.Fprintf(w, "\n%s workflow: %s (%s)\n\n", prefix, r.TemplateName, r.TemplateID)
 
 	if len(r.FilesCreated) > 0 {
-		fmt.Fprintf(w, "Files %s:\n", strings.ToLower(prefix))
+		_, _ = fmt.Fprintf(w, "Files %s:\n", strings.ToLower(prefix))
 		for _, file := range r.FilesCreated {
-			fmt.Fprintf(w, "  + %s\n", file)
+			_, _ = fmt.Fprintf(w, "  + %s\n", file)
 		}
 	}
 
 	if len(r.FilesSkipped) > 0 {
-		fmt.Fprintln(w, "\nFiles skipped:")
+		_, _ = fmt.Fprintln(w, "\nFiles skipped:")
 		for _, file := range r.FilesSkipped {
-			fmt.Fprintf(w, "  - %s\n", file)
+			_, _ = fmt.Fprintf(w, "  - %s\n", file)
 		}
 	}
 
 	if len(r.Errors) > 0 {
-		fmt.Fprintln(w, "\nErrors:")
+		_, _ = fmt.Fprintln(w, "\nErrors:")
 		for _, err := range r.Errors {
-			fmt.Fprintf(w, "  ! %v\n", err)
+			_, _ = fmt.Fprintf(w, "  ! %v\n", err)
 		}
 	}
 
-	fmt.Fprintf(w, "\nTotal: %d files, %d bytes\n", len(r.FilesCreated), r.TotalBytes)
+	_, _ = fmt.Fprintf(w, "\nTotal: %d files, %d bytes\n", len(r.FilesCreated), r.TotalBytes)
 }
 
 // GetRequiredVariables returns the list of required variables

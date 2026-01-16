@@ -98,9 +98,7 @@ func registerWorkflowCompletion() {
 
 	// For --workflow flag on init
 	if initCmd != nil {
-		if err := initCmd.RegisterFlagCompletionFunc("workflow", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return workflowTemplateCompletion(cmd, args, toComplete)
-		}); err != nil {
+		if err := initCmd.RegisterFlagCompletionFunc("workflow", workflowTemplateCompletion); err != nil {
 			// Flag may not exist, ignore error
 		}
 	}

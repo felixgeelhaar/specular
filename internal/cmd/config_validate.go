@@ -468,7 +468,7 @@ func confirmFixSuggestions(suggestions []configval.FixSuggestion) []configval.Fi
 
 		var response string
 		fmt.Scanln(&response)
-		if strings.ToLower(response) == "y" || strings.ToLower(response) == "yes" {
+		if strings.EqualFold(response, "y") || strings.EqualFold(response, "yes") {
 			confirmed = append(confirmed, s)
 		}
 	}

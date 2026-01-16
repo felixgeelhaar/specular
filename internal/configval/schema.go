@@ -448,17 +448,17 @@ func ValidateFile(filePath string, w io.Writer) error {
 	errors, warnings, infos := result.Count()
 
 	if !result.HasIssues() {
-		fmt.Fprintf(w, "✓ %s: Valid %s configuration\n", filePath, ctx.ConfigType)
+		_, _ = fmt.Fprintf(w, "✓ %s: Valid %s configuration\n", filePath, ctx.ConfigType)
 		return nil
 	}
 
-	fmt.Fprintf(w, "Validating %s (%s):\n", filePath, ctx.ConfigType)
+	_, _ = fmt.Fprintf(w, "Validating %s (%s):\n", filePath, ctx.ConfigType)
 
 	for _, issue := range result.Issues {
-		fmt.Fprintf(w, "  %s %s\n", issue.Severity.Symbol(), issue.Error())
+		_, _ = fmt.Fprintf(w, "  %s %s\n", issue.Severity.Symbol(), issue.Error())
 	}
 
-	fmt.Fprintf(w, "\nSummary: %d errors, %d warnings, %d infos\n", errors, warnings, infos)
+	_, _ = fmt.Fprintf(w, "\nSummary: %d errors, %d warnings, %d infos\n", errors, warnings, infos)
 
 	if result.HasErrors() {
 		return result.Error()

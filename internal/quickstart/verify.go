@@ -33,7 +33,7 @@ func VerifyProvider(selection *ProviderSelection) (*VerificationResult, error) {
 		result.Error = fmt.Sprintf("failed to create provider client: %v", err)
 		return result, nil
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// First try a health check
 	if err := client.Health(ctx); err != nil {
@@ -127,7 +127,7 @@ func QuickVerify(selection *ProviderSelection) error {
 		}
 		return fmt.Errorf("failed to create provider: %w", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Just check if provider is available and healthy
 	if !client.IsAvailable() {

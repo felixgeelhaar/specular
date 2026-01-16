@@ -351,11 +351,11 @@ func saveConfig(filePath string, data map[string]interface{}) error {
 // PrintFixSuggestions prints fix suggestions to a writer
 func PrintFixSuggestions(result *FixResult, w io.Writer) {
 	if len(result.Suggestions) == 0 {
-		fmt.Fprintf(w, "✓ No fixes needed for %s\n", result.FilePath)
+		_, _ = fmt.Fprintf(w, "✓ No fixes needed for %s\n", result.FilePath)
 		return
 	}
 
-	fmt.Fprintf(w, "Fix suggestions for %s (%s):\n\n", result.FilePath, result.ConfigType)
+	_, _ = fmt.Fprintf(w, "Fix suggestions for %s (%s):\n\n", result.FilePath, result.ConfigType)
 
 	autoFixCount := 0
 	manualCount := 0
@@ -369,49 +369,49 @@ func PrintFixSuggestions(result *FixResult, w io.Writer) {
 			manualCount++
 		}
 
-		fmt.Fprintf(w, "%d. %s %s\n", i+1, prefix, suggestion.Description)
-		fmt.Fprintf(w, "   Field: %s\n", suggestion.Field)
+		_, _ = fmt.Fprintf(w, "%d. %s %s\n", i+1, prefix, suggestion.Description)
+		_, _ = fmt.Fprintf(w, "   Field: %s\n", suggestion.Field)
 		if suggestion.OldValue != nil {
-			fmt.Fprintf(w, "   Current: %v\n", suggestion.OldValue)
+			_, _ = fmt.Fprintf(w, "   Current: %v\n", suggestion.OldValue)
 		}
 		if suggestion.NewValue != nil {
-			fmt.Fprintf(w, "   Suggested: %v\n", suggestion.NewValue)
+			_, _ = fmt.Fprintf(w, "   Suggested: %v\n", suggestion.NewValue)
 		}
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 
-	fmt.Fprintf(w, "Summary: %d auto-fixable (●), %d manual (○)\n", autoFixCount, manualCount)
+	_, _ = fmt.Fprintf(w, "Summary: %d auto-fixable (●), %d manual (○)\n", autoFixCount, manualCount)
 	if autoFixCount > 0 {
-		fmt.Fprintf(w, "\nRun 'specular config fix %s' to apply auto-fixable suggestions\n", result.FilePath)
+		_, _ = fmt.Fprintf(w, "\nRun 'specular config fix %s' to apply auto-fixable suggestions\n", result.FilePath)
 	}
 }
 
 // PrintFixResult prints the results of applying fixes
 func PrintFixResult(result *FixResult, w io.Writer) {
 	if len(result.Applied) == 0 && len(result.Skipped) == 0 {
-		fmt.Fprintf(w, "✓ No fixes to apply for %s\n", result.FilePath)
+		_, _ = fmt.Fprintf(w, "✓ No fixes to apply for %s\n", result.FilePath)
 		return
 	}
 
-	fmt.Fprintf(w, "Fix results for %s:\n\n", result.FilePath)
+	_, _ = fmt.Fprintf(w, "Fix results for %s:\n\n", result.FilePath)
 
 	if len(result.Applied) > 0 {
-		fmt.Fprintln(w, "Applied fixes:")
+		_, _ = fmt.Fprintln(w, "Applied fixes:")
 		for _, fix := range result.Applied {
-			fmt.Fprintf(w, "  ✓ %s\n", fix.Description)
+			_, _ = fmt.Fprintf(w, "  ✓ %s\n", fix.Description)
 		}
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 
 	if len(result.Skipped) > 0 {
-		fmt.Fprintln(w, "Skipped (manual review required):")
+		_, _ = fmt.Fprintln(w, "Skipped (manual review required):")
 		for _, fix := range result.Skipped {
-			fmt.Fprintf(w, "  ○ %s\n", fix.Description)
+			_, _ = fmt.Fprintf(w, "  ○ %s\n", fix.Description)
 		}
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 
 	if result.Modified {
-		fmt.Fprintf(w, "✓ Configuration saved to %s\n", result.FilePath)
+		_, _ = fmt.Fprintf(w, "✓ Configuration saved to %s\n", result.FilePath)
 	}
 }

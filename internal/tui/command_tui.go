@@ -770,7 +770,7 @@ func (a *CommandTUIAdapter) Start() error {
 
 	go func() {
 		if _, err := a.program.Run(); err != nil {
-			fmt.Fprintf(a.output, "TUI error: %v\n", err)
+			_, _ = fmt.Fprintf(a.output, "TUI error: %v\n", err)
 		}
 	}()
 

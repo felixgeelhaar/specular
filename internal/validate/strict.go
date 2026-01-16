@@ -111,55 +111,55 @@ func PrintValidationResult(w io.Writer, result *ValidationResult, useColor bool)
 
 	// Print header
 	if useColor {
-		fmt.Fprintf(w, "\n%s%sValidation Report%s\n", colorBold, colorCyan, colorReset)
+		_, _ = fmt.Fprintf(w, "\n%s%sValidation Report%s\n", colorBold, colorCyan, colorReset)
 	} else {
-		fmt.Fprintf(w, "\nValidation Report\n")
+		_, _ = fmt.Fprintf(w, "\nValidation Report\n")
 	}
-	fmt.Fprintln(w, strings.Repeat("─", 50))
+	_, _ = fmt.Fprintln(w, strings.Repeat("─", 50))
 
 	// Print errors
 	if errors > 0 {
 		if useColor {
-			fmt.Fprintf(w, "%s%sErrors (%d):%s\n", colorBold, colorRed, errors, colorReset)
+			_, _ = fmt.Fprintf(w, "%s%sErrors (%d):%s\n", colorBold, colorRed, errors, colorReset)
 		} else {
-			fmt.Fprintf(w, "Errors (%d):\n", errors)
+			_, _ = fmt.Fprintf(w, "Errors (%d):\n", errors)
 		}
 		for _, issue := range result.Errors() {
 			printIssue(w, issue, useColor)
 		}
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 
 	// Print warnings
 	if warnings > 0 {
 		if useColor {
-			fmt.Fprintf(w, "%s%sWarnings (%d):%s\n", colorBold, colorYellow, warnings, colorReset)
+			_, _ = fmt.Fprintf(w, "%s%sWarnings (%d):%s\n", colorBold, colorYellow, warnings, colorReset)
 		} else {
-			fmt.Fprintf(w, "Warnings (%d):\n", warnings)
+			_, _ = fmt.Fprintf(w, "Warnings (%d):\n", warnings)
 		}
 		for _, issue := range result.Warnings() {
 			printIssue(w, issue, useColor)
 		}
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 
 	// Print info messages
 	if infos > 0 {
 		if useColor {
-			fmt.Fprintf(w, "%s%sInfo (%d):%s\n", colorBold, colorCyan, infos, colorReset)
+			_, _ = fmt.Fprintf(w, "%s%sInfo (%d):%s\n", colorBold, colorCyan, infos, colorReset)
 		} else {
-			fmt.Fprintf(w, "Info (%d):\n", infos)
+			_, _ = fmt.Fprintf(w, "Info (%d):\n", infos)
 		}
 		for _, issue := range result.Issues {
 			if issue.Severity == SeverityInfo {
 				printIssue(w, issue, useColor)
 			}
 		}
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 
 	// Print summary
-	fmt.Fprintln(w, strings.Repeat("─", 50))
+	_, _ = fmt.Fprintln(w, strings.Repeat("─", 50))
 	summaryParts := make([]string, 0, 3)
 	if errors > 0 {
 		if useColor {
@@ -178,7 +178,7 @@ func PrintValidationResult(w io.Writer, result *ValidationResult, useColor bool)
 	if infos > 0 {
 		summaryParts = append(summaryParts, fmt.Sprintf("%d info", infos))
 	}
-	fmt.Fprintf(w, "Summary: %s\n", strings.Join(summaryParts, ", "))
+	_, _ = fmt.Fprintf(w, "Summary: %s\n", strings.Join(summaryParts, ", "))
 }
 
 // printIssue prints a single validation issue
@@ -220,9 +220,9 @@ func printIssue(w io.Writer, issue ValidationIssue, useColor bool) {
 	}
 
 	if useColor {
-		fmt.Fprintf(w, "  %s%s%s\n", prefix, strings.Join(parts, " "), colorReset)
+		_, _ = fmt.Fprintf(w, "  %s%s%s\n", prefix, strings.Join(parts, " "), colorReset)
 	} else {
-		fmt.Fprintf(w, "  %s\n", strings.Join(parts, " "))
+		_, _ = fmt.Fprintf(w, "  %s\n", strings.Join(parts, " "))
 	}
 }
 
@@ -235,9 +235,9 @@ func PrintWarnings(w io.Writer, result *ValidationResult, useColor bool) {
 	warnings := result.Warnings()
 
 	if useColor {
-		fmt.Fprintf(w, "\n%s%s⚠ Warnings (%d):%s\n", colorBold, colorYellow, len(warnings), colorReset)
+		_, _ = fmt.Fprintf(w, "\n%s%s⚠ Warnings (%d):%s\n", colorBold, colorYellow, len(warnings), colorReset)
 	} else {
-		fmt.Fprintf(w, "\n⚠ Warnings (%d):\n", len(warnings))
+		_, _ = fmt.Fprintf(w, "\n⚠ Warnings (%d):\n", len(warnings))
 	}
 
 	for _, issue := range warnings {

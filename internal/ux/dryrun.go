@@ -473,18 +473,3 @@ func formatBytes(bytes int64) string {
 	}
 }
 
-// max returns the maximum of two ints
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-// min returns the minimum of two ints
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

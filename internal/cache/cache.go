@@ -212,7 +212,9 @@ func (m *Manager) Clear(cacheType CacheType) (*ClearResult, error) {
 		}
 
 		// Recreate empty directory
-		os.MkdirAll(typeDir, 0755)
+		if err := os.MkdirAll(typeDir, 0755); err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("failed to recreate %s: %v", t, err))
+		}
 	}
 
 	return result, nil

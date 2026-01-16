@@ -192,7 +192,9 @@ func (m DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	default:
 		// Delegate to base model for other messages
 		baseModel, cmd := m.Model.Update(msg)
-		m.Model = baseModel.(Model)
+		if typedModel, ok := baseModel.(Model); ok {
+			m.Model = typedModel
+		}
 		return m, cmd
 	}
 }
@@ -239,7 +241,9 @@ func (m DashboardModel) handleDashboardKeyPress(msg tea.KeyMsg) (tea.Model, tea.
 	default:
 		// Delegate to base model
 		baseModel, cmd := m.Model.handleKeyPress(msg)
-		m.Model = baseModel.(Model)
+		if typedModel, ok := baseModel.(Model); ok {
+			m.Model = typedModel
+		}
 		return m, cmd
 	}
 }
