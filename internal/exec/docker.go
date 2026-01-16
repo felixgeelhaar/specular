@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // RunDocker executes a step in a Docker container with security constraints.
@@ -18,18 +20,21 @@ func RunDocker(ctx context.Context, step Step) (*Result, error) {
 	args := buildDockerArgs(step)
 
 	// Execute command with context for cancellation support
-	cmd := exec.CommandContext(ctx, "docker", args...)
+	cmd, err := safeutil.SafeCommand(ctx, "docker", args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed docker command: %w", err)
+	}
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	// Run the command
-	err := cmd.Run()
+	runErr := cmd.Run()
 
 	// Get exit code
 	exitCode := 0
-	if err != nil {
+	if runErr != nil {
 		// Check for context cancellation/timeout
 		if ctx.Err() != nil {
 			return nil, fmt.Errorf("docker command cancelled or timed out: %w", ctx.Err())
@@ -38,7 +43,7 @@ func RunDocker(ctx context.Context, step Step) (*Result, error) {
 			exitCode = exitErr.ExitCode()
 		} else {
 			// Command failed to start
-			return nil, fmt.Errorf("failed to execute docker command: %w", err)
+			return nil, fmt.Errorf("failed to execute docker command: %w", runErr)
 		}
 	}
 
@@ -47,7 +52,7 @@ func RunDocker(ctx context.Context, step Step) (*Result, error) {
 		Stdout:   stdout.String(),
 		Stderr:   stderr.String(),
 		Duration: time.Since(startTime),
-		Error:    err,
+		Error:    runErr,
 	}, nil
 }
 
@@ -103,7 +108,10 @@ func buildDockerArgs(step Step) []string {
 // ValidateDockerAvailable checks if Docker is available on the system.
 // The context is used to provide timeout and cancellation support.
 func ValidateDockerAvailable(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, "docker", "version")
+	cmd, err := safeutil.SafeCommand(ctx, "docker", "version")
+	if err != nil {
+		return fmt.Errorf("validate docker: %w", err)
+	}
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() != nil {
 			return fmt.Errorf("docker availability check cancelled or timed out: %w", ctx.Err())
@@ -116,7 +124,10 @@ func ValidateDockerAvailable(ctx context.Context) error {
 // PullImage pulls a Docker image if not already present.
 // The context is used to provide timeout and cancellation support.
 func PullImage(ctx context.Context, image string) error {
-	cmd := exec.CommandContext(ctx, "docker", "pull", image)
+	cmd, err := safeutil.SafeCommand(ctx, "docker", "pull", image)
+	if err != nil {
+		return fmt.Errorf("pull image: %w", err)
+	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -132,21 +143,24 @@ func PullImage(ctx context.Context, image string) error {
 // ImageExists checks if a Docker image exists locally.
 // The context is used to provide timeout and cancellation support.
 func ImageExists(ctx context.Context, image string) (bool, error) {
-	cmd := exec.CommandContext(ctx, "docker", "image", "inspect", image)
+	cmd, err := safeutil.SafeCommand(ctx, "docker", "image", "inspect", image)
+	if err != nil {
+		return false, fmt.Errorf("image inspect: %w", err)
+	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
+	runErr := cmd.Run()
+	if runErr != nil {
 		// Check for context cancellation
 		if ctx.Err() != nil {
 			return false, fmt.Errorf("docker image inspect cancelled or timed out: %w", ctx.Err())
 		}
 		// Check if it's a "not found" error
 		stderrStr := stderr.String()
-		if strings.Contains(stderrStr, "No such") || strings.Contains(err.Error(), "exit status 1") {
+		if strings.Contains(stderrStr, "No such") || strings.Contains(runErr.Error(), "exit status 1") {
 			return false, nil
 		}
-		return false, fmt.Errorf("docker image inspect failed: %w: %s", err, stderrStr)
+		return false, fmt.Errorf("docker image inspect failed: %w: %s", runErr, stderrStr)
 	}
 	return true, nil
 }

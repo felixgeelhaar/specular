@@ -26,20 +26,20 @@ const (
 
 // CacheEntry represents a single cached item
 type CacheEntry struct {
-	Path      string    `json:"path"`
-	Type      CacheType `json:"type"`
-	Size      int64     `json:"size"`
-	CreatedAt time.Time `json:"created_at"`
+	Path       string    `json:"path"`
+	Type       CacheType `json:"type"`
+	Size       int64     `json:"size"`
+	CreatedAt  time.Time `json:"created_at"`
 	AccessedAt time.Time `json:"accessed_at"`
-	Name      string    `json:"name"`
+	Name       string    `json:"name"`
 }
 
 // CacheInfo provides summary information about the cache
 type CacheInfo struct {
-	TotalSize  int64         `json:"total_size"`
-	EntryCount int           `json:"entry_count"`
-	Location   string        `json:"location"`
-	Types      []CacheStats  `json:"types"`
+	TotalSize  int64        `json:"total_size"`
+	EntryCount int          `json:"entry_count"`
+	Location   string       `json:"location"`
+	Types      []CacheStats `json:"types"`
 }
 
 // CacheStats provides statistics for a specific cache type
@@ -296,7 +296,7 @@ func SaveConfig(path string, config *CacheConfig) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 // CacheConfig represents cache configuration

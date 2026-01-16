@@ -59,7 +59,7 @@ func SavePolicy(policy *Policy, path string) error {
 		return fmt.Errorf("marshal policy: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("write policy file: %w", err)
 	}
 

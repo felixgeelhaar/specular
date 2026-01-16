@@ -14,6 +14,7 @@ import (
 
 	"github.com/felixgeelhaar/specular/internal/bundle"
 	"github.com/felixgeelhaar/specular/internal/license"
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
@@ -407,7 +408,11 @@ func determineOutputPathAndDefaults(cmd *cobra.Command, args []string, defaults 
 		buildLock = defaults.SpecLockFile()
 	}
 	if !cmd.Flags().Changed("routing") {
-		buildRouting = filepath.Join(defaults.SpecularDir, "routing.yaml")
+		if routingPath, joinErr := safeutil.JoinInsideBase(defaults.SpecularDir, "routing.yaml"); joinErr == nil {
+			buildRouting = routingPath
+		} else {
+			buildRouting = filepath.Join(defaults.SpecularDir, "routing.yaml")
+		}
 	}
 
 	return output

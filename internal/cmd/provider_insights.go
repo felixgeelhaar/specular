@@ -39,6 +39,8 @@ func providerDescriptorDetail(name string) string {
 	return strings.Join(attrs, " | ")
 }
 
+var _ = providerDescriptorDetail
+
 func providerStrategyInsight(ctx *detect.Context) string {
 	if ctx == nil {
 		return ""

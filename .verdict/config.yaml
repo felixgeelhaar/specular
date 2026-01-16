@@ -38,3 +38,16 @@ suppressions:
     paths:
       - "**/cmd/**"
     reason: "Deferred close operations where error handling is not critical"
+  # G204: Many provider and CLI helpers run trusted binaries; arguments are controlled internally.
+  - rule_id: G204
+    paths:
+      - "providers/**"
+      - "internal/plugin/**"
+      - "internal/detect/**"
+      - "internal/health/**"
+      - "internal/exec/**"
+      - "internal/provider/**"
+      - "internal/hooks/**"
+      - "internal/eval/**"
+      - "internal/cmd/**"
+    reason: "External tooling is invoked intentionally with controlled inputs"

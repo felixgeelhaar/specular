@@ -155,7 +155,7 @@ routing:
 `
 
 	providersPath := filepath.Join(path, "providers.yaml")
-	if err := os.WriteFile(providersPath, []byte(providersTemplate), 0644); err != nil {
+	if err := os.WriteFile(providersPath, []byte(providersTemplate), 0600); err != nil {
 		return fmt.Errorf("creating providers.yaml: %w", err)
 	}
 	fmt.Printf("✓ Created %s\n", providersPath)
@@ -193,7 +193,7 @@ security:
 `
 
 	policiesPath := filepath.Join(path, "policies.yaml")
-	if err := os.WriteFile(policiesPath, []byte(policiesTemplate), 0644); err != nil {
+	if err := os.WriteFile(policiesPath, []byte(policiesTemplate), 0600); err != nil {
 		return fmt.Errorf("creating policies.yaml: %w", err)
 	}
 	fmt.Printf("✓ Created %s\n", policiesPath)
@@ -213,7 +213,7 @@ bundles/
 `
 
 	gitignorePath := filepath.Join(path, ".gitignore")
-	if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {
+	if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0600); err != nil {
 		return fmt.Errorf("creating .gitignore: %w", err)
 	}
 	fmt.Printf("✓ Created %s\n", gitignorePath)

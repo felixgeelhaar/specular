@@ -8,12 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // ImageCache manages Docker image caching for faster execution
@@ -55,7 +56,10 @@ func (c *ImageCache) LoadManifest() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	manifestPath := filepath.Join(c.CacheDir, "manifest.json")
+	manifestPath, joinErr := safeutil.JoinInsideBase(c.CacheDir, "manifest.json")
+	if joinErr != nil {
+		return fmt.Errorf("safe manifest path: %w", joinErr)
+	}
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -95,7 +99,10 @@ func (c *ImageCache) SaveManifest() error {
 		return fmt.Errorf("marshal manifest: %w", err)
 	}
 
-	manifestPath := filepath.Join(c.CacheDir, "manifest.json")
+	manifestPath, joinErr := safeutil.JoinInsideBase(c.CacheDir, "manifest.json")
+	if joinErr != nil {
+		return fmt.Errorf("safe manifest path: %w", joinErr)
+	}
 	if err := os.WriteFile(manifestPath, data, 0600); err != nil {
 		return fmt.Errorf("write manifest: %w", err)
 	}
@@ -274,8 +281,12 @@ func (c *ImageCache) PruneCache(maxAge time.Duration, verbose bool) error {
 			}
 
 			// Remove from Docker daemon
-			cmd := exec.Command("docker", "rmi", image)
-			if err := cmd.Run(); err != nil {
+			cmd, err := safeutil.SafeCommand(context.Background(), "docker", "rmi", image)
+			if err != nil {
+				if verbose {
+					fmt.Printf("  ⚠ Failed to remove %s: %v\n", image, err)
+				}
+			} else if err := cmd.Run(); err != nil {
 				if verbose {
 					fmt.Printf("  ⚠ Failed to remove %s: %v\n", image, err)
 				}
@@ -316,7 +327,10 @@ func (c *ImageCache) ExportImages(images []string, outputDir string, verbose boo
 		}
 
 		// Export to tar
-		cmd := exec.Command("docker", "save", "-o", tarPath, image)
+		cmd, err := safeutil.SafeCommand(context.Background(), "docker", "save", "-o", tarPath, image)
+		if err != nil {
+			return fmt.Errorf("safe command export %s: %w", image, err)
+		}
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
 
@@ -375,7 +389,13 @@ func (c *ImageCache) ImportImages(inputDir string, verbose bool) error {
 			fmt.Printf("  📦 Importing %s...\n", filepath.Base(tarPath))
 		}
 
-		cmd := exec.Command("docker", "load", "-i", tarPath)
+		cmd, err := safeutil.SafeCommand(context.Background(), "docker", "load", "-i", tarPath)
+		if err != nil {
+			if verbose {
+				fmt.Printf("  ⚠ Failed to import %s (%v)\n", filepath.Base(tarPath), err)
+			}
+			continue
+		}
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
@@ -432,8 +452,11 @@ func (c *ImageCache) GetStats() map[string]interface{} {
 
 // GetImageInfo retrieves digest and size for an image
 func GetImageInfo(image string) (digest string, size int64, err error) {
-	cmd := exec.Command("docker", "image", "inspect", image,
+	cmd, err := safeutil.SafeCommand(context.Background(), "docker", "image", "inspect", image,
 		"--format", "{{.Id}}|{{.Size}}")
+	if err != nil {
+		return "", 0, fmt.Errorf("safe command inspect %s: %w", image, err)
+	}
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

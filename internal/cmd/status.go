@@ -247,7 +247,7 @@ func buildPlanStatus() PlanStatus {
 
 func getLastBuildStatus() *BuildStatus {
 	defaults := ux.NewPathDefaults()
-	runsDir := filepath.Join(defaults.SpecularDir, "runs")
+	runsDir := defaults.ManifestDir()
 
 	// Check if runs directory exists
 	if _, err := os.Stat(runsDir); os.IsNotExist(err) {

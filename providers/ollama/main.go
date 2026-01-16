@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // GenerateRequest matches internal/provider/types.go
@@ -175,8 +176,11 @@ func handleGenerate() error {
 	defer cancel()
 
 	// Use curl to call ollama API directly for clean JSON
-	cmd := exec.CommandContext(ctx, "curl", "-s", "http://localhost:11434/api/generate",
+	cmd, err := safeutil.SafeCommand(ctx, "curl", "-s", "http://localhost:11434/api/generate",
 		"-d", string(reqJSON))
+	if err != nil {
+		return fmt.Errorf("failed to build ollama generate command: %w", err)
+	}
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -278,8 +282,11 @@ func handleStream() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "curl", "-s", "-N", "http://localhost:11434/api/generate",
+	cmd, err := safeutil.SafeCommand(ctx, "curl", "-s", "-N", "http://localhost:11434/api/generate",
 		"-d", string(reqJSON))
+	if err != nil {
+		return fmt.Errorf("failed to build ollama streaming command: %w", err)
+	}
 
 	// Get stdout pipe to read streaming response
 	stdout, err := cmd.StdoutPipe()
@@ -352,7 +359,10 @@ func handleStream() error {
 
 func handleHealth() error {
 	// Check if ollama is available
-	cmd := exec.Command("ollama", "list")
+	cmd, err := safeutil.SafeCommand(context.Background(), "ollama", "list")
+	if err != nil {
+		return fmt.Errorf("failed to build ollama health command: %w", err)
+	}
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("ollama not available: %w", err)
 	}

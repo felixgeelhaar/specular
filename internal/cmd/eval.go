@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -15,6 +15,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/progress"
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/ux"
@@ -171,8 +172,7 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 		// 1. go vet
 		fmt.Printf("1. Running go vet...\n")
-		vetCmd := exec.Command("go", "vet", "./...")
-		if vetErr := vetCmd.Run(); vetErr != nil {
+		if err, _ := runEvalTool("go", "vet", "./..."); err != nil {
 			fmt.Printf("   ✗ go vet failed\n")
 			failed++
 		} else {
@@ -182,8 +182,7 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 		// 2. go build
 		fmt.Printf("2. Running go build...\n")
-		buildCmd := exec.Command("go", "build", "./...")
-		if buildErr := buildCmd.Run(); buildErr != nil {
+		if err, _ := runEvalTool("go", "build", "./..."); err != nil {
 			fmt.Printf("   ✗ go build failed\n")
 			failed++
 		} else {
@@ -193,8 +192,7 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 		// 3. Basic tests
 		fmt.Printf("3. Running basic tests...\n")
-		testCmd := exec.Command("go", "test", "./...", "-short", "-timeout=30s")
-		if testErr := testCmd.Run(); testErr != nil {
+		if err, _ := runEvalTool("go", "test", "./...", "-short", "-timeout=30s"); err != nil {
 			fmt.Printf("   ✗ tests failed\n")
 			failed++
 		} else {
@@ -210,8 +208,7 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 		// 1. go vet
 		fmt.Printf("1. Running go vet...\n")
-		vetCmd := exec.Command("go", "vet", "./...")
-		if vetErr := vetCmd.Run(); vetErr != nil {
+		if err, _ := runEvalTool("go", "vet", "./..."); err != nil {
 			fmt.Printf("   ✗ go vet failed\n")
 			failed++
 		} else {
@@ -221,8 +218,7 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 		// 2. All tests (no -short flag)
 		fmt.Printf("2. Running all tests...\n")
-		testCmd := exec.Command("go", "test", "./...", "-timeout=5m")
-		if testErr := testCmd.Run(); testErr != nil {
+		if err, _ := runEvalTool("go", "test", "./...", "-timeout=5m"); err != nil {
 			fmt.Printf("   ✗ tests failed\n")
 			failed++
 		} else {
@@ -232,8 +228,7 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 		// 3. Coverage check
 		fmt.Printf("3. Checking test coverage...\n")
-		coverCmd := exec.Command("go", "test", "./...", "-cover")
-		if coverErr := coverCmd.Run(); coverErr != nil {
+		if err, _ := runEvalTool("go", "test", "./...", "-cover"); err != nil {
 			fmt.Printf("   ✗ coverage check failed\n")
 			failed++
 		} else {
@@ -249,8 +244,7 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 		// 1. go vet
 		fmt.Printf("1. Running go vet...\n")
-		vetCmd := exec.Command("go", "vet", "./...")
-		if vetErr := vetCmd.Run(); vetErr != nil {
+		if err, _ := runEvalTool("go", "vet", "./..."); err != nil {
 			fmt.Printf("   ✗ go vet failed\n")
 			failed++
 		} else {
@@ -260,11 +254,9 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 		// 2. gosec scan
 		fmt.Printf("2. Running gosec security scan...\n")
-		gosecCmd := exec.Command("gosec", "./...")
-		gosecErr := gosecCmd.Run()
+		gosecErr, missing := runEvalTool("gosec", "./...")
 		if gosecErr != nil {
-			// Check if gosec is not installed
-			if strings.Contains(gosecErr.Error(), "not found") || strings.Contains(gosecErr.Error(), "executable file not found") {
+			if missing {
 				fmt.Printf("   ⊘ gosec not installed (skipping)\n")
 			} else {
 				fmt.Printf("   ✗ gosec scan failed\n")
@@ -294,8 +286,7 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 		// 1. Benchmark tests
 		fmt.Printf("1. Running benchmark tests...\n")
-		benchCmd := exec.Command("go", "test", "./...", "-bench=.", "-benchtime=1s", "-run=^$")
-		if benchErr := benchCmd.Run(); benchErr != nil {
+		if err, _ := runEvalTool("go", "test", "./...", "-bench=.", "-benchtime=1s", "-run=^$"); err != nil {
 			fmt.Printf("   ✗ benchmarks failed\n")
 			failed++
 		} else {
@@ -331,6 +322,23 @@ func runEvalRun(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("\n✓ Evaluation passed")
 	return nil
+}
+
+func runEvalTool(name string, args ...string) (error, bool) {
+	cmd, err := safeutil.SafeCommand(context.Background(), name, args...)
+	if err != nil {
+		missing := strings.Contains(err.Error(), "resolve") || strings.Contains(err.Error(), "not found")
+		return err, missing
+	}
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		missing := strings.Contains(err.Error(), "executable file not found") || strings.Contains(err.Error(), "not found")
+		return err, missing
+	}
+
+	return nil, false
 }
 
 func runEvalRules(cmd *cobra.Command, args []string) error {
@@ -450,7 +458,10 @@ func runEvalRules(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Printf("Opening %s in %s...\n", policyFile, editor)
-		editorCmd := exec.Command(editor, policyFile)
+		editorCmd, err := safeutil.SafeCommand(context.Background(), editor, policyFile)
+		if err != nil {
+			return fmt.Errorf("failed to prepare policy editor: %w", err)
+		}
 		editorCmd.Stdin = os.Stdin
 		editorCmd.Stdout = os.Stdout
 		editorCmd.Stderr = os.Stderr

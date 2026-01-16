@@ -26,9 +26,9 @@ func DefaultLockfilePath() string {
 
 // PluginLock tracks all installed plugins
 type PluginLock struct {
-	Version string                   `json:"version"`
-	Plugins map[string]LockedPlugin  `json:"plugins"`
-	Updated time.Time                `json:"updated"`
+	Version string                  `json:"version"`
+	Plugins map[string]LockedPlugin `json:"plugins"`
+	Updated time.Time               `json:"updated"`
 
 	path string
 	mu   sync.RWMutex
@@ -113,7 +113,7 @@ func (l *PluginLock) Save() error {
 
 	// Write atomically using temp file
 	tmpPath := l.path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write lockfile: %w", err)
 	}
 

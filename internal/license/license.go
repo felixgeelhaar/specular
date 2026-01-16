@@ -152,7 +152,7 @@ func (l *License) Save() error {
 	}
 
 	licensePath := filepath.Join(specularDir, "license.json")
-	if err := os.WriteFile(licensePath, data, 0644); err != nil {
+	if err := os.WriteFile(licensePath, data, 0600); err != nil {
 		return fmt.Errorf("writing license file: %w", err)
 	}
 

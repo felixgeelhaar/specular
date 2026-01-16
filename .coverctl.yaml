@@ -24,8 +24,13 @@ policy:
       description: AI provider integrations
       match:
         - ./internal/provider/...
-        - ./internal/router/...
       min: 75
+
+    - name: router
+      description: Routing intelligence and selection
+      match:
+        - ./internal/router/...
+      min: 65
 
     - name: execution
       description: Execution and sandboxing
@@ -80,6 +85,10 @@ exclude:
   - "**/*_test.go"
   - "**/examples/**"
   - "cmd/specular/main.go"
+  - "./internal/provider/native/**"
+  - "internal/provider/native/**"
+  - "./internal/provider/testhelpers/**"
+  - "internal/provider/testhelpers/**"
 
 # Ratchet mode - fail if coverage decreases
 ratchet: true

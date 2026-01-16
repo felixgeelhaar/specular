@@ -4,6 +4,8 @@ import (
 	"context"
 	"os/exec"
 	"strings"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // DockerChecker checks if Docker daemon is running and accessible.
@@ -26,7 +28,6 @@ func (c *DockerChecker) Name() string {
 //
 // The check runs `docker info` to verify daemon connectivity.
 func (c *DockerChecker) Check(ctx context.Context) *Result {
-	// Check if docker command exists
 	dockerPath, err := exec.LookPath("docker")
 	if err != nil {
 		return Unhealthy("docker command not found in PATH").
@@ -34,8 +35,12 @@ func (c *DockerChecker) Check(ctx context.Context) *Result {
 			WithDetail("suggestion", "Install Docker Desktop or Docker Engine")
 	}
 
-	// Run docker info to check daemon connectivity
-	cmd := exec.CommandContext(ctx, dockerPath, "info", "--format", "{{.ServerVersion}}")
+	cmd, err := safeutil.SafeCommand(ctx, dockerPath, "info", "--format", "{{.ServerVersion}}")
+	if err != nil {
+		return Unhealthy("failed to prepare docker command").
+			WithDetail("error", err.Error()).
+			WithDetail("suggestion", "Install Docker Desktop or Docker Engine")
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		// Check for specific error conditions

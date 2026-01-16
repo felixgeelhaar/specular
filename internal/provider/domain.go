@@ -173,7 +173,7 @@ func PersistEvents(path string, maxEvents int) error {
 		builder.WriteByte('\n')
 	}
 
-	if err := os.WriteFile(path, []byte(builder.String()), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(builder.String()), 0600); err != nil {
 		return fmt.Errorf("write telemetry log: %w", err)
 	}
 

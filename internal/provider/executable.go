@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os/exec"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // ExecutableProvider wraps any executable that speaks JSON over stdin/stdout
@@ -103,7 +105,10 @@ func (e *ExecutableProvider) Generate(ctx context.Context, req *GenerateRequest)
 
 	// Build command with args
 	cmdArgs := append(e.args, "generate")
-	cmd := exec.CommandContext(ctx, e.path, cmdArgs...)
+	cmd, err := safeutil.SafeCommand(ctx, e.path, cmdArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare provider command: %w", err)
+	}
 
 	// Prepare request as JSON
 	requestJSON, err := json.Marshal(req)
@@ -167,7 +172,13 @@ func (e *ExecutableProvider) Stream(ctx context.Context, req *GenerateRequest) (
 
 	// Prepare command with "stream" argument
 	cmdArgs := append([]string{"stream"}, e.args...)
-	cmd := exec.CommandContext(ctx, e.path, cmdArgs...)
+	cmd, err := safeutil.SafeCommand(ctx, e.path, cmdArgs...)
+	if err != nil {
+		close(chunkChan)
+		scannerErr := fmt.Errorf("failed to prepare streaming command: %w", err)
+		chunkChan <- StreamChunk{Error: scannerErr, Done: true}
+		return chunkChan, scannerErr
+	}
 	cmd.Stdin = bytes.NewReader(reqJSON)
 
 	// Get stdout pipe for line-by-line reading
@@ -252,7 +263,10 @@ func (e *ExecutableProvider) Health(ctx context.Context) error {
 	healthCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(healthCtx, e.path, cmdArgs...)
+	cmd, err := safeutil.SafeCommand(healthCtx, e.path, cmdArgs...)
+	if err != nil {
+		return fmt.Errorf("health check preparation failed: %w", err)
+	}
 
 	// Run health check
 	if err := cmd.Run(); err != nil {

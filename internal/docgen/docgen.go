@@ -68,7 +68,7 @@ func WriteDocs(dir string, ctx DocContext) error {
 			return fmt.Errorf("render %s: %w", name, err)
 		}
 		targetPath := filepath.Join(dir, name)
-		if err := os.WriteFile(targetPath, buf.Bytes(), 0644); err != nil {
+		if err := os.WriteFile(targetPath, buf.Bytes(), 0600); err != nil {
 			return fmt.Errorf("write %s: %w", name, err)
 		}
 	}

@@ -158,12 +158,12 @@ type GenerateConfig struct {
 
 // GenerateResult holds the result of generating workflow files
 type GenerateResult struct {
-	FilesCreated  []string
-	FilesSkipped  []string
-	Errors        []error
-	TotalBytes    int64
-	TemplateID    string
-	TemplateName  string
+	FilesCreated []string
+	FilesSkipped []string
+	Errors       []error
+	TotalBytes   int64
+	TemplateID   string
+	TemplateName string
 }
 
 // Generate creates workflow files from a template
@@ -235,7 +235,7 @@ func (t *WorkflowTemplate) Generate(config GenerateConfig) (*GenerateResult, err
 		}
 
 		// Write file
-		if err := os.WriteFile(outputPath, []byte(content.String()), 0644); err != nil {
+		if err := os.WriteFile(outputPath, []byte(content.String()), 0600); err != nil {
 			result.Errors = append(result.Errors, fmt.Errorf("write file %s: %w", outputPath, err))
 			continue
 		}

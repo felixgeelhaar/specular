@@ -2,6 +2,8 @@ package eval
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/felixgeelhaar/specular/internal/policy"
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 var (
@@ -21,7 +24,13 @@ var (
 
 // RunGoTests executes Go tests and returns results
 func RunGoTests(projectRoot string, pol *policy.Policy) (*TestResult, error) {
-	cmd := exec.Command("go", "test", "-v", "-race", "-coverprofile=coverage.txt", "-covermode=atomic", "./...")
+	cmd, err := safeutil.SafeCommand(context.Background(), "go", "test", "-v", "-race", "-coverprofile=coverage.txt", "-covermode=atomic", "./...")
+	if err != nil {
+		return &TestResult{
+			Passed: false,
+			Output: fmt.Sprintf("failed to prepare go test: %v", err),
+		}, nil
+	}
 	cmd.Dir = projectRoot
 	prepareGoCommand(cmd)
 
@@ -29,7 +38,7 @@ func RunGoTests(projectRoot string, pol *policy.Policy) (*TestResult, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
+	err = cmd.Run()
 
 	output := stdout.String() + stderr.String()
 	result := parseGoTestOutput(output)
@@ -81,7 +90,13 @@ func parseGoTestOutput(output string) *TestResult {
 // CheckCoverage verifies test coverage meets minimum threshold
 func CheckCoverage(projectRoot string, minCoverage float64) (*TestResult, error) {
 	// Run tests with coverage
-	cmd := exec.Command("go", "test", "-coverprofile=coverage.txt", "-covermode=atomic", "./...")
+	cmd, err := safeutil.SafeCommand(context.Background(), "go", "test", "-coverprofile=coverage.txt", "-covermode=atomic", "./...")
+	if err != nil {
+		return &TestResult{
+			Passed: false,
+			Output: fmt.Sprintf("failed to prepare coverage command: %v", err),
+		}, nil
+	}
 	cmd.Dir = projectRoot
 	prepareGoCommand(cmd)
 
@@ -89,7 +104,7 @@ func CheckCoverage(projectRoot string, minCoverage float64) (*TestResult, error)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stdout
 
-	err := cmd.Run()
+	err = cmd.Run()
 
 	output := stdout.String()
 	result := parseGoTestOutput(output)
@@ -115,14 +130,20 @@ func RunLinter(projectRoot string, linterCmd string) (*LintResult, error) {
 		return nil, fmt.Errorf("empty linter command")
 	}
 
-	cmd := exec.Command(parts[0], parts[1:]...)
+	cmd, err := safeutil.SafeCommand(context.Background(), parts[0], parts[1:]...)
+	if err != nil {
+		return &LintResult{
+			Output: fmt.Sprintf("failed to prepare linter command: %v", err),
+			Passed: false,
+		}, nil
+	}
 	cmd.Dir = projectRoot
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
+	runErr := cmd.Run()
 
 	output := stdout.String() + stderr.String()
 
@@ -131,7 +152,7 @@ func RunLinter(projectRoot string, linterCmd string) (*LintResult, error) {
 	}
 
 	// Linter passed if command succeeded
-	if err != nil {
+	if runErr != nil {
 		result.Passed = false
 		// Try to count issues from output
 		result.Issues = countLintIssues(output)
@@ -162,22 +183,23 @@ func countLintIssues(output string) int {
 
 // RunSecretsScan scans for secrets in the codebase
 func RunSecretsScan(projectRoot string) (*SecurityResult, error) {
-	// Check if gitleaks is available
-	if _, err := exec.LookPath("gitleaks"); err != nil {
-		return &SecurityResult{
-			Passed: true,
-			Output: "gitleaks not found, skipping secrets scan",
-		}, nil
+	cmd, err := safeutil.SafeCommand(context.Background(), "gitleaks", "detect", "--no-git", "-v")
+	if err != nil {
+		if errors.Is(err, exec.ErrNotFound) {
+			return &SecurityResult{
+				Passed: true,
+				Output: "gitleaks not found, skipping secrets scan",
+			}, nil
+		}
+		return nil, fmt.Errorf("failed to prepare gitleaks scan: %w", err)
 	}
-
-	cmd := exec.Command("gitleaks", "detect", "--no-git", "-v")
 	cmd.Dir = projectRoot
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
+	runErr := cmd.Run()
 
 	output := stdout.String() + stderr.String()
 
@@ -186,7 +208,7 @@ func RunSecretsScan(projectRoot string) (*SecurityResult, error) {
 	}
 
 	// gitleaks exits with 1 if secrets found
-	if err != nil {
+	if runErr != nil {
 		result.Passed = false
 		result.Secrets = countSecrets(output)
 	} else {
@@ -227,10 +249,14 @@ func ensureGoCacheDir() string {
 
 // RunDependencyScan scans for vulnerable dependencies using govulncheck
 func RunDependencyScan(projectRoot string) (*SecurityResult, error) {
-	// Check if govulncheck is available
-	if _, err := exec.LookPath("govulncheck"); err != nil {
-		// Fall back to basic dependency listing if govulncheck not available
-		cmd := exec.Command("go", "list", "-m", "all")
+	runGoListFallback := func() (*SecurityResult, error) {
+		cmd, err := safeutil.SafeCommand(context.Background(), "go", "list", "-m", "all")
+		if err != nil {
+			return &SecurityResult{
+				Passed: false,
+				Output: fmt.Sprintf("failed to prepare go list: %v", err),
+			}, nil
+		}
 		cmd.Dir = projectRoot
 		prepareGoCommand(cmd)
 
@@ -250,8 +276,13 @@ func RunDependencyScan(projectRoot string) (*SecurityResult, error) {
 		}, nil
 	}
 
-	// Run govulncheck to scan for vulnerabilities
-	cmd := exec.Command("govulncheck", "./...")
+	cmd, err := safeutil.SafeCommand(context.Background(), "govulncheck", "./...")
+	if err != nil {
+		if errors.Is(err, exec.ErrNotFound) {
+			return runGoListFallback()
+		}
+		return nil, fmt.Errorf("failed to prepare govulncheck: %w", err)
+	}
 	cmd.Dir = projectRoot
 	prepareGoCommand(cmd)
 
@@ -259,7 +290,7 @@ func RunDependencyScan(projectRoot string) (*SecurityResult, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
+	err = cmd.Run()
 
 	output := stdout.String() + stderr.String()
 

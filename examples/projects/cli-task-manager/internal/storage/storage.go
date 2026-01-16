@@ -182,7 +182,7 @@ func (s *FileStorage) save(tasks []task.Task) error {
 
 	// Write to temp file first for atomic operation
 	tmpPath := s.path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0o644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0o600); err != nil {
 		return err
 	}
 

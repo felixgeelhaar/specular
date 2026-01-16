@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // GitChecker checks if Git is installed and accessible.
@@ -28,7 +30,6 @@ func (c *GitChecker) Name() string {
 //
 // The check runs `git --version` to verify installation.
 func (c *GitChecker) Check(ctx context.Context) *Result {
-	// Check if git command exists
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
 		return Unhealthy("git command not found in PATH").
@@ -37,7 +38,12 @@ func (c *GitChecker) Check(ctx context.Context) *Result {
 	}
 
 	// Run git --version to check installation and version
-	cmd := exec.CommandContext(ctx, gitPath, "--version")
+	cmd, err := safeutil.SafeCommand(ctx, gitPath, "--version")
+	if err != nil {
+		return Unhealthy("failed to prepare git command").
+			WithDetail("error", err.Error()).
+			WithDetail("suggestion", "Install Git from https://git-scm.com/downloads")
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return Unhealthy("failed to execute git command").

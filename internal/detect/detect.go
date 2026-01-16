@@ -1,11 +1,13 @@
 package detect
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // Context represents the detected project context
@@ -101,30 +103,31 @@ func DetectAll() (*Context, error) {
 func detectDocker() ContainerRuntime {
 	runtime := ContainerRuntime{}
 
-	// Check if docker command exists
-	path, err := exec.LookPath("docker")
+	ctx := context.Background()
+
+	cmd, err := safeutil.SafeCommand(ctx, "docker", "version", "--format", "{{.Server.Version}}")
 	if err != nil {
 		return runtime
 	}
 
 	runtime.Available = true
-
-	// Get version
-	cmd := exec.Command(path, "version", "--format", "{{.Server.Version}}")
 	output, err := cmd.Output()
 	if err == nil {
 		runtime.Version = strings.TrimSpace(string(output))
 		runtime.Running = true
-	} else {
-		// Docker CLI exists but daemon might not be running
-		cmd = exec.Command(path, "--version")
-		output, err = cmd.Output()
-		if err == nil {
-			// Parse version from "Docker version 24.0.7, build afdd53b"
-			parts := strings.Split(string(output), " ")
-			if len(parts) >= 3 {
-				runtime.Version = strings.TrimSuffix(parts[2], ",")
-			}
+		return runtime
+	}
+
+	cmd, err = safeutil.SafeCommand(ctx, "docker", "--version")
+	if err != nil {
+		return runtime
+	}
+
+	output, err = cmd.Output()
+	if err == nil {
+		parts := strings.Split(string(output), " ")
+		if len(parts) >= 3 {
+			runtime.Version = strings.TrimSuffix(parts[2], ",")
 		}
 	}
 
@@ -135,17 +138,17 @@ func detectDocker() ContainerRuntime {
 func detectPodman() ContainerRuntime {
 	runtime := ContainerRuntime{}
 
-	path, err := exec.LookPath("podman")
+	ctx := context.Background()
+
+	cmd, err := safeutil.SafeCommand(ctx, "podman", "--version")
 	if err != nil {
 		return runtime
 	}
 
 	runtime.Available = true
 
-	cmd := exec.Command(path, "--version")
 	output, err := cmd.Output()
 	if err == nil {
-		// Parse version from "podman version 4.7.2"
 		parts := strings.Split(string(output), " ")
 		if len(parts) >= 3 {
 			runtime.Version = strings.TrimSpace(parts[2])
@@ -163,17 +166,14 @@ func detectOllama() ProviderInfo {
 		Type: "local",
 	}
 
-	path, err := exec.LookPath("ollama")
+	cmd, err := safeutil.SafeCommand(context.Background(), "ollama", "--version")
 	if err != nil {
 		return info
 	}
 
 	info.Available = true
 
-	// Get version
-	cmd := exec.Command(path, "--version")
-	output, err := cmd.Output()
-	if err == nil {
+	if output, err := cmd.Output(); err == nil {
 		info.Version = strings.TrimSpace(string(output))
 	}
 
@@ -187,17 +187,14 @@ func detectClaudeCode() ProviderInfo {
 		Type: "cli",
 	}
 
-	path, err := exec.LookPath("claude")
+	cmd, err := safeutil.SafeCommand(context.Background(), "claude", "--version")
 	if err != nil {
 		return info
 	}
 
 	info.Available = true
 
-	// Get version if available
-	cmd := exec.Command(path, "--version")
-	output, err := cmd.Output()
-	if err == nil {
+	if output, err := cmd.Output(); err == nil {
 		info.Version = strings.TrimSpace(string(output))
 	}
 
@@ -210,15 +207,13 @@ func detectCLIProvider(name, cliName string) ProviderInfo {
 		Type: "cli",
 	}
 
-	path, err := exec.LookPath(cliName)
+	cmd, err := safeutil.SafeCommand(context.Background(), cliName, "--version")
 	if err != nil {
 		return info
 	}
 
 	info.Available = true
-	cmd := exec.Command(path, "--version")
-	output, err := cmd.Output()
-	if err == nil {
+	if output, err := cmd.Output(); err == nil {
 		info.Version = strings.TrimSpace(string(output))
 	}
 
@@ -339,8 +334,12 @@ func detectLanguagesAndFrameworks() ([]string, []string) {
 func detectGit() GitContext {
 	git := GitContext{}
 
-	// Check if in a git repository
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	ctx := context.Background()
+
+	cmd, err := safeutil.SafeCommand(ctx, "git", "rev-parse", "--show-toplevel")
+	if err != nil {
+		return git
+	}
 	output, err := cmd.Output()
 	if err != nil {
 		return git
@@ -349,22 +348,20 @@ func detectGit() GitContext {
 	git.Initialized = true
 	git.Root = strings.TrimSpace(string(output))
 
-	// Get current branch
-	cmd = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	output, err = cmd.Output()
-	if err == nil {
-		git.Branch = strings.TrimSpace(string(output))
+	if cmd, err = safeutil.SafeCommand(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD"); err == nil {
+		if output, err := cmd.Output(); err == nil {
+			git.Branch = strings.TrimSpace(string(output))
+		}
 	}
 
-	// Check if working directory is dirty
-	cmd = exec.Command("git", "status", "--porcelain")
-	output, err = cmd.Output()
-	if err == nil {
-		trimmed := strings.TrimSpace(string(output))
-		if trimmed != "" {
-			statusLines := strings.Split(trimmed, "\n")
-			git.Uncommitted = len(statusLines)
-			git.Dirty = true
+	if cmd, err = safeutil.SafeCommand(ctx, "git", "status", "--porcelain"); err == nil {
+		if output, err := cmd.Output(); err == nil {
+			trimmed := strings.TrimSpace(string(output))
+			if trimmed != "" {
+				statusLines := strings.Split(trimmed, "\n")
+				git.Uncommitted = len(statusLines)
+				git.Dirty = true
+			}
 		}
 	}
 

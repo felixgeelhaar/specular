@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // GenerateRequest matches internal/provider/types.go
@@ -103,7 +104,10 @@ func handleGenerate() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "codex", args...)
+	cmd, err := safeutil.SafeCommand(ctx, "codex", args...)
+	if err != nil {
+		return fmt.Errorf("failed to build codex-cli command: %w", err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("codex command failed: %w: %s", err, string(output))
@@ -132,7 +136,10 @@ func handleGenerate() error {
 
 func handleHealth() error {
 	// Check if codex CLI is available
-	cmd := exec.Command("codex", "--version")
+	cmd, err := safeutil.SafeCommand(context.Background(), "codex", "--version")
+	if err != nil {
+		return fmt.Errorf("failed to build codex-cli health command: %w", err)
+	}
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("codex not available: %w", err)
 	}

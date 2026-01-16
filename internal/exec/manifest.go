@@ -80,7 +80,7 @@ func WriteLatestManifest(dir string, manifest *RunManifest, manifestPath string)
 	}
 
 	metaPath := filepath.Join(dir, "latest.json")
-	if err := os.WriteFile(metaPath, data, 0644); err != nil {
+	if err := os.WriteFile(metaPath, data, 0600); err != nil {
 		return fmt.Errorf("write latest manifest metadata: %w", err)
 	}
 

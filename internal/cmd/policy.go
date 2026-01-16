@@ -181,7 +181,7 @@ func runPolicyInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Write policy file
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 		return fmt.Errorf("writing policy file: %w", err)
 	}
 
@@ -321,7 +321,7 @@ func runPolicyApprove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("marshaling approval: %w", err)
 	}
 
-	if err := os.WriteFile(approvalPath, approvalData, 0644); err != nil {
+	if err := os.WriteFile(approvalPath, approvalData, 0600); err != nil {
 		return fmt.Errorf("writing approval: %w", err)
 	}
 

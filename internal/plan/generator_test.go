@@ -200,6 +200,47 @@ func TestDetermineModelHint(t *testing.T) {
 	}
 }
 
+func TestPlanGeneratorWrappers(t *testing.T) {
+	task := Task{
+		ID:        types.TaskID("task-001"),
+		FeatureID: types.FeatureID("feat-001"),
+	}
+
+	features := []spec.Feature{
+		{
+			ID:       types.FeatureID("feat-001"),
+			Priority: types.Priority("P0"),
+			Success:  []string{"done"},
+			API: []spec.API{
+				{Path: "/api/test", Method: "GET"},
+			},
+		},
+	}
+
+	_ = determineDependencies(features[0], features, 0)
+	if skill := determineSkill(features[0]); skill == "" {
+		t.Fatal("determineSkill returned empty string")
+	}
+	if hint := determineModelHint(features[0]); hint == "" {
+		t.Fatal("determineModelHint returned empty string")
+	}
+	if complexity := estimateComplexity(features[0]); complexity <= 0 {
+		t.Fatalf("expected complexity > 0, got %d", complexity)
+	}
+
+	tasks := []Task{
+		task,
+		{
+			ID:        types.TaskID("task-002"),
+			DependsOn: []types.TaskID{task.ID},
+		},
+	}
+
+	if err := validateDependencies(tasks); err != nil {
+		t.Fatalf("validateDependencies returned error: %v", err)
+	}
+}
+
 func TestValidateDependencies(t *testing.T) {
 	tests := []struct {
 		name    string

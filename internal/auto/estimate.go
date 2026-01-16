@@ -144,7 +144,7 @@ func FormatCostEstimate(est *CostEstimate) string {
 }
 
 // max returns the maximum of two integers
-func maxInt(a, b int) int {
+func max(a, b int) int {
 	if a > b {
 		return a
 	}

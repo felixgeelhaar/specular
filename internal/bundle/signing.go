@@ -2,16 +2,17 @@ package bundle
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -156,11 +157,14 @@ func (s *Signer) signWithGPG(approval *Approval, digest string, keyPath string) 
 
 	// Sign with GPG
 	var stdout, stderr bytes.Buffer
-	// #nosec G204 - tmpFile.Name() is from os.CreateTemp, not user input
-	cmd := exec.Command("gpg", "--detach-sign", "--armor", "--output", "-", tmpFile.Name())
+	args := []string{"--detach-sign"}
 	if keyPath != "" {
-		cmd.Args = append(cmd.Args[:2], "--local-user", keyPath)
-		cmd.Args = append(cmd.Args, cmd.Args[2:]...)
+		args = append(args, "--local-user", keyPath)
+	}
+	args = append(args, "--armor", "--output", "-", tmpFile.Name())
+	cmd, err := safeutil.SafeCommand(context.Background(), "gpg", args...)
+	if err != nil {
+		return fmt.Errorf("failed to prepare gpg: %w", err)
 	}
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -172,15 +176,19 @@ func (s *Signer) signWithGPG(approval *Approval, digest string, keyPath string) 
 	approval.Signature = stdout.String()
 
 	// Get public key
-	pubKeyCmd := exec.Command("gpg", "--armor", "--export")
+	pubKeyArgs := []string{"--armor", "--export"}
 	if keyPath != "" {
-		pubKeyCmd.Args = append(pubKeyCmd.Args, keyPath)
+		pubKeyArgs = append(pubKeyArgs, keyPath)
 	}
 
 	var pubKeyOut bytes.Buffer
+	pubKeyCmd, pubKeyErr := safeutil.SafeCommand(context.Background(), "gpg", pubKeyArgs...)
+	if pubKeyErr != nil {
+		return fmt.Errorf("failed to prepare public key export: %w", pubKeyErr)
+	}
 	pubKeyCmd.Stdout = &pubKeyOut
-	if pubKeyErr := pubKeyCmd.Run(); pubKeyErr != nil {
-		return fmt.Errorf("failed to export public key: %w", pubKeyErr)
+	if runErr := pubKeyCmd.Run(); runErr != nil {
+		return fmt.Errorf("failed to export public key: %w", runErr)
 	}
 
 	approval.PublicKey = pubKeyOut.String()
@@ -348,10 +356,14 @@ func (v *Verifier) verifySSHSignature(approval *Approval) error {
 // verifyGPGSignature verifies a GPG signature using gpg command.
 func (v *Verifier) verifyGPGSignature(approval *Approval) error {
 	// Import public key to temporary keyring
-	keyImportCmd := exec.Command("gpg", "--import", "--no-default-keyring", "--keyring", "trustedkeys.gpg")
+	keyImportArgs := []string{"--import", "--no-default-keyring", "--keyring", "trustedkeys.gpg"}
+	keyImportCmd, importErr := safeutil.SafeCommand(context.Background(), "gpg", keyImportArgs...)
+	if importErr != nil {
+		return fmt.Errorf("failed to prepare public key import: %w", importErr)
+	}
 	keyImportCmd.Stdin = strings.NewReader(approval.PublicKey)
-	if importErr := keyImportCmd.Run(); importErr != nil {
-		return fmt.Errorf("failed to import public key: %w", importErr)
+	if runErr := keyImportCmd.Run(); runErr != nil {
+		return fmt.Errorf("failed to import public key: %w", runErr)
 	}
 
 	// Create temporary files for message and signature
@@ -403,12 +415,15 @@ func (v *Verifier) verifyGPGSignature(approval *Approval) error {
 
 	// Verify signature
 	var stderr bytes.Buffer
-	// #nosec G204 - sigFile.Name() and msgFile.Name() are from os.CreateTemp, not user input
-	verifyCmd := exec.Command("gpg", "--verify", sigFile.Name(), msgFile.Name())
+	verifyArgs := []string{"--verify", sigFile.Name(), msgFile.Name()}
+	verifyCmd, verifyErr := safeutil.SafeCommand(context.Background(), "gpg", verifyArgs...)
+	if verifyErr != nil {
+		return fmt.Errorf("failed to prepare signature verification: %w", verifyErr)
+	}
 	verifyCmd.Stderr = &stderr
 
-	if verifyErr := verifyCmd.Run(); verifyErr != nil {
-		return fmt.Errorf("signature verification failed: %w (stderr: %s)", verifyErr, stderr.String())
+	if runErr := verifyCmd.Run(); runErr != nil {
+		return fmt.Errorf("signature verification failed: %w (stderr: %s)", runErr, stderr.String())
 	}
 
 	return nil

@@ -1165,7 +1165,11 @@ func runProviderSetup(specDir string) error {
 	choice, _ := reader.ReadString('\n') //nolint:errcheck // Interactive prompt, empty response on error is acceptable
 	choice = strings.TrimSpace(choice)
 
-	routerPath := filepath.Join(specDir, "router.yaml")
+	routerDir, err := sanitizeSpecDir(specDir)
+	if err != nil {
+		return err
+	}
+	routerPath := filepath.Join(routerDir, "router.yaml")
 
 	switch choice {
 	case "1":
@@ -1183,6 +1187,8 @@ func runProviderSetup(specDir string) error {
 		return nil
 	}
 }
+
+var _ = runProviderSetup
 
 func enableProvider(routerPath string, providerName string) error {
 	// Read router.yaml
@@ -1230,6 +1236,18 @@ func enableProvider(routerPath string, providerName string) error {
 
 	fmt.Printf("✓ Enabled provider: %s\n", providerName)
 	return nil
+}
+
+func sanitizeSpecDir(specDir string) (string, error) {
+	if specDir == "" {
+		specDir = "."
+	}
+	cleanDir := filepath.Clean(specDir)
+	absDir, err := filepath.Abs(cleanDir)
+	if err != nil {
+		return "", fmt.Errorf("invalid spec directory %q: %w", specDir, err)
+	}
+	return absDir, nil
 }
 
 func printSmartSuccessMessage(config *InitConfig) {

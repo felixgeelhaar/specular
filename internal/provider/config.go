@@ -240,6 +240,18 @@ func ConfigFromRecommended(recommended []string) *ProvidersConfig {
 	return config
 }
 
+// WriteProvidersConfigFromDescriptors generates a providers configuration from the registered descriptors.
+func WriteProvidersConfigFromDescriptors(path string, recommended []string) (*ProvidersConfig, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
+		return nil, fmt.Errorf("create providers config directory: %w", err)
+	}
+	config := ConfigFromRecommended(recommended)
+	if err := SaveProvidersConfig(config, path); err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
 // SaveProvidersConfigExample writes a provider config example with a descriptive header.
 func SaveProvidersConfigExample(config *ProvidersConfig, path string) error {
 	if config == nil {
@@ -257,7 +269,7 @@ func SaveProvidersConfigExample(config *ProvidersConfig, path string) error {
 
 	builder.Write(data)
 
-	if err := os.WriteFile(path, []byte(builder.String()), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(builder.String()), 0600); err != nil {
 		return fmt.Errorf("write config example: %w", err)
 	}
 

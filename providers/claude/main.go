@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // GenerateRequest matches internal/provider/types.go
@@ -141,7 +142,10 @@ func handleGenerate() error {
 	// Add the prompt
 	args = append(args, fullPrompt)
 
-	cmd := exec.CommandContext(ctx, "claude", args...)
+	cmd, err := safeutil.SafeCommand(ctx, "claude", args...)
+	if err != nil {
+		return fmt.Errorf("failed to build claude command: %w", err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("claude CLI call failed: %w\nOutput: %s", err, string(output))
@@ -215,7 +219,10 @@ func handleStream() error {
 
 	args = append(args, fullPrompt)
 
-	cmd := exec.CommandContext(ctx, "claude", args...)
+	cmd, err := safeutil.SafeCommand(ctx, "claude", args...)
+	if err != nil {
+		return fmt.Errorf("failed to build claude command: %w", err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		// Output error chunk
@@ -256,7 +263,10 @@ func handleStream() error {
 
 func handleHealth() error {
 	// Check if claude CLI is available
-	cmd := exec.Command("claude", "--version")
+	cmd, err := safeutil.SafeCommand(context.Background(), "claude", "--version")
+	if err != nil {
+		return fmt.Errorf("failed to build claude health command: %w", err)
+	}
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("claude CLI not available: %w", err)
 	}

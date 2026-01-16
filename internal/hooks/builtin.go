@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os/exec"
 	"strings"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // ScriptHook executes a shell script
@@ -73,7 +74,10 @@ func (h *ScriptHook) Execute(ctx context.Context, event *Event) error {
 
 	// Create command
 	args := append([]string{h.scriptPath}, h.args...)
-	cmd := exec.CommandContext(ctx, h.shell, args...)
+	cmd, err := safeutil.SafeCommand(ctx, h.shell, args...)
+	if err != nil {
+		return fmt.Errorf("failed to prepare hook command: %w", err)
+	}
 	cmd.Env = env
 
 	// Capture output

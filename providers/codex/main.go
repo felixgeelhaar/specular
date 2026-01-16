@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // GenerateRequest matches internal/provider/types.go
@@ -146,7 +147,10 @@ func handleGenerate() error {
 	args = append(args, "-p", fullPrompt)
 
 	// Use openai CLI (codex is accessed via openai CLI)
-	cmd := exec.CommandContext(ctx, "openai", args...)
+	cmd, err := safeutil.SafeCommand(ctx, "openai", args...)
+	if err != nil {
+		return fmt.Errorf("failed to build codex command: %w", err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("codex CLI call failed: %w\nOutput: %s", err, string(output))
@@ -209,7 +213,10 @@ func handleStream() error {
 
 	args := []string{"api", "completions.create", "-m", model, "-p", fullPrompt}
 
-	cmd := exec.CommandContext(ctx, "openai", args...)
+	cmd, err := safeutil.SafeCommand(ctx, "openai", args...)
+	if err != nil {
+		return fmt.Errorf("failed to build codex streaming command: %w", err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		// Output error chunk
@@ -250,7 +257,10 @@ func handleStream() error {
 
 func handleHealth() error {
 	// Check if openai CLI is available (codex accessed via openai CLI)
-	cmd := exec.Command("openai", "--version")
+	cmd, err := safeutil.SafeCommand(context.Background(), "openai", "--version")
+	if err != nil {
+		return fmt.Errorf("failed to build codex health command: %w", err)
+	}
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("codex/openai CLI not available: %w", err)
 	}

@@ -1,10 +1,12 @@
 package ux
 
 import (
+	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // DiscoverSpecularDir searches for .specular directory in multiple locations
@@ -133,7 +135,10 @@ func DiscoverConfigFile(filename string) (string, error) {
 
 // getGitRoot returns the git repository root directory
 func getGitRoot() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd, err := safeutil.SafeCommand(context.Background(), "git", "rev-parse", "--show-toplevel")
+	if err != nil {
+		return "", err
+	}
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err

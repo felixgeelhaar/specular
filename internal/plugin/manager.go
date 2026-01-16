@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"gopkg.in/yaml.v3"
 )
 
@@ -266,7 +266,10 @@ func (m *Manager) executePlugin(ctx context.Context, plugin *Plugin, request int
 	defer cancel()
 
 	// Execute plugin
-	cmd := exec.CommandContext(execCtx, entrypointPath)
+	cmd, err := safeutil.SafeCommand(execCtx, entrypointPath)
+	if err != nil {
+		return nil, fmt.Errorf("prepare plugin command: %w", err)
+	}
 	cmd.Stdin = bytes.NewReader(requestData)
 
 	var stdout, stderr bytes.Buffer
@@ -463,7 +466,10 @@ func (m *Manager) installFromGitHub(source string) error {
 	fmt.Printf("Cloning %s...\n", repo)
 	cloneURL := fmt.Sprintf("https://github.com/%s.git", repo)
 
-	cmd := exec.Command("git", "clone", "--depth", "1", cloneURL, tmpDir)
+	cmd, err := safeutil.SafeCommand(context.Background(), "git", "clone", "--depth", "1", cloneURL, tmpDir)
+	if err != nil {
+		return fmt.Errorf("prepare git clone: %w", err)
+	}
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("git clone failed: %w\nOutput: %s", err, output)
 	}
@@ -662,14 +668,17 @@ func (m *Manager) installFromGitHubWithOptions(src *PluginSource, opts InstallOp
 	fmt.Printf("Cloning %s...\n", src.String())
 	cloneURL := src.GitHubCloneURL()
 
-	var cmd *exec.Cmd
+	var gitArgs []string
 	if src.Version != "" {
-		// Clone specific branch/tag
-		cmd = exec.Command("git", "clone", "--depth", "1", "--branch", src.Version, cloneURL, tmpDir)
+		gitArgs = []string{"clone", "--depth", "1", "--branch", src.Version, cloneURL, tmpDir}
 	} else {
-		cmd = exec.Command("git", "clone", "--depth", "1", cloneURL, tmpDir)
+		gitArgs = []string{"clone", "--depth", "1", cloneURL, tmpDir}
 	}
 
+	cmd, err := safeutil.SafeCommand(context.Background(), "git", gitArgs...)
+	if err != nil {
+		return fmt.Errorf("prepare git clone: %w", err)
+	}
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("git clone failed: %w\nOutput: %s", err, output)
 	}

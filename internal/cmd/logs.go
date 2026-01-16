@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
@@ -139,6 +140,9 @@ func runLogsList(cmd *cobra.Command, args []string) error {
 func getLogDirectory() string {
 	// Match the default from trace.DefaultConfig()
 	homeDir, _ := os.UserHomeDir()
+	if logDir, err := safeutil.JoinInsideBase(homeDir, ".specular", "logs"); err == nil {
+		return logDir
+	}
 	return filepath.Join(homeDir, ".specular", "logs")
 }
 
@@ -214,7 +218,10 @@ func showRecentLogs(cmdCtx *CommandContext, logDir string, numLines int) error {
 }
 
 func showTraceLog(cmdCtx *CommandContext, logDir string, traceID string) error {
-	tracePath := filepath.Join(logDir, fmt.Sprintf("trace_%s.json", traceID))
+	tracePath, joinErr := safeutil.JoinInsideBase(logDir, fmt.Sprintf("trace_%s.json", traceID))
+	if joinErr != nil {
+		return fmt.Errorf("invalid trace log id %q: %w", traceID, joinErr)
+	}
 
 	if _, err := os.Stat(tracePath); os.IsNotExist(err) {
 		return fmt.Errorf("trace log not found: %s", traceID)

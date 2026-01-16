@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // GenerateRequest matches internal/provider/types.go
@@ -162,7 +164,11 @@ func handleGenerate() error {
 		args = append(args, fullPrompt)
 	}
 
-	cmd := exec.CommandContext(ctx, cliCommand, args...)
+	cmd, err := safeutil.SafeCommand(ctx, cliCommand, args...)
+	if err != nil {
+		return fmt.Errorf("safe command: %w", err)
+	}
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("gemini CLI call failed: %w\nOutput: %s", err, string(output))
@@ -226,7 +232,10 @@ func handleStream() error {
 
 	args := []string{"--model", model, fullPrompt}
 
-	cmd := exec.CommandContext(ctx, "gemini", args...)
+	cmd, err := safeutil.SafeCommand(ctx, "gemini", args...)
+	if err != nil {
+		return fmt.Errorf("safe command: %w", err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		// Output error chunk
@@ -267,22 +276,28 @@ func handleStream() error {
 
 func handleHealth() error {
 	// Check if gemini CLI is available
-	cmd := exec.Command("gemini", "--version")
-	if err := cmd.Run(); err != nil {
+	cmd, err := safeutil.SafeCommand(context.Background(), "gemini", "--version")
+	if err != nil {
 		// Try gcloud as fallback
-		cmd = exec.Command("gcloud", "ai", "generative-models", "--help")
-		if err := cmd.Run(); err != nil {
+		cmd, err = safeutil.SafeCommand(context.Background(), "gcloud", "ai", "generative-models", "--help")
+		if err != nil {
 			return fmt.Errorf("gemini CLI not available (tried both 'gemini' and 'gcloud ai'): %w", err)
 		}
+	}
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed health check: %w", err)
 	}
 
 	// Check if GEMINI_API_KEY is set (for standalone CLI)
 	// or if gcloud is authenticated (for gcloud CLI)
 	if os.Getenv("GEMINI_API_KEY") == "" {
 		// Check gcloud auth
-		cmd := exec.Command("gcloud", "auth", "list")
-		if err := cmd.Run(); err != nil {
+		authCmd, err := safeutil.SafeCommand(context.Background(), "gcloud", "auth", "list")
+		if err != nil {
 			return fmt.Errorf("neither GEMINI_API_KEY nor gcloud authentication found")
+		}
+		if err := authCmd.Run(); err != nil {
+			return fmt.Errorf("neither GEMINI_API_KEY nor gcloud authentication found: %w", err)
 		}
 	}
 

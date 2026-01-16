@@ -176,7 +176,7 @@ func runQuickstart(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to marshal spec: %w", err)
 		}
 
-		if err := os.WriteFile(specPath, specData, 0644); err != nil {
+		if err := os.WriteFile(specPath, specData, 0600); err != nil {
 			return fmt.Errorf("failed to write spec: %w", err)
 		}
 

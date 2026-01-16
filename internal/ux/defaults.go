@@ -4,11 +4,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // PathDefaults provides smart defaults for common file paths
 type PathDefaults struct {
 	SpecularDir string
+}
+
+func (pd *PathDefaults) safeJoin(segment string) string {
+	joined := filepath.Join(pd.SpecularDir, segment)
+	if pd.SpecularDir == "" {
+		return joined
+	}
+	if _, err := safeutil.JoinInsideBase(pd.SpecularDir, segment); err == nil {
+		return joined
+	}
+	return joined
 }
 
 // NewPathDefaults creates a new PathDefaults with sensible defaults
@@ -20,7 +33,7 @@ func NewPathDefaults() *PathDefaults {
 
 // SpecFile returns the default path to spec.yaml, checking if it exists
 func (pd *PathDefaults) SpecFile() string {
-	path := filepath.Join(pd.SpecularDir, "spec.yaml")
+	path := pd.safeJoin("spec.yaml")
 	if _, err := os.Stat(path); err == nil {
 		return path
 	}
@@ -29,17 +42,17 @@ func (pd *PathDefaults) SpecFile() string {
 
 // SpecLockFile returns the default path to spec.lock.json
 func (pd *PathDefaults) SpecLockFile() string {
-	return filepath.Join(pd.SpecularDir, "spec.lock.json")
+	return pd.safeJoin("spec.lock.json")
 }
 
 // PlanFile returns the default path to plan.json
 func (pd *PathDefaults) PlanFile() string {
-	return filepath.Join(pd.SpecularDir, "plan.json")
+	return pd.safeJoin("plan.json")
 }
 
 // PolicyFile returns the default path to policy.yaml
 func (pd *PathDefaults) PolicyFile() string {
-	path := filepath.Join(pd.SpecularDir, "policy.yaml")
+	path := pd.safeJoin("policy.yaml")
 	if _, err := os.Stat(path); err == nil {
 		return path
 	}
@@ -53,27 +66,27 @@ func (pd *PathDefaults) PolicyFile() string {
 
 // ProvidersFile returns the default path to providers.yaml
 func (pd *PathDefaults) ProvidersFile() string {
-	return filepath.Join(pd.SpecularDir, "providers.yaml")
+	return pd.safeJoin("providers.yaml")
 }
 
 // RouterFile returns the default path to router.yaml
 func (pd *PathDefaults) RouterFile() string {
-	return filepath.Join(pd.SpecularDir, "router.yaml")
+	return pd.safeJoin("router.yaml")
 }
 
 // CheckpointDir returns the default checkpoint directory
 func (pd *PathDefaults) CheckpointDir() string {
-	return filepath.Join(pd.SpecularDir, "checkpoints")
+	return pd.safeJoin("checkpoints")
 }
 
 // ManifestDir returns the default run manifest directory
 func (pd *PathDefaults) ManifestDir() string {
-	return filepath.Join(pd.SpecularDir, "runs")
+	return pd.safeJoin("runs")
 }
 
 // CacheDir returns the default cache directory
 func (pd *PathDefaults) CacheDir() string {
-	return filepath.Join(pd.SpecularDir, "cache")
+	return pd.safeJoin("cache")
 }
 
 // ValidateSpecularSetup checks if the .specular directory is initialized
@@ -225,7 +238,10 @@ func DiscoverAllConfigs() (*ConfigPaths, error) {
 		return nil, fmt.Errorf("failed to discover project root: %w", err)
 	}
 
-	specularDir := filepath.Join(projectRoot, ".specular")
+	specularDir, joinErr := safeutil.JoinInsideBase(projectRoot, ".specular")
+	if joinErr != nil {
+		specularDir = filepath.Join(projectRoot, ".specular")
+	}
 
 	// Use PathDefaults to get consistent file paths
 	pd := &PathDefaults{SpecularDir: specularDir}

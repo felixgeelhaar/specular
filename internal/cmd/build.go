@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,6 +19,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/progress"
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/ux"
@@ -460,43 +463,57 @@ func runBuildVerify(cmd *cobra.Command, args []string) error {
 
 	// 1. Run go vet
 	fmt.Printf("1. Running go vet...\n")
-	vetCmd := exec.Command("go", "vet", "./...")
-	vetOutput, vetErr := vetCmd.CombinedOutput()
-	if vetErr != nil {
-		fmt.Printf("   ✗ go vet failed:\n%s\n", string(vetOutput))
+	vetCmd, vetPrepErr := safeutil.SafeCommand(context.Background(), "go", "vet", "./...")
+	if vetPrepErr != nil {
+		fmt.Printf("   ✗ go vet unavailable: %v\n", vetPrepErr)
 		failed++
 	} else {
-		fmt.Printf("   ✓ go vet passed\n")
-		passed++
+		vetOutput, vetErr := vetCmd.CombinedOutput()
+		if vetErr != nil {
+			fmt.Printf("   ✗ go vet failed:\n%s\n", string(vetOutput))
+			failed++
+		} else {
+			fmt.Printf("   ✓ go vet passed\n")
+			passed++
+		}
 	}
 
 	// 2. Run golangci-lint if available
 	fmt.Printf("\n2. Running golangci-lint...\n")
-	lintCmd := exec.Command("golangci-lint", "run", "--timeout=5m")
-	lintOutput, lintErr := lintCmd.CombinedOutput()
-	if lintErr != nil {
-		// Check if command not found
-		if strings.Contains(lintErr.Error(), "not found") || strings.Contains(lintErr.Error(), "executable file not found") {
+	lintCmd, lintPrepErr := safeutil.SafeCommand(context.Background(), "golangci-lint", "run", "--timeout=5m")
+	if lintPrepErr != nil {
+		if errors.Is(lintPrepErr, exec.ErrNotFound) {
 			fmt.Printf("   ⚠  golangci-lint not installed (skipped)\n")
 		} else {
-			fmt.Printf("   ✗ golangci-lint failed:\n%s\n", string(lintOutput))
+			fmt.Printf("   ✗ failed to prepare golangci-lint: %v\n", lintPrepErr)
 			failed++
 		}
 	} else {
-		fmt.Printf("   ✓ golangci-lint passed\n")
-		passed++
+		lintOutput, lintErr := lintCmd.CombinedOutput()
+		if lintErr != nil {
+			fmt.Printf("   ✗ golangci-lint failed:\n%s\n", string(lintOutput))
+			failed++
+		} else {
+			fmt.Printf("   ✓ golangci-lint passed\n")
+			passed++
+		}
 	}
 
 	// 3. Run tests
 	fmt.Printf("\n3. Running tests...\n")
-	testCmd := exec.Command("go", "test", "./...", "-short")
-	testOutput, testErr := testCmd.CombinedOutput()
-	if testErr != nil {
-		fmt.Printf("   ✗ Tests failed:\n%s\n", string(testOutput))
+	testCmd, testPrepErr := safeutil.SafeCommand(context.Background(), "go", "test", "./...", "-short")
+	if testPrepErr != nil {
+		fmt.Printf("   ✗ tests unavailable: %v\n", testPrepErr)
 		failed++
 	} else {
-		fmt.Printf("   ✓ Tests passed\n")
-		passed++
+		testOutput, testErr := testCmd.CombinedOutput()
+		if testErr != nil {
+			fmt.Printf("   ✗ Tests failed:\n%s\n", string(testOutput))
+			failed++
+		} else {
+			fmt.Printf("   ✓ Tests passed\n")
+			passed++
+		}
 	}
 
 	// 4. Policy compliance check
@@ -609,7 +626,7 @@ func runBuildApprove(cmd *cobra.Command, args []string) error {
 	approvalData += fmt.Sprintf("Step ID: %s\n", manifest.StepID)
 	approvalData += fmt.Sprintf("Exit code: %d\n", manifest.ExitCode)
 
-	if err := os.WriteFile(approvalFile, []byte(approvalData), 0644); err != nil {
+	if err := os.WriteFile(approvalFile, []byte(approvalData), 0600); err != nil {
 		return fmt.Errorf("failed to create approval marker: %w", err)
 	}
 

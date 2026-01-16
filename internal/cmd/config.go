@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/slo"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
@@ -741,13 +742,16 @@ func runConfigEdit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Open editor
-	editorCmd := exec.Command(editor, configPath)
+	editorCmd, editorErr := safeutil.SafeCommand(context.Background(), editor, configPath)
+	if editorErr != nil {
+		return fmt.Errorf("failed to prepare editor: %w", editorErr)
+	}
 	editorCmd.Stdin = os.Stdin
 	editorCmd.Stdout = os.Stdout
 	editorCmd.Stderr = os.Stderr
 
-	if err := editorCmd.Run(); err != nil {
-		return fmt.Errorf("failed to run editor: %w", err)
+	if runErr := editorCmd.Run(); runErr != nil {
+		return fmt.Errorf("failed to run editor: %w", runErr)
 	}
 
 	// Validate the edited config

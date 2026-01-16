@@ -1,16 +1,17 @@
 package attestation
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/auto"
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // Generator creates attestations for workflow executions
@@ -179,31 +180,31 @@ func gatherGitInfo() (*gitInfo, error) {
 	info := &gitInfo{}
 
 	// Get remote URL
-	cmd := exec.Command("git", "config", "--get", "remote.origin.url")
-	output, err := cmd.Output()
-	if err == nil {
-		info.Repo = strings.TrimSpace(string(output))
+	if gitCmd, err := safeutil.SafeCommand(context.Background(), "git", "config", "--get", "remote.origin.url"); err == nil {
+		if output, err := gitCmd.Output(); err == nil {
+			info.Repo = strings.TrimSpace(string(output))
+		}
 	}
 
 	// Get current commit
-	cmd = exec.Command("git", "rev-parse", "HEAD")
-	output, err = cmd.Output()
-	if err == nil {
-		info.Commit = strings.TrimSpace(string(output))
+	if gitCmd, err := safeutil.SafeCommand(context.Background(), "git", "rev-parse", "HEAD"); err == nil {
+		if output, err := gitCmd.Output(); err == nil {
+			info.Commit = strings.TrimSpace(string(output))
+		}
 	}
 
 	// Get current branch
-	cmd = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	output, err = cmd.Output()
-	if err == nil {
-		info.Branch = strings.TrimSpace(string(output))
+	if gitCmd, err := safeutil.SafeCommand(context.Background(), "git", "rev-parse", "--abbrev-ref", "HEAD"); err == nil {
+		if output, err := gitCmd.Output(); err == nil {
+			info.Branch = strings.TrimSpace(string(output))
+		}
 	}
 
 	// Check for uncommitted changes
-	cmd = exec.Command("git", "status", "--porcelain")
-	output, err = cmd.Output()
-	if err == nil {
-		info.Dirty = len(strings.TrimSpace(string(output))) > 0
+	if gitCmd, err := safeutil.SafeCommand(context.Background(), "git", "status", "--porcelain"); err == nil {
+		if output, err := gitCmd.Output(); err == nil {
+			info.Dirty = len(strings.TrimSpace(string(output))) > 0
+		}
 	}
 
 	// Return error if we couldn't get any git info

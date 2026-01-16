@@ -300,6 +300,8 @@ func checkProviders(ctx *detect.Context, report *DoctorReport) {
 	checkProvidersWithOptions(ctx, report, true)
 }
 
+var _ = checkProviders
+
 // checkProviderHealth tests actual API connectivity for configured providers
 func checkProviderHealth(report *DoctorReport) {
 	// Load provider registry

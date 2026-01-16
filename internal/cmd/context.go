@@ -212,3 +212,5 @@ func convertToReport(ctx *detect.Context) *ContextReport {
 
 	return report
 }
+
+var _ = convertToReport

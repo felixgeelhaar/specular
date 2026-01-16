@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,6 +15,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/prd"
 	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/router"
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/tui"
@@ -230,8 +229,10 @@ func ensureDefaultProvidersConfig(defaults *ux.PathDefaults) error {
 	ctx := detectProjectContext()
 	recommended := ctx.GetRecommendedProviders()
 
-	specDir := defaults.SpecularDir
-	examplePath := filepath.Join(specDir, "providers.yaml.example")
+	examplePath, joinErr := safeutil.JoinInsideBase(defaults.SpecularDir, "providers.yaml.example")
+	if joinErr != nil {
+		return fmt.Errorf("prepare provider example path: %w", joinErr)
+	}
 	if err := provider.SaveProvidersConfigExample(provider.DefaultProvidersConfig(), examplePath); err != nil {
 		return fmt.Errorf("write provider example: %w", err)
 	}
@@ -305,7 +306,7 @@ var specLockCmd = &cobra.Command{
 			// Also save note to a separate file
 			noteFile := out + ".note"
 			noteData := fmt.Sprintf("Created: %s\n%s\n", time.Now().Format(time.RFC3339), note)
-			if err := os.WriteFile(noteFile, []byte(noteData), 0644); err != nil {
+			if err := os.WriteFile(noteFile, []byte(noteData), 0600); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: Failed to save note file: %v\n", err)
 			} else {
 				fmt.Printf("✓ Note saved to: %s\n", noteFile)
@@ -615,13 +616,16 @@ func runSpecEdit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Open editor
-	editorCmd := exec.Command(editor, specPath)
+	editorCmd, editorErr := safeutil.SafeCommand(context.Background(), editor, specPath)
+	if editorErr != nil {
+		return fmt.Errorf("failed to prepare editor: %w", editorErr)
+	}
 	editorCmd.Stdin = os.Stdin
 	editorCmd.Stdout = os.Stdout
 	editorCmd.Stderr = os.Stderr
 
-	if err := editorCmd.Run(); err != nil {
-		return fmt.Errorf("failed to run editor: %w", err)
+	if runErr := editorCmd.Run(); runErr != nil {
+		return fmt.Errorf("failed to run editor: %w", runErr)
 	}
 
 	// Validate the edited spec
@@ -788,7 +792,7 @@ func runSpecApprove(cmd *cobra.Command, args []string) error {
 	approvalData += fmt.Sprintf("Product: %s\n", s.Product)
 	approvalData += fmt.Sprintf("Features: %d\n", len(s.Features))
 
-	if err := os.WriteFile(approvalFile, []byte(approvalData), 0644); err != nil {
+	if err := os.WriteFile(approvalFile, []byte(approvalData), 0600); err != nil {
 		return ux.FormatError(err, "creating approval record")
 	}
 

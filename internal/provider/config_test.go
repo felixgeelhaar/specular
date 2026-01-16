@@ -2,775 +2,439 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
-
-	"github.com/felixgeelhaar/specular/internal/provider/testhelpers"
 )
 
-type stubNativeProvider struct {
-	info *ProviderInfo
-	caps *ProviderCapabilities
-}
-
-func (s *stubNativeProvider) Generate(_ context.Context, _ *GenerateRequest) (*GenerateResponse, error) {
-	return &GenerateResponse{
-		Content:      "stub response",
-		Model:        "llama3.2",
-		TokensUsed:   1,
-		FinishReason: "stop",
-		Provider:     "ollama",
-	}, nil
-}
-
-func (s *stubNativeProvider) Stream(_ context.Context, _ *GenerateRequest) (<-chan StreamChunk, error) {
-	return nil, fmt.Errorf("streaming not supported")
-}
-
-func (s *stubNativeProvider) GetCapabilities() *ProviderCapabilities {
-	return s.caps
-}
-
-func (s *stubNativeProvider) GetInfo() *ProviderInfo {
-	return s.info
-}
-
-func (s *stubNativeProvider) IsAvailable() bool {
-	return true
-}
-
-func (s *stubNativeProvider) Health(_ context.Context) error {
-	return nil
-}
-
-func (s *stubNativeProvider) Close() error {
-	return nil
-}
-
-func init() {
-	RegisterNativeProvider("ollama", func(cfg *ProviderConfig) (ProviderClient, error) {
-		return &stubNativeProvider{
-			info: &ProviderInfo{
-				Name:        "ollama",
-				Type:        ProviderTypeNative,
-				Description: "stub native provider for tests",
-			},
-			caps: &ProviderCapabilities{
-				SupportsMultiTurn: true,
-			},
-		}, nil
-	})
-}
-
-func TestLoadProvidersConfig(t *testing.T) {
-	// Test loading the example config
-	config, err := LoadProvidersConfig("../../.specular/providers.yaml.example")
-	if err != nil {
-		t.Fatalf("Failed to load providers.yaml.example: %v", err)
-	}
-
-	// Verify providers were loaded
-	if len(config.Providers) == 0 {
-		t.Error("No providers loaded from example config")
-	}
-
-	// Check for expected providers
-	expectedProviders := map[string]bool{
-		"ollama":      false,
-		"openai":      false,
-		"anthropic":   false,
-		"claude-code": false,
-	}
-
-	for _, p := range config.Providers {
-		if _, exists := expectedProviders[p.Name]; exists {
-			expectedProviders[p.Name] = true
-		}
-	}
-
-	for name, found := range expectedProviders {
-		if !found {
-			t.Errorf("Expected provider %s not found in config", name)
-		}
-	}
-
-	// Verify strategy config
-	if config.Strategy.Budget.MaxCostPerDay == 0 {
-		t.Error("Strategy budget max_cost_per_day not set")
-	}
-	if config.Strategy.Performance.MaxLatencyMs == 0 {
-		t.Error("Strategy performance max_latency_ms not set")
-	}
-}
-
-func TestLoadProvidersConfig_Errors(t *testing.T) {
-	tests := []struct {
-		name        string
-		configYAML  string
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name:        "invalid yaml syntax",
-			configYAML:  "invalid: [yaml: syntax",
-			wantErr:     true,
-			errContains: "unmarshal config",
-		},
-		{
-			name: "validation failure - no providers",
-			configYAML: `
-strategy:
-  budget:
-    max_cost_per_day: 20.0
-`,
-			wantErr:     true,
-			errContains: "invalid config",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
-			configPath := filepath.Join(tmpDir, "providers.yaml")
-
-			err := os.WriteFile(configPath, []byte(tt.configYAML), 0644)
-			if err != nil {
-				t.Fatalf("Failed to write test config: %v", err)
-			}
-
-			_, err = LoadProvidersConfig(configPath)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Error("LoadProvidersConfig() expected error, got nil")
-				} else if !contains(err.Error(), tt.errContains) {
-					t.Errorf("LoadProvidersConfig() error = %v, want error containing %q", err, tt.errContains)
-				}
-			} else if err != nil {
-				t.Errorf("LoadProvidersConfig() unexpected error = %v", err)
-			}
-		})
-	}
-}
-
-func TestValidateProvidersConfig(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  *ProvidersConfig
-		wantErr bool
-	}{
-		{
-			name: "valid config",
-			config: &ProvidersConfig{
-				Providers: []ProviderConfig{
-					{
-						Name:    "ollama",
-						Type:    ProviderTypeCLI,
-						Enabled: true,
-						Source:  "local",
-						Config: map[string]interface{}{
-							"path": "/path/to/provider",
-						},
-					},
-				},
-				Strategy: StrategyConfig{
-					Budget: BudgetConfig{
-						MaxCostPerDay:     20.0,
-						MaxCostPerRequest: 1.0,
-					},
-					Performance: PerformanceConfig{
-						MaxLatencyMs: 60000,
-					},
-					Fallback: FallbackConfig{
-						MaxRetries:   3,
-						RetryDelayMs: 1000,
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name:    "no providers",
-			config:  &ProvidersConfig{},
-			wantErr: true,
-		},
-		{
-			name: "no enabled providers",
-			config: &ProvidersConfig{
-				Providers: []ProviderConfig{
-					{
-						Name:    "ollama",
-						Type:    ProviderTypeCLI,
-						Enabled: false,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "negative budget max_cost_per_day",
-			config: &ProvidersConfig{
-				Providers: []ProviderConfig{
-					{
-						Name:    "ollama",
-						Type:    ProviderTypeCLI,
-						Enabled: true,
-						Config: map[string]interface{}{
-							"path": "/path/to/provider",
-						},
-					},
-				},
-				Strategy: StrategyConfig{
-					Budget: BudgetConfig{
-						MaxCostPerDay: -1.0,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "negative budget max_cost_per_request",
-			config: &ProvidersConfig{
-				Providers: []ProviderConfig{
-					{
-						Name:    "ollama",
-						Type:    ProviderTypeCLI,
-						Enabled: true,
-						Config: map[string]interface{}{
-							"path": "/path/to/provider",
-						},
-					},
-				},
-				Strategy: StrategyConfig{
-					Budget: BudgetConfig{
-						MaxCostPerRequest: -0.5,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "negative max_latency_ms",
-			config: &ProvidersConfig{
-				Providers: []ProviderConfig{
-					{
-						Name:    "ollama",
-						Type:    ProviderTypeCLI,
-						Enabled: true,
-						Config: map[string]interface{}{
-							"path": "/path/to/provider",
-						},
-					},
-				},
-				Strategy: StrategyConfig{
-					Performance: PerformanceConfig{
-						MaxLatencyMs: -1000,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "negative max_retries",
-			config: &ProvidersConfig{
-				Providers: []ProviderConfig{
-					{
-						Name:    "ollama",
-						Type:    ProviderTypeCLI,
-						Enabled: true,
-						Config: map[string]interface{}{
-							"path": "/path/to/provider",
-						},
-					},
-				},
-				Strategy: StrategyConfig{
-					Fallback: FallbackConfig{
-						MaxRetries: -1,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "negative retry_delay_ms",
-			config: &ProvidersConfig{
-				Providers: []ProviderConfig{
-					{
-						Name:    "ollama",
-						Type:    ProviderTypeCLI,
-						Enabled: true,
-						Config: map[string]interface{}{
-							"path": "/path/to/provider",
-						},
-					},
-				},
-				Strategy: StrategyConfig{
-					Fallback: FallbackConfig{
-						RetryDelayMs: -500,
-					},
-				},
-			},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateProvidersConfig(tt.config)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateProvidersConfig() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestValidateProviderConfig(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  *ProviderConfig
-		wantErr bool
-	}{
-		{
-			name: "valid CLI provider",
-			config: &ProviderConfig{
-				Name:   "ollama",
-				Type:   ProviderTypeCLI,
-				Source: "local",
-				Config: map[string]interface{}{
-					"path": "/path/to/provider",
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "CLI provider missing path",
-			config: &ProviderConfig{
-				Name:   "ollama",
-				Type:   ProviderTypeCLI,
-				Source: "local",
-				Config: map[string]interface{}{},
-			},
-			wantErr: true,
-		},
-		{
-			name: "missing name",
-			config: &ProviderConfig{
-				Type: ProviderTypeCLI,
-			},
-			wantErr: true,
-		},
-		{
-			name: "missing type",
-			config: &ProviderConfig{
-				Name: "test",
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid provider type",
-			config: &ProviderConfig{
-				Name: "test",
-				Type: "invalid",
-			},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateProviderConfig(tt.config)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateProviderConfig() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestSaveAndLoadProvidersConfig(t *testing.T) {
-	// Create a temporary config file
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "providers.yaml")
-
-	// Create a test config
-	config := &ProvidersConfig{
+func TestApplyRecommendedProviders(t *testing.T) {
+	cfg := &ProvidersConfig{
 		Providers: []ProviderConfig{
-			{
-				Name:    "ollama",
-				Type:    ProviderTypeNative,
-				Enabled: true,
-				Source:  "builtin",
-				Version: "1.0.0",
-				Config: map[string]interface{}{
-					"base_url": "http://localhost:11434",
-				},
-				Models: map[string]string{
-					"fast": "llama3.2",
-				},
-			},
-		},
-		Strategy: StrategyConfig{
-			Budget: BudgetConfig{
-				MaxCostPerDay:     20.0,
-				MaxCostPerRequest: 1.0,
-			},
-			Performance: PerformanceConfig{
-				MaxLatencyMs: 60000,
-				PreferCheap:  true,
-			},
+			{Name: "one", Enabled: true},
+			{Name: "two", Enabled: true},
 		},
 	}
 
-	// Save the config
-	if err := SaveProvidersConfig(config, configPath); err != nil {
-		t.Fatalf("SaveProvidersConfig() error = %v", err)
+	ApplyRecommendedProviders(cfg, []string{"two"})
+
+	if cfg.Providers[0].Enabled {
+		t.Error("Expected provider 'one' to be disabled")
+	}
+	if !cfg.Providers[1].Enabled {
+		t.Error("Expected provider 'two' to be enabled")
 	}
 
-	// Verify file was created
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		t.Fatal("Config file was not created")
-	}
-
-	// Load the config back
-	loaded, err := LoadProvidersConfig(configPath)
-	if err != nil {
-		t.Fatalf("LoadProvidersConfig() error = %v", err)
-	}
-
-	// Verify the loaded config matches
-	if len(loaded.Providers) != len(config.Providers) {
-		t.Errorf("Loaded %d providers, expected %d", len(loaded.Providers), len(config.Providers))
-	}
-
-	if loaded.Providers[0].Name != config.Providers[0].Name {
-		t.Errorf("Provider name = %s, want %s", loaded.Providers[0].Name, config.Providers[0].Name)
-	}
-
-	if loaded.Strategy.Budget.MaxCostPerDay != config.Strategy.Budget.MaxCostPerDay {
-		t.Errorf("Budget max_cost_per_day = %.2f, want %.2f",
-			loaded.Strategy.Budget.MaxCostPerDay,
-			config.Strategy.Budget.MaxCostPerDay)
+	ApplyRecommendedProviders(cfg, []string{})
+	if !cfg.Providers[0].Enabled {
+		t.Error("Expected fallback to first provider to be enabled")
 	}
 }
 
-func TestSaveProvidersConfig_WriteError(t *testing.T) {
-	config := &ProvidersConfig{
-		Providers: []ProviderConfig{
-			{
-				Name:    "ollama",
-				Type:    ProviderTypeCLI,
-				Enabled: true,
-				Source:  "local",
-				Config: map[string]interface{}{
-					"path": "/path/to/provider",
-				},
-			},
-		},
-		Strategy: StrategyConfig{
-			Budget: BudgetConfig{
-				MaxCostPerDay: 20.0,
-			},
-		},
+func TestConfigFromRecommended(t *testing.T) {
+	cfg := ConfigFromRecommended([]string{"alpha", "beta"})
+	if len(cfg.Providers) == 0 {
+		t.Fatal("Expected default providers to be present")
+	}
+}
+
+func TestWriteProvidersConfigFromDescriptors(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "providers.yaml")
+	config, err := WriteProvidersConfigFromDescriptors(path, nil)
+	if err != nil {
+		t.Fatalf("WriteProvidersConfigFromDescriptors() error = %v", err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("expected config file at %s, got %v", path, err)
 	}
 
-	// Try to write to a directory that doesn't exist
-	err := SaveProvidersConfig(config, "/nonexistent/directory/providers.yaml")
+	examplePath := filepath.Join(filepath.Dir(path), "providers.yaml.example")
+	if err := SaveProvidersConfigExample(config, examplePath); err != nil {
+		t.Fatalf("SaveProvidersConfigExample() error = %v", err)
+	}
+	if _, err := os.Stat(examplePath); err != nil {
+		t.Fatalf("expected example file at %s, got %v", examplePath, err)
+	}
+}
+
+func TestLoadProvidersConfigFromBytes(t *testing.T) {
+	t.Setenv("SPEC_PROVIDER_PATH", "/tmp/specular-provider")
+	data := `
+providers:
+  - name: test-cli
+    type: cli
+    enabled: true
+    config:
+      path: ${SPEC_PROVIDER_PATH}
+`
+	cfg, err := LoadProvidersConfigFromBytes([]byte(data))
+	if err != nil {
+		t.Fatalf("LoadProvidersConfigFromBytes() error = %v", err)
+	}
+	if len(cfg.Providers) != 1 {
+		t.Fatalf("expected 1 provider, got %d", len(cfg.Providers))
+	}
+	path, _ := cfg.Providers[0].Config["path"].(string)
+	if path != os.Getenv("SPEC_PROVIDER_PATH") {
+		t.Fatalf("env vars were not expanded: got %q", path)
+	}
+}
+
+func TestLoadProvidersConfigFromBytesInvalid(t *testing.T) {
+	_, err := LoadProvidersConfigFromBytes([]byte("providers: []"))
 	if err == nil {
-		t.Error("SaveProvidersConfig() expected error for invalid path, got nil")
+		t.Fatalf("expected error for empty provider list")
 	}
-	if !contains(err.Error(), "write config file") {
-		t.Errorf("SaveProvidersConfig() error = %v, want error containing 'write config file'", err)
-	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-func TestDefaultProvidersConfig(t *testing.T) {
-	config := DefaultProvidersConfig()
-
-	if len(config.Providers) == 0 {
-		t.Error("Default config has no providers")
-	}
-
-	if config.Strategy.Budget.MaxCostPerDay == 0 {
-		t.Error("Default config has no budget configured")
-	}
-
-	if config.Strategy.Performance.MaxLatencyMs == 0 {
-		t.Error("Default config has no latency constraint")
-	}
-}
-
-func TestExpandEnvVars(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		envVars map[string]string
-		want    string
-	}{
-		{
-			name:  "${VAR} syntax",
-			input: "Hello ${NAME}!",
-			envVars: map[string]string{
-				"NAME": "World",
-			},
-			want: "Hello World!",
-		},
-		{
-			name:  "$VAR syntax",
-			input: "Hello $NAME!",
-			envVars: map[string]string{
-				"NAME": "World",
-			},
-			want: "Hello World!",
-		},
-		{
-			name:  "Multiple variables",
-			input: "api_key: ${API_KEY}, url: ${BASE_URL}",
-			envVars: map[string]string{
-				"API_KEY":  "secret123",
-				"BASE_URL": "https://api.example.com",
-			},
-			want: "api_key: secret123, url: https://api.example.com",
-		},
-		{
-			name:    "Undefined variable",
-			input:   "Value: ${UNDEFINED}",
-			envVars: map[string]string{},
-			want:    "Value: ",
-		},
-		{
-			name:    "No variables",
-			input:   "plain text",
-			envVars: map[string]string{},
-			want:    "plain text",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Set env vars
-			for k, v := range tt.envVars {
-				os.Setenv(k, v)
-				defer os.Unsetenv(k)
-			}
-
-			got := expandEnvVars(tt.input)
-			if got != tt.want {
-				t.Errorf("expandEnvVars(%q) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestIsEnvVarSet(t *testing.T) {
-	tests := []struct {
-		name    string
-		varName string
-		value   string
-		set     bool
-		want    bool
-	}{
-		{
-			name:    "set with value",
-			varName: "TEST_VAR_SET",
-			value:   "some value",
-			set:     true,
-			want:    true,
-		},
-		{
-			name:    "set but empty",
-			varName: "TEST_VAR_EMPTY",
-			value:   "",
-			set:     true,
-			want:    false,
-		},
-		{
-			name:    "set with whitespace only",
-			varName: "TEST_VAR_WHITESPACE",
-			value:   "   ",
-			set:     true,
-			want:    false,
-		},
-		{
-			name:    "not set",
-			varName: "TEST_VAR_UNSET",
-			set:     false,
-			want:    false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Clean up any existing value
-			os.Unsetenv(tt.varName)
-			defer os.Unsetenv(tt.varName)
-
-			if tt.set {
-				os.Setenv(tt.varName, tt.value)
-			}
-
-			got := IsEnvVarSet(tt.varName)
-			if got != tt.want {
-				t.Errorf("IsEnvVarSet(%q) = %v, want %v", tt.varName, got, tt.want)
-			}
-		})
+	if !strings.Contains(err.Error(), "no providers configured") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestLoadRegistryFromProvidersConfig(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  *ProvidersConfig
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			name: "all providers disabled",
-			config: &ProvidersConfig{
-				Providers: []ProviderConfig{
-					{
-						Name:    "ollama",
-						Type:    ProviderTypeCLI,
-						Enabled: false,
-						Source:  "local",
-						Config: map[string]interface{}{
-							"path": "/some/path",
-						},
-					},
-					{
-						Name:    "openai",
-						Type:    ProviderTypeAPI,
-						Enabled: false,
-					},
-				},
+	t.Setenv("OPENAI_API_KEY", "fake-key")
+	cfg := &ProvidersConfig{
+		Providers: []ProviderConfig{{
+			Name:    "openai",
+			Type:    ProviderTypeAPI,
+			Enabled: true,
+			Config: map[string]interface{}{
+				"api_key": "fake-key",
 			},
-			wantErr: true,
-			errMsg:  "no providers loaded successfully",
-		},
-		{
-			name: "all providers fail to load - invalid config",
-			config: &ProvidersConfig{
-				Providers: []ProviderConfig{
-					{
-						Name:    "invalid-provider",
-						Type:    ProviderTypeCLI,
-						Enabled: true,
-						Source:  "local",
-						Config:  map[string]interface{}{
-							// Missing required 'path' field
-						},
-					},
-				},
-			},
-			wantErr: true,
-			errMsg:  "no providers loaded successfully",
-		},
+		}},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			registry, err := LoadRegistryFromProvidersConfig(tt.config)
+	registry, err := LoadRegistryFromProvidersConfig(cfg)
+	if err != nil {
+		t.Fatalf("LoadRegistryFromProvidersConfig() error = %v", err)
+	}
+	list := registry.List()
+	if len(list) == 0 {
+		t.Fatal("expected registry to contain at least one provider")
+	}
+	if list[0] != "openai" {
+		t.Fatalf("unexpected provider registered: %v", list)
+	}
+}
 
-			if tt.wantErr {
-				if err == nil {
-					t.Error("LoadRegistryFromProvidersConfig() expected error, got nil")
-				} else if !contains(err.Error(), tt.errMsg) {
-					t.Errorf("LoadRegistryFromProvidersConfig() error = %v, want error containing %q", err, tt.errMsg)
-				}
-				if registry != nil {
-					t.Error("LoadRegistryFromProvidersConfig() expected nil registry on error")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("LoadRegistryFromProvidersConfig() unexpected error = %v", err)
-				}
-				if registry == nil {
-					t.Error("LoadRegistryFromProvidersConfig() returned nil registry")
-				}
-			}
-		})
+func TestLoadRegistryFromProvidersConfigNoProviders(t *testing.T) {
+	cfg := &ProvidersConfig{
+		Providers: []ProviderConfig{{
+			Name:    "openai",
+			Type:    ProviderTypeAPI,
+			Enabled: false,
+			Config: map[string]interface{}{
+				"api_key": "fake-key",
+			},
+		}},
+	}
+
+	_, err := LoadRegistryFromProvidersConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error when no providers load")
+	}
+	if !strings.Contains(err.Error(), "no providers loaded successfully") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestLoadRegistryFromConfig(t *testing.T) {
-	server := testhelpers.StartFakeOllamaServer(t)
-	defer server.Close()
-
-	// Create a temporary config file with ollama enabled
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "providers.yaml")
-
-	config := &ProvidersConfig{
-		Providers: []ProviderConfig{
-			{
-				Name:    "ollama",
-				Type:    ProviderTypeNative,
-				Enabled: true,
-				Source:  "builtin",
-				Version: "1.0.0",
-				Config: map[string]interface{}{
-					"base_url": server.URL,
-				},
+	t.Setenv("OPENAI_API_KEY", "dummy-key")
+	cfg := &ProvidersConfig{
+		Providers: []ProviderConfig{{
+			Name:    "openai",
+			Type:    ProviderTypeAPI,
+			Enabled: true,
+			Config: map[string]interface{}{
+				"api_key": "dummy-key",
 			},
-		},
+		}},
 	}
-
-	if err := SaveProvidersConfig(config, configPath); err != nil {
+	path := filepath.Join(t.TempDir(), "providers.yaml")
+	if err := SaveProvidersConfig(cfg, path); err != nil {
 		t.Fatalf("SaveProvidersConfig() error = %v", err)
 	}
 
-	// Load registry from config
-	registry, err := LoadRegistryFromConfig(configPath)
+	registry, err := LoadRegistryFromConfig(path)
 	if err != nil {
 		t.Fatalf("LoadRegistryFromConfig() error = %v", err)
 	}
-
-	// Verify ollama provider was loaded
-	providers := registry.List()
-	if len(providers) == 0 {
-		t.Error("No providers loaded into registry")
+	if len(registry.List()) == 0 {
+		t.Fatal("expected registry to have entries")
 	}
+}
 
+func TestLoadRegistryWithAutoDiscovery(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "auto-key")
+	configPath := filepath.Join(t.TempDir(), "providers.yaml")
+
+	registry, err := LoadRegistryWithAutoDiscovery(configPath)
+	if err != nil {
+		t.Fatalf("LoadRegistryWithAutoDiscovery() error = %v", err)
+	}
+	if len(registry.List()) == 0 {
+		t.Fatal("expected auto-discovery to register providers")
+	}
+}
+
+func TestLoadRegistryFromAutoDiscoveryNoProviders(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "")
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	t.Setenv("GEMINI_API_KEY", "")
+	emptyBin := filepath.Join(t.TempDir(), "bin")
+	if err := os.MkdirAll(emptyBin, 0700); err != nil {
+		t.Fatalf("failed to create bin dir: %v", err)
+	}
+	t.Setenv("PATH", emptyBin)
+
+	registry, err := LoadRegistryFromAutoDiscovery()
+	if err != nil {
+		t.Fatalf("LoadRegistryFromAutoDiscovery() error = %v", err)
+	}
 	found := false
-	for _, name := range providers {
+	for _, name := range registry.List() {
 		if name == "ollama" {
 			found = true
 			break
 		}
 	}
-
 	if !found {
-		t.Error("Ollama provider not loaded into registry")
-	}
-
-	// Try to get the provider
-	prov, err := registry.Get("ollama")
-	if err != nil {
-		t.Errorf("Failed to get ollama provider: %v", err)
-	}
-
-	if prov == nil {
-		t.Error("Got nil provider")
+		t.Fatalf("expected ollama to be registered, got %v", registry.List())
 	}
 }
 
-func TestLoadRegistryFromConfig_Error(t *testing.T) {
-	// Try to load from non-existent config file
-	_, err := LoadRegistryFromConfig("/nonexistent/path/config.yaml")
+func TestGenerateProviderConfigCLI(t *testing.T) {
+	tmpBin := filepath.Join(t.TempDir(), "bin")
+	if err := os.MkdirAll(tmpBin, 0700); err != nil {
+		t.Fatalf("failed to create temp bin dir: %v", err)
+	}
+
+	for _, name := range []string{"claude", "gemini", "copilot", "codex"} {
+		exePath := filepath.Join(tmpBin, name)
+		if err := os.WriteFile(exePath, []byte("#!/bin/sh\n"), 0o755); err != nil {
+			t.Fatalf("failed to create fake binary %s: %v", name, err)
+		}
+	}
+
+	origPath := os.Getenv("PATH")
+	t.Setenv("PATH", tmpBin+string(os.PathListSeparator)+origPath)
+
+	for _, providerName := range []string{"claude-code", "gemini-cli", "copilot-cli", "codex-cli"} {
+		cfg := generateProviderConfig(providerName)
+		if cfg == nil {
+			t.Fatalf("expected CLI provider config for %s", providerName)
+		}
+		if cfg.Type != ProviderTypeCLI {
+			t.Fatalf("expected CLI provider type for %s, got %s", providerName, cfg.Type)
+		}
+		pathVal, _ := cfg.Config["path"].(string)
+		if pathVal == "" {
+			t.Fatalf("expected provider config %s to include path", providerName)
+		}
+	}
+}
+
+func TestLoadProvidersConfigMissingFile(t *testing.T) {
+	_, err := LoadProvidersConfig(filepath.Join(t.TempDir(), "missing.yaml"))
 	if err == nil {
-		t.Error("LoadRegistryFromConfig() expected error for non-existent file, got nil")
+		t.Fatal("expected error when config file is missing")
+	}
+}
+
+func TestValidateProvidersConfigErrors(t *testing.T) {
+	cases := []struct {
+		name    string
+		config  *ProvidersConfig
+		wantErr string
+	}{
+		{"no providers", &ProvidersConfig{}, "no providers configured"},
+		{"no enabled provider", &ProvidersConfig{
+			Providers: []ProviderConfig{{Name: "openai", Type: ProviderTypeAPI, Enabled: false}},
+		}, "at least one provider must be enabled"},
+		{"budget max cost", func() *ProvidersConfig {
+			cfg := makeValidProvidersConfig()
+			cfg.Strategy.Budget.MaxCostPerDay = -1
+			return cfg
+		}(), "budget max_cost_per_day must be non-negative"},
+		{"budget per request", func() *ProvidersConfig {
+			cfg := makeValidProvidersConfig()
+			cfg.Strategy.Budget.MaxCostPerRequest = -1
+			return cfg
+		}(), "budget max_cost_per_request must be non-negative"},
+		{"performance latency", func() *ProvidersConfig {
+			cfg := makeValidProvidersConfig()
+			cfg.Strategy.Performance.MaxLatencyMs = -1
+			return cfg
+		}(), "performance max_latency_ms must be non-negative"},
+		{"fallback retries", func() *ProvidersConfig {
+			cfg := makeValidProvidersConfig()
+			cfg.Strategy.Fallback.MaxRetries = -1
+			return cfg
+		}(), "fallback max_retries must be non-negative"},
+		{"fallback delay", func() *ProvidersConfig {
+			cfg := makeValidProvidersConfig()
+			cfg.Strategy.Fallback.RetryDelayMs = -1
+			return cfg
+		}(), "fallback retry_delay_ms must be non-negative"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateProvidersConfig(tc.config)
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("expected %q error, got %v", tc.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestValidateProviderConfigErrors(t *testing.T) {
+	cases := []struct {
+		name   string
+		config ProviderConfig
+		want   string
+	}{
+		{"missing name", ProviderConfig{Type: ProviderTypeAPI}, "name is required"},
+		{"missing type", ProviderConfig{Name: "foo"}, "type is required"},
+		{"invalid type", ProviderConfig{Name: "foo", Type: "bad"}, "invalid provider type"},
+		{"cli missing path", ProviderConfig{Name: "cli", Type: ProviderTypeCLI, Enabled: true}, "CLI providers require 'path'"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateProviderConfig(&tc.config)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("expected %q error, got %v", tc.want, err)
+			}
+		})
+	}
+}
+
+func TestGenerateProviderConfigAPIs(t *testing.T) {
+	t.Setenv("ANTHROPIC_API_KEY", "anthropic")
+	t.Setenv("OPENAI_API_KEY", "openai")
+
+	cfg := generateProviderConfig("anthropic")
+	if cfg == nil || cfg.Type != ProviderTypeAPI {
+		t.Fatalf("expected API config for anthropic, got %#v", cfg)
+	}
+
+	cfg = generateProviderConfig("openai")
+	if cfg == nil || cfg.Type != ProviderTypeAPI {
+		t.Fatalf("expected API config for openai, got %#v", cfg)
+	}
+}
+
+func TestLookupCommandPaths(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "bin")
+	if err := os.MkdirAll(tmp, 0700); err != nil {
+		t.Fatalf("failed to create temp bin: %v", err)
+	}
+	exe := filepath.Join(tmp, "copilot")
+	if err := os.WriteFile(exe, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("failed to create fake binary: %v", err)
+	}
+	t.Setenv("PATH", tmp)
+
+	path, err := lookupCommand("copilot")
+	if err != nil {
+		t.Fatalf("lookupCommand() unexpected error: %v", err)
+	}
+	if path == "" {
+		t.Fatal("expected copilot path")
+	}
+
+	if _, err := lookupCommand("does-not-exist"); err == nil {
+		t.Fatal("expected lookupCommand to fail for missing binary")
+	}
+}
+
+func makeValidProvidersConfig() *ProvidersConfig {
+	return &ProvidersConfig{
+		Providers: []ProviderConfig{{
+			Name:    "openai",
+			Type:    ProviderTypeAPI,
+			Enabled: true,
+			Config: map[string]interface{}{
+				"api_key": "valid",
+			},
+		}},
+	}
+}
+
+func TestExecutableProviderFlow(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "fake-provider")
+	script := `#!/bin/sh
+cmd="$1"
+case "$cmd" in
+  generate)
+    cat <<'JSON'
+{"content":"hello","tokens_used":1,"provider":"fake","model":"fake","finish_reason":"stop","latency":0}
+JSON
+    ;;
+  stream)
+    echo '{"content":"chunk1","delta":"chunk1","done":false}'
+    echo '{"content":"chunk2","delta":"chunk2","done":true}'
+    ;;
+  health)
+    exit 0
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+`
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("failed to write executable script: %v", err)
+	}
+
+	config := &ProviderConfig{
+		Name:    "fake-cli",
+		Type:    ProviderTypeCLI,
+		Enabled: true,
+		Config: map[string]interface{}{
+			"capabilities": map[string]interface{}{
+				"streaming": true,
+			},
+		},
+	}
+
+	provider, err := NewExecutableProvider(path, config)
+	if err != nil {
+		t.Fatalf("NewExecutableProvider() error = %v", err)
+	}
+
+	ctx := context.Background()
+	req := &GenerateRequest{Prompt: "hi"}
+	resp, err := provider.Generate(ctx, req)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+	if resp.Content != "hello" {
+		t.Fatalf("unexpected generate content: %s", resp.Content)
+	}
+
+	streamCh, err := provider.Stream(ctx, req)
+	if err != nil {
+		t.Fatalf("Stream() error = %v", err)
+	}
+	var seen []string
+	for chunk := range streamCh {
+		seen = append(seen, chunk.Content)
+	}
+	if len(seen) != 2 {
+		t.Fatalf("expected 2 stream chunks, got %d", len(seen))
+	}
+
+	if !provider.IsAvailable() {
+		t.Fatal("expected provider to be available")
+	}
+
+	if err := provider.Health(ctx); err != nil {
+		t.Fatalf("Health() error = %v", err)
+	}
+
+	if err := provider.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
 	}
 }

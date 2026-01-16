@@ -234,6 +234,8 @@ func determineDependencies(feature spec.Feature, allFeatures []spec.Feature, cur
 	return defaultGenerator.determineDependencies(feature, allFeatures, currentIndex)
 }
 
+var _ = determineDependencies
+
 // determineSkill assigns a skill tag based on feature characteristics
 func determineSkill(feature spec.Feature) string {
 	return defaultGenerator.determineSkill(feature)
@@ -248,6 +250,8 @@ func determineModelHint(feature spec.Feature) string {
 func estimateComplexity(feature spec.Feature) int {
 	return defaultGenerator.estimateComplexity(feature)
 }
+
+var _ = estimateComplexity
 
 // validateDependencies ensures the task graph is acyclic
 func validateDependencies(tasks []Task) error {

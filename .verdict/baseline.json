@@ -1,19 +1,1280 @@
 {
   "version": "1",
-  "created_at": "2026-01-02T12:30:00Z",
-  "updated_at": "2026-01-02T12:30:00Z",
-  "reason": "False positives: G101 flags on error constants, topic names, and K8s paths that are not actual credentials",
+  "created_at": "2026-01-14T11:42:48.779647Z",
+  "updated_at": "2026-01-14T11:42:48.779647Z",
   "scope": {},
   "fingerprints": [
-    {"fingerprint": "fbe80a444c79eaa3c634f7384a2b4674", "reason": "K8s service account token path constant"},
-    {"fingerprint": "f52d02264974296a3d8763bbd140e485", "reason": "Kafka topic name, not a credential"},
-    {"fingerprint": "f0152516ed5d74355881e751e17b242e", "reason": "Error code constant"},
-    {"fingerprint": "c0193e5ff164760a10c04589ee84e1d0", "reason": "Error constant for OIDC"},
-    {"fingerprint": "76845f4984c9b903d8f29c6a91f15cae", "reason": "Error constant for token exchange"},
-    {"fingerprint": "6061336e7037a9015f253ec23476e23b", "reason": "Error constant for token signing"},
-    {"fingerprint": "e177dd042ea81239a8f5498f55c06666", "reason": "Error constant for token format"},
-    {"fingerprint": "6f1ba22163faf7470d38705a90110c25", "reason": "Error constant for token expiry"},
-    {"fingerprint": "e3570d20c299f1a5df0a680d1400f5e0", "reason": "Error constant for invalid token"},
-    {"fingerprint": "7ee3c2b1d6f9ed8abcc5165cc17dcbba", "reason": "Error constant for invalid credentials"}
+    {
+      "fingerprint": "fbe80a444c79eaa3c634f7384a2b4674",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859864Z",
+      "reason": "K8s service account token path constant"
+    },
+    {
+      "fingerprint": "f52d02264974296a3d8763bbd140e485",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859865Z",
+      "reason": "Kafka topic name, not a credential"
+    },
+    {
+      "fingerprint": "f0152516ed5d74355881e751e17b242e",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859865Z",
+      "reason": "Error code constant"
+    },
+    {
+      "fingerprint": "c0193e5ff164760a10c04589ee84e1d0",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859866Z",
+      "reason": "Error constant for OIDC"
+    },
+    {
+      "fingerprint": "76845f4984c9b903d8f29c6a91f15cae",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859866Z",
+      "reason": "Error constant for token exchange"
+    },
+    {
+      "fingerprint": "6061336e7037a9015f253ec23476e23b",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859866Z",
+      "reason": "Error constant for token signing"
+    },
+    {
+      "fingerprint": "e177dd042ea81239a8f5498f55c06666",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859866Z",
+      "reason": "Error constant for token format"
+    },
+    {
+      "fingerprint": "6f1ba22163faf7470d38705a90110c25",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859866Z",
+      "reason": "Error constant for token expiry"
+    },
+    {
+      "fingerprint": "e3570d20c299f1a5df0a680d1400f5e0",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859867Z",
+      "reason": "Error constant for invalid token"
+    },
+    {
+      "fingerprint": "7ee3c2b1d6f9ed8abcc5165cc17dcbba",
+      "rule_id": "",
+      "engine_id": "",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85987Z",
+      "reason": "Error constant for invalid credentials"
+    },
+    {
+      "fingerprint": "f93daac06ef011aa6eebb0df56ca3f8f",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85987Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "2ed5a6d854406c4eecc638180b761ea3",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85987Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "7fdb83cf427fed81ed61434151a3564a",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85987Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "41db1cb36d274c181880603c149f70d3",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85987Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "fafb33eae1780fb19799cd220b3bdaf7",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859871Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b3717fb7e4c54c17c19e8d345ecad193",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859872Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b5e221876f45646f5e89a909f4f07ce4",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859872Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "a5e5ac9f99833c5a6325552d90afa59c",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859872Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "866e78fcfb1d84fdbd544aee25175fe4",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859872Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "134b6804b746cba240332322d51c2b7a",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859873Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "d9a042b08beab178545b39a275fbabf6",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859873Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "43f8124209d38bbbb9ca41c10a577b46",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859873Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "f1f7a29220df332816c830d6e28431c6",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859873Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "e71ff7ce8abc5c0d56553c97b340012f",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859873Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "e53182a9e4180d7b884ac897312bfb28",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859874Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "20e3b8b7c74e64f3035dbd6dcde06abd",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859874Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b2aba79fecffcb53fdc618dc226d9d33",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859874Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "392f218bbe063dd79b0b6c8152a3961e",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859874Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "8f256fde972aef8aa408b1b909af232c",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859875Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "4355bc32ecc44fdf16beba80c006142f",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859876Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "74c535d27120f2d106eea2e2e1bfa452",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859876Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "f55cd9e2ac8d4886e74e412723b007a6",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859876Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "fe48a0526fbc3c2f323cfafc7d2da404",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859876Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "14f24c344ed59589c001b59b217ed10e",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859876Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "8d8b208fc1b82dfee2c86ee894178343",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859876Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "9235f932fa2428e855cefa6596cc5bdc",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859877Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "5636f7f5e5f2a7b5d4291ab85cab6f47",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859877Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "aa70477148fb145b1f58fa447f880541",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859877Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "aca751754580ede2bbc465e41846c022",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859881Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "7d7f953820448ca3ed211978f7a9a156",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859881Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "df55608a81d6a1fa00dc7dd107383b7b",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859881Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "8b43223075f7bf98a156761039be15bd",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859881Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "8e32171ad232541d3ca4838a8e75c8c8",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859881Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "518d876beb9a929e0c4a9f28bfce4703",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859882Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b2a4893530a1776fea0b9fbb873dc2be",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859882Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "7fe3c9362ba65f55bda62c73c63cf849",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859882Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "5781aff336eb23271a7bc021bda93813",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859882Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "7257759d7baf79625cc3b2c4e904f471",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859882Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "f02d1fb9671ae035be0b8236d3d2626a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859882Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "daa4feb77439f90e40dd148b8bc6d82a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859883Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "d7908cf4dabdd6f69c905806f70c5990",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859883Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "2afe88fe6561aebf91f1c7bca96680e5",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859883Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "df508442cfad15716d7c536eda597f51",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859883Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "c56bb9b93ee2ad5a8f328566ed716904",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859883Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "d5849824646fdd822158dbd646680d31",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859884Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "7407aac77b9e0050a4098f0e92000444",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859884Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "2d9d0f83d516ce89ba2bbe5445ca9fd5",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859884Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "eddf703b20a6b536888096fef5b3cfe1",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859886Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "ddbf67fb8bc2c4fdb230251c45b93c3f",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859886Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "ae1ce31b1c0d551c8590f4cbdb3019c6",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859886Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "ae5c8842445ce1edd24d31a2997645c1",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859886Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "beba25ccd795033ecaf9b861eefb0971",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859887Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "6ec9a6ea9ba4c4b1b7fdbedb103fb4ba",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859887Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "a5838e62229756926466b7832b03749d",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859887Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "e0f5f1e00b9dbe86937504e01ac560c3",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859887Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "e4c28a3b768fc8762f3c8e6d8679e245",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859887Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "ec60e1bd66a54f82f82317c105400671",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859888Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "19188e86e45521c55efb3fa272b67ad9",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859888Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "7735e25228595286e97e9412277f0125",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859888Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "d4decb515aa36500bd243a336c37b9d4",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859888Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b06c083ad5dd3aed3226c4cc34871f7e",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859888Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "88ae904e18e3dd523e6b96c376ed9df4",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859888Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "77f5df1ed6da3b9ae357e9e8d4a5c5b0",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859889Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b3d0476eb1a4a9216181a0128d98048c",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859889Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b35bab30e6ba599b5d79c15ae9607151",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859889Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "c036b1046c319d96125923f79ebcc7d0",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859889Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "eaf5d3876c2ac8a6333423efc4480252",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859894Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "f38f9330677bf3464382d69008c31862",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859894Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "887c014c387e5bbe3e2141f5aa260434",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859894Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "45e342366c112e48497d5e9c3e47adcc",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859895Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "080104f40f15cd1dd9e48d48f67fed52",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859895Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "7813feca7b08c921851fe6ceca927314",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859895Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "50a7c676857d9506f1681fb19bf76f56",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859895Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "6fc8d146c0a162e9a1934a66aef69217",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859896Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "101dddb03fc7efe96abd325675ac4220",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859896Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "0b79984ae5600741e97f13e33686573a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859896Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "82ecbe32f9f3133cd774c30f9f3cff9b",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859896Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "1c1813e5ecc39fda826ebc317d5130d2",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859897Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "78602e38b0a2bf73080916751e72916f",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859897Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "f22a3903e4f9eb95cdb0724296c251ea",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859897Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "5ad1d191f09eca553c5b469573846002",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859897Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "c6f0bc7322a148874d086e9c06c6319b",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859897Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "c5b1dfb6cfca198bcf03a845bca4ee72",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859898Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "3a0f28fae42bd7aba4c66ac6b941282b",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859898Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "2ca4d3c7d4b3a2e25dfe55861da4d44f",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859898Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "afcf3953bec666173cb79d67f6fd8000",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859898Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "de80fabd14f69769dd532cb9b912a47a",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859898Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "6cdc9863e7d3fc61690ff74d012cb4ad",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859899Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "38eae55f67a71f9507be604019b55bcb",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859899Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "cb4c1a0358c61bf8370d3f2639114819",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859899Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "6819565d7b0ff958553d90eb73adf2f1",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859899Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "7c62a49a4ed7cc09da3d8d6826984618",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.8599Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "bd3d78a57464969c5a6f1d9372614570",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.8599Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "969f471c78ad86c170ca6b2c21e73a4e",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.8599Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "2059d5f3c06120d87bd5a1c791e59922",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.8599Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "4daf58a9046d17419d761a72d33188c4",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859901Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "6ce8f6b2dc25084a064bb2577912454d",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859901Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "f29e94874f4ff95b2172ee526b17c669",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859901Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "01143e19a128110ba2cbee33bffbe547",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859901Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "7d1ebaa5c766c4760b1e3b27020657e3",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859902Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "fe560ae42cd120b8b3615048293a92c1",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859902Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "a07636ccf691ed0c3fcd4b1d820d6822",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859902Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "9f4910fa1ce095a17cd81322684adbe5",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859902Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "2f9521805673e8973bd4a8c2d56dff70",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859907Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "f3d0246241190dd0b29e48b016478e98",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859907Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "018db9df6e5847cefb3e1d327a5908cb",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859907Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "617eab0d9c038a653798c93d535aeb5e",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859907Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "3c296b3845c49e156eaddfa7a3628064",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859908Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "4e01d26c1a3c70aab22d0e4463ca4539",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859908Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "9ce07943448ee3bee750c04be12a6cd4",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859908Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "8c158a75c27112fc8e858c27811fc46f",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859908Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "bc1060c104bf3195081a17532c8092dd",
+      "rule_id": "G107",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859908Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "46d270430b11a8ddb1ec83f74c978586",
+      "rule_id": "G302",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859909Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "f07a729415d1572867888567dfb4ba5b",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859909Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "437c4c54f6beed1b842935d2073f319c",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859909Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "9674189a54aa17b6a1aac482d59d34ea",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859909Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "2eaae5d6b694d1c95a1dd11d5b1dfe41",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859909Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "70f89940b7bf8d0d1dec6a99bdee1b6c",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85991Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b09e4053a7b95734c50cb04c858595d5",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85991Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "e6c3514b0963dddb442e28bdc274fcb7",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85991Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "f6d7e984585bc6e6aa76fd4648464885",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85991Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "494675bd4558d1d9ecd2d915665ab5f2",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.85991Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "c8bb78910e32989d5a70ae648c948999",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859911Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "c8e5118b495954d4eb8a688e9d7dd609",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859911Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "85fe775e3f2d0dce3980388b77a45717",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859911Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "5bec76c19637b6f4a05773214d13dcd2",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859911Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "952cf781e41e5fcde88086ddec288e4c",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859911Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "c5e427ef65dec5660b7486ada26231cf",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859912Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "8208b833a10d03ecc0d375419ebd68f0",
+      "rule_id": "G301",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859912Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "d0616c55ebb31477f51711dff263456e",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859912Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "1a6f62a1645fa59059df571cb2257eba",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859912Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "2dfca9d606c8d573702ac1b19c56e357",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859912Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b78784b095fa5bd63447d2a993c2e667",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859912Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "51c7c9ededbd0f44f1cd678ce6763d52",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859913Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "1f076da1874d9d62472c55e4a11162b4",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859913Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "afdf17d0d38a434c798897ede96d5c98",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859913Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b983885e0f85e848cbb452c7b0aade48",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859913Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "89ae9ee1ee6b319030a5f18e037e7845",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859913Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "3d2800cdf7961e89cef4388772ed75f9",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859914Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "49a96acdab0831ace7ab0cff7ce47dce",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859914Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "dae23de0e8fe633addd59ddb17eedea9",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859914Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b4d3a036755ec8c4d67c35c6fe374a31",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859914Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "a68869fba944babb204520f77263a68e",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859921Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "ef7bd512040f46ecea85f7da9af8e07d",
+      "rule_id": "G104",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859921Z",
+      "reason": "Trusted CLI subprocess patterns"
+    },
+    {
+      "fingerprint": "b989b683cdc51fcf3e189f74bf85e830",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:28:42.859922Z",
+      "reason": "Ignore legacy provider CLI calls"
+    },
+    {
+      "fingerprint": "b4b2b726cb4c4b7fd2370afb5a3fb607",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:42:48.779595Z",
+      "reason": "Refactor safe util"
+    },
+    {
+      "fingerprint": "c9ece472041af39ea8057ae093370af7",
+      "rule_id": "G204",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:42:48.779614Z",
+      "reason": "Refactor safe util"
+    },
+    {
+      "fingerprint": "07526aaad349f870c7616df18c6e811c",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:42:48.779617Z",
+      "reason": "Refactor safe util"
+    },
+    {
+      "fingerprint": "3e73d1513339341e52d97f83692010bf",
+      "rule_id": "G304",
+      "engine_id": "gosec",
+      "file": "",
+      "added_at": "2026-01-14T11:42:48.779625Z",
+      "reason": "Refactor safe util"
+    }
   ]
 }

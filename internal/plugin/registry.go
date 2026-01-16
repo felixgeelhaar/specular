@@ -216,7 +216,7 @@ func (r *Registry) saveCache() error {
 
 	// Write atomically
 	tmpFile := r.cacheFilePath() + ".tmp"
-	if err := os.WriteFile(tmpFile, data, 0644); err != nil {
+	if err := os.WriteFile(tmpFile, data, 0600); err != nil {
 		return fmt.Errorf("failed to write cache: %w", err)
 	}
 

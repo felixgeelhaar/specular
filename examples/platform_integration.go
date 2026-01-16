@@ -168,7 +168,7 @@ func main() {
 			"messages": messages.Messages,
 		}
 		data, _ := json.MarshalIndent(output, "", "  ")
-		err := os.WriteFile("platform_integration_output.json", data, 0644)
+		err := os.WriteFile("platform_integration_output.json", data, 0600)
 		if err == nil {
 			fmt.Println("\n✓ Saved detailed output to platform_integration_output.json")
 		}
