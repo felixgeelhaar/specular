@@ -4,7 +4,7 @@ const steps = [
   { number: 2, label: "Validate", desc: "Policy enforcement", icon: "shield" },
   { number: 3, label: "Plan", desc: "AI task decomposition", icon: "grid" },
   { number: 4, label: "Approve", desc: "Human-in-the-loop", icon: "check" },
-  { number: 5, label: "Execute", desc: "Docker sandbox", icon: "terminal" },
+  { number: 5, label: "Generate", desc: "AI code generation", icon: "code" },
   { number: 6, label: "Monitor", desc: "Drift detection", icon: "alert" },
 ];
 ---
@@ -39,6 +39,9 @@ const steps = [
               )}
               {step.icon === "terminal" && (
                 <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              )}
+              {step.icon === "code" && (
+                <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
               )}
               {step.icon === "alert" && (
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>

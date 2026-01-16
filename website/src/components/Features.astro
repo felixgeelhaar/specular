@@ -1,6 +1,12 @@
 ---
 const features = [
   {
+    title: "AI Code Generation",
+    desc: "Generate production code from specs using any LLM. Skill-specific prompts for Go, TypeScript, Python, and more.",
+    icon: "code",
+    accent: "violet"
+  },
+  {
     title: "Policy Enforcement",
     desc: "Define what AI can and cannot do. Image allowlisting, resource limits, and cryptographic approvals for every action.",
     icon: "shield-check",
@@ -22,18 +28,12 @@ const features = [
     title: "Multi-LLM Routing",
     desc: "Intelligent routing across Ollama, OpenAI, Anthropic, and Gemini. Optimize for cost, latency, or capability.",
     icon: "cube",
-    accent: "violet"
+    accent: "rose"
   },
   {
     title: "Audit Trails",
     desc: "Cryptographic attestations with ECDSA signatures. Complete trace logging for compliance and debugging.",
     icon: "document",
-    accent: "rose"
-  },
-  {
-    title: "CI/CD Integration",
-    desc: "GitHub Action included. Run drift checks on every PR, gate deployments on policy compliance.",
-    icon: "cli",
     accent: "cyan"
   }
 ];
@@ -53,6 +53,9 @@ const features = [
       {features.map((feature) => (
         <div class={`feature-card accent-${feature.accent}`}>
           <div class="feature-icon">
+            {feature.icon === "code" && (
+              <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            )}
             {feature.icon === "shield-check" && (
               <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
             )}

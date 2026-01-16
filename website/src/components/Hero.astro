@@ -3,7 +3,7 @@ interface Props {
   version?: string;
 }
 
-const { version = "v1.9.0" } = Astro.props;
+const { version = "v2.0.0" } = Astro.props;
 ---
 
 <section class="hero">
@@ -96,19 +96,19 @@ const { version = "v1.9.0" } = Astro.props;
             <span class="output"><span class="success">✓</span> Plan generated: 12 tasks across 4 phases</span>
           </div>
 
-          <!-- Step 5: Build with Sandbox -->
+          <!-- Step 5: Auto with Code Generation -->
           <div class="terminal-line cmd-line line-15">
             <span class="prompt">$</span>
-            <span class="command cmd-15">specular build run --dry-run</span>
+            <span class="command cmd-15">specular auto "Build task manager"</span>
           </div>
           <div class="terminal-line line-16">
-            <span class="output"><span class="success">✓</span> Docker sandbox created (isolated)</span>
+            <span class="output"><span class="success">✓</span> Generated spec: 3 features</span>
           </div>
           <div class="terminal-line line-17">
-            <span class="output"><span class="success">✓</span> Executing plan in container...</span>
+            <span class="output"><span class="success">✓</span> Generated code: cmd/main.go, internal/...</span>
           </div>
           <div class="terminal-line line-18">
-            <span class="output"><span class="success">✓</span> Build complete: all tests passing</span>
+            <span class="output"><span class="success">✓</span> Validated in Docker sandbox</span>
           </div>
 
           <!-- Step 6: Drift Check -->
