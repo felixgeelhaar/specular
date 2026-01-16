@@ -25,15 +25,15 @@ func GenerateMinimalConfig(provider *ProviderSelection, docker DockerStatus) (*C
 	}
 
 	files := &ConfigFiles{
-		RouterPath:   filepath.Join(specDir, "router.yaml"),
+		RouterPath:   filepath.Join(specDir, "routing.yaml"),
 		PolicyPath:   filepath.Join(specDir, "policy.yaml"),
 		SettingsPath: filepath.Join(specDir, "settings.json"),
 	}
 
-	// Generate router.yaml
+	// Generate routing.yaml
 	routerContent := generateRouterYAML(provider)
 	if err := os.WriteFile(files.RouterPath, routerContent, 0600); err != nil {
-		return nil, fmt.Errorf("failed to write router.yaml: %w", err)
+		return nil, fmt.Errorf("failed to write routing.yaml: %w", err)
 	}
 
 	// Generate policy.yaml
@@ -226,7 +226,7 @@ func ConfigExists() bool {
 	specDir := ".specular"
 
 	// Check for any existing config files
-	files := []string{"router.yaml", "policy.yaml", "providers.yaml", "spec.yaml"}
+	files := []string{"routing.yaml", "policy.yaml", "providers.yaml", "spec.yaml"}
 	for _, f := range files {
 		if _, err := os.Stat(filepath.Join(specDir, f)); err == nil {
 			return true

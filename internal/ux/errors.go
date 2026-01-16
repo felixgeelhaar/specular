@@ -219,7 +219,7 @@ func (e *EnhancedError) addSuggestions() {
 		if strings.Contains(msg, "spec.yaml") {
 			e.Suggestions = append(e.Suggestions, "Run: specular spec new")
 			e.Suggestions = append(e.Suggestions, "Run: specular spec new --from PRD.md")
-		} else if strings.Contains(msg, "providers.yaml") || strings.Contains(msg, "router.yaml") {
+		} else if strings.Contains(msg, "providers.yaml") || strings.Contains(msg, "routing.yaml") {
 			e.Suggestions = append(e.Suggestions, "Run: specular init")
 		}
 
@@ -231,7 +231,7 @@ func (e *EnhancedError) addSuggestions() {
 	case CategoryProvider:
 		e.Suggestions = append(e.Suggestions, "Run: specular provider list")
 		e.Suggestions = append(e.Suggestions, "Run: specular provider doctor")
-		e.Suggestions = append(e.Suggestions, "Check .specular/router.yaml configuration")
+		e.Suggestions = append(e.Suggestions, "Check .specular/routing.yaml configuration")
 
 	case CategoryNetwork:
 		e.Suggestions = append(e.Suggestions, "Check your internet connection")
@@ -411,7 +411,7 @@ func enhanceProviderError(err error, errMsg string) error {
 	}
 	if strings.Contains(errMsg, "provider") && (strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "not configured")) {
 		return NewErrorWithSuggestion(err,
-			"Check your provider configuration in .specular/router.yaml or run 'specular init' to configure providers")
+			"Check your provider configuration in .specular/routing.yaml or run 'specular init' to configure providers")
 	}
 	return nil
 }

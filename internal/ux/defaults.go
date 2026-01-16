@@ -69,9 +69,9 @@ func (pd *PathDefaults) ProvidersFile() string {
 	return pd.safeJoin("providers.yaml")
 }
 
-// RouterFile returns the default path to router.yaml
-func (pd *PathDefaults) RouterFile() string {
-	return pd.safeJoin("router.yaml")
+// RoutingFile returns the default path to routing.yaml
+func (pd *PathDefaults) RoutingFile() string {
+	return pd.safeJoin("routing.yaml")
 }
 
 // CheckpointDir returns the default checkpoint directory
@@ -148,8 +148,8 @@ type ConfigPaths struct {
 	LockFile string
 	// PlanFile is the path to plan.json
 	PlanFile string
-	// RouterFile is the path to router.yaml
-	RouterFile string
+	// RoutingFile is the path to routing.yaml
+	RoutingFile string
 	// PolicyFile is the path to policy.yaml
 	PolicyFile string
 	// ProvidersFile is the path to providers.yaml
@@ -176,9 +176,9 @@ func (cp *ConfigPaths) HasLock() bool {
 	return cp.Exists(cp.LockFile)
 }
 
-// HasRouter returns true if a router config exists
-func (cp *ConfigPaths) HasRouter() bool {
-	return cp.Exists(cp.RouterFile)
+// HasRouting returns true if a routing config exists
+func (cp *ConfigPaths) HasRouting() bool {
+	return cp.Exists(cp.RoutingFile)
 }
 
 // HasPolicy returns true if a policy config exists
@@ -252,7 +252,7 @@ func DiscoverAllConfigs() (*ConfigPaths, error) {
 		SpecFile:      pd.SpecFile(),
 		LockFile:      pd.SpecLockFile(),
 		PlanFile:      filepath.Join(projectRoot, pd.PlanFile()),
-		RouterFile:    pd.RouterFile(),
+		RoutingFile:   pd.RoutingFile(),
 		PolicyFile:    pd.PolicyFile(),
 		ProvidersFile: pd.ProvidersFile(),
 		CheckpointDir: pd.CheckpointDir(),
@@ -273,7 +273,7 @@ func MustDiscoverAllConfigs() *ConfigPaths {
 			SpecFile:      pd.SpecFile(),
 			LockFile:      pd.SpecLockFile(),
 			PlanFile:      pd.PlanFile(),
-			RouterFile:    pd.RouterFile(),
+			RoutingFile:   pd.RoutingFile(),
 			PolicyFile:    pd.PolicyFile(),
 			ProvidersFile: pd.ProvidersFile(),
 			CheckpointDir: pd.CheckpointDir(),

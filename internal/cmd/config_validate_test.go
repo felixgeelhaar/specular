@@ -20,7 +20,7 @@ func TestDiscoverConfigFiles(t *testing.T) {
 	}
 
 	// Create test config files
-	testFiles := []string{"providers.yaml", "router.yaml", "policy.yaml"}
+	testFiles := []string{"providers.yaml", "routing.yaml", "policy.yaml"}
 	for _, f := range testFiles {
 		path := filepath.Join(specularDir, f)
 		if err := os.WriteFile(path, []byte("test: value"), 0644); err != nil {

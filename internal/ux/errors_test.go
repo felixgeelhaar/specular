@@ -177,7 +177,7 @@ func TestEnhanceError(t *testing.T) {
 		{
 			name:           "provider not configured",
 			err:            errors.New("provider anthropic not configured"),
-			wantSuggestion: "router.yaml",
+			wantSuggestion: "routing.yaml",
 		},
 		{
 			name:           "policy violation",

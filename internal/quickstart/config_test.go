@@ -42,7 +42,7 @@ func TestGenerateMinimalConfig(t *testing.T) {
 
 	// Verify files were created
 	if _, err := os.Stat(files.RouterPath); os.IsNotExist(err) {
-		t.Error("router.yaml was not created")
+		t.Error("routing.yaml was not created")
 	}
 	if _, err := os.Stat(files.PolicyPath); os.IsNotExist(err) {
 		t.Error("policy.yaml was not created")
@@ -54,10 +54,10 @@ func TestGenerateMinimalConfig(t *testing.T) {
 	// Verify router content
 	routerContent, err := os.ReadFile(files.RouterPath)
 	if err != nil {
-		t.Fatalf("failed to read router.yaml: %v", err)
+		t.Fatalf("failed to read routing.yaml: %v", err)
 	}
 	if !strings.Contains(string(routerContent), "anthropic") {
-		t.Error("router.yaml should contain anthropic provider")
+		t.Error("routing.yaml should contain anthropic provider")
 	}
 
 	// Verify policy content
@@ -117,13 +117,13 @@ func TestGenerateMinimalConfig_LocalProvider(t *testing.T) {
 	// Verify router contains local provider config
 	routerContent, err := os.ReadFile(files.RouterPath)
 	if err != nil {
-		t.Fatalf("failed to read router.yaml: %v", err)
+		t.Fatalf("failed to read routing.yaml: %v", err)
 	}
 	if !strings.Contains(string(routerContent), "ollama") {
-		t.Error("router.yaml should contain ollama provider")
+		t.Error("routing.yaml should contain ollama provider")
 	}
 	if !strings.Contains(string(routerContent), "localhost:11434") {
-		t.Error("router.yaml should contain ollama endpoint")
+		t.Error("routing.yaml should contain ollama endpoint")
 	}
 
 	// Verify policy has docker disabled
@@ -154,7 +154,7 @@ func TestConfigExists(t *testing.T) {
 
 	// Create .specular directory with a config file
 	os.MkdirAll(".specular", 0755)
-	os.WriteFile(".specular/router.yaml", []byte("test"), 0644)
+	os.WriteFile(".specular/routing.yaml", []byte("test"), 0644)
 
 	// Now should exist
 	if !ConfigExists() {
@@ -175,7 +175,7 @@ func TestBackupExistingConfig(t *testing.T) {
 
 	// Create existing config
 	os.MkdirAll(".specular", 0755)
-	os.WriteFile(".specular/router.yaml", []byte("original content"), 0644)
+	os.WriteFile(".specular/routing.yaml", []byte("original content"), 0644)
 
 	// Backup
 	backupDir, err := BackupExistingConfig()
@@ -194,7 +194,7 @@ func TestBackupExistingConfig(t *testing.T) {
 	}
 
 	// Verify content was preserved
-	backupContent, err := os.ReadFile(filepath.Join(backupDir, "router.yaml"))
+	backupContent, err := os.ReadFile(filepath.Join(backupDir, "routing.yaml"))
 	if err != nil {
 		t.Fatalf("failed to read backup: %v", err)
 	}

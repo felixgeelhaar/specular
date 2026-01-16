@@ -25,7 +25,7 @@ If no files are specified, validates all configuration files in .specular/ direc
 
 Supports the following configuration types:
   - providers.yaml  (provider configuration)
-  - router.yaml     (routing configuration)
+  - routing.yaml     (routing configuration)
   - spec.yaml       (specification files)
   - policy.yaml     (policy configuration)
   - slo.yaml        (SLO definitions)
@@ -35,7 +35,7 @@ Examples:
   specular config validate
 
   # Validate specific files
-  specular config validate .specular/providers.yaml .specular/router.yaml
+  specular config validate .specular/providers.yaml .specular/routing.yaml
 
   # Strict mode (warnings become errors)
   specular config validate --strict
@@ -252,7 +252,7 @@ func discoverConfigFiles() ([]string, error) {
 func discoverConfigFilesInDir(dir string) ([]string, error) {
 	configPatterns := []string{
 		"providers.yaml", "providers.yml",
-		"router.yaml", "router.yml",
+		"routing.yaml", "router.yml",
 		"spec.yaml", "spec.yml",
 		"policy.yaml", "policy.yml",
 		"slo.yaml", "slo.yml",

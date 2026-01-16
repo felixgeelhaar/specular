@@ -136,7 +136,7 @@ max_latency_ms: 60000
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			configFile := filepath.Join(tmpDir, "router.yaml")
+			configFile := filepath.Join(tmpDir, "routing.yaml")
 
 			err := os.WriteFile(configFile, []byte(tt.configYAML), 0644)
 			if err != nil {
@@ -170,7 +170,7 @@ max_latency_ms: 60000
 }
 
 func TestLoadConfig_FileNotFound(t *testing.T) {
-	_, err := LoadConfig("/nonexistent/path/router.yaml")
+	_, err := LoadConfig("/nonexistent/path/routing.yaml")
 	if err == nil {
 		t.Error("LoadConfig() expected error for nonexistent file, got nil")
 	}
@@ -466,7 +466,7 @@ func TestSaveConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			configFile := filepath.Join(tmpDir, "router.yaml")
+			configFile := filepath.Join(tmpDir, "routing.yaml")
 
 			err := SaveConfig(tt.config, configFile)
 			if err != nil {
@@ -512,7 +512,7 @@ func TestSaveConfig_WriteError(t *testing.T) {
 	}
 
 	// Try to write to a directory that doesn't exist
-	err := SaveConfig(config, "/nonexistent/directory/router.yaml")
+	err := SaveConfig(config, "/nonexistent/directory/routing.yaml")
 	if err == nil {
 		t.Error("SaveConfig() expected error for invalid path, got nil")
 	}
@@ -550,7 +550,7 @@ func TestConfigRoundTrip(t *testing.T) {
 	}
 
 	tmpDir := t.TempDir()
-	configFile := filepath.Join(tmpDir, "router.yaml")
+	configFile := filepath.Join(tmpDir, "routing.yaml")
 
 	// Save
 	err := SaveConfig(original, configFile)

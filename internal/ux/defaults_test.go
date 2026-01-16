@@ -68,13 +68,13 @@ func TestPathDefaults_ProvidersFile(t *testing.T) {
 	}
 }
 
-func TestPathDefaults_RouterFile(t *testing.T) {
+func TestPathDefaults_RoutingFile(t *testing.T) {
 	defaults := NewPathDefaults()
-	routerFile := defaults.RouterFile()
+	routingFile := defaults.RoutingFile()
 
-	expected := filepath.Join(".specular", "router.yaml")
-	if routerFile != expected {
-		t.Errorf("RouterFile() = %s, want %s", routerFile, expected)
+	expected := filepath.Join(".specular", "routing.yaml")
+	if routingFile != expected {
+		t.Errorf("RoutingFile() = %s, want %s", routingFile, expected)
 	}
 }
 
@@ -363,8 +363,8 @@ func TestConfigPaths_HasMethods(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	routerFile := filepath.Join(specularDir, "router.yaml")
-	if err := os.WriteFile(routerFile, []byte("providers: []"), 0644); err != nil {
+	routingFile := filepath.Join(specularDir, "routing.yaml")
+	if err := os.WriteFile(routingFile, []byte("providers: []"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -372,7 +372,7 @@ func TestConfigPaths_HasMethods(t *testing.T) {
 		SpecularDir:   specularDir,
 		SpecFile:      specFile,
 		LockFile:      filepath.Join(specularDir, "spec.lock.json"), // doesn't exist
-		RouterFile:    routerFile,
+		RoutingFile:   routingFile,
 		PolicyFile:    filepath.Join(specularDir, "policy.yaml"),    // doesn't exist
 		ProvidersFile: filepath.Join(specularDir, "providers.yaml"), // doesn't exist
 	}
@@ -384,8 +384,8 @@ func TestConfigPaths_HasMethods(t *testing.T) {
 	if cp.HasLock() {
 		t.Error("HasLock() should return false")
 	}
-	if !cp.HasRouter() {
-		t.Error("HasRouter() should return true")
+	if !cp.HasRouting() {
+		t.Error("HasRouting() should return true")
 	}
 	if cp.HasPolicy() {
 		t.Error("HasPolicy() should return false")
@@ -526,8 +526,8 @@ func TestDiscoverAllConfigs(t *testing.T) {
 	if configs.LockFile == "" {
 		t.Error("LockFile should not be empty")
 	}
-	if configs.RouterFile == "" {
-		t.Error("RouterFile should not be empty")
+	if configs.RoutingFile == "" {
+		t.Error("RoutingFile should not be empty")
 	}
 	if configs.PolicyFile == "" {
 		t.Error("PolicyFile should not be empty")

@@ -18,8 +18,8 @@ func TestDetectConfigType(t *testing.T) {
 		want     ConfigType
 	}{
 		{
-			name:     "router from filename",
-			filePath: "router.yaml",
+			name:     "routing from filename",
+			filePath: "routing.yaml",
 			content:  map[string]interface{}{},
 			want:     ConfigTypeRouter,
 		},

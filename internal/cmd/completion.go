@@ -148,7 +148,7 @@ func registerProviderCompletion() {
 func registerConfigFileCompletion() {
 	configPatterns := []string{
 		".specular/providers.yaml",
-		".specular/router.yaml",
+		".specular/routing.yaml",
 		".specular/policy.yaml",
 		".specular/spec.yaml",
 		".specular/slo.yaml",

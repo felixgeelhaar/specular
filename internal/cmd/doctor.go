@@ -31,7 +31,7 @@ Checks include:
   • Container runtime (Docker/Podman) availability
   • AI provider availability and configuration
   • Project structure (.specular/ directory)
-  • Required files (spec.yaml, policy.yaml, router.yaml)
+  • Required files (spec.yaml, policy.yaml, routing.yaml)
   • Git repository status
   • Environment variables and API keys
 
@@ -443,8 +443,8 @@ func checkProjectStructure(report *DoctorReport) {
 		report.Warnings = append(report.Warnings, "No policy file found - using default policies")
 	}
 
-	// Check router file
-	routerPath := defaults.RouterFile()
+	// Check routing file
+	routerPath := defaults.RoutingFile()
 	if _, err := os.Stat(routerPath); err == nil {
 		report.Router = &DoctorCheck{
 			Name:    "Router",

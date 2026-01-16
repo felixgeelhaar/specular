@@ -19,7 +19,7 @@ import (
 type ConfigType string
 
 const (
-	// ConfigTypeRouter represents router.yaml configuration
+	// ConfigTypeRouter represents routing.yaml configuration
 	ConfigTypeRouter ConfigType = "router"
 	// ConfigTypeProviders represents providers.yaml configuration
 	ConfigTypeProviders ConfigType = "providers"
@@ -89,7 +89,7 @@ func DetectConfigType(filePath string, content map[string]interface{}) ConfigTyp
 
 	// Try to detect from filename
 	switch {
-	case strings.Contains(baseName, "router"):
+	case strings.Contains(baseName, "routing") || strings.Contains(baseName, "router"):
 		return ConfigTypeRouter
 	case strings.Contains(baseName, "provider"):
 		return ConfigTypeProviders

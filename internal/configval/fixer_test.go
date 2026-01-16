@@ -119,7 +119,7 @@ func TestSuggestFixes_RouterImprovements(t *testing.T) {
 	}
 
 	ctx := &ValidationContext{
-		FilePath:   "router.yaml",
+		FilePath:   "routing.yaml",
 		ConfigType: ConfigTypeRouter,
 		Parsed:     content,
 	}

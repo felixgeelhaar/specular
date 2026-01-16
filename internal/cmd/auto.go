@@ -34,11 +34,22 @@ var autoCmd = &cobra.Command{
 	Short:   "Autonomous mode: from goal to working code",
 	Long: `Run Specular in autonomous agent mode. Provide a natural language goal,
 and Specular will:
-  1. Generate a structured specification
-  2. Create a locked spec with hashes
-  3. Generate an execution plan
-  4. Show approval gate (if enabled)
-  5. Execute the plan (Phase 2 - coming soon)
+  1. Generate a structured specification from your goal
+  2. Create a locked spec with content hashes for drift detection
+  3. Generate an execution plan with dependency-aware task ordering
+  4. Show approval gate (if enabled) for plan review
+  5. Execute the plan with progress tracking and checkpoint support
+
+Current Status (Phase 1):
+  - Full spec-to-execution workflow with approval gates
+  - Budget tracking and enforcement
+  - Checkpoint/resume for long-running workflows
+  - Profile-based configuration (default, ci, strict)
+
+Coming in Phase 2:
+  - Automatic error recovery with AI-powered task regeneration
+  - Smart retry with exponential backoff
+  - Failure analysis and context-aware recovery
 
 This is similar to Claude Code's autonomous workflow but with Specular's
 specification-driven approach and policy enforcement.

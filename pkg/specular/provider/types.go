@@ -131,7 +131,7 @@ type ToolCallFunction struct {
 	Arguments string `json:"arguments"`
 }
 
-// ProviderConfig represents a provider configuration from router.yaml
+// ProviderConfig represents a provider configuration from routing.yaml
 type ProviderConfig struct {
 	// Name is the provider identifier
 	Name string `yaml:"name" json:"name"`

@@ -700,6 +700,157 @@ func envVarFromValue(value string) string {
 	return value
 }
 
+// providerBuildCmd compiles provider binaries from source
+var providerBuildCmd = &cobra.Command{
+	Use:   "build [provider-name...]",
+	Short: "Build provider binaries from source",
+	Long: `Compile provider binaries from the Specular source tree.
+
+This command builds the Go-based provider adapters that bridge between
+Specular and external AI tools (Claude Code, Gemini CLI, Codex CLI, Ollama).
+
+If no provider names are specified, all providers are built.
+
+The binaries are placed in the project's providers/ directory structure
+where provider configuration expects them.
+
+Examples:
+  # Build all providers
+  specular provider build
+
+  # Build specific providers
+  specular provider build ollama claude-code
+
+  # Build to custom output directory
+  specular provider build --output ./my-providers`,
+	RunE: runProviderBuild,
+}
+
+// cliProviders lists provider names that have buildable Go sources
+var cliProviders = []string{"ollama", "claude-code", "gemini-cli", "codex-cli", "claude", "codex", "gemini"}
+
+func runProviderBuild(cmd *cobra.Command, args []string) error {
+	outputDir := cmd.Flags().Lookup("output").Value.String()
+	if outputDir == "" {
+		outputDir = "./providers"
+	}
+
+	// Determine which providers to build
+	providersToBuild := args
+	if len(providersToBuild) == 0 {
+		providersToBuild = cliProviders
+	}
+
+	// Find the specular source directory (where providers/ source exists)
+	specularSrcDir := findSpecularSourceDir()
+	if specularSrcDir == "" {
+		return fmt.Errorf("could not locate Specular source directory with providers/\n\nHint: Run this command from the Specular source tree, or ensure specular is installed with source available")
+	}
+
+	fmt.Printf("Building providers from %s\n", specularSrcDir)
+	fmt.Printf("Output directory: %s\n\n", outputDir)
+
+	successCount := 0
+	for _, name := range providersToBuild {
+		if err := buildProvider(specularSrcDir, outputDir, name); err != nil {
+			fmt.Printf("  ✗ %s: %v\n", name, err)
+		} else {
+			fmt.Printf("  ✓ %s\n", name)
+			successCount++
+		}
+	}
+
+	fmt.Printf("\nBuilt %d/%d providers successfully\n", successCount, len(providersToBuild))
+
+	if successCount > 0 {
+		fmt.Println("\nUpdate your providers.yaml to use the built binaries:")
+		fmt.Printf("  path: %s/<provider>/<provider>-provider\n", outputDir)
+	}
+
+	return nil
+}
+
+func buildProvider(srcDir, outputDir, name string) error {
+	// Check if provider source exists
+	providerSrcDir := filepath.Join(srcDir, "providers", name)
+	if _, err := os.Stat(providerSrcDir); os.IsNotExist(err) {
+		return fmt.Errorf("source not found at %s", providerSrcDir)
+	}
+
+	// Create output directory
+	providerOutDir := filepath.Join(outputDir, name)
+	if err := os.MkdirAll(providerOutDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output dir: %w", err)
+	}
+
+	// Build the provider binary
+	binaryName := name + "-provider"
+	outputPath := filepath.Join(providerOutDir, binaryName)
+
+	ctx := context.Background()
+	buildCmd, err := safeutil.SafeCommand(ctx, "go", "build", "-o", outputPath, "./"+providerSrcDir+"/")
+	if err != nil {
+		return fmt.Errorf("failed to prepare build command: %w", err)
+	}
+
+	buildCmd.Dir = srcDir
+	buildCmd.Env = append(os.Environ(), "CGO_ENABLED=0")
+
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("build failed: %w\n%s", err, string(output))
+	}
+
+	return nil
+}
+
+func findSpecularSourceDir() string {
+	// Try current directory first
+	if isSpecularSourceDir(".") {
+		absPath, _ := filepath.Abs(".")
+		return absPath
+	}
+
+	// Try to find via go list
+	ctx := context.Background()
+	listCmd, err := safeutil.SafeCommand(ctx, "go", "list", "-m", "-f", "{{.Dir}}", "github.com/felixgeelhaar/specular")
+	if err == nil {
+		output, err := listCmd.Output()
+		if err == nil {
+			dir := strings.TrimSpace(string(output))
+			if isSpecularSourceDir(dir) {
+				return dir
+			}
+		}
+	}
+
+	// Try GOPATH
+	gopath := os.Getenv("GOPATH")
+	if gopath == "" {
+		home, _ := os.UserHomeDir()
+		gopath = filepath.Join(home, "go")
+	}
+	specularPath := filepath.Join(gopath, "src", "github.com", "felixgeelhaar", "specular")
+	if isSpecularSourceDir(specularPath) {
+		return specularPath
+	}
+
+	return ""
+}
+
+func isSpecularSourceDir(dir string) bool {
+	providersDir := filepath.Join(dir, "providers")
+	if _, err := os.Stat(providersDir); os.IsNotExist(err) {
+		return false
+	}
+	// Check for at least one provider
+	ollamaDir := filepath.Join(providersDir, "ollama")
+	if _, err := os.Stat(ollamaDir); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
 func init() {
 	// Add provider command to root
 	rootCmd.AddCommand(providerCmd)
@@ -710,6 +861,7 @@ func init() {
 	providerCmd.AddCommand(providerInitCmd)
 	providerCmd.AddCommand(providerAddCmd)
 	providerCmd.AddCommand(providerRemoveCmd)
+	providerCmd.AddCommand(providerBuildCmd)
 
 	// Flags for list command
 	providerListCmd.Flags().String("config", "", "Path to provider config file (default: .specular/providers.yaml)")
@@ -727,4 +879,7 @@ func init() {
 
 	// Flags for remove command
 	providerRemoveCmd.Flags().String("config", "", "Path to provider config file (default: .specular/providers.yaml)")
+
+	// Flags for build command
+	providerBuildCmd.Flags().String("output", "./providers", "Output directory for built provider binaries")
 }
