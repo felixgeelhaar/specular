@@ -294,14 +294,14 @@ func printProviderRecommendations(ctx *detect.Context, recommended []string) {
 
 		// Show detection status from context
 		if info, exists := ctx.Providers[name]; exists {
-			if info.Detected {
+			if info.Available {
 				fmt.Printf("   Status: ✓ Detected")
 				if info.Version != "" {
 					fmt.Printf(" (version %s)", info.Version)
 				}
 				fmt.Println()
 			}
-			if info.EnvKeySet {
+			if info.EnvSet {
 				fmt.Printf("   API Key: ✓ Environment variable is set\n")
 			}
 		}
