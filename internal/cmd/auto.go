@@ -224,12 +224,23 @@ Examples:
 			fmt.Fprintf(os.Stderr, "Loaded %d provider(s): %v\n", len(providerNames), providerNames)
 		}
 
-		// Create router config
-		routerConfig := &router.RouterConfig{
-			BudgetUSD:    maxCost,
-			MaxLatencyMs: 60000,
-			PreferCheap:  true, // Prefer cheaper models for auto mode
+		// Load router config from routing.yaml, fall back to defaults
+		routingConfigPath := ".specular/routing.yaml"
+		routerConfig, err := router.LoadConfig(routingConfigPath)
+		if err != nil {
+			if verbose {
+				fmt.Fprintf(os.Stderr, "Note: Could not load %s: %v, using defaults\n", routingConfigPath, err)
+			}
+			// Use default config if routing.yaml doesn't exist or is invalid
+			routerConfig = router.DefaultConfig()
 		}
+
+		// Apply CLI flag overrides
+		if cmd.Flags().Changed("max-cost") {
+			routerConfig.BudgetUSD = maxCost
+		}
+		// Auto mode prefers cheaper models by default
+		routerConfig.PreferCheap = true
 
 		// Create router
 		r, err := router.NewRouterWithProviders(routerConfig, registry)

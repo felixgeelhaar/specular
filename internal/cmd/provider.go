@@ -788,7 +788,9 @@ func buildProvider(srcDir, outputDir, name string) error {
 	outputPath := filepath.Join(providerOutDir, binaryName)
 
 	ctx := context.Background()
-	buildCmd, err := safeutil.SafeCommand(ctx, "go", "build", "-o", outputPath, "./"+providerSrcDir+"/")
+	// Use relative path from srcDir since buildCmd.Dir is set to srcDir
+	relativePath := "./providers/" + name + "/"
+	buildCmd, err := safeutil.SafeCommand(ctx, "go", "build", "-o", outputPath, relativePath)
 	if err != nil {
 		return fmt.Errorf("failed to prepare build command: %w", err)
 	}

@@ -853,16 +853,17 @@ features:
     trace:
       - REQ-001 Example Requirement
 
+acceptance:
+  - All P0 features implemented and functional
+  - Code compiles without errors
+  - Basic test coverage in place
+
 # Uncomment and customize as needed:
 # non_functional:
 #   performance:
 #     - Response time < 200ms for 95th percentile
 #   security:
 #     - All data encrypted at rest and in transit
-#
-# acceptance:
-#   - All P0 and P1 features complete
-#   - Code coverage > 80%%
 #
 # milestones:
 #   - id: mvp
@@ -923,6 +924,11 @@ features:
       - Accessible components
     trace:
       - REQ-003 UI Library
+
+acceptance:
+  - All P0 features implemented and functional
+  - Frontend and backend communicate correctly
+  - Application builds without errors
 `, config.Timestamp.Format("2006-01-02"), projectName)
 }
 
@@ -977,6 +983,11 @@ features:
       - Indexes optimized
     trace:
       - REQ-003 Data Persistence
+
+acceptance:
+  - All P0 API endpoints functional
+  - Authentication and authorization working
+  - Database operations reliable
 `, config.Timestamp.Format("2006-01-02"), projectName)
 }
 
@@ -1031,6 +1042,11 @@ features:
       - YAML output correct
     trace:
       - REQ-003 Output Formats
+
+acceptance:
+  - CLI compiles and runs without errors
+  - All commands have help text
+  - Configuration loading works
 `, config.Timestamp.Format("2006-01-02"), projectName)
 }
 
@@ -1085,6 +1101,11 @@ features:
       - Distributed tracing enabled
     trace:
       - REQ-003 Observability
+
+acceptance:
+  - Service starts and responds to health checks
+  - All P0 features functional
+  - Metrics and logs visible in observability stack
 `, config.Timestamp.Format("2006-01-02"), projectName)
 }
 
@@ -1170,6 +1191,11 @@ features:
       - Data lineage tracked
     trace:
       - REQ-004 Observability
+
+acceptance:
+  - Data pipeline runs end-to-end successfully
+  - All P0 features implemented and tested
+  - Monitoring and alerting operational
 `, config.Timestamp.Format("2006-01-02"), projectName)
 }
 

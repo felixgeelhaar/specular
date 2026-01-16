@@ -129,7 +129,7 @@ budget_usd: 10.0
 max_latency_ms: 60000
 `,
 			wantErr:     true,
-			errContains: "API key is missing",
+			errContains: "neither API key nor base URL is configured",
 		},
 	}
 
@@ -378,7 +378,7 @@ func TestValidateConfig(t *testing.T) {
 				MaxLatencyMs: 60000,
 			},
 			wantErr:     true,
-			errContains: "API key is missing",
+			errContains: "neither API key nor base URL is configured",
 		},
 		{
 			name: "disabled provider without api key is ok",

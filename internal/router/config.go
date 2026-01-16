@@ -92,9 +92,10 @@ func ValidateConfig(config *RouterConfig) error {
 	}
 
 	// Validate provider configurations
+	// Note: Local providers (like Ollama) use BaseURL instead of APIKey
 	for _, p := range config.Providers {
-		if p.Enabled && p.APIKey == "" {
-			return fmt.Errorf("provider %s is enabled but API key is missing", p.Name)
+		if p.Enabled && p.APIKey == "" && p.BaseURL == "" {
+			return fmt.Errorf("provider %s is enabled but neither API key nor base URL is configured", p.Name)
 		}
 	}
 
