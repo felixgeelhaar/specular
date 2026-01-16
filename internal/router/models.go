@@ -97,11 +97,11 @@ func GetAvailableModels() []Model {
 			Available:       false, // Only available if ollama provider loaded
 		},
 		{
-			ID:              "codellama",
+			ID:              "llama3.2-codegen",
 			Provider:        ProviderLocal,
-			Name:            "codellama:latest", // Ollama model name
+			Name:            "llama3.2:latest", // Ollama model name - using llama3.2 for codegen
 			Type:            ModelTypeCodegen,
-			ContextWindow:   16384,
+			ContextWindow:   8192,
 			CostPerMToken:   0.00, // Free (local)
 			MaxLatencyMs:    4000,
 			CapabilityScore: 65,

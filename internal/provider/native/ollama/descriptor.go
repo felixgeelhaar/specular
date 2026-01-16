@@ -18,9 +18,9 @@ func init() {
 		},
 		Models: map[string]string{
 			"fast":         "llama3.2",
-			"codegen":      "codellama",
+			"codegen":      "llama3.2",
 			"cheap":        "llama3.2",
-			"long-context": "llama3.3:70b",
+			"long-context": "llama3.2",
 		},
 		Constructor: newOllamaProvider,
 	})

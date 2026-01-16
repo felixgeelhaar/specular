@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/checkpoint"
+	"github.com/felixgeelhaar/specular/internal/codegen"
 	"github.com/felixgeelhaar/specular/internal/exec"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/policy"
@@ -23,18 +24,34 @@ type TaskExecutor struct {
 	spec         *spec.ProductSpec
 	actionPlan   *ActionPlan
 	router       interface{ GetBudget() *router.Budget } // Use interface for testability
+	codeGen      exec.CodeGenerator                      // AI code generator for codegen tasks
 	progressFunc func(taskID, status string, err error)
 }
 
 // NewTaskExecutor creates a new task executor
 func NewTaskExecutor(pol *policy.Policy, cfg Config, s *spec.ProductSpec, actionPlan *ActionPlan, r interface{ GetBudget() *router.Budget }) *TaskExecutor {
-	return &TaskExecutor{
+	te := &TaskExecutor{
 		policy:     pol,
 		config:     cfg,
 		spec:       s,
 		actionPlan: actionPlan,
 		router:     r,
 	}
+
+	// Initialize code generator if router supports generation
+	if routerAdapter, ok := r.(codegen.RouterAdapter); ok {
+		codeGenConfig := codegen.Config{
+			OutputDir:   ".",
+			Verbose:     cfg.Verbose,
+			DryRun:      cfg.DryRun,
+			MaxTokens:   4096,
+			Temperature: 0.7,
+		}
+		generator := codegen.NewGenerator(routerAdapter, s, codeGenConfig)
+		te.codeGen = codegen.NewExecutorAdapter(generator)
+	}
+
+	return te
 }
 
 // SetProgressCallback sets a callback function for progress updates
@@ -99,13 +116,14 @@ func (te *TaskExecutor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionSt
 		fmt.Printf("Warning: failed to load cache manifest: %v\n", err)
 	}
 
-	// Create executor
+	// Create executor with code generator
 	executor := &exec.Executor{
-		Policy:      pol,
-		DryRun:      te.config.DryRun,
-		ManifestDir: ".specular/manifests",
-		ImageCache:  imageCache,
-		Verbose:     te.config.Verbose,
+		Policy:        pol,
+		DryRun:        te.config.DryRun,
+		ManifestDir:   ".specular/manifests",
+		ImageCache:    imageCache,
+		Verbose:       te.config.Verbose,
+		CodeGenerator: te.codeGen, // Wire in the AI code generator
 	}
 
 	// Start progress indicator
@@ -266,13 +284,14 @@ func (te *TaskExecutor) ExecuteWithCheckpoint(ctx context.Context, p *plan.Plan,
 	// Set state in progress indicator
 	progressIndicator.SetState(cpState)
 
-	// Create executor
+	// Create executor with code generator
 	executor := &exec.Executor{
-		Policy:      pol,
-		DryRun:      te.config.DryRun,
-		ManifestDir: ".specular/manifests",
-		ImageCache:  nil,
-		Verbose:     te.config.Verbose,
+		Policy:        pol,
+		DryRun:        te.config.DryRun,
+		ManifestDir:   ".specular/manifests",
+		ImageCache:    nil,
+		Verbose:       te.config.Verbose,
+		CodeGenerator: te.codeGen, // Wire in the AI code generator
 	}
 
 	// Start progress indicator

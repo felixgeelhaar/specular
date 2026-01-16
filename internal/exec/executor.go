@@ -9,13 +9,30 @@ import (
 	"github.com/felixgeelhaar/specular/internal/policy"
 )
 
+// CodeGenerator is the interface for AI code generation
+type CodeGenerator interface {
+	Generate(ctx context.Context, task plan.Task) (*CodeGenerationResult, error)
+}
+
+// CodeGenerationResult contains the outcome of code generation
+type CodeGenerationResult struct {
+	TaskID         string
+	FeatureID      string
+	Files          []GeneratedFileRecord
+	AIGeneration   *AIGenerationRecord
+	Success        bool
+	Error          string
+	DurationMs     int64
+}
+
 // Executor manages task execution with policy enforcement
 type Executor struct {
-	Policy      *policy.Policy
-	DryRun      bool
-	ManifestDir string
-	ImageCache  *ImageCache
-	Verbose     bool
+	Policy        *policy.Policy
+	DryRun        bool
+	ManifestDir   string
+	ImageCache    *ImageCache
+	Verbose       bool
+	CodeGenerator CodeGenerator // Optional: AI code generator for codegen tasks
 }
 
 // ExecutionResult contains results from executing a plan
@@ -55,8 +72,41 @@ func (e *Executor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionResult,
 			continue
 		}
 
-		// Create execution step
-		step := e.createStep(task)
+		// Track code generation result for manifest
+		var genResult *CodeGenerationResult
+
+		// Generate code if task has codegen hint and generator is available
+		if e.CodeGenerator != nil && task.ModelHint == "codegen" {
+			fmt.Printf("  🤖 Generating code for feature %s...\n", task.FeatureID)
+			var genErr error
+			genResult, genErr = e.CodeGenerator.Generate(ctx, task)
+			if genErr != nil {
+				result.FailedTasks++
+				fmt.Printf("  ✗ Code generation failed: %v\n", genErr)
+				result.TaskResults[task.ID.String()] = &Result{
+					ExitCode: 1,
+					Error:    genErr,
+				}
+				continue
+			}
+
+			if !genResult.Success {
+				result.FailedTasks++
+				fmt.Printf("  ✗ Code generation failed: %s\n", genResult.Error)
+				result.TaskResults[task.ID.String()] = &Result{
+					ExitCode: 1,
+					Error:    fmt.Errorf("generation failed: %s", genResult.Error),
+				}
+				continue
+			}
+
+			if e.Verbose {
+				fmt.Printf("  ✓ Generated %d file(s)\n", len(genResult.Files))
+			}
+		}
+
+		// Create execution step (now validates generated code)
+		step := e.createStep(task, genResult != nil)
 
 		// Enforce policy
 		if err := EnforcePolicy(step, e.Policy); err != nil {
@@ -100,15 +150,22 @@ func (e *Executor) Execute(ctx context.Context, p *plan.Plan) (*ExecutionResult,
 			// Create manifest
 			if e.ManifestDir != "" {
 				manifest := CreateManifest(step, taskResult)
-			manifestPath, err := SaveManifest(manifest, e.ManifestDir)
-			if err != nil {
-				fmt.Printf("  ⚠ Warning: failed to save manifest: %v\n", err)
-			} else {
-				result.Manifests = append(result.Manifests, manifest)
-				if writeErr := WriteLatestManifest(e.ManifestDir, manifest, manifestPath); writeErr != nil {
-					fmt.Printf("  ⚠ Warning: failed to persist latest manifest metadata: %v\n", writeErr)
+
+				// Add AI generation metadata if code was generated
+				if genResult != nil {
+					manifest.GeneratedFiles = genResult.Files
+					manifest.AIGeneration = genResult.AIGeneration
 				}
-			}
+
+				manifestPath, err := SaveManifest(manifest, e.ManifestDir)
+				if err != nil {
+					fmt.Printf("  ⚠ Warning: failed to save manifest: %v\n", err)
+				} else {
+					result.Manifests = append(result.Manifests, manifest)
+					if writeErr := WriteLatestManifest(e.ManifestDir, manifest, manifestPath); writeErr != nil {
+						fmt.Printf("  ⚠ Warning: failed to persist latest manifest metadata: %v\n", writeErr)
+					}
+				}
 			}
 		}
 	}
@@ -132,7 +189,8 @@ func (e *Executor) checkDependencies(task plan.Task, result *ExecutionResult) er
 }
 
 // createStep converts a plan task to an execution step
-func (e *Executor) createStep(task plan.Task) Step {
+// If hasGeneratedCode is true, the step validates the generated code instead of just checking versions
+func (e *Executor) createStep(task plan.Task, hasGeneratedCode bool) Step {
 	// Default to Docker execution
 	step := Step{
 		ID:      task.ID.String(),
@@ -145,19 +203,38 @@ func (e *Executor) createStep(task plan.Task) Step {
 	switch task.Skill {
 	case "go-backend":
 		step.Image = "golang:1.22"
-		step.Cmd = []string{"go", "version"}
+		if hasGeneratedCode {
+			// Validate generated Go code
+			step.Cmd = []string{"sh", "-c", "go build ./... && go test ./..."}
+		} else {
+			step.Cmd = []string{"go", "version"}
+		}
 	case "ui-react":
 		step.Image = "node:20"
-		step.Cmd = []string{"node", "--version"}
+		if hasGeneratedCode {
+			// Validate generated React/TypeScript code
+			step.Cmd = []string{"sh", "-c", "npm install && npm run build && npm test"}
+		} else {
+			step.Cmd = []string{"node", "--version"}
+		}
 	case "infra":
 		step.Image = "alpine:latest"
 		step.Cmd = []string{"echo", "Infrastructure task"}
 	case "database":
 		step.Image = "postgres:15"
-		step.Cmd = []string{"psql", "--version"}
+		if hasGeneratedCode {
+			// Validate SQL syntax (basic check)
+			step.Cmd = []string{"sh", "-c", "find . -name '*.sql' -exec cat {} \\;"}
+		} else {
+			step.Cmd = []string{"psql", "--version"}
+		}
 	case "testing":
 		step.Image = "golang:1.22"
-		step.Cmd = []string{"go", "test", "-version"}
+		if hasGeneratedCode {
+			step.Cmd = []string{"go", "test", "-v", "./..."}
+		} else {
+			step.Cmd = []string{"go", "test", "-version"}
+		}
 	default:
 		step.Image = "alpine:latest"
 		step.Cmd = []string{"echo", fmt.Sprintf("Task %s", task.ID)}

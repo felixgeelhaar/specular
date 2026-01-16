@@ -575,7 +575,7 @@ func createProviderConfig(specDir string, ctx *detect.Context) error {
 
 func generateGovernanceDocs(config *InitConfig) error {
 	docCtx := buildDocContext(config)
-	docsDir := filepath.Join(config.SpecDir, "docs")
+	docsDir := filepath.Join(config.TargetDir, "docs")
 	if err := docgen.WriteDocs(docsDir, docCtx); err != nil {
 		return fmt.Errorf("writing governance docs: %w", err)
 	}
@@ -1427,7 +1427,7 @@ func printSmartSuccessMessage(config *InitConfig) {
 	fmt.Println("  • .specular/spec.yaml      - Product specification")
 	fmt.Println("  • .specular/settings.json  - Project settings")
 	fmt.Println("  • .specular/providers.yaml - Provider configuration")
-	fmt.Println("  • .specular/docs          - Governance source documents (PRD, Vision, Roadmap, TDD)")
+	fmt.Println("  • docs/                    - Governance source documents (PRD, Vision, Roadmap, TDD)")
 	fmt.Println("  • .specular/providers.yaml.example - Provider configuration example")
 	fmt.Println()
 

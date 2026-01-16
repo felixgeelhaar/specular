@@ -207,7 +207,7 @@ func TestCreateStep(t *testing.T) {
 				Policy: tt.policy,
 			}
 
-			step := executor.createStep(tt.task)
+			step := executor.createStep(tt.task, false) // Test without generated code
 
 			if step.ID != tt.task.ID.String() {
 				t.Errorf("createStep() ID = %v, want %v", step.ID, tt.task.ID)
