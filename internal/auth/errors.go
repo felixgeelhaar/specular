@@ -5,9 +5,10 @@ import (
 )
 
 // Error codes for authentication failures
+// #nosec G101 -- These are error code constants, not credentials
 const (
 	// Authentication errors
-	ErrInvalidCredentials  = "AUTH_INVALID_CREDENTIALS" //nolint:gosec // Error constant, not a credential
+	ErrInvalidCredentials  = "AUTH_INVALID_CREDENTIALS"
 	ErrProviderUnavailable = "AUTH_PROVIDER_UNAVAILABLE"
 	ErrNoProviders         = "AUTH_NO_PROVIDERS"
 	ErrDuplicateProvider   = "AUTH_DUPLICATE_PROVIDER"
@@ -21,10 +22,10 @@ const (
 	ErrRefreshFailed      = "AUTH_REFRESH_FAILED"
 
 	// Token errors
-	ErrTokenInvalid       = "AUTH_TOKEN_INVALID"        //nolint:gosec // Error constant, not a credential
-	ErrTokenExpired       = "AUTH_TOKEN_EXPIRED"        //nolint:gosec // Error constant, not a credential
-	ErrTokenMalformed     = "AUTH_TOKEN_MALFORMED"      //nolint:gosec // Error constant, not a credential
-	ErrTokenSigningFailed = "AUTH_TOKEN_SIGNING_FAILED" //nolint:gosec // Error constant, not a credential
+	ErrTokenInvalid       = "AUTH_TOKEN_INVALID"
+	ErrTokenExpired       = "AUTH_TOKEN_EXPIRED"
+	ErrTokenMalformed     = "AUTH_TOKEN_MALFORMED"
+	ErrTokenSigningFailed = "AUTH_TOKEN_SIGNING_FAILED"
 
 	// SAML errors
 	ErrSAMLAssertionInvalid = "AUTH_SAML_ASSERTION_INVALID"
@@ -33,8 +34,8 @@ const (
 
 	// OIDC errors
 	ErrOIDCAuthorizationFailed = "AUTH_OIDC_AUTHORIZATION_FAILED"
-	ErrOIDCTokenExchangeFailed = "AUTH_OIDC_TOKEN_EXCHANGE_FAILED" //nolint:gosec // Error constant, not a credential
-	ErrOIDCIDTokenInvalid      = "AUTH_OIDC_ID_TOKEN_INVALID"      //nolint:gosec // Error constant, not a credential
+	ErrOIDCTokenExchangeFailed = "AUTH_OIDC_TOKEN_EXCHANGE_FAILED"
+	ErrOIDCIDTokenInvalid      = "AUTH_OIDC_ID_TOKEN_INVALID"
 )
 
 // AuthError represents an authentication error with code and context.

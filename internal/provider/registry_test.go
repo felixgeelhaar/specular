@@ -3,390 +3,344 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 )
 
-func TestLoadFromConfig(t *testing.T) {
-	tests := []struct {
-		name        string
-		config      *ProviderConfig
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name: "empty provider name",
-			config: &ProviderConfig{
-				Name:    "",
-				Type:    ProviderTypeAPI,
-				Enabled: true,
-			},
-			wantErr:     true,
-			errContains: "provider name is required",
-		},
-		{
-			name: "disabled provider",
-			config: &ProviderConfig{
-				Name:    "test-provider",
-				Type:    ProviderTypeAPI,
-				Enabled: false,
-			},
-			wantErr: false,
-		},
-		{
-			name: "CLI provider missing path",
-			config: &ProviderConfig{
-				Name:    "test-cli",
-				Type:    ProviderTypeCLI,
-				Enabled: true,
-				Config:  map[string]interface{}{},
-			},
-			wantErr:     true,
-			errContains: "executable path required",
-		},
-		{
-			name: "CLI provider with invalid path type",
-			config: &ProviderConfig{
-				Name:    "test-cli",
-				Type:    ProviderTypeCLI,
-				Enabled: true,
-				Config: map[string]interface{}{
-					"path": 123, // invalid type
-				},
-			},
-			wantErr:     true,
-			errContains: "executable path required",
-		},
-		{
-			name: "unknown API provider",
-			config: &ProviderConfig{
-				Name:    "unknown-api",
-				Type:    ProviderTypeAPI,
-				Enabled: true,
-			},
-			wantErr:     true,
-			errContains: "unknown API provider",
-		},
-		{
-			name: "gRPC provider not implemented",
-			config: &ProviderConfig{
-				Name:    "test-grpc",
-				Type:    ProviderTypeGRPC,
-				Enabled: true,
-			},
-			wantErr:     true,
-			errContains: "gRPC providers not yet implemented",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			registry := NewRegistry()
-			err := registry.LoadFromConfig(tt.config)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Error("LoadFromConfig() expected error, got nil")
-				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
-					t.Errorf("LoadFromConfig() error = %v, want error containing %q", err, tt.errContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("LoadFromConfig() unexpected error = %v", err)
-				}
-			}
-		})
-	}
+type fakeProvider struct {
+	closeErr error
+	closed   bool
 }
 
-func TestRegistry_GetConfig(t *testing.T) {
-	tests := []struct {
-		name        string
-		setupConfig *ProviderConfig
-		queryName   string
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name: "get existing config",
-			setupConfig: &ProviderConfig{
-				Name: "test-provider",
-				Type: ProviderTypeAPI,
-			},
-			queryName: "test-provider",
-			wantErr:   false,
-		},
-		{
-			name:        "get non-existent config",
-			setupConfig: nil,
-			queryName:   "non-existent",
-			wantErr:     true,
-			errContains: "not found",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			registry := NewRegistry()
-
-			// Setup: register provider config if provided
-			if tt.setupConfig != nil {
-				// Use Register directly to bypass provider creation
-				err := registry.Register(tt.setupConfig.Name, nil, tt.setupConfig)
-				if err != nil {
-					t.Fatalf("Setup failed: Register() error = %v", err)
-				}
-			}
-
-			// Test GetConfig
-			config, err := registry.GetConfig(tt.queryName)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Error("GetConfig() expected error, got nil")
-				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
-					t.Errorf("GetConfig() error = %v, want error containing %q", err, tt.errContains)
-				}
-				if config != nil {
-					t.Errorf("GetConfig() returned config %v, want nil", config)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("GetConfig() unexpected error = %v", err)
-				}
-				if config == nil {
-					t.Error("GetConfig() returned nil config")
-				} else if config.Name != tt.queryName {
-					t.Errorf("GetConfig() config name = %v, want %v", config.Name, tt.queryName)
-				}
-			}
-		})
-	}
+func (f *fakeProvider) Generate(ctx context.Context, req *GenerateRequest) (*GenerateResponse, error) {
+	return &GenerateResponse{Content: "ok", Provider: "fake"}, nil
 }
 
-func TestRegistry_Remove(t *testing.T) {
-	tests := []struct {
-		name        string
-		setupName   string
-		removeName  string
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name:        "remove non-existent provider",
-			setupName:   "",
-			removeName:  "non-existent",
-			wantErr:     true,
-			errContains: "not found",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			registry := NewRegistry()
-
-			// Setup: register provider if specified
-			if tt.setupName != "" {
-				config := &ProviderConfig{
-					Name: tt.setupName,
-					Type: ProviderTypeAPI,
-				}
-				err := registry.Register(tt.setupName, nil, config)
-				if err != nil {
-					t.Fatalf("Setup failed: Register() error = %v", err)
-				}
-			}
-
-			// Test Remove
-			err := registry.Remove(tt.removeName)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Error("Remove() expected error, got nil")
-				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
-					t.Errorf("Remove() error = %v, want error containing %q", err, tt.errContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Remove() unexpected error = %v", err)
-				}
-
-				// Verify provider was removed
-				_, err = registry.Get(tt.removeName)
-				if err == nil {
-					t.Error("Remove() provider still exists after removal")
-				}
-			}
-		})
-	}
-}
-
-func TestRegistry_Register(t *testing.T) {
-	tests := []struct {
-		name        string
-		firstReg    string
-		secondReg   string
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name:        "duplicate registration",
-			firstReg:    "test-provider",
-			secondReg:   "test-provider",
-			wantErr:     true,
-			errContains: "already registered",
-		},
-		{
-			name:      "different providers",
-			firstReg:  "provider-1",
-			secondReg: "provider-2",
-			wantErr:   false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			registry := NewRegistry()
-
-			// Register first provider
-			config1 := &ProviderConfig{
-				Name: tt.firstReg,
-				Type: ProviderTypeAPI,
-			}
-			err := registry.Register(tt.firstReg, nil, config1)
-			if err != nil {
-				t.Fatalf("First Register() error = %v", err)
-			}
-
-			// Register second provider
-			config2 := &ProviderConfig{
-				Name: tt.secondReg,
-				Type: ProviderTypeAPI,
-			}
-			err = registry.Register(tt.secondReg, nil, config2)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Error("Register() expected error for duplicate, got nil")
-				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
-					t.Errorf("Register() error = %v, want error containing %q", err, tt.errContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Register() unexpected error = %v", err)
-				}
-			}
-		})
-	}
-}
-
-// mockProvider is a minimal mock implementation for testing
-type mockProvider struct{}
-
-func (m *mockProvider) Generate(ctx context.Context, req *GenerateRequest) (*GenerateResponse, error) {
-	return &GenerateResponse{Content: "test"}, nil
-}
-
-func (m *mockProvider) Stream(ctx context.Context, req *GenerateRequest) (<-chan StreamChunk, error) {
-	ch := make(chan StreamChunk)
+func (f *fakeProvider) Stream(ctx context.Context, req *GenerateRequest) (<-chan StreamChunk, error) {
+	ch := make(chan StreamChunk, 1)
 	close(ch)
 	return ch, nil
 }
 
-func (m *mockProvider) GetCapabilities() *ProviderCapabilities {
-	return &ProviderCapabilities{}
+func (f *fakeProvider) GetCapabilities() *ProviderCapabilities {
+	return &ProviderCapabilities{SupportsStreaming: true}
 }
 
-func (m *mockProvider) GetInfo() *ProviderInfo {
-	return &ProviderInfo{Name: "mock"}
+func (f *fakeProvider) GetInfo() *ProviderInfo {
+	return &ProviderInfo{Name: "fake", Type: ProviderTypeNative}
 }
 
-func (m *mockProvider) IsAvailable() bool {
+func (f *fakeProvider) IsAvailable() bool {
 	return true
 }
 
-func (m *mockProvider) Health(ctx context.Context) error {
+func (f *fakeProvider) Health(ctx context.Context) error {
 	return nil
 }
 
-func (m *mockProvider) Close() error {
-	return nil
-}
-
-func TestRegistry_CloseAll(t *testing.T) {
-	t.Run("empty registry", func(t *testing.T) {
-		registry := NewRegistry()
-		err := registry.CloseAll()
-		if err != nil {
-			t.Errorf("CloseAll() on empty registry unexpected error = %v", err)
-		}
-	})
-
-	t.Run("with providers", func(t *testing.T) {
-		registry := NewRegistry()
-
-		// Register multiple providers
-		for i := 1; i <= 3; i++ {
-			config := &ProviderConfig{
-				Name: fmt.Sprintf("provider-%d", i),
-				Type: ProviderTypeAPI,
-			}
-			err := registry.Register(config.Name, &mockProvider{}, config)
-			if err != nil {
-				t.Fatalf("Register() error = %v", err)
-			}
-		}
-
-		// Verify providers exist
-		if len(registry.List()) != 3 {
-			t.Errorf("Registry has %d providers, want 3", len(registry.List()))
-		}
-
-		// Close all
-		err := registry.CloseAll()
-		if err != nil {
-			t.Errorf("CloseAll() unexpected error = %v", err)
-		}
-
-		// Verify registry is empty
-		if len(registry.List()) != 0 {
-			t.Errorf("Registry has %d providers after CloseAll, want 0", len(registry.List()))
-		}
-	})
-}
-
-// mockProviderWithCloseError is a mock provider that fails to close
-type mockProviderWithCloseError struct {
-	mockProvider
-}
-
-func (m *mockProviderWithCloseError) Close() error {
-	return fmt.Errorf("close failed")
-}
-
-func TestRegistry_CloseAll_WithErrors(t *testing.T) {
-	registry := NewRegistry()
-
-	// Register a provider that will fail to close
-	config := &ProviderConfig{
-		Name: "failing-provider",
-		Type: ProviderTypeAPI,
+func (f *fakeProvider) Close() error {
+	if f.closeErr != nil {
+		return f.closeErr
 	}
-	err := registry.Register(config.Name, &mockProviderWithCloseError{}, config)
+	f.closed = true
+	return nil
+}
+
+func TestRegistryLifecycle(t *testing.T) {
+	reg := NewRegistry()
+
+	RegisterProviderDescriptor(ProviderDescriptor{
+		Name:        "test-registry",
+		Description: "fake provider",
+		Constructor: func(_ *ProviderConfig) (ProviderClient, error) {
+			return &fakeProvider{}, nil
+		},
+	})
+
+	cfg := &ProviderConfig{
+		Name:    "test-registry",
+		Type:    ProviderTypeNative,
+		Enabled: true,
+	}
+
+	if err := reg.LoadFromConfig(cfg); err != nil {
+		t.Fatalf("LoadFromConfig failed: %v", err)
+	}
+
+	client, err := reg.Get(cfg.Name)
 	if err != nil {
-		t.Fatalf("Register() error = %v", err)
+		t.Fatalf("Get failed: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected provider client, got nil")
 	}
 
-	// Close all should return an error
-	err = registry.CloseAll()
+	if err := reg.Remove(cfg.Name); err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
+	if _, err := reg.Get(cfg.Name); err == nil {
+		t.Fatal("expected error after removing provider")
+	}
+}
+
+func TestRegistryCloseAllCollectsErrors(t *testing.T) {
+	reg := NewRegistry()
+
+	p1 := &fakeProvider{closeErr: fmt.Errorf("boom")}
+	p2 := &fakeProvider{}
+
+	if err := reg.Register("first", p1, &ProviderConfig{Name: "first"}); err != nil {
+		t.Fatalf("failed to register first provider: %v", err)
+	}
+	if err := reg.Register("second", p2, &ProviderConfig{Name: "second"}); err != nil {
+		t.Fatalf("failed to register second provider: %v", err)
+	}
+	if err := reg.Register("second", p2, &ProviderConfig{Name: "second"}); err == nil {
+		t.Fatal("expected duplicate registration to fail")
+	}
+
+	err := reg.CloseAll()
 	if err == nil {
-		t.Error("CloseAll() expected error when provider Close fails, got nil")
+		t.Fatal("expected CloseAll to return error")
 	}
-	if !contains(err.Error(), "close failed") {
-		t.Errorf("CloseAll() error = %v, want error containing 'close failed'", err)
+	if !strings.Contains(err.Error(), "boom") {
+		t.Fatalf("expected error to mention boom, got %v", err)
+	}
+	if !p2.closed {
+		t.Fatal("expected second provider to be closed")
+	}
+}
+
+func TestRegistryGetConfig(t *testing.T) {
+	reg := NewRegistry()
+
+	expectedConfig := &ProviderConfig{
+		Name:    "test-provider",
+		Type:    ProviderTypeNative,
+		Enabled: true,
+		Config:  map[string]interface{}{"key": "value"},
 	}
 
-	// Registry should still be empty after CloseAll (even with errors)
-	if len(registry.List()) != 0 {
-		t.Errorf("Registry has %d providers after CloseAll, want 0", len(registry.List()))
+	provider := &fakeProvider{}
+	if err := reg.Register("test-provider", provider, expectedConfig); err != nil {
+		t.Fatalf("Register failed: %v", err)
+	}
+
+	// Test successful GetConfig
+	config, err := reg.GetConfig("test-provider")
+	if err != nil {
+		t.Fatalf("GetConfig failed: %v", err)
+	}
+	if config.Name != expectedConfig.Name {
+		t.Errorf("GetConfig returned wrong name: got %s, want %s", config.Name, expectedConfig.Name)
+	}
+	if config.Type != expectedConfig.Type {
+		t.Errorf("GetConfig returned wrong type: got %s, want %s", config.Type, expectedConfig.Type)
+	}
+
+	// Test GetConfig for non-existent provider
+	_, err = reg.GetConfig("nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent provider")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' error, got: %v", err)
+	}
+}
+
+func TestRegistryList(t *testing.T) {
+	reg := NewRegistry()
+
+	// Empty registry
+	names := reg.List()
+	if len(names) != 0 {
+		t.Errorf("expected empty list, got %v", names)
+	}
+
+	// Add providers
+	_ = reg.Register("provider-a", &fakeProvider{}, &ProviderConfig{Name: "provider-a"})
+	_ = reg.Register("provider-b", &fakeProvider{}, &ProviderConfig{Name: "provider-b"})
+
+	names = reg.List()
+	if len(names) != 2 {
+		t.Errorf("expected 2 providers, got %d", len(names))
+	}
+}
+
+func TestRegistryRemoveErrors(t *testing.T) {
+	reg := NewRegistry()
+
+	// Remove non-existent provider
+	err := reg.Remove("nonexistent")
+	if err == nil {
+		t.Fatal("expected error removing nonexistent provider")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' error, got: %v", err)
+	}
+
+	// Provider with close error
+	closeErr := fmt.Errorf("close failed")
+	provider := &fakeProvider{closeErr: closeErr}
+	_ = reg.Register("failing", provider, &ProviderConfig{Name: "failing"})
+
+	err = reg.Remove("failing")
+	if err == nil {
+		t.Fatal("expected error when provider close fails")
+	}
+	if !strings.Contains(err.Error(), "close failed") {
+		t.Errorf("expected 'close failed' error, got: %v", err)
+	}
+}
+
+func TestLoadFromConfigDisabled(t *testing.T) {
+	reg := NewRegistry()
+
+	cfg := &ProviderConfig{
+		Name:    "disabled-provider",
+		Type:    ProviderTypeNative,
+		Enabled: false,
+	}
+
+	// Loading a disabled provider should succeed silently
+	if err := reg.LoadFromConfig(cfg); err != nil {
+		t.Fatalf("LoadFromConfig should skip disabled providers: %v", err)
+	}
+
+	// Provider should not be registered
+	_, err := reg.Get("disabled-provider")
+	if err == nil {
+		t.Fatal("disabled provider should not be registered")
+	}
+}
+
+func TestLoadFromConfigEmptyName(t *testing.T) {
+	reg := NewRegistry()
+
+	cfg := &ProviderConfig{
+		Name:    "",
+		Enabled: true,
+	}
+
+	err := reg.LoadFromConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error for empty provider name")
+	}
+	if !strings.Contains(err.Error(), "name is required") {
+		t.Errorf("expected 'name is required' error, got: %v", err)
+	}
+}
+
+func TestNewProviderClientFromConfigCLI(t *testing.T) {
+	// CLI provider without path should fail
+	cfg := &ProviderConfig{
+		Name:    "cli-test",
+		Type:    ProviderTypeCLI,
+		Enabled: true,
+		Config:  map[string]interface{}{},
+	}
+
+	_, err := newProviderClientFromConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error for CLI provider without path")
+	}
+	if !strings.Contains(err.Error(), "executable path required") {
+		t.Errorf("expected 'executable path required' error, got: %v", err)
+	}
+
+	// CLI provider with empty path
+	cfg.Config["path"] = ""
+	_, err = newProviderClientFromConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error for CLI provider with empty path")
+	}
+}
+
+func TestNewProviderClientFromConfigUnknownAPI(t *testing.T) {
+	cfg := &ProviderConfig{
+		Name:    "unknown-api",
+		Type:    ProviderTypeAPI,
+		Enabled: true,
+	}
+
+	_, err := newProviderClientFromConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error for unknown API provider")
+	}
+	if !strings.Contains(err.Error(), "unknown API provider") {
+		t.Errorf("expected 'unknown API provider' error, got: %v", err)
+	}
+}
+
+func TestNewProviderClientFromConfigGRPC(t *testing.T) {
+	cfg := &ProviderConfig{
+		Name:    "grpc-test",
+		Type:    ProviderTypeGRPC,
+		Enabled: true,
+	}
+
+	_, err := newProviderClientFromConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error for gRPC provider (not implemented)")
+	}
+	if !strings.Contains(err.Error(), "not yet implemented") {
+		t.Errorf("expected 'not yet implemented' error, got: %v", err)
+	}
+}
+
+func TestNewProviderClientFromConfigUnknownType(t *testing.T) {
+	cfg := &ProviderConfig{
+		Name:    "unknown-type",
+		Type:    "invalid-type",
+		Enabled: true,
+	}
+
+	_, err := newProviderClientFromConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error for unknown provider type")
+	}
+	if !strings.Contains(err.Error(), "unknown provider type") {
+		t.Errorf("expected 'unknown provider type' error, got: %v", err)
+	}
+}
+
+func TestNewProviderClientFromConfigNativeNotRegistered(t *testing.T) {
+	cfg := &ProviderConfig{
+		Name:    "unregistered-native",
+		Type:    ProviderTypeNative,
+		Enabled: true,
+	}
+
+	_, err := newProviderClientFromConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error for unregistered native provider")
+	}
+	if !strings.Contains(err.Error(), "not registered") {
+		t.Errorf("expected 'not registered' error, got: %v", err)
+	}
+}
+
+func TestNativeConstructorFor(t *testing.T) {
+	// Register a descriptor with constructor
+	RegisterProviderDescriptor(ProviderDescriptor{
+		Name:        "native-test-constructor",
+		Description: "test native provider",
+		Constructor: func(_ *ProviderConfig) (ProviderClient, error) {
+			return &fakeProvider{}, nil
+		},
+	})
+
+	constructor, ok := nativeConstructorFor("native-test-constructor")
+	if !ok {
+		t.Fatal("expected to find constructor for registered descriptor")
+	}
+	if constructor == nil {
+		t.Fatal("expected non-nil constructor")
+	}
+
+	// Test for unregistered provider
+	_, ok = nativeConstructorFor("nonexistent-native")
+	if ok {
+		t.Fatal("expected no constructor for unregistered native provider")
 	}
 }

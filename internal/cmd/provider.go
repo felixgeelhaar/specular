@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/detect"
 	"github.com/felixgeelhaar/specular/internal/docgen"
 	"github.com/felixgeelhaar/specular/internal/provider"
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
@@ -35,33 +37,25 @@ var providerListCmd = &cobra.Command{
 	Short: "List configured providers",
 	Long:  `List all configured providers and their current status (enabled/disabled, loaded/not loaded).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath := cmd.Flags().Lookup("config").Value.String()
-		if configPath == "" {
-			// Try to discover providers.yaml in multiple locations
-			discoveredPath, discoverErr := ux.DiscoverConfigFile("providers.yaml")
-			if discoverErr == nil {
-				if _, statErr := os.Stat(discoveredPath); statErr == nil {
-					configPath = discoveredPath
-				}
-			}
-			// Fall back to default if discovery didn't find existing file
-			if configPath == "" {
-				configPath = defaultProviderConfigPath
-			}
-		}
-
-		// Check if config file exists
-		if _, err := os.Stat(configPath); os.IsNotExist(err) {
-			fmt.Printf("No provider configuration found at %s\n", configPath)
-			fmt.Printf("Run 'specular provider init' to create one.\n")
-			fmt.Printf("Tip: Specular will auto-discover providers if you have ollama installed or API keys set.\n")
-			return nil
-		}
-
-		// Load config
-		config, err := provider.LoadProvidersConfig(configPath)
+		configPath, err := resolveProviderConfigPath(cmd)
 		if err != nil {
-			return fmt.Errorf("failed to load provider config: %w", err)
+			return err
+		}
+
+		config, created, examplePath, recommended, err := loadProviderConfigWithBootstrap(configPath)
+		if err != nil {
+			return err
+		}
+
+		if created {
+			fmt.Printf("✓ Created provider configuration at %s\n", configPath)
+			if len(recommended) > 0 {
+				fmt.Printf("  Recommended providers enabled: %s\n", strings.Join(recommended, ", "))
+			}
+			if examplePath != "" {
+				fmt.Printf("  Example config available at %s\n", examplePath)
+			}
+			fmt.Println()
 		}
 
 		// Print providers table
@@ -116,22 +110,29 @@ var providerListCmd = &cobra.Command{
 var providerDoctorCmd = &cobra.Command{
 	Use:   "doctor [provider-name]",
 	Short: "Check provider health and configuration",
-	Long:    `Check the health status of providers. If no provider name is specified, checks all enabled providers. Use --quick to skip detailed health checks and list provider status only.`,
+	Long:  `Check the health status of providers. If no provider name is specified, checks all enabled providers. Use --quick to skip detailed health checks and list provider status only.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		quick := cmd.Flags().Lookup("quick").Value.String() == "true"
-		configPath := cmd.Flags().Lookup("config").Value.String()
-		if configPath == "" {
-			// Try to discover providers.yaml in multiple locations
-			discoveredPath, discoverErr := ux.DiscoverConfigFile("providers.yaml")
-			if discoverErr == nil {
-				if _, statErr := os.Stat(discoveredPath); statErr == nil {
-					configPath = discoveredPath
-				}
+
+		configPath, err := resolveProviderConfigPath(cmd)
+		if err != nil {
+			return err
+		}
+
+		_, created, examplePath, recommended, err := loadProviderConfigWithBootstrap(configPath)
+		if err != nil {
+			return err
+		}
+
+		if created {
+			fmt.Printf("✓ Created provider configuration at %s\n", configPath)
+			if len(recommended) > 0 {
+				fmt.Printf("  Recommended providers enabled: %s\n", strings.Join(recommended, ", "))
 			}
-			// Fall back to default if discovery didn't find existing file
-			if configPath == "" {
-				configPath = defaultProviderConfigPath
+			if examplePath != "" {
+				fmt.Printf("  Example config available at %s\n", examplePath)
 			}
+			fmt.Println()
 		}
 
 		// Load registry with auto-discovery (will try config first, then auto-discover)
@@ -194,9 +195,21 @@ var providerDoctorCmd = &cobra.Command{
 var providerInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize provider configuration",
-	Long:  `Generate a providers.yaml file from the bundled descriptor catalog with sensible defaults.`,
+	Long: `Generate a providers.yaml file from the bundled descriptor catalog with sensible defaults.
+
+Use --recommendations to preview recommended providers without writing any files.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		force := cmd.Flags().Lookup("force").Value.String() == "true"
+		showRecommendations := cmd.Flags().Lookup("recommendations").Value.String() == "true"
+
+		ctx := detectProviderContext()
+		recommended := ctx.GetRecommendedProviders()
+
+		// If --recommendations flag is set, just show recommendations and exit
+		if showRecommendations {
+			printProviderRecommendations(ctx, recommended)
+			return nil
+		}
 
 		// Check if target file already exists
 		if _, err := os.Stat(defaultProviderConfigPath); err == nil && !force {
@@ -213,9 +226,6 @@ var providerInitCmd = &cobra.Command{
 		if discoverErr != nil {
 			return fmt.Errorf("failed to discover .specular directory: %w", discoverErr)
 		}
-
-		ctx := detectProviderContext()
-		recommended := ctx.GetRecommendedProviders()
 
 		exampleConfig := provider.DefaultProvidersConfig()
 		examplePath := filepath.Join(specularDir, "providers.yaml.example")
@@ -244,6 +254,65 @@ var providerInitCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+// printProviderRecommendations prints an annotated list of recommended providers
+func printProviderRecommendations(ctx *detect.Context, recommended []string) {
+	fmt.Println("Provider Recommendations")
+	fmt.Println("========================")
+	fmt.Println()
+
+	if len(recommended) == 0 {
+		fmt.Println("No providers were detected or recommended for your environment.")
+		fmt.Println("\nAvailable provider types:")
+		for _, desc := range provider.Descriptors() {
+			fmt.Printf("  • %s (%s)\n", desc.Name, desc.Description)
+		}
+		fmt.Println("\nRun 'specular provider add <provider-name>' to manually add a provider.")
+		return
+	}
+
+	fmt.Println("Based on your environment, the following providers are recommended:")
+	fmt.Println()
+
+	for i, name := range recommended {
+		fmt.Printf("%d. %s\n", i+1, providerDisplayName(name))
+
+		// Get descriptor for detailed info
+		if desc := provider.DescriptorByName(name); desc != nil {
+			fmt.Printf("   Type: %s | Source: %s | Trust: %s\n", desc.Type, desc.Source, desc.TrustLevel)
+			if desc.Description != "" {
+				fmt.Printf("   Description: %s\n", desc.Description)
+			}
+			if len(desc.Capabilities) > 0 {
+				fmt.Printf("   Capabilities: %s\n", strings.Join(desc.Capabilities, ", "))
+			}
+			if hints := docgen.FormatDetectionHints(desc.Hints); hints != "" {
+				fmt.Printf("   Detection: %s\n", hints)
+			}
+		}
+
+		// Show detection status from context
+		if info, exists := ctx.Providers[name]; exists {
+			if info.Detected {
+				fmt.Printf("   Status: ✓ Detected")
+				if info.Version != "" {
+					fmt.Printf(" (version %s)", info.Version)
+				}
+				fmt.Println()
+			}
+			if info.EnvKeySet {
+				fmt.Printf("   API Key: ✓ Environment variable is set\n")
+			}
+		}
+		fmt.Println()
+	}
+
+	fmt.Println("To apply these recommendations:")
+	fmt.Println("  specular provider init")
+	fmt.Println()
+	fmt.Println("To add a specific provider manually:")
+	fmt.Println("  specular provider add <provider-name>")
 }
 
 var providerAddCmd = &cobra.Command{
@@ -381,6 +450,51 @@ func runProviderRemove(cmd *cobra.Command, args []string) error {
 	fmt.Printf("✓ Removed provider: %s\n", providerName)
 
 	return nil
+}
+
+func resolveProviderConfigPath(cmd *cobra.Command) (string, error) {
+	configPath := cmd.Flags().Lookup("config").Value.String()
+	if configPath != "" {
+		return configPath, nil
+	}
+
+	discoveredPath, err := ux.DiscoverConfigFile("providers.yaml")
+	if err == nil {
+		if _, statErr := os.Stat(discoveredPath); statErr == nil {
+			return discoveredPath, nil
+		}
+	}
+
+	return defaultProviderConfigPath, nil
+}
+
+func loadProviderConfigWithBootstrap(configPath string) (*provider.ProvidersConfig, bool, string, []string, error) {
+	config, err := provider.LoadProvidersConfig(configPath)
+	if err == nil {
+		return config, false, "", nil, nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return nil, false, "", nil, fmt.Errorf("failed to load provider config: %w", err)
+	}
+
+	ctx := detectProviderContext()
+	recommended := ctx.GetRecommendedProviders()
+	config, err = provider.WriteProvidersConfigFromDescriptors(configPath, recommended)
+	if err != nil {
+		return nil, false, "", nil, fmt.Errorf("failed to create provider config: %w", err)
+	}
+
+	exampleDir := filepath.Dir(configPath)
+	examplePath, joinErr := safeutil.JoinInsideBase(exampleDir, "providers.yaml.example")
+	if joinErr != nil {
+		fmt.Printf("⚠️  Failed to secure provider example path: %v\n", joinErr)
+		examplePath = filepath.Join(exampleDir, "providers.yaml.example")
+	}
+	if exampleErr := provider.SaveProvidersConfigExample(config, examplePath); exampleErr != nil {
+		fmt.Printf("⚠️  Failed to write provider example: %v\n", exampleErr)
+	}
+
+	return config, true, examplePath, recommended, nil
 }
 
 func detectProviderContext() *detect.Context {
@@ -606,6 +720,7 @@ func init() {
 
 	// Flags for init command
 	providerInitCmd.Flags().Bool("force", false, "Overwrite existing provider config")
+	providerInitCmd.Flags().Bool("recommendations", false, "Show recommended providers without writing files")
 
 	// Flags for add command
 	providerAddCmd.Flags().String("config", "", "Path to provider config file (default: .specular/providers.yaml)")

@@ -51,7 +51,7 @@ func MeasureStartup(binary string, args []string, iterations int) (*StartupResul
 
 	for i := 0; i < iterations; i++ {
 		start := time.Now()
-		c := exec.Command(binary, args...)
+		c := exec.Command(binary, args...) // #nosec G204 -- benchmark tool with trusted binary path
 		c.Stdout = nil
 		c.Stderr = nil
 		if err := c.Run(); err != nil {
