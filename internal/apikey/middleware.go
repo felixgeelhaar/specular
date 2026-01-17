@@ -149,6 +149,12 @@ func (m *Middleware) RequireAnyScope(scopes []string, next http.Handler) http.Ha
 			return
 		}
 
+		// If no scopes required, allow through
+		if len(scopes) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Check if key has any of the required scopes
 		keyScopes := make(map[string]bool)
 		for _, scope := range key.Scopes {

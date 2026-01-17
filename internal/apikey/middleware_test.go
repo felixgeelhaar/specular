@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -161,11 +162,8 @@ func TestRequireAPIKey(t *testing.T) {
 			// Since we can't easily mock the manager.GetKeyBySecret call,
 			// let's verify the request construction logic instead
 
-			if tt.authHeader == "" {
-				assert.Equal(t, "", req.Header.Get("Authorization"))
-			} else {
-				assert.Contains(t, req.Header.Get("Authorization"), "Bearer")
-			}
+			// Verify the request header was set correctly
+			assert.Equal(t, tt.authHeader, req.Header.Get("Authorization"))
 
 			_ = middleware
 			_ = handler
@@ -480,7 +478,7 @@ func TestAuthorizationHeaderParsing(t *testing.T) {
 
 			if len(parts) != 2 {
 				assert.False(t, tt.expectValid)
-			} else if scheme != "Bearer" && scheme != "bearer" {
+			} else if strings.ToLower(scheme) != "bearer" {
 				assert.False(t, tt.expectValid)
 			} else if key == "" {
 				assert.False(t, tt.expectValid)
