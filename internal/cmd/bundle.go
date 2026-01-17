@@ -270,7 +270,10 @@ includes:
 The signature proves that a specific individual in a specific role approved the
 bundle at a specific time.
 
-For governance approvals, use "specular approve <resource-id>".
+NOTE: This specialized command creates cryptographic signatures for bundles.
+For simple governance approvals, prefer the unified approval commands:
+  specular approve bundle-<hash>   # Approve with resource ID
+  specular approvals pending       # View pending approvals
 
 Supported signature types:
 - SSH (default) - Uses SSH keys (~/.ssh/id_ed25519, id_rsa, etc.)

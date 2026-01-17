@@ -86,7 +86,10 @@ Approved policies are required for governed workflows.
 
 This command requires Specular Pro or Enterprise.
 
-For governance approvals, use "specular approve <resource-id>".`,
+NOTE: This is a convenience wrapper. For unified governance approvals, prefer:
+  specular approve policy-<hash>   # Approve with resource ID
+  specular approvals pending       # View pending approvals
+  specular approvals list          # List all approvals`,
 	RunE: runPolicyApprove,
 }
 

@@ -79,7 +79,10 @@ Validation checks:
 
 Creates an approval marker file with timestamp for audit trail.
 
-For governance approvals, use "specular approve <resource-id>".`,
+NOTE: This is a convenience wrapper. For unified governance approvals, prefer:
+  specular approve bundle-<hash>   # Approve with resource ID
+  specular approvals pending       # View pending approvals
+  specular approvals list          # List all approvals`,
 	RunE: runBuildApprove,
 }
 

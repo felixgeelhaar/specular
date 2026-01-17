@@ -395,7 +395,10 @@ var specApproveCmd = &cobra.Command{
 This creates an approval record with timestamp and optional signature for
 governance and compliance purposes.
 
-For governance approvals, use "specular approve <resource-id>".`,
+NOTE: This is a convenience wrapper. For unified governance approvals, prefer:
+  specular approve spec-<hash>     # Approve with resource ID
+  specular approvals pending       # View pending approvals
+  specular approvals list          # List all approvals`,
 	RunE: runSpecApprove,
 }
 
