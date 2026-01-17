@@ -403,22 +403,20 @@ Examples:
 		// Execute workflow
 		result, err := orchestrator.Execute(ctx)
 		if err != nil {
-			telemetry.RecordError(span, err)
+			telemetry.RecordCommandFailure(ctx, span, "auto", err)
 			recordAutoMetrics(result, err)
 			return fmt.Errorf("auto mode failed: %w", err)
 		}
 
-		// Record success with result metrics
-		attrs := []attribute.KeyValue{
-			attribute.Int64("duration_ms", result.Duration.Milliseconds()),
-		}
+		// Record success with combined trace and metrics
+		attrs := []attribute.KeyValue{}
 		if result.AutoOutput != nil {
 			attrs = append(attrs,
 				attribute.String("status", result.AutoOutput.Status),
 				attribute.Int("steps_count", len(result.AutoOutput.Steps)),
 			)
 		}
-		telemetry.RecordSuccess(span, attrs...)
+		telemetry.RecordCommandSuccess(ctx, span, "auto", result.Duration, attrs...)
 		recordAutoMetrics(result, nil)
 
 		// Generate attestation if enabled

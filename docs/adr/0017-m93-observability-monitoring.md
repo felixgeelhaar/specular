@@ -452,6 +452,73 @@ alert := alerting.NewAlert("High Error Rate", "Command failures above threshold"
 router.Send(ctx, alert)
 ```
 
+## Command Instrumentation Pattern
+
+All CLI commands are instrumented with a standardized pattern that records both distributed traces and Prometheus metrics.
+
+### Instrumentation Functions
+
+The telemetry package provides two sets of recording functions:
+
+| Function | Records Trace | Records Metrics | Use When |
+|----------|--------------|-----------------|----------|
+| `RecordSuccess(span, attrs...)` | ✅ | ❌ | Internal operations, nested spans |
+| `RecordError(span, err)` | ✅ | ❌ | Internal operations, nested spans |
+| `RecordCommandSuccess(ctx, span, cmd, duration, attrs...)` | ✅ | ✅ | Top-level command completion |
+| `RecordCommandFailure(ctx, span, cmd, err)` | ✅ | ✅ | Top-level command failures |
+
+**Key Difference**: Use `RecordCommand*` functions for top-level command handlers to ensure both observability signals (traces AND metrics) are recorded. Use `Record*` functions for internal operations where only trace context is needed.
+
+### Standard Command Pattern
+
+```go
+func runCommandName(cmd *cobra.Command, args []string) error {
+    // 1. Start span and capture context
+    ctx, span := telemetry.StartCommandSpan(cmd.Context(), "command.name")
+    defer span.End()
+    startTime := time.Now()
+
+    // 2. Execute business logic with error handling
+    result, err := doSomething(ctx)
+    if err != nil {
+        telemetry.RecordCommandFailure(ctx, span, "command.name", err)
+        return fmt.Errorf("operation failed: %w", err)
+    }
+
+    // 3. Record success with duration and attributes
+    telemetry.RecordCommandSuccess(ctx, span, "command.name", time.Since(startTime),
+        attribute.String("result_type", result.Type),
+        attribute.Int("item_count", len(result.Items)),
+    )
+    return nil
+}
+```
+
+### Metrics Recorded
+
+For each command invocation, the following metrics are updated:
+
+- **`specular_command_executions_total`**: Counter with labels `command`, `status` (success/failed)
+- **`specular_command_duration_seconds`**: Histogram with label `command`
+- **`specular_command_errors_total`**: Counter with labels `command`, `error_type` (on failure)
+
+### Integration Status
+
+All CLI commands are now instrumented with the combined trace+metrics pattern:
+
+| Command | Function | Status |
+|---------|----------|--------|
+| `plan create` | `runPlanCreate` | ✅ Instrumented |
+| `plan review` | `runPlanReview` | ✅ Instrumented |
+| `plan explain` | `runPlanExplain` | ✅ Instrumented |
+| `plan visualize` | `runPlanVisualize` | ✅ Instrumented |
+| `plan validate` | `runPlanValidate` | ✅ Instrumented |
+| `build run` | `runBuildRun` | ✅ Instrumented |
+| `build verify` | `runBuildVerify` | ✅ Instrumented |
+| `spec generate` | `runSpecGenerate` | ✅ Instrumented |
+| `spec validate` | `specValidateCmd` | ✅ Instrumented |
+| `auto` | `runAuto` | ✅ Instrumented |
+
 ## Testing
 
 ### Test Coverage

@@ -133,21 +133,20 @@ var specGenerateCmd = &cobra.Command{
 		fmt.Println("Parsing PRD with AI (this may take 30-60 seconds)...")
 		productSpec, err := parser.ParsePRD(parseCtx, string(prdContent))
 		if err != nil {
-			telemetry.RecordError(span, err)
+			telemetry.RecordCommandFailure(ctx, span, "spec.generate", err)
 			return ux.FormatError(err, "parsing PRD with AI")
 		}
 
 		// Save spec
 		if saveErr := spec.SaveSpec(productSpec, out); saveErr != nil {
-			telemetry.RecordError(span, saveErr)
+			telemetry.RecordCommandFailure(ctx, span, "spec.generate", saveErr)
 			return ux.FormatError(saveErr, "saving spec file")
 		}
 
-		// Record success with metrics
+		// Record success with combined trace and metrics
 		duration := time.Since(startTime)
-		telemetry.RecordSuccess(span,
+		telemetry.RecordCommandSuccess(ctx, span, "spec.generate", duration,
 			attribute.Int("features_count", len(productSpec.Features)),
-			attribute.Int64("duration_ms", duration.Milliseconds()),
 		)
 
 		fmt.Printf("✓ Generated spec with %d features\n", len(productSpec.Features))
@@ -162,6 +161,12 @@ var specValidateCmd = &cobra.Command{
 	Short: "Validate a specification file",
 	Long:  `Validate a specification against the schema and semantic rules.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Start distributed tracing span for spec validate command
+		ctx, span := telemetry.StartCommandSpan(cmd.Context(), "spec.validate")
+		defer span.End()
+
+		startTime := time.Now()
+
 		defaults := ux.NewPathDefaults()
 		in := cmd.Flags().Lookup("in").Value.String()
 
@@ -170,44 +175,66 @@ var specValidateCmd = &cobra.Command{
 			in = defaults.SpecFile()
 		}
 
+		// Record span attributes
+		span.SetAttributes(
+			attribute.String("spec_file", in),
+		)
+
 		// Validate file exists with helpful error
 		if err := ux.ValidateRequiredFile(in, "Spec file", "specular spec new"); err != nil {
+			telemetry.RecordCommandFailure(ctx, span, "spec.validate", err)
 			return ux.EnhanceError(err)
 		}
 
 		// Load spec
 		s, err := spec.LoadSpec(in)
 		if err != nil {
+			telemetry.RecordCommandFailure(ctx, span, "spec.validate", err)
 			return ux.FormatError(err, "loading spec file")
 		}
 
 		// Basic validation
 		if s.Product == "" {
-			return fmt.Errorf("validation failed: product name is required")
+			err := fmt.Errorf("validation failed: product name is required")
+			telemetry.RecordCommandFailure(ctx, span, "spec.validate", err)
+			return err
 		}
 
 		if len(s.Features) == 0 {
-			return fmt.Errorf("validation failed: at least one feature is required")
+			err := fmt.Errorf("validation failed: at least one feature is required")
+			telemetry.RecordCommandFailure(ctx, span, "spec.validate", err)
+			return err
 		}
 
 		// Validate each feature
 		for _, feature := range s.Features {
 			if feature.ID == "" {
-				return fmt.Errorf("validation failed: feature missing ID")
+				err := fmt.Errorf("validation failed: feature missing ID")
+				telemetry.RecordCommandFailure(ctx, span, "spec.validate", err)
+				return err
 			}
 			if feature.Title == "" {
-				return fmt.Errorf("validation failed: feature %s missing title", feature.ID)
+				err := fmt.Errorf("validation failed: feature %s missing title", feature.ID)
+				telemetry.RecordCommandFailure(ctx, span, "spec.validate", err)
+				return err
 			}
 			if feature.Priority == "" {
-				return fmt.Errorf("validation failed: feature %s missing priority", feature.ID)
+				err := fmt.Errorf("validation failed: feature %s missing priority", feature.ID)
+				telemetry.RecordCommandFailure(ctx, span, "spec.validate", err)
+				return err
 			}
 			if feature.Priority != "P0" && feature.Priority != "P1" && feature.Priority != "P2" {
-				return fmt.Errorf("validation failed: feature %s has invalid priority %s (must be P0, P1, or P2)",
+				err := fmt.Errorf("validation failed: feature %s has invalid priority %s (must be P0, P1, or P2)",
 					feature.ID, feature.Priority)
+				telemetry.RecordCommandFailure(ctx, span, "spec.validate", err)
+				return err
 			}
 		}
 
 		fmt.Printf("✓ Spec is valid (%d features)\n", len(s.Features))
+		telemetry.RecordCommandSuccess(ctx, span, "spec.validate", time.Since(startTime),
+			attribute.Int("features_count", len(s.Features)),
+		)
 		return nil
 	},
 }

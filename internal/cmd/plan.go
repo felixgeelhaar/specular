@@ -212,25 +212,25 @@ func runPlanCreate(cmd *cobra.Command, args []string) error {
 
 	// Validate required files with helpful errors
 	if err := ux.ValidateRequiredFile(specPath, "Spec file", "specular spec new"); err != nil {
-		telemetry.RecordError(span, err)
+		telemetry.RecordCommandFailure(ctx, span, "plan.create", err)
 		return ux.EnhanceError(err)
 	}
 	if err := ux.ValidateRequiredFile(lockPath, "SpecLock file", "specular spec lock"); err != nil {
-		telemetry.RecordError(span, err)
+		telemetry.RecordCommandFailure(ctx, span, "plan.create", err)
 		return ux.EnhanceError(err)
 	}
 
 	// Load spec
 	s, err := spec.LoadSpec(specPath)
 	if err != nil {
-		telemetry.RecordError(span, err)
+		telemetry.RecordCommandFailure(ctx, span, "plan.create", err)
 		return ux.FormatError(err, "loading spec file")
 	}
 
 	// Load SpecLock
 	lock, err := spec.LoadSpecLock(lockPath)
 	if err != nil {
-		telemetry.RecordError(span, err)
+		telemetry.RecordCommandFailure(ctx, span, "plan.create", err)
 		return ux.FormatError(err, "loading SpecLock file")
 	}
 
@@ -270,13 +270,13 @@ func runPlanCreate(cmd *cobra.Command, args []string) error {
 
 	p, err := plan.Generate(ctx, s, opts)
 	if err != nil {
-		telemetry.RecordError(span, err)
+		telemetry.RecordCommandFailure(ctx, span, "plan.create", err)
 		return ux.FormatError(err, "generating plan")
 	}
 
 	// Save plan
 	if saveErr := plan.SavePlan(p, out); saveErr != nil {
-		telemetry.RecordError(span, saveErr)
+		telemetry.RecordCommandFailure(ctx, span, "plan.create", saveErr)
 		return ux.FormatError(saveErr, "saving plan file")
 	}
 
@@ -304,17 +304,22 @@ func runPlanCreate(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  2. Execute plan: specular build run\n")
 	}
 
-	// Record success with metrics
+	// Record success with combined trace and metrics
 	duration := time.Since(startTime)
-	telemetry.RecordSuccess(span,
+	telemetry.RecordCommandSuccess(ctx, span, "plan.create", duration,
 		attribute.Int("tasks_count", len(p.Tasks)),
-		attribute.Int64("duration_ms", duration.Milliseconds()),
 	)
 
 	return nil
 }
 
 func runPlanReview(cmd *cobra.Command, args []string) error {
+	// Start distributed tracing span for plan review command
+	ctx, span := telemetry.StartCommandSpan(cmd.Context(), "plan.review")
+	defer span.End()
+
+	startTime := time.Now()
+
 	defaults := ux.NewPathDefaults()
 	planPath := cmd.Flags().Lookup("plan").Value.String()
 
@@ -323,11 +328,15 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 	format := cmd.Flags().Lookup("format").Value.String()
 
 	if format != "text" && format != "json" {
-		return fmt.Errorf("unsupported format %s (supported: text, json)", format)
+		err := fmt.Errorf("unsupported format %s (supported: text, json)", format)
+		telemetry.RecordCommandFailure(ctx, span, "plan.review", err)
+		return err
 	}
 
 	if autoApprove && !nonInteractive {
-		return fmt.Errorf("--auto-approve makes sense only with --non-interactive")
+		err := fmt.Errorf("--auto-approve makes sense only with --non-interactive")
+		telemetry.RecordCommandFailure(ctx, span, "plan.review", err)
+		return err
 	}
 
 	// Use smart default if not changed
@@ -337,14 +346,24 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 
 	// Validate plan file exists
 	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "plan.review", err)
 		return ux.EnhanceError(err)
 	}
 
 	// Load plan
 	p, err := plan.LoadPlan(planPath)
 	if err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "plan.review", err)
 		return ux.FormatError(err, "loading plan file")
 	}
+
+	// Record span attributes
+	span.SetAttributes(
+		attribute.String("plan_file", planPath),
+		attribute.Int("tasks_count", len(p.Tasks)),
+		attribute.Bool("non_interactive", nonInteractive),
+		attribute.Bool("auto_approve", autoApprove),
+	)
 
 	if nonInteractive {
 		nextSteps := []string{"Execute plan: specular build run"}
@@ -353,6 +372,7 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 		}
 
 		if err := printPlanSummary(planPath, p, format, nextSteps, autoApprove); err != nil {
+			telemetry.RecordCommandFailure(ctx, span, "plan.review", err)
 			return err
 		}
 
@@ -367,6 +387,9 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 				fmt.Printf("  2. Approve plan: specular plan review --non-interactive --auto-approve\n")
 			}
 		}
+		telemetry.RecordCommandSuccess(ctx, span, "plan.review", time.Since(startTime),
+			attribute.Bool("approved", autoApprove),
+		)
 		return nil
 	}
 
@@ -376,6 +399,7 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 	// Launch TUI for plan review
 	result, err := tui.RunPlanReview(p)
 	if err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "plan.review", err)
 		return ux.FormatError(err, "running plan review TUI")
 	}
 
@@ -394,6 +418,9 @@ func runPlanReview(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  2. Regenerate plan: specular plan create\n")
 	}
 
+	telemetry.RecordCommandSuccess(ctx, span, "plan.review", time.Since(startTime),
+		attribute.Bool("approved", result.Approved),
+	)
 	return nil
 }
 
@@ -472,6 +499,12 @@ func printPlanSummaryText(summary planSummary) {
 }
 
 func runPlanExplain(cmd *cobra.Command, args []string) error {
+	// Start distributed tracing span for plan explain command
+	ctx, span := telemetry.StartCommandSpan(cmd.Context(), "plan.explain")
+	defer span.End()
+
+	startTime := time.Now()
+
 	defaults := ux.NewPathDefaults()
 	planPath := cmd.Flags().Lookup("plan").Value.String()
 
@@ -482,18 +515,28 @@ func runPlanExplain(cmd *cobra.Command, args []string) error {
 
 	// Validate plan file exists
 	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "plan.explain", err)
 		return ux.EnhanceError(err)
 	}
 
 	// Require step argument
 	if len(args) == 0 {
-		return fmt.Errorf("step ID is required\n\nUsage: specular plan explain <step-id>")
+		err := fmt.Errorf("step ID is required\n\nUsage: specular plan explain <step-id>")
+		telemetry.RecordCommandFailure(ctx, span, "plan.explain", err)
+		return err
 	}
 	stepID := args[0]
+
+	// Record span attributes
+	span.SetAttributes(
+		attribute.String("plan_file", planPath),
+		attribute.String("step_id", stepID),
+	)
 
 	// Load plan
 	p, err := plan.LoadPlan(planPath)
 	if err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "plan.explain", err)
 		return ux.FormatError(err, "loading plan file")
 	}
 
@@ -507,7 +550,9 @@ func runPlanExplain(cmd *cobra.Command, args []string) error {
 	}
 
 	if task == nil {
-		return fmt.Errorf("task '%s' not found in plan", stepID)
+		err := fmt.Errorf("task '%s' not found in plan", stepID)
+		telemetry.RecordCommandFailure(ctx, span, "plan.explain", err)
+		return err
 	}
 
 	// Explain the routing decision
@@ -540,10 +585,19 @@ func runPlanExplain(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Expected Hash: %s\n", task.ExpectedHash)
 	fmt.Printf("  (used for drift detection)\n")
 
+	telemetry.RecordCommandSuccess(ctx, span, "plan.explain", time.Since(startTime),
+		attribute.String("task_skill", task.Skill),
+	)
 	return nil
 }
 
 func runPlanVisualize(cmd *cobra.Command, args []string) error {
+	// Start distributed tracing span for plan visualize command
+	ctx, span := telemetry.StartCommandSpan(cmd.Context(), "plan.visualize")
+	defer span.End()
+
+	startTime := time.Now()
+
 	defaults := ux.NewPathDefaults()
 	planPath := cmd.Flags().Lookup("plan").Value.String()
 
@@ -554,14 +608,22 @@ func runPlanVisualize(cmd *cobra.Command, args []string) error {
 
 	// Validate plan file exists
 	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "plan.visualize", err)
 		return ux.EnhanceError(err)
 	}
 
 	// Load plan
 	p, err := plan.LoadPlan(planPath)
 	if err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "plan.visualize", err)
 		return ux.FormatError(err, "loading plan file")
 	}
+
+	// Record span attributes
+	span.SetAttributes(
+		attribute.String("plan_file", planPath),
+		attribute.Int("tasks_count", len(p.Tasks)),
+	)
 
 	fmt.Printf("=== Plan Visualization ===\n\n")
 	fmt.Printf("Plan: %s (%d tasks)\n\n", planPath, len(p.Tasks))
@@ -605,10 +667,17 @@ func runPlanVisualize(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  2. Review plan: specular plan review\n")
 	fmt.Printf("  3. Execute plan: specular build run\n")
 
+	telemetry.RecordCommandSuccess(ctx, span, "plan.visualize", time.Since(startTime))
 	return nil
 }
 
 func runPlanValidate(cmd *cobra.Command, args []string) error {
+	// Start distributed tracing span for plan validate command
+	ctx, span := telemetry.StartCommandSpan(cmd.Context(), "plan.validate")
+	defer span.End()
+
+	startTime := time.Now()
+
 	defaults := ux.NewPathDefaults()
 	planPath := cmd.Flags().Lookup("plan").Value.String()
 
@@ -619,14 +688,22 @@ func runPlanValidate(cmd *cobra.Command, args []string) error {
 
 	// Validate plan file exists
 	if err := ux.ValidateRequiredFile(planPath, "Plan file", "specular plan create"); err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "plan.validate", err)
 		return ux.EnhanceError(err)
 	}
 
 	// Load plan
 	p, err := plan.LoadPlan(planPath)
 	if err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "plan.validate", err)
 		return ux.FormatError(err, "loading plan file")
 	}
+
+	// Record span attributes
+	span.SetAttributes(
+		attribute.String("plan_file", planPath),
+		attribute.Int("tasks_count", len(p.Tasks)),
+	)
 
 	fmt.Printf("Validating plan: %s\n\n", planPath)
 
@@ -690,12 +767,17 @@ func runPlanValidate(cmd *cobra.Command, args []string) error {
 		fmt.Println("\nNext steps:")
 		fmt.Printf("  1. Review plan: specular plan review\n")
 		fmt.Printf("  2. Execute plan: specular build run\n")
+		telemetry.RecordCommandSuccess(ctx, span, "plan.validate", time.Since(startTime),
+			attribute.Int("validation_errors", 0),
+		)
 	} else {
 		fmt.Printf("❌ Plan has %d validation error(s)\n", validationErrors)
 		fmt.Println("\nRecommendations:")
 		fmt.Printf("  1. Fix validation errors\n")
 		fmt.Printf("  2. Regenerate plan: specular plan create\n")
-		return fmt.Errorf("plan validation failed with %d error(s)", validationErrors)
+		err := fmt.Errorf("plan validation failed with %d error(s)", validationErrors)
+		telemetry.RecordCommandFailure(ctx, span, "plan.validate", err)
+		return err
 	}
 
 	return nil

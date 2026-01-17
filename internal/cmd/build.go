@@ -99,7 +99,7 @@ Shows:
 
 func runBuildRun(cmd *cobra.Command, args []string) error {
 	// Start distributed tracing span for build run command
-	_, span := telemetry.StartCommandSpan(cmd.Context(), "build.run")
+	ctx, span := telemetry.StartCommandSpan(cmd.Context(), "build.run")
 	defer span.End()
 
 	startTime := time.Now()
@@ -215,14 +215,14 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 
 	// Validate plan file exists with helpful error
 	if err := ux.ValidateRequiredFile(planFile, "Plan file", "specular plan create"); err != nil {
-		telemetry.RecordError(span, err)
+		telemetry.RecordCommandFailure(ctx, span, "build.run", err)
 		return ux.EnhanceError(err)
 	}
 
 	// Load plan
 	p, err := plan.LoadPlan(planFile)
 	if err != nil {
-		telemetry.RecordError(span, err)
+		telemetry.RecordCommandFailure(ctx, span, "build.run", err)
 		return ux.FormatError(err, "loading plan file")
 	}
 
@@ -237,7 +237,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 
 		if len(filteredTasks) == 0 {
 			err := fmt.Errorf("no tasks found for feature '%s'", featureID)
-			telemetry.RecordError(span, err)
+			telemetry.RecordCommandFailure(ctx, span, "build.run", err)
 			return err
 		}
 
@@ -277,7 +277,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		if checkpointMgr.Exists(checkpointID) {
 			cpState, err = checkpointMgr.Load(checkpointID)
 			if err != nil {
-				telemetry.RecordError(span, err)
+				telemetry.RecordCommandFailure(ctx, span, "build.run", err)
 				return fmt.Errorf("failed to load checkpoint: %w", err)
 			}
 
@@ -360,7 +360,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 	progressIndicator.Start()
 	defer progressIndicator.Stop()
 
-	result, err := executor.Execute(cmd.Context(), p)
+	result, err := executor.Execute(ctx, p)
 	if err != nil {
 		// Stop progress indicator before error handling
 		progressIndicator.Stop()
@@ -370,7 +370,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		if saveErr := checkpointMgr.Save(cpState); saveErr != nil {
 			fmt.Printf("Warning: failed to save checkpoint: %v\n", saveErr)
 		}
-		telemetry.RecordError(span, err)
+		telemetry.RecordCommandFailure(ctx, span, "build.run", err)
 		return fmt.Errorf("execution failed: %w", err)
 	}
 
@@ -398,7 +398,7 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 	// Check for failures
 	if result.FailedTasks > 0 {
 		err := fmt.Errorf("execution completed with %d failed tasks", result.FailedTasks)
-		telemetry.RecordError(span, err)
+		telemetry.RecordCommandFailure(ctx, span, "build.run", err)
 		return err
 	}
 
@@ -421,20 +421,25 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Record success with metrics
+	// Record success with combined trace and metrics
 	duration := time.Since(startTime)
-	telemetry.RecordSuccess(span,
+	telemetry.RecordCommandSuccess(ctx, span, "build.run", duration,
 		attribute.Int("total_tasks", len(p.Tasks)),
 		attribute.Int("success_tasks", result.SuccessTasks),
 		attribute.Int("failed_tasks", result.FailedTasks),
 		attribute.Int("skipped_tasks", result.SkippedTasks),
-		attribute.Int64("duration_ms", duration.Milliseconds()),
 	)
 
 	return nil
 }
 
 func runBuildVerify(cmd *cobra.Command, args []string) error {
+	// Start distributed tracing span for build verify command
+	ctx, span := telemetry.StartCommandSpan(cmd.Context(), "build.verify")
+	defer span.End()
+
+	startTime := time.Now()
+
 	defaults := ux.NewPathDefaults()
 	policyFile := cmd.Flags().Lookup("policy").Value.String()
 
@@ -442,6 +447,11 @@ func runBuildVerify(cmd *cobra.Command, args []string) error {
 	if !cmd.Flags().Changed("policy") {
 		policyFile = defaults.PolicyFile()
 	}
+
+	// Record span attributes
+	span.SetAttributes(
+		attribute.String("policy_file", policyFile),
+	)
 
 	fmt.Printf("=== Build Verification ===\n\n")
 
@@ -539,13 +549,19 @@ func runBuildVerify(cmd *cobra.Command, args []string) error {
 		fmt.Println("\nRecommendations:")
 		fmt.Printf("  1. Fix failing checks\n")
 		fmt.Printf("  2. Run 'specular build verify' again\n")
-		return fmt.Errorf("verification failed with %d errors", failed)
+		err := fmt.Errorf("verification failed with %d errors", failed)
+		telemetry.RecordCommandFailure(ctx, span, "build.verify", err)
+		return err
 	}
 
 	fmt.Printf("\n✅ All verifications passed\n")
 	fmt.Println("\nNext steps:")
 	fmt.Printf("  1. Execute build: specular build run\n")
 
+	telemetry.RecordCommandSuccess(ctx, span, "build.verify", time.Since(startTime),
+		attribute.Int("checks_passed", passed),
+		attribute.Int("checks_failed", failed),
+	)
 	return nil
 }
 
