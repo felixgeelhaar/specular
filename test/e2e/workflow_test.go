@@ -123,7 +123,7 @@ paths:
 	t.Run("Step1-GeneratePlan", func(t *testing.T) {
 		planPath := filepath.Join(tmpDir, "plan.json")
 
-		cmd := exec.Command(specularBin, "plan",
+		cmd := exec.Command(specularBin, "plan", "create",
 			"--in", specPath,
 			"--out", planPath,
 		)
@@ -172,7 +172,7 @@ paths:
 	t.Run("Step2-ExecuteBuild", func(t *testing.T) {
 		planPath := filepath.Join(tmpDir, "plan.json")
 
-		cmd := exec.Command(specularBin, "build",
+		cmd := exec.Command(specularBin, "build", "run",
 			"--plan", planPath,
 			"--policy", policyPath,
 			"--dry-run", // Avoid Docker dependency in CI
@@ -204,7 +204,7 @@ paths:
 		lockPath := filepath.Join(aidvDir, "spec.lock.json")
 		reportPath := filepath.Join(tmpDir, "drift.sarif")
 
-		cmd := exec.Command(specularBin, "eval",
+		cmd := exec.Command(specularBin, "eval", "drift",
 			"--spec", specPath,
 			"--plan", planPath,
 			"--lock", lockPath,
@@ -353,7 +353,7 @@ execution:
 	}
 
 	// Generate initial plan
-	cmd := exec.Command(specularBin, "plan", "--in", specPath, "--out", planPath)
+	cmd := exec.Command(specularBin, "plan", "create", "--in", specPath, "--out", planPath)
 	cmd.Dir = tmpDir
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("Initial plan generation failed: %v\n%s", err, output)
@@ -387,7 +387,7 @@ features:
 	// Detect drift (should find changes)
 	reportPath := filepath.Join(tmpDir, "drift.sarif")
 
-	cmd = exec.Command(specularBin, "eval",
+	cmd = exec.Command(specularBin, "eval", "drift",
 		"--spec", specPath,
 		"--plan", planPath,
 		"--lock", lockPath,

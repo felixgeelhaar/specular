@@ -55,7 +55,7 @@ func TestPluginCLICommands(t *testing.T) {
 			t.Fatalf("plugin list --help failed: %v", err)
 		}
 
-		if !strings.Contains(string(output), "List installed plugins") {
+		if !strings.Contains(string(output), "List all installed plugins") {
 			t.Error("help should describe list command")
 		}
 	})
