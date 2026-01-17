@@ -511,7 +511,7 @@ func buildBinary(t *testing.T) string {
 	// Build binary to temp location
 	binary := filepath.Join(t.TempDir(), "specular")
 
-	cmd := exec.Command("go", "build", "-o", binary, ".")
+	cmd := exec.Command("go", "build", "-o", binary, "./cmd/specular")
 	cmd.Dir = projectRoot
 	cmd.Stderr = &bytes.Buffer{}
 
