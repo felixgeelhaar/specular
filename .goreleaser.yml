@@ -13,8 +13,8 @@ before:
     - bash -c './specular completion bash > completions/specular.bash || true'
     - bash -c './specular completion zsh > completions/_specular || true'
     - bash -c './specular completion fish > completions/specular.fish || true'
-    - bash -c 'cd .. && ./scripts/package-cli-wrappers.sh'
-    - bash -c 'cd .. && ./scripts/verify-dist-providers.sh'
+    - ./scripts/package-cli-wrappers.sh
+    - ./scripts/verify-dist-providers.sh
 
 builds:
   - id: specular
@@ -55,7 +55,7 @@ archives:
       - README.md
       - CHANGELOG.md
       - completions/*
-      - ../dist/providers/*
+      - dist/providers/*
 
 checksum:
   name_template: 'checksums.txt'
