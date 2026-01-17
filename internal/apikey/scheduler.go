@@ -90,51 +90,12 @@ func (s *Scheduler) checkRotations(ctx context.Context) {
 	// In a real implementation, you would iterate through all organizations
 	// For now, this is a placeholder that would need organization listing capability
 
-	// TODO: Implement organization iteration
+	// TODO: Implement organization iteration using rotateKeys for each org
 	// For now, we'll just log
 	log.Println("Rotation check completed (organization iteration not yet implemented)")
-}
 
-// checkOrganizationKeys checks and rotates keys for a specific organization.
-func (s *Scheduler) checkOrganizationKeys(ctx context.Context, orgID string) error {
-	keys, err := s.manager.ListKeys(ctx, orgID)
-	if err != nil {
-		return fmt.Errorf("failed to list keys for org %s: %w", orgID, err)
-	}
-
-	now := time.Now().UTC()
-	rotatedCount := 0
-	errorCount := 0
-
-	for _, key := range keys {
-		// Skip non-active keys
-		if key.Status != StatusActive {
-			continue
-		}
-
-		// Check if key needs rotation
-		if s.needsRotation(key, now) {
-			log.Printf("Rotating API key %s for organization %s (expires: %v)",
-				key.ID, key.OrganizationID, key.ExpiresAt)
-
-			if _, err := s.manager.RotateKey(ctx, orgID, key.ID, s.gracePeriod); err != nil {
-				log.Printf("ERROR: Failed to rotate key %s: %v", key.ID, err)
-				errorCount++
-			} else {
-				rotatedCount++
-			}
-		}
-	}
-
-	if rotatedCount > 0 {
-		log.Printf("Rotated %d API keys for organization %s", rotatedCount, orgID)
-	}
-
-	if errorCount > 0 {
-		return fmt.Errorf("failed to rotate %d keys", errorCount)
-	}
-
-	return nil
+	// Suppress unused context warning
+	_ = ctx
 }
 
 // needsRotation determines if an API key needs rotation.
@@ -180,8 +141,8 @@ func (s *Scheduler) rotateKeys(ctx context.Context, orgID string, force bool) (i
 
 		// Check if rotation is needed (or forced)
 		if force || s.needsRotation(key, now) {
-			if _, err := s.manager.RotateKey(ctx, orgID, key.ID, s.gracePeriod); err != nil {
-				log.Printf("ERROR: Failed to rotate key %s: %v", key.ID, err)
+			if _, rotateErr := s.manager.RotateKey(ctx, orgID, key.ID, s.gracePeriod); rotateErr != nil {
+				log.Printf("ERROR: Failed to rotate key %s: %v", key.ID, rotateErr)
 				continue
 			}
 			rotatedCount++
@@ -191,7 +152,7 @@ func (s *Scheduler) rotateKeys(ctx context.Context, orgID string, force bool) (i
 	return rotatedCount, nil
 }
 
-// GetRotationStatus returns rotation status for all keys in an organization.
+// RotationStatus holds rotation status for all keys in an organization.
 type RotationStatus struct {
 	TotalKeys         int
 	ActiveKeys        int
@@ -277,8 +238,8 @@ func (s *Scheduler) CleanupExpiredKeys(ctx context.Context, orgID string, cleanu
 		if shouldCleanup {
 			log.Printf("Cleaning up %s key %s (org: %s)", key.Status, key.ID, orgID)
 
-			if err := s.manager.DeleteKey(ctx, orgID, key.ID); err != nil {
-				log.Printf("ERROR: Failed to delete key %s: %v", key.ID, err)
+			if deleteErr := s.manager.DeleteKey(ctx, orgID, key.ID); deleteErr != nil {
+				log.Printf("ERROR: Failed to delete key %s: %v", key.ID, deleteErr)
 				continue
 			}
 			cleanedCount++

@@ -30,10 +30,15 @@ type APIKey struct {
 // Status represents the status of an API key.
 type Status string
 
+// API key status constants.
 const (
-	StatusActive  Status = "active"
-	StatusRotated Status = "rotated" // Old key during rotation grace period
+	// StatusActive indicates the key is active and can be used.
+	StatusActive Status = "active"
+	// StatusRotated indicates the old key during rotation grace period.
+	StatusRotated Status = "rotated"
+	// StatusRevoked indicates the key has been revoked.
 	StatusRevoked Status = "revoked"
+	// StatusExpired indicates the key has expired.
 	StatusExpired Status = "expired"
 )
 
@@ -130,7 +135,7 @@ func (m *Manager) CreateKey(ctx context.Context, orgID, userID, name string, sco
 		"status":          string(StatusActive),
 	}
 
-	if err := m.vault.KV().PutWithMetadata(ctx, path, data, metadata); err != nil {
+	if err = m.vault.KV().PutWithMetadata(ctx, path, data, metadata); err != nil {
 		return nil, fmt.Errorf("failed to store API key in Vault: %w", err)
 	}
 
@@ -180,15 +185,15 @@ func (m *Manager) GetKeyBySecret(ctx context.Context, orgID, secret string) (*AP
 	// Find matching key
 	for _, key := range keys {
 		// Fetch full key data
-		fullKey, err := m.GetKey(ctx, orgID, key.ID)
-		if err != nil {
+		fullKey, getErr := m.GetKey(ctx, orgID, key.ID)
+		if getErr != nil {
 			continue
 		}
 
 		// Load secret from Vault
 		path := fmt.Sprintf("apikeys/%s/%s", orgID, key.ID)
-		vaultSecret, err := m.vault.KV().Get(ctx, path)
-		if err != nil {
+		vaultSecret, vaultErr := m.vault.KV().Get(ctx, path)
+		if vaultErr != nil {
 			continue
 		}
 
@@ -199,9 +204,9 @@ func (m *Manager) GetKeyBySecret(ctx context.Context, orgID, secret string) (*AP
 
 		if storedSecret == secret {
 			// Update last used timestamp
-			if err := m.UpdateLastUsed(ctx, orgID, key.ID); err != nil {
+			if updateErr := m.UpdateLastUsed(ctx, orgID, key.ID); updateErr != nil {
 				// Log error but don't fail validation
-				fmt.Printf("warning: failed to update last used timestamp: %v\n", err)
+				fmt.Printf("warning: failed to update last used timestamp: %v\n", updateErr)
 			}
 
 			fullKey.Secret = "" // Don't return secret
@@ -224,8 +229,8 @@ func (m *Manager) ListKeys(ctx context.Context, orgID string) ([]*APIKey, error)
 
 	keys := make([]*APIKey, 0, len(keyIDs))
 	for _, keyID := range keyIDs {
-		key, err := m.GetKey(ctx, orgID, keyID)
-		if err != nil {
+		key, getErr := m.GetKey(ctx, orgID, keyID)
+		if getErr != nil {
 			continue // Skip invalid keys
 		}
 		keys = append(keys, key)
@@ -292,7 +297,7 @@ func (m *Manager) RotateKey(ctx context.Context, orgID, keyID string, gracePerio
 		"rotated_at":      now.Format(time.RFC3339),
 	}
 
-	if err := m.vault.KV().PutWithMetadata(ctx, path, data, metadata); err != nil {
+	if err = m.vault.KV().PutWithMetadata(ctx, path, data, metadata); err != nil {
 		return nil, fmt.Errorf("failed to store rotated key in Vault: %w", err)
 	}
 
@@ -335,7 +340,7 @@ func (m *Manager) RevokeKey(ctx context.Context, orgID, keyID string) error {
 		"revoked_at":      now.Format(time.RFC3339),
 	}
 
-	if err := m.vault.KV().PutWithMetadata(ctx, path, data, metadata); err != nil {
+	if err = m.vault.KV().PutWithMetadata(ctx, path, data, metadata); err != nil {
 		return fmt.Errorf("failed to revoke key in Vault: %w", err)
 	}
 
@@ -366,7 +371,7 @@ func (m *Manager) UpdateLastUsed(ctx context.Context, orgID, keyID string) error
 	secret.Data["last_used_at"] = time.Now().UTC().Format(time.RFC3339)
 
 	// Store updated data
-	if err := m.vault.KV().Put(ctx, path, secret.Data); err != nil {
+	if err = m.vault.KV().Put(ctx, path, secret.Data); err != nil {
 		return fmt.Errorf("failed to update last used timestamp: %w", err)
 	}
 
@@ -377,67 +382,59 @@ func (m *Manager) UpdateLastUsed(ctx context.Context, orgID, keyID string) error
 func (m *Manager) parseAPIKey(data map[string]interface{}) (*APIKey, error) {
 	key := &APIKey{}
 
-	if id, ok := data["id"].(string); ok {
-		key.ID = id
-	}
-	if secret, ok := data["secret"].(string); ok {
-		key.Secret = secret
-	}
-	if orgID, ok := data["organization_id"].(string); ok {
-		key.OrganizationID = orgID
-	}
-	if userID, ok := data["user_id"].(string); ok {
-		key.UserID = userID
-	}
-	if name, ok := data["name"].(string); ok {
-		key.Name = name
-	}
-	if prefix, ok := data["prefix"].(string); ok {
-		key.Prefix = prefix
-	}
-	if status, ok := data["status"].(string); ok {
-		key.Status = Status(status)
-	}
+	// Parse string fields
+	key.ID = getStringField(data, "id")
+	key.Secret = getStringField(data, "secret")
+	key.OrganizationID = getStringField(data, "organization_id")
+	key.UserID = getStringField(data, "user_id")
+	key.Name = getStringField(data, "name")
+	key.Prefix = getStringField(data, "prefix")
+	key.Status = Status(getStringField(data, "status"))
 
 	// Parse scopes
-	if scopesData, ok := data["scopes"].([]interface{}); ok {
-		scopes := make([]string, len(scopesData))
-		for i, scope := range scopesData {
-			if s, ok := scope.(string); ok {
-				scopes[i] = s
-			}
-		}
-		key.Scopes = scopes
-	}
+	key.Scopes = getStringSliceField(data, "scopes")
 
 	// Parse timestamps
-	if createdAt, ok := data["created_at"].(string); ok {
-		if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
-			key.CreatedAt = t
-		}
-	}
-	if lastUsedAt, ok := data["last_used_at"].(string); ok {
-		if t, err := time.Parse(time.RFC3339, lastUsedAt); err == nil {
-			key.LastUsedAt = t
-		}
-	}
-	if expiresAt, ok := data["expires_at"].(string); ok {
-		if t, err := time.Parse(time.RFC3339, expiresAt); err == nil {
-			key.ExpiresAt = t
-		}
-	}
-	if rotatedAt, ok := data["rotated_at"].(string); ok {
-		if t, err := time.Parse(time.RFC3339, rotatedAt); err == nil {
-			key.RotatedAt = t
-		}
-	}
-	if revokedAt, ok := data["revoked_at"].(string); ok {
-		if t, err := time.Parse(time.RFC3339, revokedAt); err == nil {
-			key.RevokedAt = t
-		}
-	}
+	key.CreatedAt = getTimeField(data, "created_at")
+	key.LastUsedAt = getTimeField(data, "last_used_at")
+	key.ExpiresAt = getTimeField(data, "expires_at")
+	key.RotatedAt = getTimeField(data, "rotated_at")
+	key.RevokedAt = getTimeField(data, "revoked_at")
 
 	return key, nil
+}
+
+// getStringField extracts a string field from a map.
+func getStringField(data map[string]interface{}, key string) string {
+	if val, ok := data[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+// getStringSliceField extracts a string slice field from a map.
+func getStringSliceField(data map[string]interface{}, key string) []string {
+	scopesData, ok := data[key].([]interface{})
+	if !ok {
+		return nil
+	}
+	scopes := make([]string, 0, len(scopesData))
+	for _, scope := range scopesData {
+		if s, isStr := scope.(string); isStr {
+			scopes = append(scopes, s)
+		}
+	}
+	return scopes
+}
+
+// getTimeField extracts a time field from a map.
+func getTimeField(data map[string]interface{}, key string) time.Time {
+	if val, ok := data[key].(string); ok {
+		if t, err := time.Parse(time.RFC3339, val); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
 }
 
 // generateRandomString generates a cryptographically secure random string.

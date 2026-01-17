@@ -49,7 +49,7 @@ func (m *Middleware) RequireAPIKey(next http.Handler) http.Handler {
 
 		// Parse "Bearer <key>" format
 		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
 			m.unauthorizedResponse(w, "invalid authorization format")
 			return
 		}
@@ -191,14 +191,14 @@ func (m *Middleware) unauthorizedResponse(w http.ResponseWriter, message string)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("WWW-Authenticate", "Bearer")
 	w.WriteHeader(http.StatusUnauthorized)
-	w.Write([]byte(`{"error": "` + message + `"}`))
+	_, _ = w.Write([]byte(`{"error": "` + message + `"}`))
 }
 
 // forbiddenResponse sends a 403 Forbidden response.
 func (m *Middleware) forbiddenResponse(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
-	w.Write([]byte(`{"error": "` + message + `"}`))
+	_, _ = w.Write([]byte(`{"error": "` + message + `"}`))
 }
 
 // RateLimitConfig holds configuration for API key rate limiting.

@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/specular/internal/vault"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/felixgeelhaar/specular/internal/vault"
 )
 
 // mockVaultClient provides a mock implementation of vault.Client for testing
