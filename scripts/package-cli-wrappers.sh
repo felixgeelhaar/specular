@@ -78,10 +78,10 @@ for provider in "${PROVIDERS[@]}"; do
         -o "$OUTPUT_PATH" \
         "$PROVIDER_DIR"; then
         log_info "  ✓ Built $BINARY_NAME"
-        ((BUILT++))
+        BUILT=$((BUILT + 1))
     else
         log_error "  ✗ Failed to build $provider"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
     fi
 done
 
