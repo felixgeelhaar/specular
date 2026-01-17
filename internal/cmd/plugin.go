@@ -521,10 +521,10 @@ Examples:
 }
 
 var (
-	searchType   string
-	searchLimit  int
-	registryURL  string
-	clearCache   bool
+	searchType  string
+	searchLimit int
+	registryURL string
+	clearCache  bool
 )
 
 var pluginSearchCmd = &cobra.Command{

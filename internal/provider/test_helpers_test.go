@@ -1,7 +1,5 @@
 package provider
 
-import "strings"
-
 func snapshotDescriptorState() (map[string]*ProviderDescriptor, []string) {
 	descriptorMu.RLock()
 	defer descriptorMu.RUnlock()
@@ -28,8 +26,4 @@ func clearDescriptorRegistry() {
 	defer descriptorMu.Unlock()
 	descriptorStore = make(map[string]*ProviderDescriptor)
 	descriptorOrder = nil
-}
-
-func contains(s, substr string) bool {
-	return strings.Contains(s, substr)
 }

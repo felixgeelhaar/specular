@@ -310,7 +310,6 @@ func TestBuildApproveValidation(t *testing.T) {
 	}
 }
 
-
 // TestBuildRunFlags tests that build run has all required flags
 func TestBuildRunFlags(t *testing.T) {
 	if buildRunCmd.Flags().Lookup("plan") == nil {

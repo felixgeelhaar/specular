@@ -541,7 +541,7 @@ func TestMustDiscoverAllConfigs(t *testing.T) {
 	// This should never panic, even if discovery fails
 	configs := MustDiscoverAllConfigs()
 	if configs == nil {
-		t.Error("MustDiscoverAllConfigs() should never return nil")
+		t.Fatal("MustDiscoverAllConfigs() should never return nil")
 	}
 
 	// Should have reasonable defaults

@@ -90,8 +90,8 @@ func NewManager(opts ...ManagerOption) (*Manager, error) {
 	}
 
 	// Ensure cache directory exists
-	if err := os.MkdirAll(m.cacheDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create cache directory: %w", err)
+	if mkdirErr := os.MkdirAll(m.cacheDir, 0750); mkdirErr != nil {
+		return nil, fmt.Errorf("failed to create cache directory: %w", mkdirErr)
 	}
 
 	return m, nil
@@ -212,7 +212,7 @@ func (m *Manager) Clear(cacheType CacheType) (*ClearResult, error) {
 		}
 
 		// Recreate empty directory
-		if err := os.MkdirAll(typeDir, 0755); err != nil {
+		if err := os.MkdirAll(typeDir, 0750); err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("failed to recreate %s: %v", t, err))
 		}
 	}
@@ -239,8 +239,8 @@ func (m *Manager) Prune(maxAge time.Duration) (*PruneResult, error) {
 
 	for _, entry := range entries {
 		if entry.CreatedAt.Before(cutoff) {
-			if err := os.Remove(entry.Path); err != nil {
-				result.Errors = append(result.Errors, fmt.Sprintf("failed to remove %s: %v", entry.Path, err))
+			if removeErr := os.Remove(entry.Path); removeErr != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("failed to remove %s: %v", entry.Path, removeErr))
 				continue
 			}
 			result.BytesPruned += entry.Size
@@ -284,8 +284,8 @@ func LoadConfig(path string) (*CacheConfig, error) {
 	}
 
 	var config CacheConfig
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, err
+	if unmarshalErr := json.Unmarshal(data, &config); unmarshalErr != nil {
+		return nil, unmarshalErr
 	}
 
 	return &config, nil

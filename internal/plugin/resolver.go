@@ -40,7 +40,7 @@ type ConflictError struct {
 
 // VersionRequest represents a version request from a dependent
 type VersionRequest struct {
-	Version   string
+	Version     string
 	RequestedBy string
 }
 
@@ -486,12 +486,12 @@ func FilterOptional(deps []*ResolvedDependency) []*ResolvedDependency {
 
 // DependencyTree represents a dependency tree for display
 type DependencyTree struct {
-	Name         string
-	Version      string
-	Children     []*DependencyTree
-	Optional     bool
-	Conflicting  bool
-	Missing      bool
+	Name        string
+	Version     string
+	Children    []*DependencyTree
+	Optional    bool
+	Conflicting bool
+	Missing     bool
 }
 
 // BuildTree builds a dependency tree for visualization

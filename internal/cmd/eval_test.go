@@ -118,7 +118,6 @@ func TestEvalScenarioChecks(t *testing.T) {
 	}
 }
 
-
 // TestEvalRunFlags tests that eval run has all required flags
 func TestEvalRunFlags(t *testing.T) {
 	if evalRunCmd.Flags().Lookup("scenario") == nil {

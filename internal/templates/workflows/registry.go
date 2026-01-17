@@ -12,6 +12,8 @@ import (
 	"strings"
 	"text/template"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 )
 
@@ -83,14 +85,14 @@ func NewRegistry() (*Registry, error) {
 			continue
 		}
 
-		data, err := workflowFS.ReadFile(entry.Name())
-		if err != nil {
-			return nil, fmt.Errorf("read template %s: %w", entry.Name(), err)
+		data, readErr := workflowFS.ReadFile(entry.Name())
+		if readErr != nil {
+			return nil, fmt.Errorf("read template %s: %w", entry.Name(), readErr)
 		}
 
 		var tmpl WorkflowTemplate
-		if err := yaml.Unmarshal(data, &tmpl); err != nil {
-			return nil, fmt.Errorf("parse template %s: %w", entry.Name(), err)
+		if parseErr := yaml.Unmarshal(data, &tmpl); parseErr != nil {
+			return nil, fmt.Errorf("parse template %s: %w", entry.Name(), parseErr)
 		}
 
 		r.templates[tmpl.ID] = &tmpl
@@ -166,16 +168,8 @@ type GenerateResult struct {
 	TemplateName string
 }
 
-// Generate creates workflow files from a template
-func (t *WorkflowTemplate) Generate(config GenerateConfig) (*GenerateResult, error) {
-	result := &GenerateResult{
-		FilesCreated: make([]string, 0),
-		FilesSkipped: make([]string, 0),
-		Errors:       make([]error, 0),
-		TemplateID:   t.ID,
-		TemplateName: t.Name,
-	}
-
+// applyVariableDefaults applies default values to missing variables
+func (t *WorkflowTemplate) applyVariableDefaults(config *GenerateConfig) error {
 	// Validate required variables
 	for _, v := range t.Variables {
 		if v.Required {
@@ -183,7 +177,7 @@ func (t *WorkflowTemplate) Generate(config GenerateConfig) (*GenerateResult, err
 				if v.Default != "" {
 					config.Variables[v.Name] = v.Default
 				} else {
-					return nil, fmt.Errorf("missing required variable: %s", v.Name)
+					return fmt.Errorf("missing required variable: %s", v.Name)
 				}
 			}
 		}
@@ -195,53 +189,74 @@ func (t *WorkflowTemplate) Generate(config GenerateConfig) (*GenerateResult, err
 			config.Variables[v.Name] = v.Default
 		}
 	}
+	return nil
+}
+
+// generateFile generates a single file from a template
+func generateFile(file TemplateFile, config GenerateConfig, result *GenerateResult) {
+	outputPath := filepath.Join(config.OutputDir, file.Path)
+
+	// Skip optional files if not needed
+	if file.Optional {
+		if skip, ok := config.Variables["skip_"+filepath.Base(file.Path)]; ok && skip == "true" {
+			result.FilesSkipped = append(result.FilesSkipped, outputPath)
+			return
+		}
+	}
+
+	// Parse and execute template
+	tmpl, err := template.New(file.Path).Parse(file.Template)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Errorf("parse template for %s: %w", file.Path, err))
+		return
+	}
+
+	var content strings.Builder
+	if execErr := tmpl.Execute(&content, config.Variables); execErr != nil {
+		result.Errors = append(result.Errors, fmt.Errorf("execute template for %s: %w", file.Path, execErr))
+		return
+	}
+
+	if config.DryRun {
+		result.FilesCreated = append(result.FilesCreated, outputPath)
+		result.TotalBytes += int64(content.Len())
+		return
+	}
+
+	// Create directory if needed
+	dir := filepath.Dir(outputPath)
+	if mkdirErr := os.MkdirAll(dir, 0750); mkdirErr != nil {
+		result.Errors = append(result.Errors, fmt.Errorf("create directory %s: %w", dir, mkdirErr))
+		return
+	}
+
+	// Write file
+	if writeErr := os.WriteFile(outputPath, []byte(content.String()), 0600); writeErr != nil {
+		result.Errors = append(result.Errors, fmt.Errorf("write file %s: %w", outputPath, writeErr))
+		return
+	}
+
+	result.FilesCreated = append(result.FilesCreated, outputPath)
+	result.TotalBytes += int64(content.Len())
+}
+
+// Generate creates workflow files from a template
+func (t *WorkflowTemplate) Generate(config GenerateConfig) (*GenerateResult, error) {
+	result := &GenerateResult{
+		FilesCreated: make([]string, 0),
+		FilesSkipped: make([]string, 0),
+		Errors:       make([]error, 0),
+		TemplateID:   t.ID,
+		TemplateName: t.Name,
+	}
+
+	if err := t.applyVariableDefaults(&config); err != nil {
+		return nil, err
+	}
 
 	// Generate each file
 	for _, file := range t.Files {
-		outputPath := filepath.Join(config.OutputDir, file.Path)
-
-		// Skip optional files if not needed
-		if file.Optional {
-			if skip, ok := config.Variables["skip_"+filepath.Base(file.Path)]; ok && skip == "true" {
-				result.FilesSkipped = append(result.FilesSkipped, outputPath)
-				continue
-			}
-		}
-
-		// Parse and execute template
-		tmpl, err := template.New(file.Path).Parse(file.Template)
-		if err != nil {
-			result.Errors = append(result.Errors, fmt.Errorf("parse template for %s: %w", file.Path, err))
-			continue
-		}
-
-		var content strings.Builder
-		if err := tmpl.Execute(&content, config.Variables); err != nil {
-			result.Errors = append(result.Errors, fmt.Errorf("execute template for %s: %w", file.Path, err))
-			continue
-		}
-
-		if config.DryRun {
-			result.FilesCreated = append(result.FilesCreated, outputPath)
-			result.TotalBytes += int64(content.Len())
-			continue
-		}
-
-		// Create directory if needed
-		dir := filepath.Dir(outputPath)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			result.Errors = append(result.Errors, fmt.Errorf("create directory %s: %w", dir, err))
-			continue
-		}
-
-		// Write file
-		if err := os.WriteFile(outputPath, []byte(content.String()), 0600); err != nil {
-			result.Errors = append(result.Errors, fmt.Errorf("write file %s: %w", outputPath, err))
-			continue
-		}
-
-		result.FilesCreated = append(result.FilesCreated, outputPath)
-		result.TotalBytes += int64(content.Len())
+		generateFile(file, config, result)
 	}
 
 	return result, nil
@@ -360,7 +375,7 @@ func AvailableWorkflows() string {
 			continue
 		}
 
-		sb.WriteString(fmt.Sprintf("%s:\n", strings.Title(string(cat))))
+		sb.WriteString(fmt.Sprintf("%s:\n", cases.Title(language.English).String(string(cat))))
 		for _, tmpl := range templates {
 			sb.WriteString(fmt.Sprintf("  • %s - %s\n", tmpl.ID, tmpl.Description))
 		}

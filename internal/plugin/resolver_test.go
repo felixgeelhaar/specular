@@ -499,16 +499,16 @@ func TestResolver_VersionSatisfies(t *testing.T) {
 		constraint string
 		want       bool
 	}{
-		{"1.0.0", "", true},                   // Empty constraint matches all
-		{"1.0.0", "1.0.0", true},              // Exact match
-		{"1.0.1", "1.0.0", false},             // Different patch
-		{"1.0.0", ">=1.0.0", true},            // Constraint satisfied
-		{"0.9.0", ">=1.0.0", false},           // Constraint not satisfied
-		{"1.5.0", "^1.0.0", true},             // Caret constraint
-		{"2.0.0", "^1.0.0", false},            // Caret constraint (major change)
-		{"1.0.0", "~1.0.0", true},             // Tilde constraint
-		{"1.1.0", "~1.0.0", false},            // Tilde constraint (minor change)
-		{"invalid", "1.0.0", false},           // Invalid version
+		{"1.0.0", "", true},         // Empty constraint matches all
+		{"1.0.0", "1.0.0", true},    // Exact match
+		{"1.0.1", "1.0.0", false},   // Different patch
+		{"1.0.0", ">=1.0.0", true},  // Constraint satisfied
+		{"0.9.0", ">=1.0.0", false}, // Constraint not satisfied
+		{"1.5.0", "^1.0.0", true},   // Caret constraint
+		{"2.0.0", "^1.0.0", false},  // Caret constraint (major change)
+		{"1.0.0", "~1.0.0", true},   // Tilde constraint
+		{"1.1.0", "~1.0.0", false},  // Tilde constraint (minor change)
+		{"invalid", "1.0.0", false}, // Invalid version
 	}
 
 	for _, tt := range tests {

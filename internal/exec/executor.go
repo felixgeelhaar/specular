@@ -16,13 +16,13 @@ type CodeGenerator interface {
 
 // CodeGenerationResult contains the outcome of code generation
 type CodeGenerationResult struct {
-	TaskID         string
-	FeatureID      string
-	Files          []GeneratedFileRecord
-	AIGeneration   *AIGenerationRecord
-	Success        bool
-	Error          string
-	DurationMs     int64
+	TaskID       string
+	FeatureID    string
+	Files        []GeneratedFileRecord
+	AIGeneration *AIGenerationRecord
+	Success      bool
+	Error        string
+	DurationMs   int64
 }
 
 // Executor manages task execution with policy enforcement

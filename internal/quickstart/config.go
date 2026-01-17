@@ -47,8 +47,8 @@ func GenerateMinimalConfig(provider *ProviderSelection, docker DockerStatus) (*C
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate settings.json: %w", err)
 	}
-	if err := os.WriteFile(files.SettingsPath, settingsContent, 0600); err != nil {
-		return nil, fmt.Errorf("failed to write settings.json: %w", err)
+	if writeErr := os.WriteFile(files.SettingsPath, settingsContent, 0600); writeErr != nil {
+		return nil, fmt.Errorf("failed to write settings.json: %w", writeErr)
 	}
 
 	return files, nil

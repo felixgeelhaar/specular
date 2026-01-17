@@ -38,15 +38,15 @@ func TestPluginSubcommands(t *testing.T) {
 
 	// Check subcommands
 	expectedSubcommands := map[string]bool{
-		"list":      false,
-		"info <plugin-name>":   false,
-		"health <plugin-name>": false,
-		"enable <plugin-name>": false,
-		"disable <plugin-name>": false,
-		"install <source>":     false,
+		"list":                    false,
+		"info <plugin-name>":      false,
+		"health <plugin-name>":    false,
+		"enable <plugin-name>":    false,
+		"disable <plugin-name>":   false,
+		"install <source>":        false,
 		"uninstall <plugin-name>": false,
-		"update [plugin-name]": false,
-		"create <name>":        false,
+		"update [plugin-name]":    false,
+		"create <name>":           false,
 	}
 
 	for _, sub := range pluginCommand.Commands() {
@@ -900,16 +900,16 @@ func TestPluginSubcommandsComplete(t *testing.T) {
 
 	// Check all expected subcommands including search and registry-info
 	expectedSubcommands := map[string]bool{
-		"list":                     false,
-		"info <plugin-name>":       false,
-		"health <plugin-name>":     false,
-		"enable <plugin-name>":     false,
-		"disable <plugin-name>":    false,
-		"install <source>":         false,
-		"uninstall <plugin-name>":  false,
-		"update [plugin-name]":     false,
-		"create <name>":            false,
-		"search [query]":           false,
+		"list":                        false,
+		"info <plugin-name>":          false,
+		"health <plugin-name>":        false,
+		"enable <plugin-name>":        false,
+		"disable <plugin-name>":       false,
+		"install <source>":            false,
+		"uninstall <plugin-name>":     false,
+		"update [plugin-name]":        false,
+		"create <name>":               false,
+		"search [query]":              false,
 		"registry-info <plugin-name>": false,
 	}
 

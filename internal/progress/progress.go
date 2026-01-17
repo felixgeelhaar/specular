@@ -413,6 +413,7 @@ type StepInfo struct {
 // StepStatus represents the status of a step
 type StepStatus string
 
+// StepStatus constants define the possible states of a step.
 const (
 	StepPending   StepStatus = "pending"
 	StepRunning   StepStatus = "running"

@@ -36,8 +36,8 @@ func VerifyProvider(selection *ProviderSelection) (*VerificationResult, error) {
 	defer func() { _ = client.Close() }()
 
 	// First try a health check
-	if err := client.Health(ctx); err != nil {
-		result.Error = fmt.Sprintf("provider health check failed: %v", err)
+	if healthErr := client.Health(ctx); healthErr != nil {
+		result.Error = fmt.Sprintf("provider health check failed: %v", healthErr)
 		return result, nil
 	}
 
@@ -134,8 +134,8 @@ func QuickVerify(selection *ProviderSelection) error {
 		return fmt.Errorf("provider %s is not available", selection.Name)
 	}
 
-	if err := client.Health(ctx); err != nil {
-		return fmt.Errorf("provider health check failed: %w", err)
+	if healthErr := client.Health(ctx); healthErr != nil {
+		return fmt.Errorf("provider health check failed: %w", healthErr)
 	}
 
 	return nil

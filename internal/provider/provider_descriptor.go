@@ -1,11 +1,12 @@
 package provider
 
-// ProviderDescriptor holds metadata used to seed provider configuration files.
+// ProviderDetectionHints contains hints for detecting provider availability.
 type ProviderDetectionHints struct {
 	Binaries []string
 	EnvVars  []string
 }
 
+// ProviderDescriptor holds metadata used to seed provider configuration files.
 type ProviderDescriptor struct {
 	Name           string
 	Type           ProviderType

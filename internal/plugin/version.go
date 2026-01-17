@@ -96,6 +96,17 @@ func (v *PluginVersion) String() string {
 	return s
 }
 
+// compareInts compares two integers and returns -1, 0, or 1
+func compareInts(a, b int) int {
+	if a < b {
+		return -1
+	}
+	if a > b {
+		return 1
+	}
+	return 0
+}
+
 // Compare compares two versions
 // Returns -1 if v < other, 0 if v == other, 1 if v > other
 func (v *PluginVersion) Compare(other *PluginVersion) int {
@@ -109,28 +120,15 @@ func (v *PluginVersion) Compare(other *PluginVersion) int {
 		return 1
 	}
 
-	// Compare major
-	if v.Major != other.Major {
-		if v.Major < other.Major {
-			return -1
-		}
-		return 1
+	// Compare major, minor, patch
+	if cmp := compareInts(v.Major, other.Major); cmp != 0 {
+		return cmp
 	}
-
-	// Compare minor
-	if v.Minor != other.Minor {
-		if v.Minor < other.Minor {
-			return -1
-		}
-		return 1
+	if cmp := compareInts(v.Minor, other.Minor); cmp != 0 {
+		return cmp
 	}
-
-	// Compare patch
-	if v.Patch != other.Patch {
-		if v.Patch < other.Patch {
-			return -1
-		}
-		return 1
+	if cmp := compareInts(v.Patch, other.Patch); cmp != 0 {
+		return cmp
 	}
 
 	// Compare prerelease

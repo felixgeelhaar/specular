@@ -205,7 +205,7 @@ func (r *Registry) saveCache() error {
 	}
 
 	// Ensure cache directory exists
-	if err := os.MkdirAll(r.cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(r.cacheDir, 0750); err != nil {
 		return fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
@@ -221,7 +221,7 @@ func (r *Registry) saveCache() error {
 	}
 
 	if err := os.Rename(tmpFile, r.cacheFilePath()); err != nil {
-		os.Remove(tmpFile)
+		_ = os.Remove(tmpFile)
 		return fmt.Errorf("failed to rename cache file: %w", err)
 	}
 
@@ -244,7 +244,7 @@ func (r *Registry) isCacheValid() bool {
 func (r *Registry) Fetch() error {
 	// Try to load disk cache first
 	if r.cache == nil {
-		r.loadCache()
+		_ = r.loadCache()
 	}
 
 	// Return cached version if valid
@@ -305,7 +305,7 @@ func (r *Registry) Fetch() error {
 	r.mu.Unlock()
 
 	// Save to disk
-	r.saveCache()
+	_ = r.saveCache()
 
 	return nil
 }
@@ -368,6 +368,52 @@ type SearchResult struct {
 	MatchType string // "name", "keyword", "description"
 }
 
+// calculatePluginScore calculates the search score and match type for a plugin
+func calculatePluginScore(name string, p *RegistryPlugin, query string) (float64, string) {
+	var score float64
+	var matchType string
+
+	// Check name match (highest priority)
+	if strings.Contains(strings.ToLower(name), query) {
+		score = 100
+		if strings.EqualFold(name, query) {
+			score = 200 // Exact match
+		}
+		matchType = "name"
+	}
+
+	// Check type match
+	if score == 0 && strings.Contains(strings.ToLower(string(p.Type)), query) {
+		score = 80
+		matchType = "type"
+	}
+
+	// Check keyword match
+	if score == 0 {
+		for _, kw := range p.Keywords {
+			if strings.Contains(strings.ToLower(kw), query) {
+				score = 60
+				matchType = "keyword"
+				break
+			}
+		}
+	}
+
+	// Check description match
+	if score == 0 && strings.Contains(strings.ToLower(p.Description), query) {
+		score = 40
+		matchType = "description"
+	}
+
+	// Check author match
+	if score == 0 && strings.Contains(strings.ToLower(p.Author), query) {
+		score = 30
+		matchType = "author"
+	}
+
+	return score, matchType
+}
+
 // Search searches the registry for plugins matching the query
 func (r *Registry) Search(query string) ([]SearchResult, error) {
 	index, err := r.GetIndex()
@@ -397,52 +443,7 @@ func (r *Registry) Search(query string) ([]SearchResult, error) {
 
 	for name := range index.Plugins {
 		p := index.Plugins[name]
-		var score float64
-		var matchType string
-
-		// Check name match (highest priority)
-		if strings.Contains(strings.ToLower(name), query) {
-			score = 100
-			if strings.EqualFold(name, query) {
-				score = 200 // Exact match
-			}
-			matchType = "name"
-		}
-
-		// Check type match
-		if strings.Contains(strings.ToLower(string(p.Type)), query) {
-			if score == 0 {
-				score = 80
-				matchType = "type"
-			}
-		}
-
-		// Check keyword match
-		for _, kw := range p.Keywords {
-			if strings.Contains(strings.ToLower(kw), query) {
-				if score == 0 {
-					score = 60
-					matchType = "keyword"
-				}
-				break
-			}
-		}
-
-		// Check description match (lowest priority)
-		if strings.Contains(strings.ToLower(p.Description), query) {
-			if score == 0 {
-				score = 40
-				matchType = "description"
-			}
-		}
-
-		// Check author match
-		if strings.Contains(strings.ToLower(p.Author), query) {
-			if score == 0 {
-				score = 30
-				matchType = "author"
-			}
-		}
+		score, matchType := calculatePluginScore(name, &p, query)
 
 		if score > 0 {
 			// Boost score based on downloads and stars

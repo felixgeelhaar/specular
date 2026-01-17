@@ -173,7 +173,7 @@ func detectOllama() ProviderInfo {
 
 	info.Available = true
 
-	if output, err := cmd.Output(); err == nil {
+	if output, outputErr := cmd.Output(); outputErr == nil {
 		info.Version = strings.TrimSpace(string(output))
 	}
 
@@ -194,7 +194,7 @@ func detectClaudeCode() ProviderInfo {
 
 	info.Available = true
 
-	if output, err := cmd.Output(); err == nil {
+	if output, outputErr := cmd.Output(); outputErr == nil {
 		info.Version = strings.TrimSpace(string(output))
 	}
 
@@ -213,7 +213,7 @@ func detectCLIProvider(name, cliName string) ProviderInfo {
 	}
 
 	info.Available = true
-	if output, err := cmd.Output(); err == nil {
+	if output, outputErr := cmd.Output(); outputErr == nil {
 		info.Version = strings.TrimSpace(string(output))
 	}
 
@@ -349,14 +349,14 @@ func detectGit() GitContext {
 	git.Root = strings.TrimSpace(string(output))
 
 	if cmd, err = safeutil.SafeCommand(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD"); err == nil {
-		if output, err := cmd.Output(); err == nil {
-			git.Branch = strings.TrimSpace(string(output))
+		if branchOut, branchErr := cmd.Output(); branchErr == nil {
+			git.Branch = strings.TrimSpace(string(branchOut))
 		}
 	}
 
 	if cmd, err = safeutil.SafeCommand(ctx, "git", "status", "--porcelain"); err == nil {
-		if output, err := cmd.Output(); err == nil {
-			trimmed := strings.TrimSpace(string(output))
+		if statusOut, statusErr := cmd.Output(); statusErr == nil {
+			trimmed := strings.TrimSpace(string(statusOut))
 			if trimmed != "" {
 				statusLines := strings.Split(trimmed, "\n")
 				git.Uncommitted = len(statusLines)
@@ -412,6 +412,30 @@ func hasInFile(filename, searchString string) bool {
 	return strings.Contains(string(content), searchString)
 }
 
+// addProvidersByPriority adds available providers from a priority list
+func (c *Context) addProvidersByPriority(names []string, recommended *[]string, seen map[string]bool) {
+	for _, name := range names {
+		if info, ok := c.Providers[name]; ok && info.Available && !seen[name] {
+			*recommended = append(*recommended, name)
+			seen[name] = true
+		}
+	}
+}
+
+// addProvidersByType adds available providers of a specific type
+func (c *Context) addProvidersByType(providerType string, requireEnvSet bool, recommended *[]string, seen map[string]bool) {
+	for name, info := range c.Providers {
+		if seen[name] || !info.Available || info.Type != providerType {
+			continue
+		}
+		if requireEnvSet && !info.EnvSet {
+			continue
+		}
+		*recommended = append(*recommended, name)
+		seen[name] = true
+	}
+}
+
 // GetRecommendedProviders returns a list of recommended providers based on detected context
 func (c *Context) GetRecommendedProviders() []string {
 	recommended := []string{}
@@ -419,34 +443,13 @@ func (c *Context) GetRecommendedProviders() []string {
 
 	// Prefer local/CLI providers in order
 	localOrder := []string{"ollama", "claude-code", "codex-cli", "gemini-cli"}
-	for _, name := range localOrder {
-		if info, ok := c.Providers[name]; ok && info.Available {
-			recommended = append(recommended, name)
-			seen[name] = true
-		}
-	}
+	c.addProvidersByPriority(localOrder, &recommended, seen)
 
 	// Add API providers that have keys set
-	for name, info := range c.Providers {
-		if seen[name] {
-			continue
-		}
-		if info.Type == "api" && info.Available && info.EnvSet {
-			recommended = append(recommended, name)
-			seen[name] = true
-		}
-	}
+	c.addProvidersByType("api", true, &recommended, seen)
 
 	// Add additional CLI providers that were not covered yet
-	for name, info := range c.Providers {
-		if seen[name] || !info.Available {
-			continue
-		}
-		if info.Type == "cli" {
-			recommended = append(recommended, name)
-			seen[name] = true
-		}
-	}
+	c.addProvidersByType("cli", false, &recommended, seen)
 
 	// Fallback to a default ordering if still empty
 	if len(recommended) == 0 {

@@ -258,10 +258,10 @@ func TestWorkflowTemplateGenerate_RealFiles(t *testing.T) {
 	config := GenerateConfig{
 		OutputDir: tmpDir,
 		Variables: map[string]string{
-			"project_name":          "test-project",
-			"language":              "go",
-			"deploy_target":         "docker",
-			"enable_security_scan":  "true",
+			"project_name":         "test-project",
+			"language":             "go",
+			"deploy_target":        "docker",
+			"enable_security_scan": "true",
 		},
 		DryRun: false,
 	}

@@ -75,12 +75,12 @@ func (w *FileWriter) WriteFile(file *GeneratedFile) (bool, error) {
 
 	// Create directory if needed
 	dir := filepath.Dir(fullPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return false, fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
 	// Write file
-	if err := os.WriteFile(fullPath, []byte(file.Content), 0644); err != nil {
+	if err := os.WriteFile(fullPath, []byte(file.Content), 0600); err != nil {
 		return false, fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -114,7 +114,7 @@ func (w *FileWriter) EnsureBaseDir() error {
 	if w.DryRun {
 		return nil
 	}
-	return os.MkdirAll(w.BaseDir, 0755)
+	return os.MkdirAll(w.BaseDir, 0750)
 }
 
 // isSubPath checks if child is a subdirectory of parent
@@ -139,7 +139,7 @@ func isSubPath(parent, child string) bool {
 	return absChild == absParent || len(absChild) > len(parentWithSep) && absChild[:len(parentWithSep)] == parentWithSep
 }
 
-// WriteManifest writes a generation manifest for tracking
+// GenerationManifest tracks metadata about a code generation run.
 type GenerationManifest struct {
 	// Timestamp of generation
 	Timestamp string `json:"timestamp"`

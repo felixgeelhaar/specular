@@ -472,4 +472,3 @@ func formatBytes(bytes int64) string {
 		return fmt.Sprintf("%s%d B", sign, absBytes)
 	}
 }
-

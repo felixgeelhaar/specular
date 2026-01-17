@@ -1,5 +1,6 @@
 package provider
 
+// ToProviderConfig converts a ProviderDescriptor to a ProviderConfig.
 func (d ProviderDescriptor) ToProviderConfig() ProviderConfig {
 	config := ProviderConfig{
 		Name:    d.Name,

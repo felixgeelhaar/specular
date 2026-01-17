@@ -6,8 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/internal/validate"
 	"gopkg.in/yaml.v3"
+
+	"github.com/felixgeelhaar/specular/internal/validate"
 )
 
 // FixSuggestion represents a suggested fix for a configuration issue
@@ -341,8 +342,8 @@ func saveConfig(filePath string, data map[string]interface{}) error {
 		return fmt.Errorf("marshal YAML: %w", err)
 	}
 
-	if err := os.WriteFile(filePath, content, 0600); err != nil {
-		return fmt.Errorf("write file: %w", err)
+	if writeErr := os.WriteFile(filePath, content, 0600); writeErr != nil {
+		return fmt.Errorf("write file: %w", writeErr)
 	}
 
 	return nil

@@ -180,28 +180,28 @@ func gatherGitInfo() (*gitInfo, error) {
 	info := &gitInfo{}
 
 	// Get remote URL
-	if gitCmd, err := safeutil.SafeCommand(context.Background(), "git", "config", "--get", "remote.origin.url"); err == nil {
+	if gitCmd, cmdErr := safeutil.SafeCommand(context.Background(), "git", "config", "--get", "remote.origin.url"); cmdErr == nil {
 		if output, err := gitCmd.Output(); err == nil {
 			info.Repo = strings.TrimSpace(string(output))
 		}
 	}
 
 	// Get current commit
-	if gitCmd, err := safeutil.SafeCommand(context.Background(), "git", "rev-parse", "HEAD"); err == nil {
+	if gitCmd, cmdErr := safeutil.SafeCommand(context.Background(), "git", "rev-parse", "HEAD"); cmdErr == nil {
 		if output, err := gitCmd.Output(); err == nil {
 			info.Commit = strings.TrimSpace(string(output))
 		}
 	}
 
 	// Get current branch
-	if gitCmd, err := safeutil.SafeCommand(context.Background(), "git", "rev-parse", "--abbrev-ref", "HEAD"); err == nil {
+	if gitCmd, cmdErr := safeutil.SafeCommand(context.Background(), "git", "rev-parse", "--abbrev-ref", "HEAD"); cmdErr == nil {
 		if output, err := gitCmd.Output(); err == nil {
 			info.Branch = strings.TrimSpace(string(output))
 		}
 	}
 
 	// Check for uncommitted changes
-	if gitCmd, err := safeutil.SafeCommand(context.Background(), "git", "status", "--porcelain"); err == nil {
+	if gitCmd, cmdErr := safeutil.SafeCommand(context.Background(), "git", "status", "--porcelain"); cmdErr == nil {
 		if output, err := gitCmd.Output(); err == nil {
 			info.Dirty = len(strings.TrimSpace(string(output))) > 0
 		}

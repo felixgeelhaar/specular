@@ -106,12 +106,12 @@ func GetBinaryInfo(path string) (*BinaryInfo, error) {
 
 	size := info.Size()
 	return &BinaryInfo{
-		Path:       path,
-		Size:       size,
-		SizeHuman:  humanBytes(size),
-		GOOS:       runtime.GOOS,
-		GOARCH:     runtime.GOARCH,
-		GoVersion:  runtime.Version(),
+		Path:      path,
+		Size:      size,
+		SizeHuman: humanBytes(size),
+		GOOS:      runtime.GOOS,
+		GOARCH:    runtime.GOARCH,
+		GoVersion: runtime.Version(),
 	}, nil
 }
 

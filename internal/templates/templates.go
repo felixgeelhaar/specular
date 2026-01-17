@@ -83,14 +83,14 @@ func NewRegistry() (*Registry, error) {
 			continue
 		}
 
-		data, err := templateFS.ReadFile(entry.Name())
-		if err != nil {
-			return nil, fmt.Errorf("failed to read template %s: %w", entry.Name(), err)
+		data, readErr := templateFS.ReadFile(entry.Name())
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to read template %s: %w", entry.Name(), readErr)
 		}
 
 		var tmpl Template
-		if err := yaml.Unmarshal(data, &tmpl); err != nil {
-			return nil, fmt.Errorf("failed to parse template %s: %w", entry.Name(), err)
+		if parseErr := yaml.Unmarshal(data, &tmpl); parseErr != nil {
+			return nil, fmt.Errorf("failed to parse template %s: %w", entry.Name(), parseErr)
 		}
 
 		r.templates[tmpl.ID] = &tmpl

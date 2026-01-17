@@ -6,13 +6,13 @@ import (
 
 func TestParseVersion(t *testing.T) {
 	tests := []struct {
-		input      string
-		wantMajor  int
-		wantMinor  int
-		wantPatch  int
-		wantPre    string
-		wantMeta   string
-		wantErr    bool
+		input     string
+		wantMajor int
+		wantMinor int
+		wantPatch int
+		wantPre   string
+		wantMeta  string
+		wantErr   bool
 	}{
 		// Basic versions
 		{"1.0.0", 1, 0, 0, "", "", false},
@@ -131,10 +131,10 @@ func TestVersionCompare(t *testing.T) {
 		{"1.0.1", "1.0.2", -1},
 
 		// Prerelease comparison
-		{"1.0.0", "1.0.0-alpha", 1},        // Release > prerelease
-		{"1.0.0-alpha", "1.0.0", -1},       // Prerelease < release
-		{"1.0.0-beta", "1.0.0-alpha", 1},   // beta > alpha (lexical)
-		{"1.0.0-alpha", "1.0.0-beta", -1},  // alpha < beta
+		{"1.0.0", "1.0.0-alpha", 1},       // Release > prerelease
+		{"1.0.0-alpha", "1.0.0", -1},      // Prerelease < release
+		{"1.0.0-beta", "1.0.0-alpha", 1},  // beta > alpha (lexical)
+		{"1.0.0-alpha", "1.0.0-beta", -1}, // alpha < beta
 		{"1.0.0-alpha.2", "1.0.0-alpha.1", 1},
 		{"1.0.0-alpha.1", "1.0.0-alpha.2", -1},
 

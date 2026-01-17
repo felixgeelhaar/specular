@@ -132,10 +132,10 @@ func (g *Generator) Generate(ctx context.Context, task plan.Task) (*GenerationRe
 	}
 
 	// 8. Write files to disk (unless dry run)
-	if err := g.writer.EnsureBaseDir(); err != nil {
-		result.Error = fmt.Sprintf("failed to create output directory: %v", err)
+	if dirErr := g.writer.EnsureBaseDir(); dirErr != nil {
+		result.Error = fmt.Sprintf("failed to create output directory: %v", dirErr)
 		result.Duration = time.Since(startTime)
-		return result, fmt.Errorf("failed to create output directory: %w", err)
+		return result, fmt.Errorf("failed to create output directory: %w", dirErr)
 	}
 
 	writtenFiles, err := g.writer.WriteFiles(files)

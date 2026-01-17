@@ -236,7 +236,6 @@ func TestPlanDriftDetection(t *testing.T) {
 	}
 }
 
-
 // TestPlanGenFlags tests that plan gen has all required flags
 func TestPlanGenFlags(t *testing.T) {
 	if planCreateCmd.Flags().Lookup("in") == nil {

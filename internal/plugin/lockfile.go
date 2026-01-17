@@ -102,7 +102,7 @@ func (l *PluginLock) Save() error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(l.path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create lockfile directory: %w", err)
 	}
 
@@ -118,7 +118,7 @@ func (l *PluginLock) Save() error {
 	}
 
 	if err := os.Rename(tmpPath, l.path); err != nil {
-		os.Remove(tmpPath) // Clean up temp file on failure
+		_ = os.Remove(tmpPath) // Clean up temp file on failure
 		return fmt.Errorf("failed to commit lockfile: %w", err)
 	}
 
@@ -347,7 +347,7 @@ func (l *PluginLock) GetDependents(name string) []LockedPlugin {
 	return dependents
 }
 
-// GetMisssingDependencies returns dependencies that are not installed
+// GetMissingDependencies returns dependencies that are not installed.
 func (l *PluginLock) GetMissingDependencies(name string) []string {
 	l.mu.RLock()
 	defer l.mu.RUnlock()

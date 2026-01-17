@@ -162,38 +162,52 @@ func NewEnhancedError(err error) *EnhancedError {
 	return enhanced
 }
 
+// categoryMatcher defines a pattern for matching error categories
+type categoryMatcher struct {
+	patterns []string
+	category ErrorCategory
+}
+
+// categoryMatchers defines patterns for detecting error categories in priority order
+var categoryMatchers = []categoryMatcher{
+	// Check file-related errors first (before yaml: which could match file paths)
+	{patterns: []string{"no such file", "file not found"}, category: CategoryMissingFile},
+	{patterns: []string{"permission denied"}, category: CategoryPermission},
+	// YAML syntax errors (actual parsing errors, not file paths)
+	{patterns: []string{"yaml: ", "yaml syntax"}, category: CategoryYAMLSyntax},
+	{patterns: []string{"schema", "invalid field"}, category: CategorySchemaViolation},
+	// Network and auth errors
+	{patterns: []string{"connection refused", "no route"}, category: CategoryNetwork},
+	{patterns: []string{"401", "unauthorized", "api key"}, category: CategoryAuth},
+	// Policy and Docker
+	{patterns: []string{"policy", "violation"}, category: CategoryPolicy},
+	{patterns: []string{"docker", "container"}, category: CategoryDocker},
+	{patterns: []string{"validation", "drift"}, category: CategoryValidation},
+}
+
 // detectCategory analyzes the error message to determine category
 func (e *EnhancedError) detectCategory() {
 	msg := strings.ToLower(e.Message)
 
-	switch {
-	// Check file-related errors first (before yaml: which could match file paths)
-	case strings.Contains(msg, "no such file") || strings.Contains(msg, "file not found"):
-		e.Category = CategoryMissingFile
-	case strings.Contains(msg, "permission denied"):
-		e.Category = CategoryPermission
-	// YAML syntax errors (actual parsing errors, not file paths)
-	case strings.Contains(msg, "yaml: ") || strings.Contains(msg, "yaml syntax"):
-		e.Category = CategoryYAMLSyntax
-	case strings.Contains(msg, "schema") || strings.Contains(msg, "invalid field"):
-		e.Category = CategorySchemaViolation
-	// Network and auth errors
-	case strings.Contains(msg, "connection refused") || strings.Contains(msg, "no route"):
-		e.Category = CategoryNetwork
-	case strings.Contains(msg, "401") || strings.Contains(msg, "unauthorized") || strings.Contains(msg, "api key"):
-		e.Category = CategoryAuth
-	// Provider-specific "not found" (checked after general file not found)
-	case strings.Contains(msg, "provider") && (strings.Contains(msg, "not found") || strings.Contains(msg, "not available")):
+	// Check provider-specific "not found" first (special case with two conditions)
+	if strings.Contains(msg, "provider") && (strings.Contains(msg, "not found") || strings.Contains(msg, "not available")) {
 		e.Category = CategoryProvider
-	// General "not found" (less specific, checked after provider)
-	case strings.Contains(msg, "not found"):
+		return
+	}
+
+	// Check standard matchers
+	for _, matcher := range categoryMatchers {
+		for _, pattern := range matcher.patterns {
+			if strings.Contains(msg, pattern) {
+				e.Category = matcher.category
+				return
+			}
+		}
+	}
+
+	// General "not found" (less specific, checked last)
+	if strings.Contains(msg, "not found") {
 		e.Category = CategoryMissingFile
-	case strings.Contains(msg, "policy") || strings.Contains(msg, "violation"):
-		e.Category = CategoryPolicy
-	case strings.Contains(msg, "docker") || strings.Contains(msg, "container"):
-		e.Category = CategoryDocker
-	case strings.Contains(msg, "validation") || strings.Contains(msg, "drift"):
-		e.Category = CategoryValidation
 	}
 }
 

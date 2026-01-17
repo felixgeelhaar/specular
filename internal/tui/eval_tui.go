@@ -48,21 +48,21 @@ type EvalTUIModel struct {
 	totalTests int
 
 	// UI state
-	width       int
-	height      int
-	ready       bool
-	quitting    bool
-	activeTab   int
+	width        int
+	height       int
+	ready        bool
+	quitting     bool
+	activeTab    int
 	resultScroll int
 
 	// Aggregated stats
-	totalScore   float64
-	maxScore     float64
-	passedCount  int
-	failedCount  int
-	totalTokens  int
-	totalCost    float64
-	avgDuration  time.Duration
+	totalScore  float64
+	maxScore    float64
+	passedCount int
+	failedCount int
+	totalTokens int
+	totalCost   float64
+	avgDuration time.Duration
 
 	// Styles
 	styles EvalStyles
@@ -241,7 +241,9 @@ func (m EvalTUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View renders the TUI
+// View renders the TUI.
+//
+//nolint:dupl // Similar structure to CommandTUIModel.View but different render methods
 func (m EvalTUIModel) View() string {
 	if !m.ready {
 		return "Initializing..."

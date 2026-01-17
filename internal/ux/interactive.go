@@ -10,8 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/spf13/cobra"
+
+	"github.com/felixgeelhaar/specular/internal/tui"
 )
 
 // PromptType defines the type of interactive prompt to display

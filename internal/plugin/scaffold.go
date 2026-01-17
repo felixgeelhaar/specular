@@ -58,7 +58,7 @@ func Scaffold(dir string, cfg ScaffoldConfig) error {
 	}
 
 	// Create plugin directory
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -109,7 +109,8 @@ func processTemplate(tmplPath, filename, outDir string, cfg ScaffoldConfig) erro
 
 	// Make entrypoints executable
 	if isEntrypoint(outName) {
-		if err := os.Chmod(outPath, 0755); err != nil {
+		// #nosec G302 -- Entrypoint scripts need execute permission
+		if err := os.Chmod(outPath, 0700); err != nil {
 			return fmt.Errorf("failed to make %s executable: %w", outPath, err)
 		}
 	}

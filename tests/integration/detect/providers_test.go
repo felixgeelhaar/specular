@@ -24,7 +24,7 @@ func TestDetectProviders(t *testing.T) {
 	}
 
 	// All expected providers should have entries
-	expectedProviders := []string{"ollama", "claude", "openai", "gemini", "anthropic"}
+	expectedProviders := []string{"ollama", "claude-code", "openai", "gemini", "anthropic"}
 	for _, name := range expectedProviders {
 		if _, exists := ctx.Providers[name]; !exists {
 			t.Errorf("Provider %s should exist in Providers map", name)
@@ -72,30 +72,29 @@ func TestDetectOllama(t *testing.T) {
 	}
 }
 
-// TestDetectClaude tests Claude CLI detection
+// TestDetectClaude tests Claude Code CLI detection
 func TestDetectClaude(t *testing.T) {
 	ctx, err := detect.DetectAll()
 	if err != nil {
 		t.Fatalf("DetectAll() error = %v", err)
 	}
 
-	info, exists := ctx.Providers["claude"]
+	info, exists := ctx.Providers["claude-code"]
 	if !exists {
-		t.Fatal("claude should exist in Providers map")
+		t.Fatal("claude-code should exist in Providers map")
 	}
 
 	// Check basic fields
-	if info.Name != "claude" {
-		t.Errorf("Name = %s, want claude", info.Name)
+	if info.Name != "claude-code" {
+		t.Errorf("Name = %s, want claude-code", info.Name)
 	}
 
 	if info.Type != "cli" {
 		t.Errorf("Type = %s, want cli", info.Type)
 	}
 
-	if info.EnvVar != "ANTHROPIC_API_KEY" {
-		t.Errorf("EnvVar = %s, want ANTHROPIC_API_KEY", info.EnvVar)
-	}
+	// claude-code doesn't have an EnvVar, it uses the ANTHROPIC_API_KEY internally
+	// but doesn't expose it as a required env var
 
 	// Check environment variable detection
 	hasAPIKey := os.Getenv("ANTHROPIC_API_KEY") != ""

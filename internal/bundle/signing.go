@@ -12,8 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // Signer creates approval signatures for bundles.

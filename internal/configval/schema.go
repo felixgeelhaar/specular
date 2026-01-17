@@ -11,8 +11,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/felixgeelhaar/specular/internal/validate"
 	"gopkg.in/yaml.v3"
+
+	"github.com/felixgeelhaar/specular/internal/validate"
 )
 
 // ConfigType represents the type of configuration file
@@ -68,8 +69,8 @@ func NewValidationContext(filePath string) (*ValidationContext, error) {
 	}
 
 	var parsed map[string]interface{}
-	if err := yaml.Unmarshal(content, &parsed); err != nil {
-		return nil, fmt.Errorf("parse YAML: %w", err)
+	if parseErr := yaml.Unmarshal(content, &parsed); parseErr != nil {
+		return nil, fmt.Errorf("parse YAML: %w", parseErr)
 	}
 
 	configType := DetectConfigType(filePath, parsed)
@@ -286,13 +287,13 @@ func getFieldValuesRecursive(data interface{}, parts []string) ([]interface{}, b
 	// Handle array notation like "providers[*]"
 	if strings.HasSuffix(part, "[*]") {
 		fieldName := strings.TrimSuffix(part, "[*]")
-		mapData, ok := data.(map[string]interface{})
-		if !ok {
+		mapData, isMap := data.(map[string]interface{})
+		if !isMap {
 			return nil, false
 		}
 
-		arr, ok := mapData[fieldName].([]interface{})
-		if !ok {
+		arr, isArr := mapData[fieldName].([]interface{})
+		if !isArr {
 			return nil, false
 		}
 
@@ -301,8 +302,7 @@ func getFieldValuesRecursive(data interface{}, parts []string) ([]interface{}, b
 			if len(remaining) == 0 {
 				results = append(results, item)
 			} else {
-				itemMap, ok := item.(map[string]interface{})
-				if ok {
+				if itemMap, isItemMap := item.(map[string]interface{}); isItemMap {
 					vals, found := getFieldValuesRecursive(itemMap, remaining)
 					if found {
 						results = append(results, vals...)
@@ -338,50 +338,62 @@ func validateValue(rule FieldRule, value interface{}, result *validate.Validatio
 
 	// Enum validation
 	if len(rule.Enum) > 0 {
-		strVal, ok := value.(string)
-		if !ok {
-			result.AddError(rule.Path, fmt.Sprintf("%v", value), "enum value must be a string")
-			return
-		}
-
-		valid := false
-		for _, allowed := range rule.Enum {
-			if strVal == allowed {
-				valid = true
-				break
-			}
-		}
-		if !valid {
-			result.AddError(rule.Path, strVal,
-				fmt.Sprintf("value must be one of: %s", strings.Join(rule.Enum, ", ")))
-		}
+		validateEnumValue(rule, value, result)
 	}
 
 	// Number range validation
 	if rule.Type == "number" {
-		numVal := toFloat64(value)
-		if rule.Min != nil && numVal < *rule.Min {
-			result.AddError(rule.Path, fmt.Sprintf("%v", value),
-				fmt.Sprintf("value must be at least %v", *rule.Min))
-		}
-		if rule.Max != nil && numVal > *rule.Max {
-			result.AddError(rule.Path, fmt.Sprintf("%v", value),
-				fmt.Sprintf("value must be at most %v", *rule.Max))
-		}
+		validateNumberRange(rule, value, result)
 	}
 
 	// Pattern validation
 	if rule.Pattern != "" {
-		strVal, ok := value.(string)
-		if ok {
-			matched, err := regexp.MatchString(rule.Pattern, strVal)
-			if err != nil {
-				result.AddWarning(rule.Path, strVal, fmt.Sprintf("pattern validation error: %v", err))
-			} else if !matched {
-				result.AddError(rule.Path, strVal,
-					fmt.Sprintf("value does not match pattern: %s", rule.Pattern))
-			}
+		validatePattern(rule, value, result)
+	}
+}
+
+// validateEnumValue validates that a value is one of the allowed enum values
+func validateEnumValue(rule FieldRule, value interface{}, result *validate.ValidationResult) {
+	strVal, ok := value.(string)
+	if !ok {
+		result.AddError(rule.Path, fmt.Sprintf("%v", value), "enum value must be a string")
+		return
+	}
+
+	for _, allowed := range rule.Enum {
+		if strVal == allowed {
+			return
 		}
+	}
+	result.AddError(rule.Path, strVal,
+		fmt.Sprintf("value must be one of: %s", strings.Join(rule.Enum, ", ")))
+}
+
+// validateNumberRange validates that a number is within the allowed range
+func validateNumberRange(rule FieldRule, value interface{}, result *validate.ValidationResult) {
+	numVal := toFloat64(value)
+	if rule.Min != nil && numVal < *rule.Min {
+		result.AddError(rule.Path, fmt.Sprintf("%v", value),
+			fmt.Sprintf("value must be at least %v", *rule.Min))
+	}
+	if rule.Max != nil && numVal > *rule.Max {
+		result.AddError(rule.Path, fmt.Sprintf("%v", value),
+			fmt.Sprintf("value must be at most %v", *rule.Max))
+	}
+}
+
+// validatePattern validates that a string matches the required pattern
+func validatePattern(rule FieldRule, value interface{}, result *validate.ValidationResult) {
+	strVal, ok := value.(string)
+	if !ok {
+		return
+	}
+	matched, err := regexp.MatchString(rule.Pattern, strVal)
+	if err != nil {
+		result.AddWarning(rule.Path, strVal, fmt.Sprintf("pattern validation error: %v", err))
+	} else if !matched {
+		result.AddError(rule.Path, strVal,
+			fmt.Sprintf("value does not match pattern: %s", rule.Pattern))
 	}
 }
 

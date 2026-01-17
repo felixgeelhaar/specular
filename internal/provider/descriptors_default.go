@@ -75,11 +75,11 @@ func registerDefaultDescriptors() {
 	})
 
 	RegisterProviderDescriptor(ProviderDescriptor{
-		Name:         "anthropic",
-		Type:         ProviderTypeAPI,
-		Source:       "builtin",
-		TrustLevel:   TrustLevelBuiltin,
-		Description:  "Anthropic Claude API",
+		Name:        "anthropic",
+		Type:        ProviderTypeAPI,
+		Source:      "builtin",
+		TrustLevel:  TrustLevelBuiltin,
+		Description: "Anthropic Claude API",
 		Constructor: func(config *ProviderConfig) (ProviderClient, error) {
 			return NewAnthropicProvider(config)
 		},
@@ -102,11 +102,11 @@ func registerDefaultDescriptors() {
 	})
 
 	RegisterProviderDescriptor(ProviderDescriptor{
-		Name:         "openai",
-		Type:         ProviderTypeAPI,
-		Source:       "builtin",
-		TrustLevel:   TrustLevelBuiltin,
-		Description:  "OpenAI API",
+		Name:        "openai",
+		Type:        ProviderTypeAPI,
+		Source:      "builtin",
+		TrustLevel:  TrustLevelBuiltin,
+		Description: "OpenAI API",
 		Constructor: func(config *ProviderConfig) (ProviderClient, error) {
 			return NewOpenAIProvider(config)
 		},
@@ -126,11 +126,11 @@ func registerDefaultDescriptors() {
 	})
 
 	RegisterProviderDescriptor(ProviderDescriptor{
-		Name:         "gemini",
-		Type:         ProviderTypeAPI,
-		Source:       "builtin",
-		TrustLevel:   TrustLevelBuiltin,
-		Description:  "Google Gemini API",
+		Name:        "gemini",
+		Type:        ProviderTypeAPI,
+		Source:      "builtin",
+		TrustLevel:  TrustLevelBuiltin,
+		Description: "Google Gemini API",
 		Constructor: func(config *ProviderConfig) (ProviderClient, error) {
 			return NewGeminiProvider(config)
 		},

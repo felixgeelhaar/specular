@@ -46,6 +46,7 @@ func NewProviderAggregate(desc ProviderDescriptor) *ProviderAggregate {
 // DomainEventType enumerates provider-related events.
 type DomainEventType string
 
+// DomainEventType constants define the types of provider domain events.
 const (
 	EventProviderDetected        DomainEventType = "ProviderDetected"
 	EventProviderRegistered      DomainEventType = "ProviderRegistered"

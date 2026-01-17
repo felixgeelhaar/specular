@@ -119,9 +119,9 @@ func TestGenerator_Generate_Success(t *testing.T) {
 	r := &mockRouter{
 		generateFunc: func(ctx context.Context, req router.GenerateRequest) (*router.GenerateResponse, error) {
 			return &router.GenerateResponse{
-				Content: "```go:cmd/main.go\npackage main\n\nfunc main() {\n\tprintln(\"hello\")\n}\n```",
-				Model:   "claude-3",
-				Provider: "anthropic",
+				Content:      "```go:cmd/main.go\npackage main\n\nfunc main() {\n\tprintln(\"hello\")\n}\n```",
+				Model:        "claude-3",
+				Provider:     "anthropic",
 				TokensUsed:   150,
 				InputTokens:  50,
 				OutputTokens: 100,

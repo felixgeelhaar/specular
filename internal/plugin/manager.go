@@ -11,8 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"gopkg.in/yaml.v3"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // Manager handles plugin discovery, loading, and execution

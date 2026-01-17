@@ -251,20 +251,16 @@ func TestCommandContext_Struct(t *testing.T) {
 	}
 
 	// Verify types by accessing fields
-	var b bool = ctx.Verbose
-	b = ctx.Quiet
-	b = ctx.NoColor
-	b = ctx.Explain
-	b = ctx.IsInteractive
+	_ = bool(ctx.Verbose)
+	_ = bool(ctx.Quiet)
+	_ = bool(ctx.NoColor)
+	_ = bool(ctx.Explain)
+	_ = bool(ctx.IsInteractive)
 
-	var s string = ctx.Format
-	s = ctx.Trace
-	s = ctx.SpecularHome
-	s = ctx.LogLevel
-
-	// Avoid unused variable errors
-	_ = b
-	_ = s
+	_ = string(ctx.Format)
+	_ = string(ctx.Trace)
+	_ = string(ctx.SpecularHome)
+	_ = string(ctx.LogLevel)
 }
 
 // TestNewCommandContext_IsInteractive tests the IsInteractive field is set

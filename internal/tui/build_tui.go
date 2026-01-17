@@ -10,11 +10,11 @@ import (
 
 // BuildTUIConfig configures the build TUI
 type BuildTUIConfig struct {
-	SpecFile   string
-	OutputDir  string
-	Format     string
-	Validate   bool
-	ShowDiff   bool
+	SpecFile  string
+	OutputDir string
+	Format    string
+	Validate  bool
+	ShowDiff  bool
 }
 
 // BuildTUI provides a TUI wrapper for the build command
@@ -66,20 +66,38 @@ func (b *BuildTUI) Stop() {
 	b.adapter.Stop()
 }
 
+// handlePhaseEvent is a helper for common phase event handling pattern.
+func (b *BuildTUI) handlePhaseEvent(
+	phaseIdx int,
+	phaseName string,
+	started bool,
+	err error,
+	startMsg string,
+	successMsg string,
+	failMsgPrefix string,
+	details map[string]interface{},
+) {
+	if started {
+		b.adapter.StartPhase(phaseIdx, phaseName)
+		b.adapter.Log(LogLevelInfo, startMsg)
+	} else if err != nil {
+		b.adapter.FailPhase(phaseIdx, phaseName, err)
+		b.adapter.Log(LogLevelError, fmt.Sprintf("%s: %v", failMsgPrefix, err))
+	} else {
+		b.adapter.CompletePhase(phaseIdx, phaseName, details)
+		b.adapter.Log(LogLevelInfo, successMsg)
+	}
+}
+
 // OnLoadSpec signals that spec loading has started/completed
 func (b *BuildTUI) OnLoadSpec(started bool, specPath string, err error) {
-	if started {
-		b.adapter.StartPhase(0, "Load spec file")
-		b.adapter.Log(LogLevelInfo, fmt.Sprintf("Loading spec from %s", specPath))
-	} else if err != nil {
-		b.adapter.FailPhase(0, "Load spec file", err)
-		b.adapter.Log(LogLevelError, fmt.Sprintf("Failed to load spec: %v", err))
-	} else {
-		b.adapter.CompletePhase(0, "Load spec file", map[string]interface{}{
-			"path": specPath,
-		})
-		b.adapter.Log(LogLevelInfo, "Spec loaded successfully")
-	}
+	b.handlePhaseEvent(
+		0, "Load spec file", started, err,
+		fmt.Sprintf("Loading spec from %s", specPath),
+		"Spec loaded successfully",
+		"Failed to load spec",
+		map[string]interface{}{"path": specPath},
+	)
 }
 
 // OnValidate signals that validation has started/completed
@@ -123,18 +141,13 @@ func (b *BuildTUI) OnResolve(started bool, dependencies int, err error) {
 
 // OnGenerate signals that output generation has started/completed
 func (b *BuildTUI) OnGenerate(started bool, format string, err error) {
-	if started {
-		b.adapter.StartPhase(3, "Generate output")
-		b.adapter.Log(LogLevelInfo, fmt.Sprintf("Generating %s output...", format))
-	} else if err != nil {
-		b.adapter.FailPhase(3, "Generate output", err)
-		b.adapter.Log(LogLevelError, fmt.Sprintf("Generation failed: %v", err))
-	} else {
-		b.adapter.CompletePhase(3, "Generate output", map[string]interface{}{
-			"format": format,
-		})
-		b.adapter.Log(LogLevelInfo, "Output generated")
-	}
+	b.handlePhaseEvent(
+		3, "Generate output", started, err,
+		fmt.Sprintf("Generating %s output...", format),
+		"Output generated",
+		"Generation failed",
+		map[string]interface{}{"format": format},
+	)
 }
 
 // OnWriteFile signals that a file is being written

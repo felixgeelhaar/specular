@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/felixgeelhaar/specular/internal/ux"
 	"github.com/spf13/cobra"
+
+	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
 // CommandContext holds all command-line flags and configuration

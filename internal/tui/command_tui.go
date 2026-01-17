@@ -15,6 +15,7 @@ import (
 // CommandType identifies the type of command being executed
 type CommandType string
 
+// CommandType constants define the available command types.
 const (
 	CommandBuild CommandType = "build"
 	CommandPlan  CommandType = "plan"
@@ -25,6 +26,7 @@ const (
 // CommandState represents the current state of command execution
 type CommandState string
 
+// CommandState constants define the possible execution states.
 const (
 	StateInitializing CommandState = "initializing"
 	StateRunning      CommandState = "running"
@@ -48,6 +50,7 @@ type CommandPhase struct {
 // PhaseStatus indicates the status of a phase
 type PhaseStatus string
 
+// PhaseStatus constants define the possible phase states.
 const (
 	PhasePending   PhaseStatus = "pending"
 	PhaseRunning   PhaseStatus = "running"
@@ -73,25 +76,25 @@ type CommandTUIModel struct {
 	config CommandTUIConfig
 
 	// Command state
-	state       CommandState
-	phases      []CommandPhase
+	state        CommandState
+	phases       []CommandPhase
 	currentPhase int
-	startTime   time.Time
+	startTime    time.Time
 
 	// UI state
-	width       int
-	height      int
-	ready       bool
-	quitting    bool
-	activeTab   int
-	logScroll   int
+	width     int
+	height    int
+	ready     bool
+	quitting  bool
+	activeTab int
+	logScroll int
 
 	// Data
-	logs        []LogEntry
-	maxLogs     int
-	metrics     map[string]interface{}
-	outputs     []OutputItem
-	lastError   string
+	logs      []LogEntry
+	maxLogs   int
+	metrics   map[string]interface{}
+	outputs   []OutputItem
+	lastError string
 
 	// Styles
 	styles CommandStyles
@@ -361,7 +364,9 @@ func (m CommandTUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View renders the TUI
+// View renders the TUI.
+//
+//nolint:dupl // Similar structure to EvalTUIModel.View but different render methods
 func (m CommandTUIModel) View() string {
 	if !m.ready {
 		return "Initializing..."

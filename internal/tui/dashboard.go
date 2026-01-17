@@ -21,6 +21,7 @@ const (
 // LogLevel represents the severity of a log entry
 type LogLevel string
 
+// LogLevel constants define the available log severity levels.
 const (
 	LogLevelInfo  LogLevel = "INFO"
 	LogLevelWarn  LogLevel = "WARN"
