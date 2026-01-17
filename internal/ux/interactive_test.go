@@ -8,12 +8,32 @@ import (
 )
 
 func TestNewInteractiveConfig(t *testing.T) {
-	// Save current env and restore after test
-	oldCI := os.Getenv("CI")
-	defer os.Setenv("CI", oldCI)
+	// Save and restore all CI env vars (same as TestDetectCIEnvironment)
+	ciVars := []string{
+		"CI",
+		"GITHUB_ACTIONS",
+		"GITLAB_CI",
+		"JENKINS_URL",
+		"TRAVIS",
+		"CIRCLECI",
+	}
+
+	savedVars := make(map[string]string)
+	for _, v := range ciVars {
+		savedVars[v] = os.Getenv(v)
+		os.Unsetenv(v)
+	}
+	defer func() {
+		for k, v := range savedVars {
+			if v != "" {
+				os.Setenv(k, v)
+			} else {
+				os.Unsetenv(k)
+			}
+		}
+	}()
 
 	// Test without CI
-	os.Unsetenv("CI")
 	cfg := NewInteractiveConfig()
 	if cfg.IsCI {
 		t.Error("expected IsCI to be false when CI env is not set")
