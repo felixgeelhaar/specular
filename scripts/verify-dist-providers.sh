@@ -8,7 +8,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-DIST_DIR="$ROOT_DIR/dist/providers"
+DIST_DIR="$ROOT_DIR/build/providers"
 
 # Colors for output
 RED='\033[0;31m'

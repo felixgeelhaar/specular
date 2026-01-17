@@ -55,7 +55,7 @@ archives:
       - README.md
       - CHANGELOG.md
       - completions/*
-      - dist/providers/*
+      - build/providers/*
 
 checksum:
   name_template: 'checksums.txt'
