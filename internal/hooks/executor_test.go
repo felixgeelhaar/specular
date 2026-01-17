@@ -269,14 +269,14 @@ func TestExecutorExecuteAsync(t *testing.T) {
 		t.Error("Timeout waiting for result")
 	}
 
-	// Channel should be closed
+	// Channel should be closed - wait a bit for goroutine to close it
 	select {
 	case _, ok := <-resultChan:
 		if ok {
 			t.Error("Channel should be closed")
 		}
-	default:
-		t.Error("Channel should be closed")
+	case <-time.After(100 * time.Millisecond):
+		t.Error("Timeout waiting for channel to close")
 	}
 }
 
