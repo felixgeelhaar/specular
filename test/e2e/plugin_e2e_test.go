@@ -4,6 +4,7 @@ package e2e
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -274,8 +275,9 @@ func TestPluginUpdate(t *testing.T) {
 
 	t.Run("update without plugins", func(t *testing.T) {
 		// This should not crash even without plugins
-		cmd := exec.Command(binary, "plugin", "update")
-		cmd.Timeout = 10 * time.Second
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, binary, "plugin", "update")
 
 		output, err := cmd.CombinedOutput()
 		t.Logf("Update output: %s", output)
