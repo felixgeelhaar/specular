@@ -276,6 +276,143 @@ func TestRecordRegenerate(t *testing.T) {
 	}
 }
 
+// TestActivationMetricContract pins the attribute schema for every
+// activation / AI-trust metric. Downstream dashboards and alert rules
+// depend on these key + value sets, so any drift must surface as a test
+// failure rather than a silent dashboard outage.
+func TestActivationMetricContract(t *testing.T) {
+	mp, reader := setupTestMetrics(t)
+	defer func() { _ = mp.Shutdown(context.Background()) }()
+
+	ctx := context.Background()
+
+	// Drive every recorder once so we can inspect the resulting attribute
+	// schema against a written contract.
+	RecordActivationStep(ctx, ActivationStepStarted, ActivationStatusOK)
+	RecordActivationDuration(ctx, ActivationMilestoneInitComplete, time.Second)
+	RecordRoutingDecision(ctx, "anthropic", "claude-3-5-sonnet", "codegen", "reason text", 0.5)
+	RecordIntervention(ctx, InterventionGatePlanApproval, InterventionDecisionApproved)
+	RecordRegenerate(ctx, "plan", "user_request")
+
+	type contract struct {
+		requiredKeys map[string]struct{}
+		forbiddenKeys map[string]struct{}
+		enumValues   map[string]map[string]struct{} // key -> allowed values; empty map = any value allowed
+	}
+
+	contracts := map[string]contract{
+		"specular.activation.step": {
+			requiredKeys: keyset("step", "status"),
+			enumValues: map[string]map[string]struct{}{
+				"status": stringSet(ActivationStatusOK, ActivationStatusSkipped, ActivationStatusFailed, ActivationStatusAbandoned),
+			},
+		},
+		"specular.activation.duration": {
+			requiredKeys: keyset("milestone"),
+			enumValues: map[string]map[string]struct{}{
+				"milestone": stringSet(ActivationMilestoneInitComplete, ActivationMilestoneFirstSuccess),
+			},
+		},
+		"specular.ai_trust.routing_decision": {
+			requiredKeys:  keyset("provider", "model", "hint", "cost_band"),
+			forbiddenKeys: keyset("reason"),
+		},
+		"specular.ai_trust.intervention": {
+			requiredKeys: keyset("gate", "decision"),
+			enumValues: map[string]map[string]struct{}{
+				"decision": stringSet(InterventionDecisionApproved, InterventionDecisionRejected),
+			},
+		},
+		"specular.ai_trust.regenerate": {
+			requiredKeys: keyset("command", "reason"),
+		},
+	}
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(context.Background(), &rm); err != nil {
+		t.Fatalf("collect: %v", err)
+	}
+
+	checked := map[string]bool{}
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			c, ok := contracts[m.Name]
+			if !ok {
+				continue
+			}
+			checked[m.Name] = true
+			for _, dp := range datapointAttributes(m) {
+				attrs := dp.ToSlice()
+				for k := range c.requiredKeys {
+					if !hasAttribute(attrs, k) {
+						t.Errorf("%s missing required attribute %q (%v)", m.Name, k, attrs)
+					}
+				}
+				for k := range c.forbiddenKeys {
+					if hasAttribute(attrs, k) {
+						t.Errorf("%s contains forbidden attribute %q (%v)", m.Name, k, attrs)
+					}
+				}
+				for k, allowed := range c.enumValues {
+					for _, kv := range attrs {
+						if string(kv.Key) != k {
+							continue
+						}
+						if _, ok := allowed[kv.Value.AsString()]; !ok {
+							t.Errorf("%s attribute %q value %q outside allowed enum %v",
+								m.Name, k, kv.Value.AsString(), keys(allowed))
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for name := range contracts {
+		if !checked[name] {
+			t.Errorf("contract metric %q was not emitted", name)
+		}
+	}
+}
+
+func datapointAttributes(m metricdata.Metrics) []attribute.Set {
+	switch d := m.Data.(type) {
+	case metricdata.Sum[int64]:
+		out := make([]attribute.Set, 0, len(d.DataPoints))
+		for _, dp := range d.DataPoints {
+			out = append(out, dp.Attributes)
+		}
+		return out
+	case metricdata.Histogram[float64]:
+		out := make([]attribute.Set, 0, len(d.DataPoints))
+		for _, dp := range d.DataPoints {
+			out = append(out, dp.Attributes)
+		}
+		return out
+	}
+	return nil
+}
+
+func keyset(items ...string) map[string]struct{} {
+	out := make(map[string]struct{}, len(items))
+	for _, k := range items {
+		out[k] = struct{}{}
+	}
+	return out
+}
+
+func stringSet(items ...string) map[string]struct{} {
+	return keyset(items...)
+}
+
+func keys(m map[string]struct{}) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
+}
+
 func TestActivationRecordersAreNoopWhenUninitialised(t *testing.T) {
 	resetMetricsForTest()
 	defer resetMetricsForTest()
@@ -359,7 +496,5 @@ func hasAttributeValue(attrs []attribute.KeyValue, key, value string) bool {
 }
 
 func resetMetricsForTest() {
-	meterMu.Lock()
-	defer meterMu.Unlock()
-	metrics = nil
+	resetMetricsForRetry()
 }

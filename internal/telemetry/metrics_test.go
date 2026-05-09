@@ -2,7 +2,6 @@ package telemetry
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -29,11 +28,12 @@ func setupTestMetrics(t *testing.T) (*sdkmetric.MeterProvider, *sdkmetric.Manual
 		sdkmetric.WithReader(reader),
 	)
 
-	// Set global provider and reset metricsOnce to allow re-initialization
+	// Swap in the test meter provider and clear the cached metrics so
+	// initMetrics rebuilds against the fresh ManualReader.
 	meterMu.Lock()
 	globalMeterProvider = mp
-	metricsOnce = sync.Once{} // Reset to allow initMetrics to run again
 	meterMu.Unlock()
+	resetMetricsForRetry()
 
 	if err := initMetrics(); err != nil {
 		t.Fatalf("initMetrics failed: %v", err)

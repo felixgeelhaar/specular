@@ -1,6 +1,6 @@
 {
   "project_id": "specular",
-  "version": 17,
+  "version": 18,
   "task_states": {
     "task-activation-and-ai-trust-telemetry": {
       "status": "done",
@@ -84,12 +84,16 @@
       "elapsed_minutes": 14
     },
     "task-telemetry-hardening-for-activation-and-ai-trust-pipeline": {
-      "status": "in_progress",
+      "status": "done",
       "path": "",
       "owner": "ai-agent",
+      "evidence": [
+        "M9.6 telemetry hardening: routing-decision counter cardinality bounded (reason moved to span event, hint validated against allowlist), activation marker writes are atomic (temp+rename) with schema version + ownership-sibling guard, first_success emission is sentinel-protected against concurrent double-emit, metricsOnce replaced with mutex-guarded re-init for failure recovery, findSpecularDir bounded at home + 64 depth + ownership check. Tests: cardinality fitness, concurrency (50-goroutine fan-out, race-clean), schema version round-trip + future-version refusal, ownership rejection, CostBand monotonic property test (rapid.Check) + boundary pinning, metric attribute contract test (TestActivationMetricContract), runInit integration test (TestExecuteInitWritesActivationMarker). Full repo go test ./... and -race clean."
+      ],
       "started_at": "2026-05-09T08:41:06.293955+02:00",
-      "elapsed_minutes": 0
+      "completed_at": "2026-05-09T08:56:03.108421+02:00",
+      "elapsed_minutes": 14
     }
   },
-  "updated_at": "2026-05-09T08:41:06.293955+02:00"
+  "updated_at": "2026-05-09T08:56:03.108422+02:00"
 }

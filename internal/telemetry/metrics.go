@@ -24,8 +24,11 @@ var (
 	meterMu sync.RWMutex
 	// metrics holds all registered metrics
 	metrics *Metrics
-	// metricsOnce ensures metrics are initialized only once
-	metricsOnce sync.Once
+	// metricsInitMu serialises initMetrics so that a partial-init failure
+	// can be retried by a subsequent call. Replaces the previous sync.Once,
+	// which would have been consumed on first failure and silently no-op'd
+	// every retry afterwards.
+	metricsInitMu sync.Mutex
 )
 
 // Metrics holds all registered OpenTelemetry metrics
@@ -112,10 +115,21 @@ func InitMetricsProvider(ctx context.Context, cfg Config) (func(context.Context)
 	return globalMetricsShutdown, nil
 }
 
-// initMetrics initializes all metric instruments
+// initMetrics initializes all metric instruments. It is safe to call
+// repeatedly: a successful init is cached, and a partial failure leaves
+// `metrics` nil so a later call (e.g. after the OTel SDK recovers) can
+// retry. This intentionally replaces the previous `sync.Once` shape, which
+// poisoned the singleton on first failure.
 func initMetrics() error {
+	metricsInitMu.Lock()
+	defer metricsInitMu.Unlock()
+
+	if metrics != nil {
+		return nil
+	}
+
 	var initErr error
-	metricsOnce.Do(func() {
+	func() {
 		meter := globalMeterProvider.Meter("github.com/felixgeelhaar/specular")
 
 		m := &Metrics{}
@@ -242,9 +256,19 @@ func initMetrics() error {
 		}
 
 		metrics = m
-	})
+	}()
 
 	return initErr
+}
+
+// resetMetricsForRetry is a test-only helper that clears the cached metrics
+// pointer so the next initMetrics call rebuilds the instrument set. It is
+// the supported way to recover from a deliberate fault-injection or to
+// re-initialise against a fresh MeterProvider in unit tests.
+func resetMetricsForRetry() {
+	metricsInitMu.Lock()
+	defer metricsInitMu.Unlock()
+	metrics = nil
 }
 
 // GetMetrics returns the initialized metrics instance
