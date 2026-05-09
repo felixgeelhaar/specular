@@ -170,6 +170,79 @@ func TestBuildDockerArgs(t *testing.T) {
 	}
 }
 
+func TestValidateDockerStep(t *testing.T) {
+	tests := []struct {
+		name    string
+		step    Step
+		wantErr bool
+	}{
+		{
+			name: "valid step",
+			step: Step{
+				Image:   "alpine:latest",
+				Cmd:     []string{"echo", "ok"},
+				Workdir: "/workspace",
+				Env: map[string]string{
+					"FOO": "bar",
+				},
+				CPU:     "1.5",
+				Mem:     "512m",
+				Network: "none",
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing image",
+			step: Step{Cmd: []string{"echo"}},
+			wantErr: true,
+		},
+		{
+			name: "invalid image characters",
+			step: Step{Image: "alpine;rm", Cmd: []string{"echo"}},
+			wantErr: true,
+		},
+		{
+			name: "missing command",
+			step: Step{Image: "alpine:latest"},
+			wantErr: true,
+		},
+		{
+			name: "relative workdir",
+			step: Step{Image: "alpine:latest", Cmd: []string{"echo"}, Workdir: "tmp/work"},
+			wantErr: true,
+		},
+		{
+			name: "invalid env key",
+			step: Step{Image: "alpine:latest", Cmd: []string{"echo"}, Env: map[string]string{"BAD-KEY": "x"}},
+			wantErr: true,
+		},
+		{
+			name: "invalid cpu format",
+			step: Step{Image: "alpine:latest", Cmd: []string{"echo"}, CPU: "1cpu"},
+			wantErr: true,
+		},
+		{
+			name: "invalid memory format",
+			step: Step{Image: "alpine:latest", Cmd: []string{"echo"}, Mem: "2gbb"},
+			wantErr: true,
+		},
+		{
+			name: "invalid network",
+			step: Step{Image: "alpine:latest", Cmd: []string{"echo"}, Network: "none;host"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateDockerStep(tt.step)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateDockerStep() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 // Helper functions
 func containsString(slice []string, str string) bool {
 	for _, s := range slice {
@@ -306,5 +379,31 @@ func TestPullImage(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRunDockerReturnsExitCodeOnContainerFailure(t *testing.T) {
+	ctx := context.Background()
+
+	if err := ValidateDockerAvailable(ctx); err != nil {
+		t.Skip("Docker not available, skipping test")
+	}
+
+	step := Step{
+		Image: "alpine:latest",
+		Cmd:   []string{"sh", "-c", "exit 7"},
+	}
+
+	res, err := RunDocker(ctx, step)
+	if err != nil {
+		t.Fatalf("RunDocker() unexpected error: %v", err)
+	}
+
+	if res.ExitCode != 7 {
+		t.Fatalf("RunDocker() exit code = %d, want 7", res.ExitCode)
+	}
+
+	if res.Error == nil {
+		t.Fatalf("RunDocker() expected non-nil execution error for failed container command")
 	}
 }

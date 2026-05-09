@@ -1,0 +1,73 @@
+{
+  "project_id": "specular",
+  "version": 15,
+  "task_states": {
+    "task-activation-and-ai-trust-telemetry": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "M9.4: activation funnel + AI trust telemetry instrumented (internal/telemetry/activation.go, internal/cmd/activation.go, init.go, router/router.go, auto/auto.go, cmd/approve.go); 9 new metric instruments; tests pass for telemetry, router, auto, cmd packages"
+      ],
+      "started_at": "2026-05-09T07:32:14.908742+02:00",
+      "completed_at": "2026-05-09T07:45:33.173946+02:00",
+      "elapsed_minutes": 13
+    },
+    "task-core-foundation": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "Implemented global flag validation, governed policy preflight for build run/verify, policy path resolution, and config precedence tests; verified with go test ./internal/cmd and make test (all pass)."
+      ],
+      "started_at": "2026-05-08T21:56:39.995666+02:00",
+      "completed_at": "2026-05-08T22:14:07.600066+02:00",
+      "elapsed_minutes": 17
+    },
+    "task-gtm-wedge-and-role-based-launch-assets": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "M9.5: GTM wedge + role-based assets shipped under docs/gtm/ — wedge positioning, PE+Security persona tracks, 30/60/90 pilot playbooks for each, objection-handling cheatsheet with 7 objections, framework mapping (SOC2/ISO42001/EU AI Act/NIST AI RMF/PCI DSS); README quick-link updated; CHANGELOG entry added"
+      ],
+      "started_at": "2026-05-09T07:46:54.846409+02:00",
+      "completed_at": "2026-05-09T07:52:04.211041+02:00",
+      "elapsed_minutes": 5
+    },
+    "task-guided-onboarding-and-activation-flow": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "Implemented provider init UX improvements: setup summary, actionable next steps, optional quick doctor check, fixed provider doctor error handling bug."
+      ],
+      "started_at": "2026-05-06T21:57:17.460445+02:00",
+      "completed_at": "2026-05-06T22:04:00.670126+02:00",
+      "elapsed_minutes": 6
+    },
+    "task-provider-reliability-and-coverage-uplift": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "Added deterministic router fallback tests (generateWithFallback + streamWithFallback success/failure paths), increased internal/router coverage to 84.7% (from 74.2%), and validated with go test ./internal/router plus make test and roady policy check (no violations)."
+      ],
+      "started_at": "2026-05-06T22:18:11.99085+02:00",
+      "completed_at": "2026-05-08T22:19:22.512149+02:00",
+      "elapsed_minutes": 2881
+    },
+    "task-security-hardening-for-execution-paths": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "Hardened execution paths: validated docker step inputs, secured plugin entrypoint resolution against traversal, tightened GitHub source validation for plugin installs, and enforced script hook absolute path/null-byte validation with regression tests."
+      ],
+      "started_at": "2026-05-06T22:04:00.793544+02:00",
+      "completed_at": "2026-05-06T22:18:11.878914+02:00",
+      "elapsed_minutes": 14
+    }
+  },
+  "updated_at": "2026-05-09T07:52:04.211043+02:00"
+}

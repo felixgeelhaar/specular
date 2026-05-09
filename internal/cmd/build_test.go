@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/felixgeelhaar/specular/internal/plan"
@@ -271,6 +273,50 @@ func TestBuildManifestLookup(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEnsureGovernedPolicyFile(t *testing.T) {
+	t.Run("missing path", func(t *testing.T) {
+		err := ensureGovernedPolicyFile("")
+		if err == nil {
+			t.Fatal("expected error for empty policy path")
+		}
+	})
+
+	t.Run("missing file", func(t *testing.T) {
+		err := ensureGovernedPolicyFile(".specular/policy.yaml")
+		if err == nil {
+			t.Fatal("expected error for missing policy file")
+		}
+	})
+
+	t.Run("valid file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		oldWD, err := os.Getwd()
+		if err != nil {
+			t.Fatalf("getwd failed: %v", err)
+		}
+		t.Cleanup(func() {
+			_ = os.Chdir(oldWD)
+		})
+
+		if err := os.Chdir(tmpDir); err != nil {
+			t.Fatalf("chdir failed: %v", err)
+		}
+
+		if err := os.MkdirAll(".specular", 0755); err != nil {
+			t.Fatalf("mkdir failed: %v", err)
+		}
+
+		policyPath := filepath.Join(".specular", "policy.yaml")
+		if err := os.WriteFile(policyPath, []byte("version: \"1.0\"\n"), 0600); err != nil {
+			t.Fatalf("write policy file failed: %v", err)
+		}
+
+		if err := ensureGovernedPolicyFile(policyPath); err != nil {
+			t.Fatalf("expected valid policy file, got error: %v", err)
+		}
+	})
 }
 
 // TestBuildApproveValidation tests the approval validation logic

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +16,8 @@ import (
 
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
+
+var githubRepoPattern = regexp.MustCompile(`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`)
 
 // Manager handles plugin discovery, loading, and execution
 type Manager struct {
@@ -250,10 +253,25 @@ func (m *Manager) Execute(ctx context.Context, name string, request interface{})
 
 // executePlugin runs a plugin executable
 func (m *Manager) executePlugin(ctx context.Context, plugin *Plugin, request interface{}) (*PluginResponse, error) {
+	if strings.TrimSpace(plugin.Path) == "" {
+		return nil, fmt.Errorf("plugin path is empty")
+	}
+
 	// Get entrypoint path
 	entrypointPath := plugin.Manifest.Entrypoint
+	if strings.TrimSpace(entrypointPath) == "" {
+		return nil, fmt.Errorf("plugin entrypoint is empty")
+	}
+	if strings.ContainsRune(entrypointPath, '\x00') {
+		return nil, fmt.Errorf("plugin entrypoint contains null byte")
+	}
+
 	if !filepath.IsAbs(entrypointPath) {
-		entrypointPath = filepath.Join(plugin.Path, entrypointPath)
+		resolvedPath, err := safeutil.JoinInsideBase(plugin.Path, entrypointPath)
+		if err != nil {
+			return nil, fmt.Errorf("resolve plugin entrypoint: %w", err)
+		}
+		entrypointPath = resolvedPath
 	}
 
 	// Serialize request
@@ -451,8 +469,9 @@ func (m *Manager) installFromGitHub(source string) error {
 	repo := strings.TrimPrefix(source, "https://github.com/")
 	repo = strings.TrimPrefix(repo, "github.com/")
 	repo = strings.TrimSuffix(repo, ".git")
+	repo = strings.TrimSpace(repo)
 
-	if !strings.Contains(repo, "/") {
+	if !githubRepoPattern.MatchString(repo) {
 		return fmt.Errorf("invalid GitHub repository format (expected: github.com/user/repo)")
 	}
 
@@ -668,6 +687,9 @@ func (m *Manager) installFromGitHubWithOptions(src *PluginSource, opts InstallOp
 	// Clone repository
 	fmt.Printf("Cloning %s...\n", src.String())
 	cloneURL := src.GitHubCloneURL()
+	if err := src.ValidateVersion(); err != nil {
+		return fmt.Errorf("invalid source version: %w", err)
+	}
 
 	var gitArgs []string
 	if src.Version != "" {
@@ -687,7 +709,10 @@ func (m *Manager) installFromGitHubWithOptions(src *PluginSource, opts InstallOp
 	// If there's a subpath, use that as the source
 	sourcePath := tmpDir
 	if src.Subpath != "" {
-		sourcePath = filepath.Join(tmpDir, src.Subpath)
+		sourcePath, err = safeutil.JoinInsideBase(tmpDir, src.Subpath)
+		if err != nil {
+			return fmt.Errorf("invalid plugin subpath: %w", err)
+		}
 		if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
 			return fmt.Errorf("subpath not found in repository: %s", src.Subpath)
 		}

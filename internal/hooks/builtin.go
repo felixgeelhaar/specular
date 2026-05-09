@@ -6,10 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
+
+var invalidEnvKeyChar = regexp.MustCompile(`[^A-Z0-9_]`)
 
 // ScriptHook executes a shell script
 type ScriptHook struct {
@@ -26,6 +31,12 @@ func NewScriptHook(config *HookConfig) (Hook, error) {
 	scriptPath, ok := config.Config["script"].(string)
 	if !ok || scriptPath == "" {
 		return nil, fmt.Errorf("script path required")
+	}
+	if strings.ContainsRune(scriptPath, '\x00') {
+		return nil, fmt.Errorf("script path contains forbidden characters")
+	}
+	if !filepath.IsAbs(scriptPath) {
+		return nil, fmt.Errorf("script path must be absolute")
 	}
 
 	hook := &ScriptHook{
@@ -49,7 +60,19 @@ func NewScriptHook(config *HookConfig) (Hook, error) {
 
 	// Optional shell
 	if shell, ok := config.Config["shell"].(string); ok && shell != "" {
+		if strings.ContainsRune(shell, '\x00') {
+			return nil, fmt.Errorf("shell contains forbidden characters")
+		}
+		if !filepath.IsAbs(shell) {
+			return nil, fmt.Errorf("shell must be an absolute path")
+		}
 		hook.shell = shell
+	}
+
+	for _, arg := range hook.args {
+		if strings.ContainsRune(arg, '\x00') {
+			return nil, fmt.Errorf("hook argument contains forbidden characters")
+		}
 	}
 
 	return hook, nil
@@ -68,17 +91,21 @@ func (h *ScriptHook) Execute(ctx context.Context, event *Event) error {
 	// Add event data as env vars
 	for key, value := range event.Data {
 		if str, ok := value.(string); ok {
-			env = append(env, fmt.Sprintf("HOOK_%s=%s", strings.ToUpper(key), str))
+			sanitized := sanitizeHookEnvKey(key)
+			if sanitized == "" {
+				continue
+			}
+			env = append(env, fmt.Sprintf("HOOK_%s=%s", sanitized, str))
 		}
 	}
 
 	// Create command
-	args := append([]string{h.scriptPath}, h.args...)
+	args := append([]string{"--", h.scriptPath}, h.args...)
 	cmd, err := safeutil.SafeCommand(ctx, h.shell, args...)
 	if err != nil {
 		return fmt.Errorf("failed to prepare hook command: %w", err)
 	}
-	cmd.Env = env
+	cmd.Env = append(os.Environ(), env...)
 
 	// Capture output
 	var stdout, stderr bytes.Buffer
@@ -91,6 +118,16 @@ func (h *ScriptHook) Execute(ctx context.Context, event *Event) error {
 	}
 
 	return nil
+}
+
+func sanitizeHookEnvKey(key string) string {
+	upper := strings.ToUpper(strings.TrimSpace(key))
+	if upper == "" {
+		return ""
+	}
+	upper = invalidEnvKeyChar.ReplaceAllString(upper, "_")
+	upper = strings.Trim(upper, "_")
+	return upper
 }
 
 // WebhookHook sends HTTP POST requests

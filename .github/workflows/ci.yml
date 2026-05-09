@@ -54,6 +54,8 @@ jobs:
         with:
           version: v2.7.2
           args: --timeout=5m
+      - name: Run Guardrail
+        run: make guardrail
 
       - name: Build
         run: make build

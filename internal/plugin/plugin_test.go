@@ -724,3 +724,40 @@ entrypoint: "./missing.sh"
 		t.Errorf("Plugin with missing entrypoint state = %s, want error", plugin.State)
 	}
 }
+
+func TestInstallFromGitHubRejectsInvalidRepoFormat(t *testing.T) {
+	manager := NewManager(DefaultManagerConfig())
+
+	invalidSources := []string{
+		"github.com/owner",
+		"https://github.com/owner/repo/extra",
+		"https://github.com/owner/repo;rm",
+		"owner/repo",
+	}
+
+	for _, src := range invalidSources {
+		t.Run(src, func(t *testing.T) {
+			err := manager.installFromGitHub(src)
+			if err == nil {
+				t.Fatalf("installFromGitHub(%q) expected error", src)
+			}
+		})
+	}
+}
+
+func TestExecutePluginRejectsEntrypointTraversal(t *testing.T) {
+	manager := NewManager(DefaultManagerConfig())
+
+	plugin := &Plugin{
+		Manifest: Manifest{
+			Name:       "traversal",
+			Entrypoint: "../outside.sh",
+		},
+		Path: "/tmp/specular-plugin",
+	}
+
+	_, err := manager.executePlugin(context.Background(), plugin, map[string]string{"action": "health"})
+	if err == nil {
+		t.Fatal("expected entrypoint traversal to be rejected")
+	}
+}

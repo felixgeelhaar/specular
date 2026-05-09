@@ -29,7 +29,7 @@ make build
 ./specular version
 ```
 
-### Via Homebrew (Coming Soon)
+### Via Homebrew
 
 ```bash
 brew tap felixgeelhaar/tap
@@ -37,7 +37,7 @@ brew install specular
 specular version
 ```
 
-### Via Download (Coming Soon)
+### Via Download
 
 Download pre-built binaries from the [releases page](https://github.com/felixgeelhaar/specular/releases).
 
@@ -164,9 +164,14 @@ policies:
     rule: "coverage >= 0.80"
     severity: error
 
-  # Security
-  - id: no-hardcoded-secrets
-    description: "Prevent hardcoded secrets"
+   # Security
+   - id: no-hardcoded-secrets
+     description: "Prevent hardcoded secrets"
+   - id: no-exec-command
+     description: "Disallow direct exec.Command usage"
+     rule: "exec.Command* prohibited"
+     severity: error
+
     rule: "!contains(code, 'API_KEY') || contains(code, 'os.Getenv')"
     severity: error
 

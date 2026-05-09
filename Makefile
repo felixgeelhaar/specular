@@ -14,7 +14,7 @@ install:
 	go install ./cmd/specular
 
 # Run tests
-test:
+test: guardrail
 	go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 # Run tests with coverage report
@@ -46,6 +46,11 @@ lint:
 fmt:
 	go fmt ./...
 	gofmt -s -w .
+
+# Guardrail: static analysis for insecure exec/write usage
+guardrail:
+	@echo "Running security guardrail..."
+	go run ./tools/guardrail/main.go
 
 # Tidy dependencies
 tidy:

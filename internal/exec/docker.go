@@ -5,16 +5,30 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
+var (
+	dockerImagePattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._/:@-]*$`)
+	envKeyPattern      = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+	cpuLimitPattern    = regexp.MustCompile(`^\d+(\.\d+)?$`)
+	memoryLimitPattern = regexp.MustCompile(`^\d+[bkmgBKMG]?$`)
+	networkModePattern = regexp.MustCompile(`^[a-zA-Z0-9_.:-]+$`)
+)
+
 // RunDocker executes a step in a Docker container with security constraints.
 // The context is used to provide timeout and cancellation support.
 func RunDocker(ctx context.Context, step Step) (*Result, error) {
 	startTime := time.Now()
+
+	if err := validateDockerStep(step); err != nil {
+		return nil, fmt.Errorf("invalid docker step: %w", err)
+	}
 
 	// Build Docker command with security constraints
 	args := buildDockerArgs(step)
@@ -39,7 +53,7 @@ func RunDocker(ctx context.Context, step Step) (*Result, error) {
 		if ctx.Err() != nil {
 			return nil, fmt.Errorf("docker command cancelled or timed out: %w", ctx.Err())
 		}
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr, ok := runErr.(*exec.ExitError); ok {
 			exitCode = exitErr.ExitCode()
 		} else {
 			// Command failed to start
@@ -54,6 +68,56 @@ func RunDocker(ctx context.Context, step Step) (*Result, error) {
 		Duration: time.Since(startTime),
 		Error:    runErr,
 	}, nil
+}
+
+func validateDockerStep(step Step) error {
+	if strings.TrimSpace(step.Image) == "" {
+		return fmt.Errorf("image is required")
+	}
+	if !dockerImagePattern.MatchString(step.Image) {
+		return fmt.Errorf("image contains invalid characters")
+	}
+
+	if len(step.Cmd) == 0 {
+		return fmt.Errorf("command is required")
+	}
+	for i, arg := range step.Cmd {
+		if strings.ContainsRune(arg, '\x00') {
+			return fmt.Errorf("command argument %d contains null byte", i)
+		}
+	}
+
+	if step.Workdir != "" {
+		if strings.ContainsRune(step.Workdir, '\x00') {
+			return fmt.Errorf("workdir contains null byte")
+		}
+		if !filepath.IsAbs(step.Workdir) {
+			return fmt.Errorf("workdir must be an absolute path")
+		}
+	}
+
+	if step.Network != "" && !networkModePattern.MatchString(step.Network) {
+		return fmt.Errorf("network contains invalid characters")
+	}
+
+	if step.CPU != "" && !cpuLimitPattern.MatchString(step.CPU) {
+		return fmt.Errorf("cpu limit has invalid format")
+	}
+
+	if step.Mem != "" && !memoryLimitPattern.MatchString(step.Mem) {
+		return fmt.Errorf("memory limit has invalid format")
+	}
+
+	for k, v := range step.Env {
+		if !envKeyPattern.MatchString(k) {
+			return fmt.Errorf("invalid environment variable name: %s", k)
+		}
+		if strings.ContainsRune(v, '\x00') {
+			return fmt.Errorf("environment variable %s contains null byte", k)
+		}
+	}
+
+	return nil
 }
 
 // buildDockerArgs constructs the Docker command arguments with security constraints

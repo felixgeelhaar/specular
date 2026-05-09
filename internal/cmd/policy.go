@@ -206,18 +206,18 @@ func runPolicyValidate(cmd *cobra.Command, args []string) error {
 	}
 
 	strict := cmd.Flags().Lookup("strict").Value.String() == "true"
-	policyPath := filepath.Join(".specular", "policies.yaml")
+	policyPath, err := resolvePolicyPath()
+	if err != nil {
+		fmt.Println("❌ FAIL: policies file not found")
+		fmt.Println("   Expected one of: .specular/policies.yaml or .specular/policy.yaml")
+		fmt.Println("   Run 'specular policy init' to create a starter template")
+		return err
+	}
 
 	fmt.Println("Validating policies...")
 	fmt.Println()
 
-	// Check file exists
-	if _, err := os.Stat(policyPath); os.IsNotExist(err) {
-		fmt.Println("❌ FAIL: policies.yaml not found")
-		fmt.Println("   Run 'specular policy init' to create it")
-		return fmt.Errorf("policies.yaml not found")
-	}
-	fmt.Println("✓ policies.yaml exists")
+	fmt.Printf("✓ policy file exists: %s\n", policyPath)
 
 	// Load and parse YAML
 	data, err := os.ReadFile(policyPath)
@@ -286,7 +286,10 @@ func runPolicyApprove(cmd *cobra.Command, args []string) error {
 	user := cmd.Flags().Lookup("user").Value.String()
 	message := cmd.Flags().Lookup("message").Value.String()
 
-	policyPath := filepath.Join(".specular", "policies.yaml")
+	policyPath, err := resolvePolicyPath()
+	if err != nil {
+		return err
+	}
 
 	// Validate first
 	data, err := os.ReadFile(policyPath)
@@ -345,7 +348,10 @@ func runPolicyList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	policyPath := filepath.Join(".specular", "policies.yaml")
+	policyPath, err := resolvePolicyPath()
+	if err != nil {
+		return err
+	}
 
 	// Load policy file
 	data, err := os.ReadFile(policyPath)
@@ -417,7 +423,10 @@ func runPolicyDiff(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	policyPath := filepath.Join(".specular", "policies.yaml")
+	policyPath, err := resolvePolicyPath()
+	if err != nil {
+		return err
+	}
 	approvalsDir := filepath.Join(".specular", "approvals")
 
 	// Load current policies
@@ -475,6 +484,21 @@ func runPolicyDiff(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	return nil
+}
+
+func resolvePolicyPath() (string, error) {
+	candidates := []string{
+		filepath.Join(".specular", "policies.yaml"),
+		filepath.Join(".specular", "policy.yaml"),
+	}
+
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	return "", fmt.Errorf("no policy file found (checked: %s)", strings.Join(candidates, ", "))
 }
 
 // Policy templates

@@ -70,6 +70,41 @@ func TestNewScriptHookMissingScript(t *testing.T) {
 	}
 }
 
+func TestNewScriptHookRejectsRelativeScriptPath(t *testing.T) {
+	config := &HookConfig{
+		Name:    "test-script",
+		Type:    "script",
+		Events:  []EventType{EventWorkflowStart},
+		Enabled: true,
+		Config: map[string]interface{}{
+			"script": "scripts/test.sh",
+		},
+	}
+
+	_, err := NewScriptHook(config)
+	if err == nil {
+		t.Fatal("expected error for relative script path")
+	}
+}
+
+func TestNewScriptHookRejectsRelativeShellPath(t *testing.T) {
+	config := &HookConfig{
+		Name:    "test-script",
+		Type:    "script",
+		Events:  []EventType{EventWorkflowStart},
+		Enabled: true,
+		Config: map[string]interface{}{
+			"script": "/tmp/test.sh",
+			"shell":  "bash",
+		},
+	}
+
+	_, err := NewScriptHook(config)
+	if err == nil {
+		t.Fatal("expected error for relative shell path")
+	}
+}
+
 func TestScriptHookExecute(t *testing.T) {
 	// Create a temporary script
 	tmpDir := t.TempDir()
@@ -106,6 +141,27 @@ exit 0
 	err = hook.Execute(context.Background(), event)
 	if err != nil {
 		t.Errorf("Execute failed: %v", err)
+	}
+}
+
+func TestSanitizeHookEnvKey(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{in: "simple", want: "SIMPLE"},
+		{in: " build-id ", want: "BUILD_ID"},
+		{in: "a/b\\c.d", want: "A_B_C_D"},
+		{in: "__already__", want: "ALREADY"},
+		{in: "", want: ""},
+		{in: "   ", want: ""},
+	}
+
+	for _, tt := range tests {
+		got := sanitizeHookEnvKey(tt.in)
+		if got != tt.want {
+			t.Fatalf("sanitizeHookEnvKey(%q) = %q, want %q", tt.in, got, tt.want)
+		}
 	}
 }
 

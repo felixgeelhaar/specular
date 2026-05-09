@@ -13,6 +13,7 @@ type Scheduler struct {
 	checkInterval time.Duration
 	gracePeriod   time.Duration
 	rotationTTL   time.Duration // Time before expiry to trigger rotation
+	orgIDs        []string      // Optional list of organization IDs to scan
 	stopChan      chan struct{}
 	done          chan struct{}
 }
@@ -23,6 +24,7 @@ type SchedulerConfig struct {
 	CheckInterval time.Duration // How often to check for keys needing rotation (default: 1 hour)
 	GracePeriod   time.Duration // Grace period for old keys after rotation (default: 7 days)
 	RotationTTL   time.Duration // Rotate keys this far before expiry (default: 7 days)
+	OrgIDs        []string      // Optional list of organization IDs to scan (if empty, no automatic rotation)
 }
 
 // NewScheduler creates a new rotation scheduler.
@@ -47,6 +49,7 @@ func NewScheduler(cfg SchedulerConfig) (*Scheduler, error) {
 		checkInterval: cfg.CheckInterval,
 		gracePeriod:   cfg.GracePeriod,
 		rotationTTL:   cfg.RotationTTL,
+		orgIDs:        cfg.OrgIDs,
 		stopChan:      make(chan struct{}),
 		done:          make(chan struct{}),
 	}, nil
@@ -87,15 +90,20 @@ func (s *Scheduler) Stop() {
 func (s *Scheduler) checkRotations(ctx context.Context) {
 	log.Println("Checking for API keys needing rotation...")
 
-	// In a real implementation, you would iterate through all organizations
-	// For now, this is a placeholder that would need organization listing capability
-
-	// TODO: Implement organization iteration using rotateKeys for each org
-	// For now, we'll just log
-	log.Println("Rotation check completed (organization iteration not yet implemented)")
-
-	// Suppress unused context warning
-	_ = ctx
+	if len(s.orgIDs) == 0 {
+		log.Println("Rotation check completed (no organization IDs configured)")
+		// Suppress unused context warning
+		_ = ctx
+		return
+	}
+	for _, orgID := range s.orgIDs {
+		rotated, err := s.rotateKeys(ctx, orgID, false)
+		if err != nil {
+			log.Printf("ERROR rotating keys for org %s: %v", orgID, err)
+			continue
+		}
+		log.Printf("Rotated %d keys for organization %s", rotated, orgID)
+	}
 }
 
 // needsRotation determines if an API key needs rotation.

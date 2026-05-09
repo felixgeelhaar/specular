@@ -48,6 +48,8 @@ var (
 	githubShorthand = regexp.MustCompile(`^github\.com/([^/]+)/([^/@.]+)(?:\.git)?(?:@([^/]+))?(?:/(.+))?$`)
 	// registryPattern matches registry:name[@version]
 	registryPattern = regexp.MustCompile(`^registry:([^@]+)(?:@(.+))?$`)
+	// gitRefPattern matches safe git refs for branch/tag/sha inputs.
+	gitRefPattern = regexp.MustCompile(`^[A-Za-z0-9._/-]+$`)
 )
 
 // ParseSource parses a plugin source string into a PluginSource
@@ -115,29 +117,65 @@ func parseLocalSource(source string) (*PluginSource, error) {
 func parseGitHubSource(source string) (*PluginSource, error) {
 	// Try full URL pattern first
 	if matches := githubFullURL.FindStringSubmatch(source); matches != nil {
-		return &PluginSource{
+		src := &PluginSource{
 			Type:    SourceTypeGitHub,
 			Raw:     source,
 			Owner:   matches[1],
 			Repo:    matches[2],
 			Version: matches[3],
 			Subpath: matches[4],
-		}, nil
+		}
+		if err := validateGitHubSourceFields(src); err != nil {
+			return nil, err
+		}
+		return src, nil
 	}
 
 	// Try shorthand pattern
 	if matches := githubShorthand.FindStringSubmatch(source); matches != nil {
-		return &PluginSource{
+		src := &PluginSource{
 			Type:    SourceTypeGitHub,
 			Raw:     source,
 			Owner:   matches[1],
 			Repo:    matches[2],
 			Version: matches[3],
 			Subpath: matches[4],
-		}, nil
+		}
+		if err := validateGitHubSourceFields(src); err != nil {
+			return nil, err
+		}
+		return src, nil
 	}
 
 	return nil, fmt.Errorf("invalid GitHub source format: %s", source)
+}
+
+func validateGitHubSourceFields(src *PluginSource) error {
+	if src == nil {
+		return fmt.Errorf("invalid GitHub source")
+	}
+
+	if src.Version != "" {
+		if strings.HasPrefix(src.Version, "-") {
+			return fmt.Errorf("invalid GitHub version/ref: must not start with '-' (%s)", src.Version)
+		}
+		if strings.Contains(src.Version, "..") || strings.Contains(src.Version, "\\") {
+			return fmt.Errorf("invalid GitHub version/ref: %s", src.Version)
+		}
+		if !gitRefPattern.MatchString(src.Version) {
+			return fmt.Errorf("invalid GitHub version/ref characters: %s", src.Version)
+		}
+	}
+
+	if src.Subpath != "" {
+		cleanSubpath := filepath.Clean(src.Subpath)
+		if filepath.IsAbs(cleanSubpath) || cleanSubpath == "." || strings.HasPrefix(cleanSubpath, "..") || strings.Contains(cleanSubpath, ".."+string(filepath.Separator)) {
+			return fmt.Errorf("invalid GitHub subpath: %s", src.Subpath)
+		}
+		src.Subpath = cleanSubpath
+	}
+
+	return nil
 }
 
 // parseRegistrySource parses a registry plugin reference

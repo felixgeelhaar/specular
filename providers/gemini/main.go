@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
+
+var geminiModelPattern = regexp.MustCompile(`^[a-zA-Z0-9._:-]{1,80}$`)
 
 // GenerateRequest matches internal/provider/types.go
 type GenerateRequest struct {
@@ -121,7 +124,20 @@ func handleGenerate() error {
 	// Get model from config or use default
 	model := "gemini-2.0-flash-exp"
 	if modelVal, ok := req.Config["model"].(string); ok && modelVal != "" {
+		if !geminiModelPattern.MatchString(modelVal) {
+			return fmt.Errorf("invalid model name")
+		}
 		model = modelVal
+	}
+
+	if req.MaxTokens < 0 || req.MaxTokens > 200000 {
+		return fmt.Errorf("max_tokens must be between 0 and 200000")
+	}
+	if req.Temperature < 0 || req.Temperature > 2 {
+		return fmt.Errorf("temperature must be between 0 and 2")
+	}
+	if req.TopP < 0 || req.TopP > 1 {
+		return fmt.Errorf("top_p must be between 0 and 1")
 	}
 
 	// Call gemini CLI
@@ -131,6 +147,11 @@ func handleGenerate() error {
 	defer cancel()
 
 	args := []string{}
+
+	// Validate numeric ranges (already done above) and avoid null bytes in prompt
+	if strings.ContainsRune(fullPrompt, '\x00') {
+		return fmt.Errorf("prompt contains forbidden characters")
+	}
 
 	// Check if using gcloud or standalone gemini CLI
 	cliCommand := "gemini"
@@ -160,7 +181,7 @@ func handleGenerate() error {
 			args = append(args, "--top-p", fmt.Sprintf("%.2f", req.TopP))
 		}
 
-		// Add the prompt
+		// Add the prompt (already validated)
 		args = append(args, fullPrompt)
 	}
 
@@ -223,6 +244,9 @@ func handleStream() error {
 	// Get model
 	model := "gemini-2.0-flash-exp"
 	if modelVal, ok := req.Config["model"].(string); ok && modelVal != "" {
+		if !geminiModelPattern.MatchString(modelVal) {
+			return fmt.Errorf("invalid model name")
+		}
 		model = modelVal
 	}
 

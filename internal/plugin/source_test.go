@@ -129,6 +129,21 @@ func TestParseSource_GitHub(t *testing.T) {
 			wantRepo:  "my-plugin",
 			wantErr:   false,
 		},
+		{
+			name:    "invalid version starts with dash",
+			source:  "github.com/specular/my-plugin@--upload-pack=evil",
+			wantErr: true,
+		},
+		{
+			name:    "invalid subpath traversal",
+			source:  "github.com/specular/my-plugin@v1.0.0/../../etc",
+			wantErr: true,
+		},
+		{
+			name:    "invalid subpath absolute",
+			source:  "github.com/specular/my-plugin@v1.0.0//etc/passwd",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

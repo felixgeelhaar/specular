@@ -2,14 +2,16 @@
 package benchmark
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 // StartupResult contains the results of a startup time measurement.
@@ -51,7 +53,10 @@ func MeasureStartup(binary string, args []string, iterations int) (*StartupResul
 
 	for i := 0; i < iterations; i++ {
 		start := time.Now()
-		c := exec.Command(binary, args...) // #nosec G204 -- benchmark tool with trusted binary path
+		c, err := safeutil.SafeCommand(context.Background(), binary, args...)
+		if err != nil {
+			return nil, fmt.Errorf("prepare benchmark command: %w", err)
+		}
 		c.Stdout = nil
 		c.Stderr = nil
 		if err := c.Run(); err != nil {

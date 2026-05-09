@@ -455,6 +455,86 @@ func TestSaveAndLoadConfig(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_CreatesDefaultConfigWhenMissing(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	config, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig() error = %v", err)
+	}
+
+	if config.Providers.Default != "ollama" {
+		t.Fatalf("default provider = %q, want %q", config.Providers.Default, "ollama")
+	}
+
+	configPath := filepath.Join(tmpHome, ".specular", "config.yaml")
+	if _, err := os.Stat(configPath); err != nil {
+		t.Fatalf("expected config file at %s: %v", configPath, err)
+	}
+}
+
+func TestLoadConfig_FileOverridesDefaults(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	configPath := filepath.Join(tmpHome, ".specular", "config.yaml")
+	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+		t.Fatalf("failed creating config dir: %v", err)
+	}
+
+	fileConfig := defaultGlobalConfig()
+	fileConfig.Providers.Default = "from-file"
+	fileConfig.Logging.Level = "debug"
+	if err := saveConfig(fileConfig, configPath); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	loaded, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig() error = %v", err)
+	}
+
+	if loaded.Providers.Default != "from-file" {
+		t.Fatalf("provider default = %q, want %q", loaded.Providers.Default, "from-file")
+	}
+	if loaded.Logging.Level != "debug" {
+		t.Fatalf("logging level = %q, want %q", loaded.Logging.Level, "debug")
+	}
+}
+
+func TestLoadConfig_EnvOverridesFile(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+	t.Setenv("SPECULAR_VAULT_MOUNT_PATH", "env-mount")
+
+	configPath := filepath.Join(tmpHome, ".specular", "config.yaml")
+	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+		t.Fatalf("failed creating config dir: %v", err)
+	}
+
+	fileConfig := defaultGlobalConfig()
+	fileConfig.Vault.MountPath = "file-mount"
+	fileConfig.Providers.Default = "from-file"
+	if err := saveConfig(fileConfig, configPath); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	loaded, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig() error = %v", err)
+	}
+
+	if loaded.Vault.MountPath != "env-mount" {
+		t.Fatalf("vault mount path = %q, want %q", loaded.Vault.MountPath, "env-mount")
+	}
+
+	// Non-overridden fields still come from file config.
+	if loaded.Providers.Default != "from-file" {
+		t.Fatalf("provider default = %q, want %q", loaded.Providers.Default, "from-file")
+	}
+}
+
 // Helper function to check if a string slice contains a string
 func contains(slice []string, item string) bool {
 	for _, s := range slice {

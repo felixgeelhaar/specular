@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 // TestProviderCommand tests the provider command configuration
@@ -93,6 +95,32 @@ func TestProviderInitCommand(t *testing.T) {
 
 	if !found {
 		t.Error("init subcommand not found")
+	}
+}
+
+func TestProviderInitFlags(t *testing.T) {
+	var initCmd *cobra.Command
+	for _, cmd := range providerCmd.Commands() {
+		if cmd.Name() == "init" {
+			initCmd = cmd
+			break
+		}
+	}
+
+	if initCmd == nil {
+		t.Fatal("init subcommand not found")
+	}
+
+	if initCmd.Flag("force") == nil {
+		t.Error("expected --force flag on provider init")
+	}
+
+	if initCmd.Flag("recommendations") == nil {
+		t.Error("expected --recommendations flag on provider init")
+	}
+
+	if initCmd.Flag("doctor") == nil {
+		t.Error("expected --doctor flag on provider init")
 	}
 }
 

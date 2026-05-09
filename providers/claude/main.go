@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
+
+var claudeModelPattern = regexp.MustCompile(`^[a-zA-Z0-9._:-]{1,80}$`)
 
 // GenerateRequest matches internal/provider/types.go
 type GenerateRequest struct {
@@ -124,9 +127,20 @@ func handleGenerate() error {
 
 	args := []string{}
 
-	// Add model if specified in config
+	// Validate and assemble arguments before building the command (avoid G204)
 	if model, ok := req.Config["model"].(string); ok && model != "" {
+		if !claudeModelPattern.MatchString(model) {
+			return fmt.Errorf("invalid model name")
+		}
 		args = append(args, "--model", model)
+	}
+
+	// Validate numeric ranges first
+	if req.MaxTokens < 0 || req.MaxTokens > 200000 {
+		return fmt.Errorf("max_tokens must be between 0 and 200000")
+	}
+	if req.Temperature < 0 || req.Temperature > 2 {
+		return fmt.Errorf("temperature must be between 0 and 2")
 	}
 
 	// Add max tokens if specified
@@ -139,7 +153,10 @@ func handleGenerate() error {
 		args = append(args, "--temperature", fmt.Sprintf("%.2f", req.Temperature))
 	}
 
-	// Add the prompt
+	// Add the prompt (reject null bytes)
+	if strings.ContainsRune(fullPrompt, '\x00') {
+		return fmt.Errorf("prompt contains forbidden characters")
+	}
 	args = append(args, fullPrompt)
 
 	cmd, err := safeutil.SafeCommand(ctx, "claude", args...)
@@ -160,7 +177,17 @@ func handleGenerate() error {
 	// Get model from config or use default
 	model := "claude-sonnet-4-20250514"
 	if modelVal, ok := req.Config["model"].(string); ok && modelVal != "" {
+		if !claudeModelPattern.MatchString(modelVal) {
+			return fmt.Errorf("invalid model name")
+		}
 		model = modelVal
+	}
+
+	if req.MaxTokens < 0 || req.MaxTokens > 200000 {
+		return fmt.Errorf("max_tokens must be between 0 and 200000")
+	}
+	if req.Temperature < 0 || req.Temperature > 2 {
+		return fmt.Errorf("temperature must be between 0 and 2")
 	}
 
 	// Convert to our response format
@@ -210,6 +237,9 @@ func handleStream() error {
 	args := []string{}
 
 	if model, ok := req.Config["model"].(string); ok && model != "" {
+		if !claudeModelPattern.MatchString(model) {
+			return fmt.Errorf("invalid model name")
+		}
 		args = append(args, "--model", model)
 	}
 

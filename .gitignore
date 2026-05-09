@@ -7,6 +7,7 @@
 /ai-dev
 /specular
 /specular-*
+/guardrail
 test_register.sh
 
 # Test binary, built with `go test -c`

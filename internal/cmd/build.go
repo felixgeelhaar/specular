@@ -222,6 +222,12 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		return ux.EnhanceError(err)
 	}
 
+	// Governed preflight: policy file must exist before execution.
+	if err := ensureGovernedPolicyFile(policyFile); err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "build.run", err)
+		return ux.EnhanceError(err)
+	}
+
 	// Load plan
 	p, err := plan.LoadPlan(planFile)
 	if err != nil {
@@ -248,16 +254,11 @@ func runBuildRun(cmd *cobra.Command, args []string) error {
 		p = &plan.Plan{Tasks: filteredTasks}
 	}
 
-	// Load or create default policy
-	var pol *policy.Policy
-	if policyFile != "" {
-		pol, err = policy.LoadPolicy(policyFile)
-		if err != nil {
-			fmt.Printf("Warning: failed to load policy, using defaults: %v\n", err)
-			pol = policy.DefaultPolicy()
-		}
-	} else {
-		pol = policy.DefaultPolicy()
+	// Load policy
+	pol, err := policy.LoadPolicy(policyFile)
+	if err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "build.run", err)
+		return ux.FormatError(err, "loading policy file")
 	}
 
 	// Setup checkpoint manager
@@ -458,17 +459,17 @@ func runBuildVerify(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("=== Build Verification ===\n\n")
 
-	// Load policy if exists
-	var pol *policy.Policy
-	var err error
-	if policyFile != "" {
-		pol, err = policy.LoadPolicy(policyFile)
-		if err != nil {
-			fmt.Printf("Warning: failed to load policy, using defaults: %v\n", err)
-			pol = policy.DefaultPolicy()
-		}
-	} else {
-		pol = policy.DefaultPolicy()
+	// Governed preflight: policy file must exist before verification.
+	if err := ensureGovernedPolicyFile(policyFile); err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "build.verify", err)
+		return ux.EnhanceError(err)
+	}
+
+	// Load policy
+	pol, err := policy.LoadPolicy(policyFile)
+	if err != nil {
+		telemetry.RecordCommandFailure(ctx, span, "build.verify", err)
+		return ux.FormatError(err, "loading policy file")
 	}
 
 	passed := 0
@@ -566,6 +567,14 @@ func runBuildVerify(cmd *cobra.Command, args []string) error {
 		attribute.Int("checks_failed", failed),
 	)
 	return nil
+}
+
+func ensureGovernedPolicyFile(policyFile string) error {
+	if policyFile == "" {
+		return fmt.Errorf("policy file path is required for governed execution")
+	}
+
+	return ux.ValidateRequiredFile(policyFile, "Policy file", "specular policy init")
 }
 
 func runBuildApprove(cmd *cobra.Command, args []string) error {

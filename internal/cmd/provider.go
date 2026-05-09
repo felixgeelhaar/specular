@@ -164,7 +164,7 @@ var providerDoctorCmd = &cobra.Command{
 
 		for _, name := range providersToCheck {
 			prov, getErr := registry.Get(name)
-			if err != nil {
+			if getErr != nil {
 				fmt.Fprintf(w, "%s\t❌ ERROR\t%v\n", name, getErr) //nolint:errcheck
 				continue
 			}
@@ -201,6 +201,7 @@ Use --recommendations to preview recommended providers without writing any files
 	RunE: func(cmd *cobra.Command, args []string) error {
 		force := cmd.Flags().Lookup("force").Value.String() == "true"
 		showRecommendations := cmd.Flags().Lookup("recommendations").Value.String() == "true"
+		runDoctor := cmd.Flags().Lookup("doctor").Value.String() == "true"
 
 		ctx := detectProviderContext()
 		recommended := ctx.GetRecommendedProviders()
@@ -246,14 +247,60 @@ Use --recommendations to preview recommended providers without writing any files
 		if len(recommended) > 0 {
 			fmt.Printf("⚡ Enabled recommended providers: %s\n", strings.Join(recommended, ", "))
 		}
+
+		fmt.Println("\nProvider setup summary:")
+		for _, p := range config.Providers {
+			status := "disabled"
+			if p.Enabled {
+				status = "enabled"
+			}
+			fmt.Printf("  - %s: %s\n", p.Name, status)
+		}
+
 		fmt.Println("\nNext steps:")
-		fmt.Println("  1. Edit .specular/providers.yaml to enable desired providers")
-		fmt.Println("  2. Review the example at .specular/providers.yaml.example for reference")
-		fmt.Println("  3. Set any required API keys as environment variables")
-		fmt.Println("  4. Run 'specular provider doctor' to check provider status")
+		fmt.Println("  1. Set required API keys as environment variables")
+		fmt.Println("  2. Run 'specular provider doctor --quick' to verify readiness")
+		fmt.Println("  3. Run 'specular provider add' to add more providers interactively")
+		fmt.Println("  4. Start a workflow: 'specular spec interview' or 'specular plan'")
+
+		if runDoctor {
+			fmt.Println("\nQuick provider readiness check:")
+			if err := printQuickProviderHealth(targetPath); err != nil {
+				fmt.Printf("  ⚠ Failed to run quick provider check: %v\n", err)
+			}
+		}
 
 		return nil
 	},
+}
+
+func printQuickProviderHealth(configPath string) error {
+	registry, err := provider.LoadRegistryWithAutoDiscovery(configPath)
+	if err != nil {
+		return err
+	}
+
+	providers := registry.List()
+	if len(providers) == 0 {
+		fmt.Println("  No enabled providers loaded yet.")
+		return nil
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	fmt.Fprintln(w, "  PROVIDER\tSTATUS\tDETAILS") //nolint:errcheck
+	fmt.Fprintln(w, "  --------\t------\t-------") //nolint:errcheck
+	for _, name := range providers {
+		prov, getErr := registry.Get(name)
+		if getErr != nil {
+			fmt.Fprintf(w, "  %s\t❌ ERROR\t%v\n", name, getErr) //nolint:errcheck
+			continue
+		}
+		info := prov.GetInfo()
+		fmt.Fprintf(w, "  %s\t✅ READY\t%s\n", name, info.Description) //nolint:errcheck
+	}
+	w.Flush() //#nosec G104 -- Tabwriter flush errors not critical
+
+	return nil
 }
 
 // printProviderRecommendations prints an annotated list of recommended providers
@@ -875,6 +922,7 @@ func init() {
 	// Flags for init command
 	providerInitCmd.Flags().Bool("force", false, "Overwrite existing provider config")
 	providerInitCmd.Flags().Bool("recommendations", false, "Show recommended providers without writing files")
+	providerInitCmd.Flags().Bool("doctor", true, "Run quick provider readiness check after initialization")
 
 	// Flags for add command
 	providerAddCmd.Flags().String("config", "", "Path to provider config file (default: .specular/providers.yaml)")

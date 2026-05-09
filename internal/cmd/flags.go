@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/ux"
@@ -101,4 +104,52 @@ func NewCommandContext(cmd *cobra.Command) (*CommandContext, error) {
 		LogLevel:      logLevel,
 		IsInteractive: isInteractive,
 	}, nil
+}
+
+// ValidateGlobalFlags validates global CLI flags before command execution.
+func ValidateGlobalFlags(cmd *cobra.Command) error {
+	verbose, err := cmd.Flags().GetBool("verbose")
+	if err != nil {
+		return err
+	}
+
+	quiet, err := cmd.Flags().GetBool("quiet")
+	if err != nil {
+		return err
+	}
+
+	if verbose && quiet {
+		return fmt.Errorf("--verbose and --quiet cannot be used together")
+	}
+
+	format, err := cmd.Flags().GetString("format")
+	if err != nil {
+		return err
+	}
+
+	allowedFormats := map[string]struct{}{
+		"text": {},
+		"json": {},
+		"yaml": {},
+	}
+	if _, ok := allowedFormats[strings.ToLower(format)]; !ok {
+		return fmt.Errorf("invalid --format value %q (allowed: text, json, yaml)", format)
+	}
+
+	logLevel, err := cmd.Flags().GetString("log-level")
+	if err != nil {
+		return err
+	}
+
+	allowedLogLevels := map[string]struct{}{
+		"debug": {},
+		"info":  {},
+		"warn":  {},
+		"error": {},
+	}
+	if _, ok := allowedLogLevels[strings.ToLower(logLevel)]; !ok {
+		return fmt.Errorf("invalid --log-level value %q (allowed: debug, info, warn, error)", logLevel)
+	}
+
+	return nil
 }

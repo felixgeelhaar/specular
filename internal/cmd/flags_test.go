@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -23,6 +24,61 @@ func setupTestCommand() *cobra.Command {
 	cmd.Flags().String("log-level", "info", "log level")
 
 	return cmd
+}
+
+func TestValidateGlobalFlags_Valid(t *testing.T) {
+	cmd := setupTestCommand()
+	if err := ValidateGlobalFlags(cmd); err != nil {
+		t.Fatalf("expected valid global flags, got error: %v", err)
+	}
+}
+
+func TestValidateGlobalFlags_VerboseQuietConflict(t *testing.T) {
+	cmd := setupTestCommand()
+	if err := cmd.Flags().Set("verbose", "true"); err != nil {
+		t.Fatalf("failed to set verbose: %v", err)
+	}
+	if err := cmd.Flags().Set("quiet", "true"); err != nil {
+		t.Fatalf("failed to set quiet: %v", err)
+	}
+
+	err := ValidateGlobalFlags(cmd)
+	if err == nil {
+		t.Fatal("expected conflict error, got nil")
+	}
+	if !strings.Contains(err.Error(), "cannot be used together") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
+func TestValidateGlobalFlags_InvalidFormat(t *testing.T) {
+	cmd := setupTestCommand()
+	if err := cmd.Flags().Set("format", "table"); err != nil {
+		t.Fatalf("failed to set format: %v", err)
+	}
+
+	err := ValidateGlobalFlags(cmd)
+	if err == nil {
+		t.Fatal("expected invalid format error, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid --format") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
+func TestValidateGlobalFlags_InvalidLogLevel(t *testing.T) {
+	cmd := setupTestCommand()
+	if err := cmd.Flags().Set("log-level", "trace"); err != nil {
+		t.Fatalf("failed to set log-level: %v", err)
+	}
+
+	err := ValidateGlobalFlags(cmd)
+	if err == nil {
+		t.Fatal("expected invalid log-level error, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid --log-level") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
 }
 
 // TestNewCommandContext_Defaults tests default values

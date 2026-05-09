@@ -21,7 +21,7 @@ We take the security of Specular seriously. If you believe you have found a secu
 
 ### Please DO:
 
-1. **Email** your findings to [INSERT SECURITY EMAIL]
+1. **Email** your findings to felix@felixgeelhaar.de
 2. **Provide** detailed information including:
    - Description of the vulnerability
    - Steps to reproduce the issue
@@ -82,13 +82,13 @@ execution:
 - **Limit input sizes** to prevent resource exhaustion
 - **Use schema validation** for YAML/JSON inputs
 
-### Code Generation Security
+### Guard‑rail Enforcement
+- A static‑analysis tool (`tools/guardrail`) runs on every `make test` to prohibit:
+  - Direct `exec.Command*` usage (use `safeutil.SafeCommand` instead)
+  - Unchecked file writes via `os.WriteFile` / `ioutil.WriteFile` (use guarded helpers)
+- Violations cause the CI build to fail, ensuring policy compliance.
+- The guard‑rail is version‑controlled and can be extended for additional patterns.
 
-- **Review generated code** before deployment
-- **Run static analysis** on generated code
-- **Test in isolated environments** first
-- **Use policy enforcement** to prevent unsafe operations
-- **Implement code signing** for releases
 
 ## Known Security Considerations
 

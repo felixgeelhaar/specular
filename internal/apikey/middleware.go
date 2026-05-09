@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,13 +18,22 @@ const (
 
 // Middleware provides HTTP middleware for API key authentication.
 type Middleware struct {
-	manager *Manager
+	manager         *Manager
+	rateLimitMu     sync.Mutex
+	rateLimitBuckets map[string]*rateLimitBucket
+}
+
+type rateLimitBucket struct {
+	tokens      float64
+	lastRefill  time.Time
+	lastSeen    time.Time
 }
 
 // NewMiddleware creates a new API key middleware.
 func NewMiddleware(manager *Manager) *Middleware {
 	return &Middleware{
 		manager: manager,
+		rateLimitBuckets: make(map[string]*rateLimitBucket),
 	}
 }
 
@@ -208,11 +218,68 @@ type RateLimitConfig struct {
 }
 
 // WithRateLimit adds rate limiting to the API key middleware.
-// This is a placeholder for future implementation.
 func (m *Middleware) WithRateLimit(config RateLimitConfig, next http.Handler) http.Handler {
+	if config.RequestsPerMinute <= 0 {
+		config.RequestsPerMinute = 60
+	}
+	if config.BurstSize <= 0 {
+		config.BurstSize = config.RequestsPerMinute
+	}
+
+	replenishPerSecond := float64(config.RequestsPerMinute) / 60.0
+	burst := float64(config.BurstSize)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement rate limiting based on API key
-		// This could use Redis or an in-memory cache
+		key := GetAPIKeyFromContext(r.Context())
+		if key == nil {
+			m.forbiddenResponse(w, "API key required")
+			return
+		}
+
+		now := time.Now().UTC()
+		if !m.consumeRateLimitToken(key.ID, now, burst, replenishPerSecond) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"error": "rate limit exceeded"}`))
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (m *Middleware) consumeRateLimitToken(keyID string, now time.Time, burst float64, replenishPerSecond float64) bool {
+	m.rateLimitMu.Lock()
+	defer m.rateLimitMu.Unlock()
+
+	if m.rateLimitBuckets == nil {
+		m.rateLimitBuckets = make(map[string]*rateLimitBucket)
+	}
+
+	bucket, ok := m.rateLimitBuckets[keyID]
+	if !ok {
+		m.rateLimitBuckets[keyID] = &rateLimitBucket{
+			tokens:     burst - 1,
+			lastRefill: now,
+			lastSeen:   now,
+		}
+		return true
+	}
+
+	elapsed := now.Sub(bucket.lastRefill).Seconds()
+	if elapsed > 0 {
+		bucket.tokens += elapsed * replenishPerSecond
+		if bucket.tokens > burst {
+			bucket.tokens = burst
+		}
+		bucket.lastRefill = now
+	}
+	bucket.lastSeen = now
+
+	if bucket.tokens < 1 {
+		return false
+	}
+
+	bucket.tokens--
+	return true
 }

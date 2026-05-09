@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -26,6 +28,66 @@ func TestPolicySubcommands(t *testing.T) {
 		if !found {
 			t.Errorf("subcommand '%s' not found in policy command", name)
 		}
+	}
+}
+
+func TestResolvePolicyPath_PoliciesYAML(t *testing.T) {
+	tempDir := t.TempDir()
+	oldWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get wd: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWD)
+	})
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+
+	if err := os.MkdirAll(".specular", 0755); err != nil {
+		t.Fatalf("failed to create .specular: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(".specular", "policies.yaml"), []byte("version: \"1.0\"\n"), 0600); err != nil {
+		t.Fatalf("failed to write policies.yaml: %v", err)
+	}
+
+	path, err := resolvePolicyPath()
+	if err != nil {
+		t.Fatalf("expected policy path, got error: %v", err)
+	}
+	if path != filepath.Join(".specular", "policies.yaml") {
+		t.Fatalf("resolved path = %q, want %q", path, filepath.Join(".specular", "policies.yaml"))
+	}
+}
+
+func TestResolvePolicyPath_PolicyYAMLFallback(t *testing.T) {
+	tempDir := t.TempDir()
+	oldWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get wd: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWD)
+	})
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+
+	if err := os.MkdirAll(".specular", 0755); err != nil {
+		t.Fatalf("failed to create .specular: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(".specular", "policy.yaml"), []byte("version: \"1.0\"\n"), 0600); err != nil {
+		t.Fatalf("failed to write policy.yaml: %v", err)
+	}
+
+	path, err := resolvePolicyPath()
+	if err != nil {
+		t.Fatalf("expected policy path, got error: %v", err)
+	}
+	if path != filepath.Join(".specular", "policy.yaml") {
+		t.Fatalf("resolved path = %q, want %q", path, filepath.Join(".specular", "policy.yaml"))
 	}
 }
 

@@ -514,3 +514,50 @@ func TestErrorResponses(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), "test message")
 	})
 }
+
+func TestWithRateLimit(t *testing.T) {
+	middleware := &Middleware{}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	wrapped := middleware.WithRateLimit(RateLimitConfig{
+		RequestsPerMinute: 60,
+		BurstSize:         2,
+	}, handler)
+
+	makeRequest := func() *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodGet, "/api/resource", nil)
+		ctx := SetAPIKeyInContext(req.Context(), &APIKey{ID: "key-rl-1", Status: StatusActive})
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+		wrapped.ServeHTTP(rec, req)
+		return rec
+	}
+
+	first := makeRequest()
+	assert.Equal(t, http.StatusOK, first.Code)
+
+	second := makeRequest()
+	assert.Equal(t, http.StatusOK, second.Code)
+
+	third := makeRequest()
+	assert.Equal(t, http.StatusTooManyRequests, third.Code)
+	assert.Contains(t, third.Body.String(), "rate limit exceeded")
+}
+
+func TestWithRateLimitRequiresAPIKeyInContext(t *testing.T) {
+	middleware := &Middleware{}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	wrapped := middleware.WithRateLimit(RateLimitConfig{RequestsPerMinute: 60, BurstSize: 1}, handler)
+	req := httptest.NewRequest(http.MethodGet, "/api/resource", nil)
+	rec := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.Contains(t, rec.Body.String(), "API key required")
+}

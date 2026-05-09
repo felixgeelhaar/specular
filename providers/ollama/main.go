@@ -6,9 +6,14 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"regexp"
+	"strings"
 
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
+
+var ollamaModelPattern = regexp.MustCompile(`^[a-zA-Z0-9._:-]{1,80}$`)
+
 
 // GenerateRequest matches internal/provider/types.go
 type GenerateRequest struct {
@@ -125,13 +130,32 @@ func handleGenerate() error {
 		return fmt.Errorf("failed to decode request: %w", err)
 	}
 
-	startTime := time.Now()
+	// Validate numeric ranges
+	if req.MaxTokens < 0 || req.MaxTokens > 200000 {
+		return fmt.Errorf("max_tokens must be between 0 and 200000")
+	}
+	if req.Temperature < 0 || req.Temperature > 2 {
+		return fmt.Errorf("temperature must be between 0 and 2")
+	}
+	if req.TopP < 0 || req.TopP > 1 {
+		return fmt.Errorf("top_p must be between 0 and 1")
+	}
 
-	// Get model from config, default to llama3.2
+	// Validate prompt for null bytes
+	if strings.ContainsRune(req.Prompt, '\x00') {
+		return fmt.Errorf("prompt contains forbidden characters")
+	}
+
+	// Validate model name if provided
 	model := "llama3.2"
 	if modelVal, ok := req.Config["model"].(string); ok && modelVal != "" {
+		if !ollamaModelPattern.MatchString(modelVal) {
+			return fmt.Errorf("invalid model name")
+		}
 		model = modelVal
 	}
+
+	startTime := time.Now()
 
 	// Build conversation prompt if context is provided
 	fullPrompt := req.Prompt

@@ -3,6 +3,8 @@ package exec
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/plan"
@@ -191,11 +193,19 @@ func (e *Executor) checkDependencies(task plan.Task, result *ExecutionResult) er
 // createStep converts a plan task to an execution step
 // If hasGeneratedCode is true, the step validates the generated code instead of just checking versions
 func (e *Executor) createStep(task plan.Task, hasGeneratedCode bool) Step {
+	workdir := "."
+	if cwd, err := os.Getwd(); err == nil {
+		workdir = cwd
+	}
+	if abs, err := filepath.Abs(workdir); err == nil {
+		workdir = abs
+	}
+
 	// Default to Docker execution
 	step := Step{
 		ID:      task.ID.String(),
 		Runner:  "docker",
-		Workdir: ".",
+		Workdir: workdir,
 		Env:     make(map[string]string),
 	}
 
