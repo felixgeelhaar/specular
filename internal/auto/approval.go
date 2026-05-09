@@ -11,17 +11,33 @@ import (
 	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
+// ApprovalDecision differentiates the three terminal states of the
+// approval gate. Previously the gate collapsed "rejected" and
+// "cancelled" into a single false value, which made the intervention
+// metric blind to user-aborted runs and surprised callers that needed
+// to distinguish "user said no" from "user pressed Esc."
+type ApprovalDecision int
+
+const (
+	ApprovalRejected ApprovalDecision = iota
+	ApprovalApproved
+	ApprovalCancelled
+)
+
 // approvalModel is the bubbletea model for the approval gate
 type approvalModel struct {
 	plan          *plan.Plan
 	spec          *spec.ProductSpec
 	featureTitles map[string]string
-	approved      bool
+	decision      ApprovalDecision
+	showHelp      bool
 	quitting      bool
 }
 
-// ShowApprovalGate displays the plan and requests user approval
-func ShowApprovalGate(p *plan.Plan, s *spec.ProductSpec) (bool, error) {
+// ShowApprovalGate displays the plan and requests user approval. Returns
+// an ApprovalDecision so callers can distinguish approve / reject /
+// cancel without overloading the boolean.
+func ShowApprovalGate(p *plan.Plan, s *spec.ProductSpec) (ApprovalDecision, error) {
 	// Build feature title lookup map
 	featureTitles := make(map[string]string)
 	for _, feature := range s.Features {
@@ -32,15 +48,16 @@ func ShowApprovalGate(p *plan.Plan, s *spec.ProductSpec) (bool, error) {
 		plan:          p,
 		spec:          s,
 		featureTitles: featureTitles,
+		decision:      ApprovalRejected,
 	}
 	program := tea.NewProgram(model)
 
 	finalModel, err := program.Run()
 	if err != nil {
-		return false, fmt.Errorf("run approval UI: %w", err)
+		return ApprovalRejected, fmt.Errorf("run approval UI: %w", err)
 	}
 
-	return finalModel.(approvalModel).approved, nil
+	return finalModel.(approvalModel).decision, nil
 }
 
 func (m approvalModel) Init() tea.Cmd {
@@ -51,14 +68,30 @@ func (m approvalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "y", "Y":
-			m.approved = true
+		case "y", "Y", "enter":
+			// Enter takes the documented default (approve).
+			m.decision = ApprovalApproved
 			m.quitting = true
 			return m, tea.Quit
-		case "n", "N", "q", "ctrl+c":
-			m.approved = false
+		case "n", "N":
+			m.decision = ApprovalRejected
 			m.quitting = true
 			return m, tea.Quit
+		case "esc", "ctrl+c":
+			// Esc cancels the run without rejecting the plan. The
+			// caller can decide whether to retry the gate or abort.
+			m.decision = ApprovalCancelled
+			m.quitting = true
+			return m, tea.Quit
+		case "q":
+			// q remains a hard quit (cancel) for backwards compatibility
+			// with anyone who built muscle memory on the old behaviour.
+			m.decision = ApprovalCancelled
+			m.quitting = true
+			return m, tea.Quit
+		case "?":
+			m.showHelp = !m.showHelp
+			return m, nil
 		}
 	}
 	return m, nil
@@ -66,14 +99,20 @@ func (m approvalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m approvalModel) View() string {
 	if m.quitting {
-		if m.approved {
+		switch m.decision {
+		case ApprovalApproved:
 			return lipgloss.NewStyle().
 				Foreground(lipgloss.Color("2")).
-				Render("✅ Plan approved! Proceeding with execution...\n")
+				Render("[OK] Plan approved! Proceeding with execution...\n")
+		case ApprovalCancelled:
+			return lipgloss.NewStyle().
+				Foreground(lipgloss.Color("3")).
+				Render("[ABORT] Plan gate cancelled (no decision recorded). Exiting...\n")
+		default:
+			return lipgloss.NewStyle().
+				Foreground(lipgloss.Color("1")).
+				Render("[X] Plan rejected. Exiting...\n")
 		}
-		return lipgloss.NewStyle().
-			Foreground(lipgloss.Color("1")).
-			Render("❌ Plan rejected. Exiting...\n")
 	}
 
 	titleStyle := lipgloss.NewStyle().
@@ -146,6 +185,18 @@ func (m approvalModel) View() string {
 	s += lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render("(y)") + " / "
 	s += lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render("(n)")
 	s += ": "
+	s += "\n\n"
+
+	if m.showHelp {
+		s += labelStyle.Render(
+			"  y / Y / Enter   approve and proceed\n" +
+				"  n / N           reject (records explicit user_reject)\n" +
+				"  Esc / q         cancel without rejecting (no intervention recorded)\n" +
+				"  ?               toggle this help\n",
+		)
+	} else {
+		s += labelStyle.Render("  y approve · n reject · esc cancel · ? help\n")
+	}
 
 	return s
 }

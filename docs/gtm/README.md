@@ -1,8 +1,15 @@
-# Specular GTM Wedge
+# Specular: AI Change Control for regulated engineering orgs
 
-This directory holds the focused go-to-market wedge for Specular and the
-role-based assets that pair with it. It is intended for design partners,
-internal champions, and anyone preparing to introduce Specular inside a
+> **30-second buyer scan: pick your role and follow the link.**
+>
+> - **I run Platform Engineering / DevEx →** [`personas/platform-engineering.md`](./personas/platform-engineering.md) — the gate, the metrics that move, the 30-minute walkthrough.
+> - **I run Security / GRC / AppSec →** [`personas/security.md`](./personas/security.md) — bundles as audit evidence, framework mapping, the SIEM hookup.
+> - **I am evaluating for a pilot →** [`playbooks/pilot-platform-engineering.md`](./playbooks/pilot-platform-engineering.md) and [`playbooks/pilot-security.md`](./playbooks/pilot-security.md) — buyer-owned outcomes and 30/60/90 plans.
+> - **I am preparing a briefing or analyst call →** [`ci-cd-policy-enforcement.md`](./ci-cd-policy-enforcement.md) — long-form positioning, anti-positioning table, moat thesis.
+> - **I want to know which objections to expect →** [`playbooks/objection-handling.md`](./playbooks/objection-handling.md) — nine objections, answers, proof artefacts.
+
+If none of the above fit, the framing material below is for **internal
+champions and design partners** preparing to introduce Specular into a
 larger engineering org.
 
 ## The wedge in one sentence

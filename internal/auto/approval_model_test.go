@@ -45,16 +45,46 @@ func TestApprovalModelUpdateHandlesKeys(t *testing.T) {
 	yesMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")}
 	updated, _ := model.Update(yesMsg)
 	result := updated.(approvalModel)
-	if !result.approved || !result.quitting {
-		t.Fatalf("expected approved and quitting after 'y', got approved=%v quitting=%v", result.approved, result.quitting)
+	if result.decision != ApprovalApproved || !result.quitting {
+		t.Fatalf("expected approved+quitting after 'y', got decision=%v quitting=%v", result.decision, result.quitting)
 	}
 
 	noModel := newApprovalModel()
 	noMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")}
 	updated, _ = noModel.Update(noMsg)
 	result = updated.(approvalModel)
-	if result.approved || !result.quitting {
-		t.Fatalf("expected rejected plan after 'n', got approved=%v quitting=%v", result.approved, result.quitting)
+	if result.decision != ApprovalRejected || !result.quitting {
+		t.Fatalf("expected rejected after 'n', got decision=%v quitting=%v", result.decision, result.quitting)
+	}
+
+	// Esc must cancel without recording rejection — distinct from N.
+	escModel := newApprovalModel()
+	escMsg := tea.KeyMsg{Type: tea.KeyEsc}
+	updated, _ = escModel.Update(escMsg)
+	result = updated.(approvalModel)
+	if result.decision != ApprovalCancelled || !result.quitting {
+		t.Fatalf("expected cancelled after Esc, got decision=%v quitting=%v", result.decision, result.quitting)
+	}
+
+	// Enter must take the documented default (approve).
+	enterModel := newApprovalModel()
+	enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	updated, _ = enterModel.Update(enterMsg)
+	result = updated.(approvalModel)
+	if result.decision != ApprovalApproved || !result.quitting {
+		t.Fatalf("expected approved after Enter, got decision=%v quitting=%v", result.decision, result.quitting)
+	}
+
+	// ? must toggle help without quitting.
+	helpModel := newApprovalModel()
+	helpMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")}
+	updated, _ = helpModel.Update(helpMsg)
+	result = updated.(approvalModel)
+	if result.quitting {
+		t.Fatal("? must not quit the gate")
+	}
+	if !result.showHelp {
+		t.Fatal("? must toggle showHelp on first press")
 	}
 }
 
@@ -64,18 +94,28 @@ func TestApprovalModelViewFormats(t *testing.T) {
 	if !strings.Contains(view, "Generated Execution Plan") {
 		t.Fatalf("expected plan summary view, got %q", view)
 	}
+	if !strings.Contains(view, "y approve") || !strings.Contains(view, "esc cancel") {
+		t.Fatalf("expected default footer hint with y/esc keys, got %q", view)
+	}
 
 	approved := model
 	approved.quitting = true
-	approved.approved = true
+	approved.decision = ApprovalApproved
 	if !strings.Contains(approved.View(), "Plan approved") {
 		t.Fatal("expected approved view to mention success")
 	}
 
 	rejected := model
 	rejected.quitting = true
-	rejected.approved = false
+	rejected.decision = ApprovalRejected
 	if !strings.Contains(rejected.View(), "Plan rejected") {
 		t.Fatal("expected rejected view to mention rejection")
+	}
+
+	cancelled := model
+	cancelled.quitting = true
+	cancelled.decision = ApprovalCancelled
+	if !strings.Contains(cancelled.View(), "cancelled") {
+		t.Fatal("expected cancelled view to mention cancellation")
 	}
 }

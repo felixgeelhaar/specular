@@ -192,6 +192,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	startedAt := time.Now()
 	templateAttr := attribute.String("template", initTemplate)
 	telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepStarted, telemetry.ActivationStatusOK, templateAttr)
+	fmt.Println("▸ Activation: started")
 
 	// Setup target directory
 	absDir, specDir, err := setupTargetDirectory(args)
@@ -225,6 +226,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 		attribute.Int("providers_available", providersDetected),
 		attribute.Int("languages", len(ctx.Languages)),
 	)
+	fmt.Printf("▸ Activation: context_detected (%s, %d providers, %d languages)\n",
+		detectStatus, providersDetected, len(ctx.Languages))
 
 	// Build configuration
 	config := buildInitConfig(absDir, specDir, ctx)
@@ -262,8 +265,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	completedAt := time.Now()
 	telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepConfigWritten, telemetry.ActivationStatusOK, templateAttr)
+	fmt.Println("▸ Activation: config_written")
 	if initProviderSetup && !initYes && initProviders == "" {
 		telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepProvidersReady, telemetry.ActivationStatusOK, templateAttr)
+		fmt.Println("▸ Activation: providers_configured")
 	}
 	telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepCompleted, telemetry.ActivationStatusOK, templateAttr,
 		attribute.String("governance", config.Governance),
@@ -272,6 +277,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		templateAttr,
 		attribute.String("governance", config.Governance),
 	)
+	fmt.Printf("▸ Activation: completed (init duration %s)\n", completedAt.Sub(startedAt).Round(10*time.Millisecond))
 
 	if err := markActivationInitComplete(specDir, completedAt); err != nil {
 		fmt.Printf("⚠  Unable to update activation marker: %v\n", err)
@@ -279,8 +285,28 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Print success message and next steps
 	printSmartSuccessMessage(config)
+	printActivationNextSteps()
 
 	return nil
+}
+
+// printActivationNextSteps emits a numbered, copy-pasteable scaffolding
+// block bridging the gap between successful init and the first green CI
+// gate. This is the single highest-friction moment in the activation
+// journey; the user knows init worked but does not know what to type
+// next. The list below maps to the GTM Platform Engineering persona's
+// 30-minute walkthrough.
+func printActivationNextSteps() {
+	fmt.Println()
+	fmt.Println("Next steps to first green CI gate:")
+	fmt.Println("  1. specular spec add \"<one-line description of your change>\"")
+	fmt.Println("  2. specular plan generate")
+	fmt.Println("  3. specular build run --dry-run     # preview before producing artifacts")
+	fmt.Println("  4. specular eval drift              # produces the bundle hash for CI")
+	fmt.Println()
+	fmt.Println("Wire the gate into CI: see docs/gtm/personas/platform-engineering.md")
+	fmt.Println("for the GitHub Actions / GitLab CI snippets.")
+	fmt.Println()
 }
 
 // InitConfig holds all configuration for initialization

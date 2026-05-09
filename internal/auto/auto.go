@@ -473,17 +473,23 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 
 	// Step 4: Approval gate (if enabled)
 	if o.config.RequireApproval && !o.config.DryRun {
-		approved, err := ShowApprovalGate(execPlan, productSpec)
+		approval, err := ShowApprovalGate(execPlan, productSpec)
 		if err != nil {
 			return nil, fmt.Errorf("approval gate: %w", err)
 		}
-		decision := telemetry.InterventionDecisionApproved
-		if !approved {
-			decision = telemetry.InterventionDecisionRejected
-		}
-		telemetry.RecordIntervention(ctx, telemetry.InterventionGatePlanApproval, decision)
-		if !approved {
+		switch approval {
+		case ApprovalApproved:
+			telemetry.RecordIntervention(ctx, telemetry.InterventionGatePlanApproval, telemetry.InterventionDecisionApproved)
+		case ApprovalRejected:
+			telemetry.RecordIntervention(ctx, telemetry.InterventionGatePlanApproval, telemetry.InterventionDecisionRejected)
 			return result, fmt.Errorf("plan not approved by user")
+		case ApprovalCancelled:
+			// Cancellation is a non-decision: caller aborted before
+			// approving or rejecting. Record an implicit_reject so the
+			// dashboard does not under-count interventions, but use a
+			// distinct error so callers can retry the gate cleanly.
+			telemetry.RecordIntervention(ctx, telemetry.InterventionGatePlanApproval, telemetry.InterventionDecisionImplicitReject)
+			return result, fmt.Errorf("plan gate cancelled by user (no decision recorded)")
 		}
 		fmt.Println()
 	}

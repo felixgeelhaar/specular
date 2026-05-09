@@ -1,6 +1,6 @@
 {
   "project_id": "specular",
-  "version": 21,
+  "version": 23,
   "task_states": {
     "task-activation-and-ai-trust-telemetry": {
       "status": "done",
@@ -14,8 +14,10 @@
       "elapsed_minutes": 13
     },
     "task-activation-ux-polish-and-user-facing-telemetry-transparency": {
-      "status": "pending",
+      "status": "in_progress",
       "path": "",
+      "owner": "ai-agent",
+      "started_at": "2026-05-09T09:09:24.989469+02:00",
       "elapsed_minutes": 0
     },
     "task-ai-trust-signal-depth-and-bundle-provenance": {
@@ -52,11 +54,15 @@
       "elapsed_minutes": 5
     },
     "task-gtm-wedge-sharpening-and-category-claim": {
-      "status": "in_progress",
+      "status": "done",
       "path": "",
       "owner": "ai-agent",
+      "evidence": [
+        "M9.8 GTM sharpening landed: wedge sentence narrowed to single primitive (drift gate), AI Change Control category claimed with 2-sentence definition + threading, status-quo \"What you'd otherwise do\" block, ICP triggers + target-list spec actionable for outreach, persona cross-references with explicit trade-favors asks, pilot success criteria reframed as buyer-owned outcomes (review time delta, audit-prep hours, time-to-first-wedge-success, time-to-evidence) with vendor metrics demoted to leading indicators, objections #8 (vendor governance) and #9 (agent-authored/non-PR changes) added, \"What compounds\" moat thesis section names policy library as primary data-network-effect moat, new docs/gtm/distribution.md with three asymmetric channels (auditor enablement, compliance-influencer co-marketing, public bundle gallery) + explicit disavow list, README quick-link promoted to position #2 retitled \"Why Specular: AI Change Control for regulated orgs.\""
+      ],
       "started_at": "2026-05-09T09:04:28.177462+02:00",
-      "elapsed_minutes": 0
+      "completed_at": "2026-05-09T09:09:23.973856+02:00",
+      "elapsed_minutes": 4
     },
     "task-guided-onboarding-and-activation-flow": {
       "status": "done",
@@ -103,5 +109,5 @@
       "elapsed_minutes": 14
     }
   },
-  "updated_at": "2026-05-09T09:04:28.177462+02:00"
+  "updated_at": "2026-05-09T09:09:24.989469+02:00"
 }

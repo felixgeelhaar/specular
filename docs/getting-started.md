@@ -2,6 +2,34 @@
 
 Specular is an AI-Native Spec and Build Assistant that enables spec-first, policy-enforced software development. This guide will help you get up and running quickly.
 
+> **Buyer evaluators:** if you are evaluating Specular for a regulated
+> engineering org rather than building with it personally, jump straight
+> to the [Platform Engineering pilot
+> playbook](gtm/playbooks/pilot-platform-engineering.md) or the
+> [Security pilot playbook](gtm/playbooks/pilot-security.md). Both are
+> tuned to the AI Change Control wedge and skip the developer-tutorial
+> framing of this document.
+
+## What Specular writes locally
+
+When you run `specular init`, Specular creates a `.specular/` directory
+inside your project. The notable files:
+
+| Path                                  | Purpose                                                                 |
+|---------------------------------------|-------------------------------------------------------------------------|
+| `.specular/spec.yaml`                 | Your project specification (canonical, edited by you).                  |
+| `.specular/policy.yaml`               | The policy gates evaluated in CI.                                       |
+| `.specular/routing.yaml`              | Provider/model preferences for the router.                              |
+| `.specular/approvals/*.yaml`          | Signed bundle / drift / policy approval records.                        |
+| `.specular/.activation.json`          | **Local-only** activation timing marker (started_at, init_complete_at, first_success_at, first_wedge_success_at). Used to compute time-to-first-wedge-success. Never transmitted unless you set `SPECULAR_TELEMETRY=on`. |
+| `.specular/.first_success.done`       | Sentinel file gating one-time emission of first-success metrics.        |
+| `.specular/.first_wedge_success.done` | Sentinel file gating one-time emission of first-wedge-success metrics.  |
+
+The dot-prefixed marker and sentinel files are local timing carriers.
+They contain no source content, no AI prompts, and no model output.
+They never leave your machine until you opt in to OTLP telemetry export
+via `SPECULAR_TELEMETRY=on` and `SPECULAR_TELEMETRY_ENDPOINT=...`.
+
 ## Prerequisites
 
 - **Docker**: Required for execution sandboxing
