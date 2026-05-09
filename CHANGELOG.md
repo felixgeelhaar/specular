@@ -5,10 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Release 1.7.0
-
-Release 1.9.0
-
 ## [Unreleased]
 
 ### Added
@@ -32,11 +28,45 @@ Release 1.9.0
   - Push notifications, real-time sync, authentication, file storage
   - Complete spec.yaml demonstrating api-service template
 
-- **Documentation (M8.5)**
-  - Spec Schema Reference (`docs/spec-schema.md`)
-  - Complete YAML format documentation with examples
-  - Field reference tables and validation rules
-  - Updated Quick Links in README.md
+- **Security Enhancements (M8.6)**
+  - Guard‑rail tool to block direct `exec.Command*` usage and unsafe file writes
+  - Updated Makefile to run guard‑rail as part of the test suite
+  - Added `SECURITY_RISKS.md` with high/medium/low risk register and mitigation status
+  - Linked security‑risk register in README quick links
+
+- **GTM Wedge and Role-Based Launch Assets (M9.5)**
+  - Focused wedge positioning around policy-enforced AI development in CI/CD
+    with auditable drift gates (`docs/gtm/ci-cd-policy-enforcement.md`)
+  - Role-based documentation tracks for Platform Engineering and Security
+    buyers (`docs/gtm/personas/`)
+  - 30/60/90-day pilot playbooks tuned for each persona
+    (`docs/gtm/playbooks/pilot-platform-engineering.md`,
+    `docs/gtm/playbooks/pilot-security.md`)
+  - Objection-handling cheatsheet covering the seven most common buyer
+    objections (`docs/gtm/playbooks/objection-handling.md`)
+  - Compliance-framework mapping (SOC 2, ISO 42001, EU AI Act, NIST AI RMF,
+    PCI DSS) onto Specular evidence artifacts
+  - Surfaced the GTM wedge from the README quick-links
+
+- **Activation and AI Trust Telemetry (M9.4)**
+  - New OpenTelemetry instruments for the activation funnel: `specular.activation.step`
+    (counter keyed by step + status) and `specular.activation.duration`
+    (histogram, milestones `init_complete` and `first_success`)
+  - `specular init` records funnel events at started, context_detected,
+    config_written, providers_configured, completed, and abandoned, enabling
+    setup drop-off analysis without code changes
+  - Cross-session time-to-first-success tracked via `.specular/.activation.json`
+    marker; the next successful non-init command emits the duration metric
+  - AI trust signals exposed via `specular.ai_trust.routing_decision` (counter
+    with provider, model, hint, reason, cost_band) and
+    `specular.ai_trust.routing_cost_estimate` (histogram in USD) — captures
+    explainability for every router selection
+  - `specular.ai_trust.intervention` records human-in-the-loop approvals and
+    rejections from the auto-mode plan gate and the `approve` subcommand
+  - `specular.ai_trust.regenerate` recorder ready for upcoming regeneration flows
+  - Wired `InitMetricsProvider` into the observability bootstrap so OTLP metrics
+    actually export when `SPECULAR_TELEMETRY=on` is set
+
 
 ### Fixed
 

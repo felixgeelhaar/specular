@@ -42,6 +42,8 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 📦 **[Bundle User Guide](docs/BUNDLE_USER_GUIDE.md)** – Governed bundle workflows
 🚀 **[Production Guide](docs/PRODUCTION_GUIDE.md)** – Production deployment, security, monitoring
 🔌 **[Plugin Development](docs/plugin-development/README.md)** – Build custom plugins
+🔐 **[Security Risk Register](SECURITY_RISKS.md)** – Current security‑risk overview
+🎯 **[GTM Wedge & Launch Assets](docs/gtm/README.md)** – Positioning, persona tracks, pilot playbooks for Platform Engineering and Security buyers
 
 ---
 
