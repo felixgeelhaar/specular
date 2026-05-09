@@ -1,6 +1,6 @@
 {
   "project_id": "specular",
-  "version": 23,
+  "version": 24,
   "task_states": {
     "task-activation-and-ai-trust-telemetry": {
       "status": "done",
@@ -14,11 +14,15 @@
       "elapsed_minutes": 13
     },
     "task-activation-ux-polish-and-user-facing-telemetry-transparency": {
-      "status": "in_progress",
+      "status": "done",
       "path": "",
       "owner": "ai-agent",
+      "evidence": [
+        "M9.9 UX polish landed: runInit emits visible step labels matching telemetry events; printActivationNextSteps scaffolds the gap between init success and first green CI gate; ShowApprovalGate returns ApprovalDecision enum (Approved/Rejected/Cancelled) with Esc cancel + Enter default-approve + ? help toggle + footer hint always visible; auto-mode caller distinguishes implicit_reject from explicit reject in intervention metric; color-only signals replaced with [OK]/[X]/[ABORT] text tokens; .specular/.activation.json and sentinel files documented in docs/getting-started.md \"What Specular writes locally\" section; buyer-evaluators callout routes to GTM persona playbooks; docs/gtm/README.md inverted to open with 30-second buyer-scan chooser. Tests extended to cover Esc/Enter/? keys and all three terminal decisions; full repo tests + race clean."
+      ],
       "started_at": "2026-05-09T09:09:24.989469+02:00",
-      "elapsed_minutes": 0
+      "completed_at": "2026-05-09T09:14:31.248577+02:00",
+      "elapsed_minutes": 5
     },
     "task-ai-trust-signal-depth-and-bundle-provenance": {
       "status": "done",
@@ -109,5 +113,5 @@
       "elapsed_minutes": 14
     }
   },
-  "updated_at": "2026-05-09T09:09:24.989469+02:00"
+  "updated_at": "2026-05-09T09:14:31.248578+02:00"
 }
