@@ -8,17 +8,28 @@ tuning policies and rolling out to additional teams.
 ## Pilot success criteria
 
 State these in writing **before** day 1. Leaders need a contract.
+Each criterion is a buyer-owned outcome (the thing the Platform leader
+will be measured on by their VP of Engineering); the Specular metric
+is the *instrument* used to measure it, not the goal.
+
+| Buyer outcome (the goal)                                                                  | Instrument                                                          |
+|--------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| **Mean PR review time for AI-authored PRs drops by ≥20%** by end of week 8.                | review-time delta dashboard derived from `specular.ai_trust.intervention` and PR timestamps |
+| **Time-to-first-wedge-success ≤ 30 minutes** for new developers in the pilot repo by week 6. | `specular.activation.duration{milestone="first_wedge_success"}`     |
+| **No P1 incident attributable to the gate** by end of week 12.                             | incident review tickets tagged `pilot:specular-gate`                |
+| **Audit-prep hours per release drop by ≥40%** for releases shipping AI-authored changes.   | bundle retrieval timing × number of artifacts queried per audit cycle |
+
+Leading indicators (vendor-operational, useful but not the contract):
 
 - One repository has `specular eval drift` running as a required CI check
   by end of week 2.
 - ≥80% of AI-authored PRs in the pilot repo have a recorded routing
   decision and bundle by end of week 4.
-- Time-to-first-success (`specular.activation.duration{milestone="first_success"}`)
-  for new developers in the pilot repo ≤ 30 minutes by end of week 6.
-- No P1 incident attributable to the gate by end of week 12.
 
-If three of these four hold, the pilot is a success and the contract is to
-expand to 3 additional repos in the next quarter.
+If **three of the four buyer outcomes** hold, the pilot is a success and
+the contract is to expand to 3 additional repos in the next quarter. Do
+not let the leading indicators substitute for the buyer outcomes — install
+rate measures vendor adoption, not buyer value.
 
 ## 30-day plan: Foundation
 

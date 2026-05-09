@@ -88,6 +88,26 @@ After ~6 weeks of pilot use across 1–2 teams:
 If after 8 weeks you cannot show movement on at least three of these, escalate
 to us — the wedge is not landing in your environment and we want to know.
 
+## Why your Security counterpart needs you
+
+Security can run a Specular pilot alone for *evidence*, but they cannot
+make the gate **blocking** in CI without the Platform team. The hard
+asks Security owes you in return for your engineering investment:
+
+- Bring their **CC8.1 / ISO 42001 / EU AI Act control mapping** to the
+  pilot kickoff — that mapping is the auditor-facing argument that
+  unlocks the gate flip from advisory to blocking. See
+  [`security.md`](./security.md).
+- Run the **week-3 audit drill** described in the
+  [security pilot playbook](../playbooks/pilot-security.md) on one
+  real merge from your repo. Their measurement is the headline number
+  that justifies the next budget cycle for your platform team.
+- Provide **named approvers** under `.specular/approvals/` on day one
+  so you do not have to invent the access-control model yourself.
+
+If Security is not at the kickoff, the pilot will land but the budget
+to expand will not. Co-conspirators, not customers.
+
 ## Where to go next
 
 - [`../playbooks/pilot-platform-engineering.md`](../playbooks/pilot-platform-engineering.md)

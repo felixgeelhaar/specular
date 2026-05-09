@@ -124,6 +124,49 @@ once they see the surface.
 
 ---
 
+## 8. "Our IDE/AI vendor handles governance."
+
+**The objection.** "Cursor Enterprise / GitHub Copilot Enterprise /
+Anthropic for Work already gives us model approval, audit logs, and
+admin controls. We don't need a separate gate."
+
+**The answer.** Vendor governance is **single-tenant per tool**: it sees
+only the changes authored inside that vendor's product. It is blind to
+(a) engineers using a second AI tool on the side, (b) agentic tools that
+commit without going through the IDE (Devin, Aider, background agents),
+(c) pre-commit hooks invoking models directly, (d) custom build helpers
+calling provider APIs from CI, and (e) any code an engineer hand-types
+after copy-pasting from a chat session. The drift gate runs on the **tree**
+at CI time — it sees all paths regardless of authorship channel. Vendor
+governance is necessary; the gate is the only place that's sufficient.
+
+**Proof.** Run `specular.ai_trust.routing_decision` for a week against any
+real repo. Compare its provider/model breakdown against the buyer's IDE
+vendor's audit log. The delta is the buyer's blind spot.
+
+---
+
+## 9. "What about agent-authored / non-PR changes?"
+
+**The objection.** "Background agents (Devin, Replit, custom internal
+tooling) commit directly to branches without a PR. How do you govern
+those?"
+
+**The answer.** The drift gate runs on the **tree state**, not the PR.
+Any commit on any branch (including agent-authored ones) that lands in
+the protected branch must re-derive the bundle hash from the same inputs.
+If it cannot — because the agent went off-plan, used a non-approved model,
+or skipped a policy step — the gate fails the next CI run. There is no
+"agent privilege"; the gate treats agent commits and human commits
+identically by construction.
+
+**Proof.** Demo: have an "agent" (literally a shell script) commit
+directly to main. Show the next CI run failing the drift gate. Then
+show `specular approve drift-<hash>` from a TTY user as the only path
+back to green. This is the answer that closes the deal in agent-heavy orgs.
+
+---
+
 ## What to do when the objection is real
 
 Sometimes the buyer is right. The two cases worth recognising:

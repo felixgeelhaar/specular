@@ -1,6 +1,6 @@
 {
   "project_id": "specular",
-  "version": 19,
+  "version": 21,
   "task_states": {
     "task-activation-and-ai-trust-telemetry": {
       "status": "done",
@@ -19,11 +19,15 @@
       "elapsed_minutes": 0
     },
     "task-ai-trust-signal-depth-and-bundle-provenance": {
-      "status": "in_progress",
+      "status": "done",
       "path": "",
       "owner": "ai-agent",
+      "evidence": [
+        "M9.7.1 P0 surface landed: first_wedge_success milestone (auto/build/eval/bundle/drift commands) with sentinel-gated emission; RecordRegenerate trigger enum + previous_model attribute; specular.ai_trust.safety_event counter (category/severity/action_taken) with prompt_injection/secret_leak/forbidden_tool_call/scope_violation/refusal/jailbreak_attempt categories; CostBand 10-100 and \u003e=100 frontier buckets; InterventionDecisionImplicitReject. Tests: wedge gating, regenerate taxonomy, safety event contract. Follow-up scope captured in spec for next slice: real wiring of safety_event into hooks/policy/sandbox, RecordRegenerate into auto retry / eval-gate failure / drift-revert paths, structured SelectionTrace OTel span event with top-3 considered candidates, ArtifactInfo Provenance struct in bundle YAML, specular.evidence.retrieval_duration histogram for the auditor JTBD."
+      ],
       "started_at": "2026-05-09T08:56:40.359027+02:00",
-      "elapsed_minutes": 0
+      "completed_at": "2026-05-09T09:04:21.695362+02:00",
+      "elapsed_minutes": 7
     },
     "task-core-foundation": {
       "status": "done",
@@ -48,8 +52,10 @@
       "elapsed_minutes": 5
     },
     "task-gtm-wedge-sharpening-and-category-claim": {
-      "status": "pending",
+      "status": "in_progress",
       "path": "",
+      "owner": "ai-agent",
+      "started_at": "2026-05-09T09:04:28.177462+02:00",
       "elapsed_minutes": 0
     },
     "task-guided-onboarding-and-activation-flow": {
@@ -97,5 +103,5 @@
       "elapsed_minutes": 14
     }
   },
-  "updated_at": "2026-05-09T08:56:40.359027+02:00"
+  "updated_at": "2026-05-09T09:04:28.177462+02:00"
 }

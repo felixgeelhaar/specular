@@ -124,6 +124,39 @@ plainly is part of the wedge.
 | Code-review SaaS             | Humans still review; we add the gate.              |
 | MLOps platform               | Specular governs the dev → production path of code, not model training. |
 
+## What compounds (the moat thesis)
+
+The wedge needs a moat that strengthens with adoption, not a feature
+that depreciates. Three candidates were considered; one is being
+invested in, the other two are tailwinds.
+
+**Primary moat: the policy library.** Every pilot org contributes
+SOC 2 / ISO 42001 / EU AI Act control mappings as `policies.yaml`
+fragments back to the open repository. The first contributor pays the
+research cost; every subsequent adopter inherits a battle-tested
+checklist. After ~10 orgs, the library is a credible reference; after
+~50, no Platform team will start from scratch. **This is a data network
+effect anchored in regulated content** — adoption increases the
+quality of the asset, which increases the rate of new adoption. The
+tax to fork the library is the same research cost the first
+contributor paid; the tax to switch *away* once you've adopted it is
+proportional to the number of controls you've mapped against it.
+
+**Secondary tailwinds (real but not load-bearing):**
+
+- **Auditor relationships.** Big 4 acceptance of the bundle YAML schema
+  as audit evidence reduces friction at every audit cycle. Worth
+  investing in (see `distribution.md`) but not a moat — auditors will
+  accept any well-formed evidence.
+- **Approver identity graph.** Orgs that accumulate years of
+  `.specular/approvals/` records develop migration friction; this
+  compounds slowly and is a retention signal, not an acquisition moat.
+
+**What we are explicitly not betting on:** bundle schema lock-in
+(low — schema is open and intentionally portable), execution-engine
+performance (low — inner-loop authoring still happens in the IDE),
+brand recognition (lagging the wedge by 18+ months in 2026).
+
 ## Proof points to lead with
 
 When briefing a buyer, the three artifacts that move the conversation:

@@ -6,19 +6,25 @@ evidence**, not developer ergonomics, and the scope is narrower.
 
 ## Pilot success criteria
 
-State these in writing before day 1.
+State these in writing before day 1. Each criterion is a buyer-owned
+outcome — the thing the Security or GRC leader is measured on by their
+CISO or audit committee — with the Specular artifact as the *instrument*
+of measurement.
 
-- One control from your active framework (SOC 2 CC8.1, ISO 42001, EU AI
-  Act Art. 17, or equivalent) is mapped to a Specular artifact and
-  validated by an internal auditor.
-- At least one signed `bundle-*.yaml` is added to the audit evidence
-  packet for a real release.
+| Buyer outcome (the goal)                                                                                                       | Instrument                                                    |
+|---------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------|
+| **Hours of evidence-collection per audit cycle drop by ≥40%** for AI-touched changes.                                          | bundle retrieval timing benchmark (week 3 audit drill) vs. manual baseline |
+| **One control from your active framework (SOC 2 CC8.1, ISO 42001, EU AI Act Art. 17, or equivalent) is auditor-validated.**     | written sign-off on the week-1 mapping document               |
+| **Time from "auditor asks about an AI-touched change" to "evidence delivered" drops by ≥50%.**                                  | week-3 audit drill stopwatch                                  |
+| **No critical safety event reaches production undetected** during the pilot window.                                            | `specular.ai_trust.safety_event{severity="critical"}` count   |
+
+Leading indicator (vendor-operational, useful but not the contract):
+
 - Drift gate runs in CI for ≥1 production-bound repo within 30 days.
-- Time from "auditor asks about an AI-touched change" to "evidence
-  delivered" drops by ≥50% compared to the manual baseline.
 
 The pilot is small on purpose. Security pilots fail when they try to do
-platform work in disguise. Stay narrow.
+platform work in disguise. Stay narrow. The buyer outcomes are what
+justify next quarter's expansion budget; install rate is not.
 
 ## 30-day plan: Evidence
 

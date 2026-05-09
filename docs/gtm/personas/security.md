@@ -105,6 +105,28 @@ To save us both time, here is what is **out of scope**:
   can write a policy that does.
 - We do not host an LLM. Bring your own provider keys.
 
+## Why your Platform Engineering counterpart needs you
+
+You can produce evidence on your own — the bundles already exist for
+any merge. But evidence in a non-blocking gate is **theatre**: the
+auditor sees a record, but the engineer can ship around it. The hard
+asks Platform owes you in return:
+
+- **Flip the drift gate from advisory to blocking** in CI by the end
+  of pilot week 4. Without that flip, your control sample is voluntary
+  and the auditor will mark the control as "design only, not
+  effective." See [`platform-engineering.md`](./platform-engineering.md).
+- **Document the access-control model** for `specular approve` —
+  who can sign for what — under `.specular/approvals/` and reference it
+  from the org's identity baseline.
+- **Wire the OTel telemetry into the SIEM the AppSec rotation already
+  watches** so a failed drift gate that sits unapproved for 24 hours
+  pages the right person. Without this, your pilot is a static
+  artifact, not a live control.
+
+If Platform is not at the kickoff, the evidence will exist but the
+control will not. Co-conspirators, not customers.
+
 ## Where to go next
 
 - [`../playbooks/pilot-security.md`](../playbooks/pilot-security.md) — pilot

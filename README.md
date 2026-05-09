@@ -35,6 +35,7 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 ## Quick Links
 
 📚 **[Getting Started](docs/getting-started.md)** – Quickstart plus common workflows
+📣 **[Why Specular: AI Change Control for regulated orgs](docs/gtm/README.md)** – Wedge positioning, persona tracks, pilot playbooks for Platform Engineering and Security buyers
 🛠️ **[Installation Guide](docs/installation.md)** – Package, binary, and Docker installs
 🔧 **[Provider Guide](docs/provider-guide.md)** – Configure local/cloud AI providers
 📘 **[CLI Reference](docs/CLI_REFERENCE.md)** – Command/flag reference
@@ -43,7 +44,6 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 🚀 **[Production Guide](docs/PRODUCTION_GUIDE.md)** – Production deployment, security, monitoring
 🔌 **[Plugin Development](docs/plugin-development/README.md)** – Build custom plugins
 🔐 **[Security Risk Register](SECURITY_RISKS.md)** – Current security‑risk overview
-🎯 **[GTM Wedge & Launch Assets](docs/gtm/README.md)** – Positioning, persona tracks, pilot playbooks for Platform Engineering and Security buyers
 
 ---
 
