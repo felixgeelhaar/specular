@@ -48,6 +48,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/router"
 	"github.com/felixgeelhaar/specular/internal/spec"
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/trace"
 )
 
@@ -476,6 +477,11 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 		if err != nil {
 			return nil, fmt.Errorf("approval gate: %w", err)
 		}
+		decision := telemetry.InterventionDecisionApproved
+		if !approved {
+			decision = telemetry.InterventionDecisionRejected
+		}
+		telemetry.RecordIntervention(ctx, telemetry.InterventionGatePlanApproval, decision)
 		if !approved {
 			return result, fmt.Errorf("plan not approved by user")
 		}

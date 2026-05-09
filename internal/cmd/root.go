@@ -44,6 +44,15 @@ structured specifications, executable plans, and production-ready code while
 maintaining traceability and enforcing organizational guardrails.`,
 	SilenceUsage:  true, // Don't show usage on errors - it's noise
 	SilenceErrors: true, // main.go handles error printing
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		return ValidateGlobalFlags(cmd)
+	},
+	PersistentPostRunE: func(cmd *cobra.Command, _ []string) error {
+		// Cobra only invokes PersistentPostRunE on successful RunE; this is
+		// the right hook to emit time-to-first-success across sessions.
+		recordFirstSuccessIfPending(cmd.Context(), cmd.Name())
+		return nil
+	},
 }
 
 // Execute runs the root command

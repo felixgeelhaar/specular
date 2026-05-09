@@ -12,6 +12,7 @@ import (
 
 	"github.com/felixgeelhaar/specular/internal/exec"
 	"github.com/felixgeelhaar/specular/internal/license"
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 )
 
 var approveCmd = &cobra.Command{
@@ -147,6 +148,8 @@ func runApprove(cmd *cobra.Command, args []string) error {
 	if err := os.WriteFile(approvalPath, data, 0600); err != nil {
 		return fmt.Errorf("writing approval: %w", err)
 	}
+
+	telemetry.RecordIntervention(cmd.Context(), interventionGateForResource(resourceType), telemetry.InterventionDecisionApproved)
 
 	fmt.Printf("✅ Approved %s: %s\n\n", resourceType, resourceID)
 	fmt.Printf("Approved by: %s\n", approver)
@@ -434,6 +437,23 @@ func checkDrift() (bool, error) {
 
 	// Drift baseline exists but no approval - pending
 	return true, nil
+}
+
+// interventionGateForResource maps the approve subcommand's resource type
+// onto the telemetry intervention gate label.
+func interventionGateForResource(resourceType string) string {
+	switch resourceType {
+	case "bundle":
+		return telemetry.InterventionGateBundleApproval
+	case "drift":
+		return telemetry.InterventionGateDriftApproval
+	case "policy":
+		return telemetry.InterventionGatePolicyApproval
+	case "plan":
+		return telemetry.InterventionGatePlanApproval
+	default:
+		return telemetry.InterventionGateOther
+	}
 }
 
 func init() {

@@ -39,6 +39,7 @@ import (
 
 	"github.com/felixgeelhaar/specular/internal/metrics"
 	"github.com/felixgeelhaar/specular/internal/provider"
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 )
 
 // Router manages model selection and routing
@@ -199,6 +200,15 @@ func (r *Router) SelectModel(ctx context.Context, req RoutingRequest) (*RoutingR
 	}
 
 	reason := r.buildSelectionReason(best, req)
+
+	telemetry.RecordRoutingDecision(
+		ctx,
+		string(best.Provider),
+		best.ID,
+		req.ModelHint,
+		reason,
+		estimatedCost,
+	)
 
 	return &RoutingResult{
 		Model:           best,

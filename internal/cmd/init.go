@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/felixgeelhaar/specular/internal/detect"
 	"github.com/felixgeelhaar/specular/internal/docgen"
 	"github.com/felixgeelhaar/specular/internal/provider"
+	"github.com/felixgeelhaar/specular/internal/telemetry"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
 
@@ -186,9 +188,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return RunWorkflowFromFlag(cmd, workflowFlag)
 	}
 
+	telemCtx := cmd.Context()
+	startedAt := time.Now()
+	templateAttr := attribute.String("template", initTemplate)
+	telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepStarted, telemetry.ActivationStatusOK, templateAttr)
+
 	// Setup target directory
 	absDir, specDir, err := setupTargetDirectory(args)
 	if err != nil {
+		telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepStarted, telemetry.ActivationStatusFailed,
+			templateAttr, attribute.String("failure", "target_directory"))
 		return err
 	}
 
@@ -201,26 +210,71 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Detect project context
 	ctx := detectProjectContext()
+	detectStatus := telemetry.ActivationStatusOK
+	if initNoDetect {
+		detectStatus = telemetry.ActivationStatusSkipped
+	}
+	providersDetected := 0
+	for _, info := range ctx.Providers {
+		if info.Available {
+			providersDetected++
+		}
+	}
+	telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepDetected, detectStatus,
+		templateAttr,
+		attribute.Int("providers_available", providersDetected),
+		attribute.Int("languages", len(ctx.Languages)),
+	)
 
 	// Build configuration
 	config := buildInitConfig(absDir, specDir, ctx)
 
 	// Preview changes in dry-run mode
 	if initDryRun {
+		telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepCompleted, telemetry.ActivationStatusSkipped,
+			templateAttr, attribute.Bool("dry_run", true))
 		return previewChanges(config)
 	}
 
 	// Confirm before writing (unless --yes or --force)
 	if !initYes && !initForce {
 		if !confirmInitialization(config) {
+			telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepAbandoned, telemetry.ActivationStatusAbandoned,
+				templateAttr, attribute.String("reason", "user_declined_confirmation"))
 			fmt.Println("\nInitialization cancelled.")
 			return nil
 		}
 	}
 
+	// Persist activation start so cross-session time-to-first-success can be
+	// measured the next time a non-init command succeeds.
+	if err := writeActivationStart(specDir, startedAt); err != nil {
+		// Non-fatal: telemetry is best-effort and must not block init.
+		fmt.Printf("⚠  Unable to persist activation marker: %v\n", err)
+	}
+
 	// Execute initialization
 	if initErr := executeInit(config); initErr != nil {
+		telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepConfigWritten, telemetry.ActivationStatusFailed,
+			templateAttr, attribute.String("failure", "execute_init"))
 		return initErr
+	}
+
+	completedAt := time.Now()
+	telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepConfigWritten, telemetry.ActivationStatusOK, templateAttr)
+	if initProviderSetup && !initYes && initProviders == "" {
+		telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepProvidersReady, telemetry.ActivationStatusOK, templateAttr)
+	}
+	telemetry.RecordActivationStep(telemCtx, telemetry.ActivationStepCompleted, telemetry.ActivationStatusOK, templateAttr,
+		attribute.String("governance", config.Governance),
+	)
+	telemetry.RecordActivationDuration(telemCtx, telemetry.ActivationMilestoneInitComplete, completedAt.Sub(startedAt),
+		templateAttr,
+		attribute.String("governance", config.Governance),
+	)
+
+	if err := markActivationInitComplete(specDir, completedAt); err != nil {
+		fmt.Printf("⚠  Unable to update activation marker: %v\n", err)
 	}
 
 	// Print success message and next steps

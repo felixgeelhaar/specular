@@ -40,6 +40,14 @@ type Metrics struct {
 	ProviderLatency      metric.Float64Histogram
 	ProviderErrorCounter metric.Int64Counter
 	ProviderTokenCounter metric.Int64Counter
+
+	// Activation funnel and AI trust metrics
+	ActivationStepCounter  metric.Int64Counter
+	ActivationDuration     metric.Float64Histogram
+	RoutingDecisionCounter metric.Int64Counter
+	RoutingCostEstimate    metric.Float64Histogram
+	InterventionCounter    metric.Int64Counter
+	RegenerateCounter      metric.Int64Counter
 }
 
 // InitMetricsProvider initializes the OpenTelemetry metrics provider
@@ -172,6 +180,62 @@ func initMetrics() error {
 			"specular.provider.tokens",
 			metric.WithDescription("Total number of tokens used"),
 			metric.WithUnit("{token}"),
+		)
+		if initErr != nil {
+			return
+		}
+
+		// Activation funnel metrics
+		m.ActivationStepCounter, initErr = meter.Int64Counter(
+			"specular.activation.step",
+			metric.WithDescription("Activation funnel events keyed by step and status (drives drop-off analysis)"),
+			metric.WithUnit("{event}"),
+		)
+		if initErr != nil {
+			return
+		}
+
+		m.ActivationDuration, initErr = meter.Float64Histogram(
+			"specular.activation.duration",
+			metric.WithDescription("Elapsed time from activation start to a milestone such as init_complete or first_success"),
+			metric.WithUnit("s"),
+		)
+		if initErr != nil {
+			return
+		}
+
+		// AI trust metrics
+		m.RoutingDecisionCounter, initErr = meter.Int64Counter(
+			"specular.ai_trust.routing_decision",
+			metric.WithDescription("Router model selection events with explainability attributes (provider, model, hint, reason, cost_band)"),
+			metric.WithUnit("{decision}"),
+		)
+		if initErr != nil {
+			return
+		}
+
+		m.RoutingCostEstimate, initErr = meter.Float64Histogram(
+			"specular.ai_trust.routing_cost_estimate",
+			metric.WithDescription("Estimated USD cost of selected routing decision at decision time"),
+			metric.WithUnit("USD"),
+		)
+		if initErr != nil {
+			return
+		}
+
+		m.InterventionCounter, initErr = meter.Int64Counter(
+			"specular.ai_trust.intervention",
+			metric.WithDescription("Human-in-the-loop intervention events keyed by gate type and decision (approved|rejected)"),
+			metric.WithUnit("{event}"),
+		)
+		if initErr != nil {
+			return
+		}
+
+		m.RegenerateCounter, initErr = meter.Int64Counter(
+			"specular.ai_trust.regenerate",
+			metric.WithDescription("User-initiated regeneration of AI output keyed by command and reason"),
+			metric.WithUnit("{event}"),
 		)
 		if initErr != nil {
 			return

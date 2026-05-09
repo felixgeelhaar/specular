@@ -80,21 +80,31 @@ func setupTelemetry(ctx context.Context, cfg *GlobalConfig) func() {
 		return func() {}
 	}
 
+	metricsShutdown, metricsErr := telemetry.InitMetricsProvider(ctx, telemCfg)
+	if metricsErr != nil {
+		log.DefaultLogger().Warn("Failed to initialize metrics provider", "error", metricsErr)
+		metricsShutdown = nil
+	}
+
 	log.DefaultLogger().Info("Telemetry enabled",
 		"endpoint", telemCfg.Endpoint,
 		"sample_rate", telemCfg.SampleRate,
 	)
 
 	return func() {
-		if shutdown == nil {
-			return
-		}
-
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if err := shutdown(shutdownCtx); err != nil {
-			log.DefaultLogger().Warn("Failed to flush telemetry", "error", err)
+		if metricsShutdown != nil {
+			if err := metricsShutdown(shutdownCtx); err != nil {
+				log.DefaultLogger().Warn("Failed to flush metrics", "error", err)
+			}
+		}
+
+		if shutdown != nil {
+			if err := shutdown(shutdownCtx); err != nil {
+				log.DefaultLogger().Warn("Failed to flush telemetry", "error", err)
+			}
 		}
 	}
 }
