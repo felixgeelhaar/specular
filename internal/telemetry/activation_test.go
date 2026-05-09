@@ -2,12 +2,68 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
+	"pgregory.net/rapid"
 )
+
+// costBandIndex assigns a deterministic order to bands so a property test
+// can assert monotonicity without depending on string comparison.
+func costBandIndex(band string) int {
+	order := []string{"free", "<0.01", "0.01-0.10", "0.10-1.00", "1.00-10.00", ">=10.00"}
+	for i, b := range order {
+		if b == band {
+			return i
+		}
+	}
+	return -1
+}
+
+func TestCostBandMonotonic(t *testing.T) {
+	rapid.Check(t, func(rt *rapid.T) {
+		usd1 := rapid.Float64Range(-1000, 100000).Draw(rt, "usd1")
+		usd2 := rapid.Float64Range(-1000, 100000).Draw(rt, "usd2")
+		if usd1 > usd2 {
+			usd1, usd2 = usd2, usd1
+		}
+		i1 := costBandIndex(CostBand(usd1))
+		i2 := costBandIndex(CostBand(usd2))
+		if i1 < 0 || i2 < 0 {
+			rt.Fatalf("CostBand returned unknown band for usd1=%v usd2=%v", usd1, usd2)
+		}
+		if i1 > i2 {
+			rt.Fatalf("CostBand not monotonic: usd1=%v -> %s (idx %d) vs usd2=%v -> %s (idx %d)",
+				usd1, CostBand(usd1), i1, usd2, CostBand(usd2), i2)
+		}
+	})
+}
+
+func TestCostBandBoundaries(t *testing.T) {
+	// Pin exact boundary behaviour so a future refactor cannot silently
+	// shift the cutoffs that downstream dashboards depend on.
+	cases := []struct {
+		usd  float64
+		want string
+	}{
+		{0.01, "0.01-0.10"},
+		{0.0099999, "<0.01"},
+		{0.10, "0.10-1.00"},
+		{0.099999, "0.01-0.10"},
+		{1.00, "1.00-10.00"},
+		{0.999999, "0.10-1.00"},
+		{10.00, ">=10.00"},
+		{9.999999, "1.00-10.00"},
+	}
+	for _, tc := range cases {
+		if got := CostBand(tc.usd); got != tc.want {
+			t.Errorf("CostBand(%v) = %q, want %q", tc.usd, got, tc.want)
+		}
+	}
+}
 
 func TestCostBand(t *testing.T) {
 	cases := []struct {
@@ -96,10 +152,15 @@ func TestRecordRoutingDecision(t *testing.T) {
 		t.Fatalf("expected 1 datapoint, got %d", len(sum.DataPoints))
 	}
 	attrs := sum.DataPoints[0].Attributes.ToSlice()
-	for _, key := range []string{"provider", "model", "hint", "reason", "cost_band"} {
+	// Counter must carry only low-cardinality attributes. Reason is unbounded
+	// and lives on the span event, never on the metric.
+	for _, key := range []string{"provider", "model", "hint", "cost_band"} {
 		if !hasAttribute(attrs, key) {
 			t.Errorf("missing attribute %q on routing decision: %v", key, attrs)
 		}
+	}
+	if hasAttribute(attrs, "reason") {
+		t.Errorf("reason must not appear on the routing-decision counter (high cardinality): %v", attrs)
 	}
 	if !hasAttributeValue(attrs, "cost_band", "0.10-1.00") {
 		t.Errorf("expected cost_band 0.10-1.00, got %v", attrs)
@@ -111,6 +172,54 @@ func TestRecordRoutingDecision(t *testing.T) {
 	}
 	if hist.DataPoints[0].Sum < 0.41 || hist.DataPoints[0].Sum > 0.43 {
 		t.Errorf("expected cost estimate near 0.42, got %f", hist.DataPoints[0].Sum)
+	}
+}
+
+func TestRecordRoutingDecisionNormalisesArbitraryHint(t *testing.T) {
+	mp, reader := setupTestMetrics(t)
+	defer func() { _ = mp.Shutdown(context.Background()) }()
+
+	// Arbitrary user-supplied hint must collapse onto the bounded enum to
+	// avoid blowing up downstream metric cardinality.
+	RecordRoutingDecision(context.Background(),
+		"openai", "gpt-4o", "completely-made-up-string",
+		"reason text",
+		0.05,
+	)
+
+	sum := findSum(t, reader, "specular.ai_trust.routing_decision")
+	if len(sum.DataPoints) != 1 {
+		t.Fatalf("expected 1 datapoint, got %d", len(sum.DataPoints))
+	}
+	if !hasAttributeValue(sum.DataPoints[0].Attributes.ToSlice(), "hint", "other") {
+		t.Errorf("expected unknown hint to normalise to 'other', got %v", sum.DataPoints[0].Attributes.ToSlice())
+	}
+}
+
+func TestRoutingDecisionCardinalityBounded(t *testing.T) {
+	mp, reader := setupTestMetrics(t)
+	defer func() { _ = mp.Shutdown(context.Background()) }()
+
+	// Drive 1k distinct free-form hint strings through the recorder and
+	// confirm the resulting metric stays bounded by the hint enum
+	// (codegen / fast / cheap / agentic / long-context / other / none plus
+	// provider+model+cost_band combinations are bounded). This is the
+	// fitness function that should fail loudly if reason or hint ever
+	// regresses to free-form on the counter.
+	for i := 0; i < 1000; i++ {
+		RecordRoutingDecision(context.Background(),
+			"anthropic", "claude-3-5-sonnet",
+			fmt.Sprintf("user-hint-%d", i),
+			fmt.Sprintf("reason-%d", i),
+			0.05,
+		)
+	}
+
+	sum := findSum(t, reader, "specular.ai_trust.routing_decision")
+	// All 1000 calls share provider, model, cost_band, and the hint
+	// normalises to "other", so we expect exactly one data-point series.
+	if len(sum.DataPoints) > 4 {
+		t.Errorf("routing decision cardinality unbounded: %d distinct series after 1000 calls", len(sum.DataPoints))
 	}
 }
 

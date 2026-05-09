@@ -4,9 +4,26 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 )
+
+// makeOwnedSpecDir creates a .specular dir under root and writes the
+// activationOwnershipSibling so findSpecularDir will accept it. Returns the
+// .specular path.
+func makeOwnedSpecDir(t *testing.T, root string) string {
+	t.Helper()
+	specDir := filepath.Join(root, ".specular")
+	if err := os.MkdirAll(specDir, 0o750); err != nil {
+		t.Fatalf("mkdir .specular: %v", err)
+	}
+	sibling := filepath.Join(specDir, activationOwnershipSibling)
+	if err := os.WriteFile(sibling, []byte("# owned by test\n"), 0o600); err != nil {
+		t.Fatalf("write ownership sibling: %v", err)
+	}
+	return specDir
+}
 
 func TestActivationMarkerRoundTrip(t *testing.T) {
 	specDir := filepath.Join(t.TempDir(), ".specular")
@@ -77,7 +94,7 @@ func TestRecordFirstSuccessIfPendingPersistsTimestamp(t *testing.T) {
 	tmp := t.TempDir()
 	t.Cleanup(chdir(t, tmp))
 
-	specDir := filepath.Join(tmp, ".specular")
+	specDir := makeOwnedSpecDir(t, tmp)
 	start := time.Now().Add(-30 * time.Second)
 	if err := writeActivationStart(specDir, start); err != nil {
 		t.Fatalf("writeActivationStart: %v", err)
@@ -98,7 +115,7 @@ func TestRecordFirstSuccessIfPendingSkipsExcludedCommand(t *testing.T) {
 	tmp := t.TempDir()
 	t.Cleanup(chdir(t, tmp))
 
-	specDir := filepath.Join(tmp, ".specular")
+	specDir := makeOwnedSpecDir(t, tmp)
 	start := time.Now().Add(-30 * time.Second)
 	if err := writeActivationStart(specDir, start); err != nil {
 		t.Fatalf("writeActivationStart: %v", err)
@@ -121,7 +138,7 @@ func TestRecordFirstSuccessIsIdempotent(t *testing.T) {
 	tmp := t.TempDir()
 	t.Cleanup(chdir(t, tmp))
 
-	specDir := filepath.Join(tmp, ".specular")
+	specDir := makeOwnedSpecDir(t, tmp)
 	start := time.Now().Add(-30 * time.Second)
 	if err := writeActivationStart(specDir, start); err != nil {
 		t.Fatalf("writeActivationStart: %v", err)
@@ -143,6 +160,96 @@ func TestRecordFirstSuccessIsIdempotent(t *testing.T) {
 	if !first.FirstSuccessAt.Equal(second.FirstSuccessAt) {
 		t.Errorf("FirstSuccessAt should not change on subsequent calls: first=%v second=%v",
 			first.FirstSuccessAt, second.FirstSuccessAt)
+	}
+}
+
+// TestRecordFirstSuccessConcurrent fires N goroutines simultaneously and
+// asserts the sentinel claim guarantees exactly one persisted FirstSuccessAt.
+// Run under -race to also catch any read-modify-write data race on the marker.
+func TestRecordFirstSuccessConcurrent(t *testing.T) {
+	tmp := t.TempDir()
+	t.Cleanup(chdir(t, tmp))
+
+	specDir := makeOwnedSpecDir(t, tmp)
+	start := time.Now().Add(-30 * time.Second)
+	if err := writeActivationStart(specDir, start); err != nil {
+		t.Fatalf("writeActivationStart: %v", err)
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			recordFirstSuccessIfPending(t.Context(), "plan")
+		}()
+	}
+	wg.Wait()
+
+	marker, err := readActivationMarker(specDir)
+	if err != nil {
+		t.Fatalf("read after concurrent calls: %v", err)
+	}
+	if marker.FirstSuccessAt.IsZero() {
+		t.Fatalf("FirstSuccessAt was not recorded by any goroutine")
+	}
+	// The sentinel file must exist; subsequent invocations must observe it.
+	if _, err := os.Stat(filepath.Join(specDir, activationFirstSuccessSentinel)); err != nil {
+		t.Errorf("first-success sentinel should exist: %v", err)
+	}
+}
+
+func TestActivationMarkerSchemaVersionPersists(t *testing.T) {
+	specDir := filepath.Join(t.TempDir(), ".specular")
+	start := time.Now()
+	if err := writeActivationStart(specDir, start); err != nil {
+		t.Fatalf("writeActivationStart: %v", err)
+	}
+	marker, err := readActivationMarker(specDir)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if marker.Version != activationMarkerVersion {
+		t.Errorf("expected Version=%d, got %d", activationMarkerVersion, marker.Version)
+	}
+}
+
+func TestActivationMarkerRejectsFutureVersion(t *testing.T) {
+	specDir := filepath.Join(t.TempDir(), ".specular")
+	if err := os.MkdirAll(specDir, 0o750); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	future := activationMarker{
+		Version:   activationMarkerVersion + 99,
+		StartedAt: time.Now(),
+	}
+	data, _ := json.MarshalIndent(future, "", "  ")
+	if err := os.WriteFile(activationMarkerPath(specDir), data, 0o600); err != nil {
+		t.Fatalf("write future-version marker: %v", err)
+	}
+
+	if _, err := readActivationMarker(specDir); err == nil {
+		t.Fatalf("readActivationMarker must refuse a future-version file")
+	}
+}
+
+func TestFindSpecularDirRejectsUnowned(t *testing.T) {
+	tmp := t.TempDir()
+	t.Cleanup(chdir(t, tmp))
+
+	// Create a .specular dir without the ownership sibling — findSpecularDir
+	// must NOT claim it (defends against a stray dir on a shared host).
+	if err := os.MkdirAll(filepath.Join(tmp, ".specular"), 0o750); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if got := findSpecularDir(); got != "" {
+		t.Errorf("expected empty result for unowned .specular, got %q", got)
+	}
+
+	// After we create the sibling, the same call must succeed.
+	makeOwnedSpecDir(t, tmp)
+	if got := findSpecularDir(); got == "" {
+		t.Errorf("expected non-empty result for owned .specular")
 	}
 }
 

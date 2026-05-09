@@ -2,10 +2,12 @@ package telemetry
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Activation funnel step identifiers. Values are kept short and stable so they
@@ -85,25 +87,56 @@ func RecordActivationDuration(ctx context.Context, milestone string, duration ti
 	m.ActivationDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(base...))
 }
 
-// RecordRoutingDecision records a router model selection together with the
-// human-readable reason that drove it. The reason and cost_band attributes are
-// the explainability signals used to audit AI trust over time.
+// validRoutingHints bounds the hint metric attribute to a small enum so the
+// downstream Prom/OTel collector cannot be flooded by user-supplied free-form
+// `--hint` strings. Keep the list aligned with router.go getCandidateModels.
+var validRoutingHints = map[string]struct{}{
+	"codegen":      {},
+	"code":         {},
+	"long-context": {},
+	"longcontext":  {},
+	"agentic":      {},
+	"agent":        {},
+	"fast":         {},
+	"quick":        {},
+	"cheap":        {},
+	"budget":       {},
+}
+
+// normaliseRoutingHint maps an arbitrary user-supplied hint onto the bounded
+// enum. Empty hint becomes "none"; unknown hints become "other" so cardinality
+// stays bounded regardless of the input.
+func normaliseRoutingHint(hint string) string {
+	if hint == "" {
+		return "none"
+	}
+	lower := strings.ToLower(hint)
+	if _, ok := validRoutingHints[lower]; ok {
+		return lower
+	}
+	return "other"
+}
+
+// RecordRoutingDecision records a router model selection. The metric carries
+// only low-cardinality attributes (provider, model, normalised hint, cost
+// band); the human-readable reason — which is unbounded free-form text and
+// therefore unsafe as a metric attribute — is attached to the active OTel
+// span as an event so audit explainability survives without exploding the
+// downstream collector.
 func RecordRoutingDecision(ctx context.Context, providerName, model, hint, reason string, estimatedCostUSD float64, attrs ...attribute.KeyValue) {
 	m := GetMetrics()
 	if m.RoutingDecisionCounter == nil {
 		return
 	}
 
-	if hint == "" {
-		hint = "none"
-	}
+	normalisedHint := normaliseRoutingHint(hint)
+	costBand := CostBand(estimatedCostUSD)
 
 	base := []attribute.KeyValue{
 		attribute.String("provider", providerName),
 		attribute.String("model", model),
-		attribute.String("hint", hint),
-		attribute.String("reason", reason),
-		attribute.String("cost_band", CostBand(estimatedCostUSD)),
+		attribute.String("hint", normalisedHint),
+		attribute.String("cost_band", costBand),
 	}
 	base = append(base, attrs...)
 
@@ -113,6 +146,17 @@ func RecordRoutingDecision(ctx context.Context, providerName, model, hint, reaso
 		m.RoutingCostEstimate.Record(ctx, estimatedCostUSD, metric.WithAttributes(
 			attribute.String("provider", providerName),
 			attribute.String("model", model),
+		))
+	}
+
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		span.AddEvent("routing_decision", trace.WithAttributes(
+			attribute.String("provider", providerName),
+			attribute.String("model", model),
+			attribute.String("hint", normalisedHint),
+			attribute.String("reason", reason),
+			attribute.String("cost_band", costBand),
+			attribute.Float64("estimated_cost_usd", estimatedCostUSD),
 		))
 	}
 }
