@@ -1,6 +1,6 @@
 {
   "project_id": "specular",
-  "version": 18,
+  "version": 19,
   "task_states": {
     "task-activation-and-ai-trust-telemetry": {
       "status": "done",
@@ -19,8 +19,10 @@
       "elapsed_minutes": 0
     },
     "task-ai-trust-signal-depth-and-bundle-provenance": {
-      "status": "pending",
+      "status": "in_progress",
       "path": "",
+      "owner": "ai-agent",
+      "started_at": "2026-05-09T08:56:40.359027+02:00",
       "elapsed_minutes": 0
     },
     "task-core-foundation": {
@@ -95,5 +97,5 @@
       "elapsed_minutes": 14
     }
   },
-  "updated_at": "2026-05-09T08:56:03.108422+02:00"
+  "updated_at": "2026-05-09T08:56:40.359027+02:00"
 }

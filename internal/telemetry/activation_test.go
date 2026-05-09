@@ -14,7 +14,7 @@ import (
 // costBandIndex assigns a deterministic order to bands so a property test
 // can assert monotonicity without depending on string comparison.
 func costBandIndex(band string) int {
-	order := []string{"free", "<0.01", "0.01-0.10", "0.10-1.00", "1.00-10.00", ">=10.00"}
+	order := []string{"free", "<0.01", "0.01-0.10", "0.10-1.00", "1.00-10.00", "10-100", ">=100"}
 	for i, b := range order {
 		if b == band {
 			return i
@@ -55,8 +55,11 @@ func TestCostBandBoundaries(t *testing.T) {
 		{0.099999, "0.01-0.10"},
 		{1.00, "1.00-10.00"},
 		{0.999999, "0.10-1.00"},
-		{10.00, ">=10.00"},
+		{10.00, "10-100"},
 		{9.999999, "1.00-10.00"},
+		{99.99, "10-100"},
+		{100.00, ">=100"},
+		{2500.0, ">=100"},
 	}
 	for _, tc := range cases {
 		if got := CostBand(tc.usd); got != tc.want {
@@ -77,8 +80,9 @@ func TestCostBand(t *testing.T) {
 		{"single cent", 0.05, "0.01-0.10"},
 		{"sub dollar", 0.5, "0.10-1.00"},
 		{"single dollar", 5, "1.00-10.00"},
-		{"high", 25, ">=10.00"},
-		{"exact ten", 10, ">=10.00"},
+		{"frontier mid", 25, "10-100"},
+		{"exact ten", 10, "10-100"},
+		{"frontier upper", 250, ">=100"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -261,8 +265,8 @@ func TestRecordRegenerate(t *testing.T) {
 	mp, reader := setupTestMetrics(t)
 	defer func() { _ = mp.Shutdown(context.Background()) }()
 
-	RecordRegenerate(context.Background(), "plan", "validation_failed")
-	RecordRegenerate(context.Background(), "plan", "")
+	RecordRegenerate(context.Background(), "plan", RegenerateTriggerEvalFailure, "claude-haiku-4-5")
+	RecordRegenerate(context.Background(), "plan", RegenerateTriggerUserReject, "")
 
 	sum := findSum(t, reader, "specular.ai_trust.regenerate")
 	if len(sum.DataPoints) != 2 {
@@ -270,8 +274,31 @@ func TestRecordRegenerate(t *testing.T) {
 	}
 	for _, dp := range sum.DataPoints {
 		attrs := dp.Attributes.ToSlice()
-		if !hasAttribute(attrs, "command") || !hasAttribute(attrs, "reason") {
-			t.Errorf("missing required attributes on %v", attrs)
+		for _, key := range []string{"command", "trigger", "previous_model"} {
+			if !hasAttribute(attrs, key) {
+				t.Errorf("missing required attribute %q on regenerate: %v", key, attrs)
+			}
+		}
+	}
+}
+
+func TestRecordSafetyEvent(t *testing.T) {
+	mp, reader := setupTestMetrics(t)
+	defer func() { _ = mp.Shutdown(context.Background()) }()
+
+	RecordSafetyEvent(context.Background(),
+		SafetyCategorySecretLeak, SafetySeverityHigh, SafetyActionBlocked,
+		attribute.String("hook", "pre-build-secrets-scan"),
+	)
+
+	sum := findSum(t, reader, "specular.ai_trust.safety_event")
+	if len(sum.DataPoints) != 1 {
+		t.Fatalf("expected 1 datapoint, got %d", len(sum.DataPoints))
+	}
+	attrs := sum.DataPoints[0].Attributes.ToSlice()
+	for _, key := range []string{"category", "severity", "action_taken"} {
+		if !hasAttribute(attrs, key) {
+			t.Errorf("missing required attribute %q on safety_event: %v", key, attrs)
 		}
 	}
 }
@@ -292,7 +319,8 @@ func TestActivationMetricContract(t *testing.T) {
 	RecordActivationDuration(ctx, ActivationMilestoneInitComplete, time.Second)
 	RecordRoutingDecision(ctx, "anthropic", "claude-3-5-sonnet", "codegen", "reason text", 0.5)
 	RecordIntervention(ctx, InterventionGatePlanApproval, InterventionDecisionApproved)
-	RecordRegenerate(ctx, "plan", "user_request")
+	RecordRegenerate(ctx, "plan", RegenerateTriggerUserReject, "claude-haiku-4-5")
+	RecordSafetyEvent(ctx, SafetyCategorySecretLeak, SafetySeverityHigh, SafetyActionBlocked)
 
 	type contract struct {
 		requiredKeys map[string]struct{}
@@ -320,11 +348,36 @@ func TestActivationMetricContract(t *testing.T) {
 		"specular.ai_trust.intervention": {
 			requiredKeys: keyset("gate", "decision"),
 			enumValues: map[string]map[string]struct{}{
-				"decision": stringSet(InterventionDecisionApproved, InterventionDecisionRejected),
+				"decision": stringSet(InterventionDecisionApproved, InterventionDecisionRejected, InterventionDecisionImplicitReject),
 			},
 		},
 		"specular.ai_trust.regenerate": {
-			requiredKeys: keyset("command", "reason"),
+			requiredKeys: keyset("command", "trigger", "previous_model"),
+			enumValues: map[string]map[string]struct{}{
+				"trigger": stringSet(
+					RegenerateTriggerUserReject,
+					RegenerateTriggerEvalFailure,
+					RegenerateTriggerAgentSelfCorrect,
+					RegenerateTriggerDriftRevert,
+					RegenerateTriggerPolicyBlock,
+					"unspecified",
+				),
+			},
+		},
+		"specular.ai_trust.safety_event": {
+			requiredKeys: keyset("category", "severity", "action_taken"),
+			enumValues: map[string]map[string]struct{}{
+				"category": stringSet(
+					SafetyCategoryPromptInjection,
+					SafetyCategorySecretLeak,
+					SafetyCategoryForbiddenToolCall,
+					SafetyCategoryScopeViolation,
+					SafetyCategoryRefusal,
+					SafetyCategoryJailbreakAttempt,
+				),
+				"severity":     stringSet(SafetySeverityLow, SafetySeverityMedium, SafetySeverityHigh, SafetySeverityCritical),
+				"action_taken": stringSet(SafetyActionAllowed, SafetyActionWarned, SafetyActionBlocked, SafetyActionEscalated),
+			},
 		},
 	}
 
@@ -424,7 +477,8 @@ func TestActivationRecordersAreNoopWhenUninitialised(t *testing.T) {
 	RecordActivationDuration(ctx, ActivationMilestoneInitComplete, time.Second)
 	RecordRoutingDecision(ctx, "openai", "gpt-4o", "fast", "test", 0.1)
 	RecordIntervention(ctx, InterventionGatePlanApproval, InterventionDecisionApproved)
-	RecordRegenerate(ctx, "plan", "user_request")
+	RecordRegenerate(ctx, "plan", RegenerateTriggerUserReject, "")
+	RecordSafetyEvent(ctx, SafetyCategorySecretLeak, SafetySeverityHigh, SafetyActionBlocked)
 }
 
 func findSum(t *testing.T, reader interface {

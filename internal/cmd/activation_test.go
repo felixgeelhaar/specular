@@ -233,6 +233,54 @@ func TestActivationMarkerRejectsFutureVersion(t *testing.T) {
 	}
 }
 
+func TestRecordFirstWedgeSuccessGatedOnWedgeCommand(t *testing.T) {
+	tmp := t.TempDir()
+	t.Cleanup(chdir(t, tmp))
+
+	specDir := makeOwnedSpecDir(t, tmp)
+	if err := writeActivationStart(specDir, time.Now().Add(-30*time.Second)); err != nil {
+		t.Fatalf("writeActivationStart: %v", err)
+	}
+
+	// Non-wedge command must NOT set FirstWedgeSuccessAt even though it
+	// does set FirstSuccessAt.
+	recordFirstSuccessIfPending(t.Context(), "plan")
+	marker, err := readActivationMarker(specDir)
+	if err != nil {
+		t.Fatalf("read after non-wedge: %v", err)
+	}
+	if marker.FirstSuccessAt.IsZero() {
+		t.Fatalf("FirstSuccessAt must be set after any non-excluded command")
+	}
+	if !marker.FirstWedgeSuccessAt.IsZero() {
+		t.Fatalf("FirstWedgeSuccessAt must NOT be set for non-wedge command (plan), got %v",
+			marker.FirstWedgeSuccessAt)
+	}
+
+	// Wedge command must set FirstWedgeSuccessAt now.
+	recordFirstSuccessIfPending(t.Context(), "build")
+	marker, err = readActivationMarker(specDir)
+	if err != nil {
+		t.Fatalf("read after wedge: %v", err)
+	}
+	if marker.FirstWedgeSuccessAt.IsZero() {
+		t.Fatalf("FirstWedgeSuccessAt must be set after wedge command (build)")
+	}
+
+	// Subsequent wedge command must NOT overwrite the timestamp.
+	prev := marker.FirstWedgeSuccessAt
+	time.Sleep(2 * time.Millisecond)
+	recordFirstSuccessIfPending(t.Context(), "auto")
+	marker, err = readActivationMarker(specDir)
+	if err != nil {
+		t.Fatalf("read after second wedge: %v", err)
+	}
+	if !marker.FirstWedgeSuccessAt.Equal(prev) {
+		t.Errorf("FirstWedgeSuccessAt must be idempotent: prev=%v new=%v",
+			prev, marker.FirstWedgeSuccessAt)
+	}
+}
+
 func TestFindSpecularDirRejectsUnowned(t *testing.T) {
 	tmp := t.TempDir()
 	t.Cleanup(chdir(t, tmp))

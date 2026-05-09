@@ -13,13 +13,14 @@ import (
 // Activation funnel step identifiers. Values are kept short and stable so they
 // stay safe to pin in dashboards and alerts.
 const (
-	ActivationStepStarted        = "started"
-	ActivationStepDetected       = "context_detected"
-	ActivationStepConfigWritten  = "config_written"
-	ActivationStepProvidersReady = "providers_configured"
-	ActivationStepCompleted      = "completed"
-	ActivationStepAbandoned      = "abandoned"
-	ActivationStepFirstSuccess   = "first_command_success"
+	ActivationStepStarted          = "started"
+	ActivationStepDetected         = "context_detected"
+	ActivationStepConfigWritten    = "config_written"
+	ActivationStepProvidersReady   = "providers_configured"
+	ActivationStepCompleted        = "completed"
+	ActivationStepAbandoned        = "abandoned"
+	ActivationStepFirstSuccess     = "first_command_success"
+	ActivationStepFirstWedgeSuccess = "first_wedge_success"
 )
 
 // Activation step status values.
@@ -31,9 +32,16 @@ const (
 )
 
 // Activation duration milestones.
+//
+// first_success measures CLI ergonomics (any non-init command exited 0).
+// first_wedge_success is the headline activation metric: it fires only after
+// the user successfully runs a wedge command (auto / build / eval / bundle /
+// drift), i.e. they have produced audit evidence. Time-to-first-wedge-success
+// is what the GTM pilot success criteria anchor on.
 const (
-	ActivationMilestoneInitComplete = "init_complete"
-	ActivationMilestoneFirstSuccess = "first_success"
+	ActivationMilestoneInitComplete   = "init_complete"
+	ActivationMilestoneFirstSuccess   = "first_success"
+	ActivationMilestoneFirstWedgeSuccess = "first_wedge_success"
 )
 
 // Intervention gate types capture the surface where a human approves or rejects
@@ -48,8 +56,48 @@ const (
 
 // Intervention decisions.
 const (
-	InterventionDecisionApproved = "approved"
-	InterventionDecisionRejected = "rejected"
+	InterventionDecisionApproved      = "approved"
+	InterventionDecisionRejected      = "rejected"
+	InterventionDecisionImplicitReject = "implicit_reject"
+)
+
+// Regenerate triggers capture *why* AI output was regenerated; collapsing
+// these into "reason" loses critical signal because agentic self-correction
+// loops dominate counts and would otherwise mask explicit user dissatisfaction.
+const (
+	RegenerateTriggerUserReject       = "user_reject"
+	RegenerateTriggerEvalFailure      = "eval_failure"
+	RegenerateTriggerAgentSelfCorrect = "agent_self_correct"
+	RegenerateTriggerDriftRevert      = "drift_revert"
+	RegenerateTriggerPolicyBlock      = "policy_block"
+)
+
+// Safety event categories cover the off-policy model behaviour that auditors
+// and CISOs ask about. Wired into hooks, policy checkers, and the executor
+// sandbox so the metric fires mid-build, not only after generation.
+const (
+	SafetyCategoryPromptInjection    = "prompt_injection"
+	SafetyCategorySecretLeak         = "secret_leak"
+	SafetyCategoryForbiddenToolCall  = "forbidden_tool_call"
+	SafetyCategoryScopeViolation     = "scope_violation"
+	SafetyCategoryRefusal            = "refusal"
+	SafetyCategoryJailbreakAttempt   = "jailbreak_attempt"
+)
+
+// Safety severities. low/medium/high align with common SIEM rule taxonomies.
+const (
+	SafetySeverityLow      = "low"
+	SafetySeverityMedium   = "medium"
+	SafetySeverityHigh     = "high"
+	SafetySeverityCritical = "critical"
+)
+
+// Safety actions describe what the system did in response to the event.
+const (
+	SafetyActionAllowed   = "allowed"
+	SafetyActionWarned    = "warned"
+	SafetyActionBlocked   = "blocked"
+	SafetyActionEscalated = "escalated"
 )
 
 // RecordActivationStep records a step in the activation funnel. The combination
@@ -178,31 +226,63 @@ func RecordIntervention(ctx context.Context, gate, decision string, attrs ...att
 	m.InterventionCounter.Add(ctx, 1, metric.WithAttributes(base...))
 }
 
-// RecordRegenerate records a user-initiated regeneration of AI output. The
-// reason field captures why the output was rejected (e.g. "user_request",
-// "validation_failed").
-func RecordRegenerate(ctx context.Context, command, reason string, attrs ...attribute.KeyValue) {
+// RecordRegenerate records a regeneration of AI output. The trigger
+// dimension distinguishes user-initiated rejects from agentic self-
+// correction, eval-gate failures, drift reverts, and policy blocks — these
+// behave very differently and collapsing them loses trust-SLO signal.
+// previousModel enables analysis of model-escalation patterns
+// (e.g. Haiku → Sonnet rerolls).
+func RecordRegenerate(ctx context.Context, command, trigger, previousModel string, attrs ...attribute.KeyValue) {
 	m := GetMetrics()
 	if m.RegenerateCounter == nil {
 		return
 	}
 
-	if reason == "" {
-		reason = "unspecified"
+	if trigger == "" {
+		trigger = "unspecified"
+	}
+	if previousModel == "" {
+		previousModel = "unknown"
 	}
 
 	base := []attribute.KeyValue{
 		attribute.String("command", command),
-		attribute.String("reason", reason),
+		attribute.String("trigger", trigger),
+		attribute.String("previous_model", previousModel),
 	}
 	base = append(base, attrs...)
 
 	m.RegenerateCounter.Add(ctx, 1, metric.WithAttributes(base...))
 }
 
+// RecordSafetyEvent records an off-policy model behaviour observation. The
+// category, severity, and action attributes are the SIEM-shaped contract
+// security teams need to alert on AI behaviour mid-build (not only after
+// generation).
+func RecordSafetyEvent(ctx context.Context, category, severity, action string, attrs ...attribute.KeyValue) {
+	m := GetMetrics()
+	if m.SafetyEventCounter == nil {
+		return
+	}
+
+	base := []attribute.KeyValue{
+		attribute.String("category", category),
+		attribute.String("severity", severity),
+		attribute.String("action_taken", action),
+	}
+	base = append(base, attrs...)
+
+	m.SafetyEventCounter.Add(ctx, 1, metric.WithAttributes(base...))
+}
+
 // CostBand bins estimated cost into a small fixed set of labels. Histogram
 // recording captures exact values; the band keeps counter cardinality low for
 // dashboards filtering by price tier.
+//
+// The 10-100 and >=100 bands cover frontier-reasoning model spend (e.g.
+// extended-thinking calls and full agentic task runs); previously every spend
+// above $10 collapsed into a single bucket, which is exactly the regime
+// finance and security buyers want resolution on.
 func CostBand(usd float64) string {
 	switch {
 	case usd <= 0:
@@ -215,7 +295,9 @@ func CostBand(usd float64) string {
 		return "0.10-1.00"
 	case usd < 10.00:
 		return "1.00-10.00"
+	case usd < 100.00:
+		return "10-100"
 	default:
-		return ">=10.00"
+		return ">=100"
 	}
 }

@@ -51,6 +51,7 @@ type Metrics struct {
 	RoutingCostEstimate    metric.Float64Histogram
 	InterventionCounter    metric.Int64Counter
 	RegenerateCounter      metric.Int64Counter
+	SafetyEventCounter     metric.Int64Counter
 }
 
 // InitMetricsProvider initializes the OpenTelemetry metrics provider
@@ -248,7 +249,16 @@ func initMetrics() error {
 
 		m.RegenerateCounter, initErr = meter.Int64Counter(
 			"specular.ai_trust.regenerate",
-			metric.WithDescription("User-initiated regeneration of AI output keyed by command and reason"),
+			metric.WithDescription("Regeneration of AI output keyed by command, trigger (user_reject|eval_failure|agent_self_correct|drift_revert|policy_block), and previous_model"),
+			metric.WithUnit("{event}"),
+		)
+		if initErr != nil {
+			return
+		}
+
+		m.SafetyEventCounter, initErr = meter.Int64Counter(
+			"specular.ai_trust.safety_event",
+			metric.WithDescription("Off-policy AI behaviour observations keyed by category (prompt_injection|secret_leak|forbidden_tool_call|scope_violation|refusal|jailbreak_attempt), severity, and action_taken"),
 			metric.WithUnit("{event}"),
 		)
 		if initErr != nil {

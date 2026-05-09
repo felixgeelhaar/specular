@@ -42,11 +42,19 @@ const (
 // activationMarker captures activation timing state across CLI invocations.
 // The Version field is the schema version; bumping it requires a migration
 // path documented in the activation package README.
+//
+// FirstWedgeSuccessAt is the headline activation timestamp: it records the
+// first time the user successfully ran a wedge command (auto / build / eval
+// drift / bundle create / approve), i.e. produced audit evidence. Schema
+// version 1 already supports the field via JSON-additive evolution; old
+// markers without it simply default to the zero value, which the wedge gate
+// treats as "not yet reached."
 type activationMarker struct {
-	Version        int       `json:"v"`
-	StartedAt      time.Time `json:"started_at"`
-	InitCompleteAt time.Time `json:"init_complete_at,omitempty"`
-	FirstSuccessAt time.Time `json:"first_success_at,omitempty"`
+	Version             int       `json:"v"`
+	StartedAt           time.Time `json:"started_at"`
+	InitCompleteAt      time.Time `json:"init_complete_at,omitempty"`
+	FirstSuccessAt      time.Time `json:"first_success_at,omitempty"`
+	FirstWedgeSuccessAt time.Time `json:"first_wedge_success_at,omitempty"`
 }
 
 // activationMarkerPath resolves the marker path inside the given .specular dir.
@@ -127,13 +135,30 @@ func markActivationInitComplete(specDir string, completedAt time.Time) error {
 	return writeActivationMarker(specDir, marker)
 }
 
-// recordFirstSuccessIfPending emits time-to-first-success the first time a
-// non-init command finishes successfully after init. Concurrent invocations
-// (e.g. parallel `specular plan` and `specular build` shells) must not
-// double-emit, so the function claims a sentinel file with O_CREATE|O_EXCL
-// before recording: only the goroutine that creates the sentinel is allowed
-// to emit and persist the timestamp. The marker write itself uses
-// temp+rename to keep the JSON readable under concurrent observers.
+// activationFirstWedgeSentinel is the lockfile that claims the
+// time-to-first-wedge-success emission exactly once.
+const activationFirstWedgeSentinel = ".first_wedge_success.done"
+
+// wedgeCommands is the set of subcommands whose successful exit means the
+// user has produced audit evidence — i.e. they have realised the wedge.
+// Time-to-first-wedge-success is the headline activation metric the GTM
+// pilot success criteria anchor on.
+var wedgeCommands = map[string]struct{}{
+	"auto":   {},
+	"build":  {},
+	"eval":   {},
+	"bundle": {},
+	"drift":  {},
+}
+
+// recordFirstSuccessIfPending emits two activation milestones the first time
+// a non-init command finishes successfully:
+//   - first_command_success: any non-excluded subcommand (CLI ergonomics).
+//   - first_wedge_success: only when the subcommand is in wedgeCommands
+//     (audit-evidence produced).
+//
+// Concurrent invocations cannot double-emit: each milestone is gated by an
+// O_CREATE|O_EXCL sentinel, and the marker write is atomic via temp+rename.
 func recordFirstSuccessIfPending(ctx context.Context, cmdName string) {
 	if isActivationExcludedCommand(cmdName) {
 		return
@@ -145,28 +170,45 @@ func recordFirstSuccessIfPending(ctx context.Context, cmdName string) {
 	}
 
 	marker, err := readActivationMarker(specDir)
-	if err != nil || marker.StartedAt.IsZero() || !marker.FirstSuccessAt.IsZero() {
+	if err != nil || marker.StartedAt.IsZero() {
 		return
 	}
 
-	sentinelPath := filepath.Join(specDir, activationFirstSuccessSentinel)
-	f, err := os.OpenFile(sentinelPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	updated := false
+	now := time.Now()
+
+	if marker.FirstSuccessAt.IsZero() && claimSentinel(specDir, activationFirstSuccessSentinel) {
+		marker.FirstSuccessAt = now
+		telemetry.RecordActivationStep(ctx, telemetry.ActivationStepFirstSuccess, telemetry.ActivationStatusOK)
+		telemetry.RecordActivationDuration(ctx, telemetry.ActivationMilestoneFirstSuccess, now.Sub(marker.StartedAt))
+		updated = true
+	}
+
+	if _, isWedge := wedgeCommands[cmdName]; isWedge && marker.FirstWedgeSuccessAt.IsZero() &&
+		claimSentinel(specDir, activationFirstWedgeSentinel) {
+		marker.FirstWedgeSuccessAt = now
+		telemetry.RecordActivationStep(ctx, telemetry.ActivationStepFirstWedgeSuccess, telemetry.ActivationStatusOK)
+		telemetry.RecordActivationDuration(ctx, telemetry.ActivationMilestoneFirstWedgeSuccess, now.Sub(marker.StartedAt))
+		updated = true
+	}
+
+	if updated {
+		// Best-effort persistence: failing to write must not break the
+		// user's command, so swallow the error after recording metrics.
+		_ = writeActivationMarker(specDir, marker)
+	}
+}
+
+// claimSentinel returns true if it succeeded in atomically creating the
+// named sentinel file inside specDir. The sentinel acts as a once-per-
+// project lock for emitting an activation milestone.
+func claimSentinel(specDir, name string) bool {
+	f, err := os.OpenFile(filepath.Join(specDir, name), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
-		// Sentinel already claimed by another invocation — that goroutine
-		// owns the metric emission for this project lifetime.
-		return
+		return false
 	}
 	_ = f.Close()
-
-	now := time.Now()
-	marker.FirstSuccessAt = now
-
-	telemetry.RecordActivationStep(ctx, telemetry.ActivationStepFirstSuccess, telemetry.ActivationStatusOK)
-	telemetry.RecordActivationDuration(ctx, telemetry.ActivationMilestoneFirstSuccess, now.Sub(marker.StartedAt))
-
-	// Best-effort persistence: failing to write must not break the user's
-	// command, so swallow the error after recording metrics.
-	_ = writeActivationMarker(specDir, marker)
+	return true
 }
 
 func isActivationExcludedCommand(name string) bool {
