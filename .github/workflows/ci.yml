@@ -107,11 +107,13 @@ jobs:
         env:
           SKIP_DOCKER_TESTS: "true"
 
-  # macOS tests - only on PRs (optional, ensures cross-platform compat)
+  # macOS tests - push-to-main + label-gated PRs.
+  # macOS runners cost 10x Actions minutes on public repos; default PRs
+  # skip them. Add the `test-macos` label to a PR to opt in.
   test-macos:
     name: Test (macOS)
     runs-on: macos-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'test-macos'))
     needs: validate
     steps:
       - name: Checkout code
