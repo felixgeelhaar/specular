@@ -5,15 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 )
 
 var ollamaModelPattern = regexp.MustCompile(`^[a-zA-Z0-9._:-]{1,80}$`)
-
 
 // GenerateRequest matches internal/provider/types.go
 type GenerateRequest struct {

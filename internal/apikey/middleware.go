@@ -18,21 +18,21 @@ const (
 
 // Middleware provides HTTP middleware for API key authentication.
 type Middleware struct {
-	manager         *Manager
-	rateLimitMu     sync.Mutex
+	manager          *Manager
+	rateLimitMu      sync.Mutex
 	rateLimitBuckets map[string]*rateLimitBucket
 }
 
 type rateLimitBucket struct {
-	tokens      float64
-	lastRefill  time.Time
-	lastSeen    time.Time
+	tokens     float64
+	lastRefill time.Time
+	lastSeen   time.Time
 }
 
 // NewMiddleware creates a new API key middleware.
 func NewMiddleware(manager *Manager) *Middleware {
 	return &Middleware{
-		manager: manager,
+		manager:          manager,
 		rateLimitBuckets: make(map[string]*rateLimitBucket),
 	}
 }
