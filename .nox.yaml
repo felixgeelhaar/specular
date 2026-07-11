@@ -1,0 +1,59 @@
+# nox configuration — the security/dependency gate that replaces dependabot.
+# Schema reference: https://github.com/nox-hq/nox
+#
+# Only GENERATED, VENDORED, or PROSE/DATA artifacts are excluded here. All
+# first-party Go source — including *_test.go and examples/** — is scanned. The
+# remaining first-party findings (fake credentials in test fixtures, capability
+# description strings, help text naming env vars, doc URLs) are documented false
+# positives accepted via .nox/baseline.json, never by blinding whole source
+# directories.
+
+scan:
+  exclude:
+    # Go module checksum database — SHA-256 module digests read as high-entropy
+    # secrets/API keys to the entropy detector. Real dependency CVEs are
+    # surfaced via OSV lookups on go.mod, not go.sum text.
+    # Classification: False Positive (module digests). Last reviewed: 2026-07-11
+    - go.sum
+    - "**/go.sum"
+    # npm lockfiles (website/ Astro Starlight docs + example plugin packages):
+    # integrity hashes look like API keys to the entropy detector. Dependency
+    # CVEs are surfaced via OSV directly, not the lockfile text.
+    # Classification: False Positive (integrity hashes). Last reviewed: 2026-07-11
+    - "**/package-lock.json"
+    # Markdown is prose — README, docs/, ARCHITECTURE/SECURITY notes, and the
+    # website/ content. The secret/PII entropy rules fire on ordinary
+    # documentation. High-confidence real secret patterns are still caught in
+    # code, not prose.
+    # Classification: False Positive (prose). Last reviewed: 2026-07-11
+    - README.md
+    - "*.md"
+    - "**/*.md"
+    # Test fixtures / golden data under testdata/ are inert data, not runtime
+    # code; entropy rules trip on synthetic sample content.
+    # Classification: False Positive (test data). Last reviewed: 2026-07-11
+    - testdata/
+    - "**/testdata/**"
+    # Generated protobuf stubs (none today; guarded for future codegen).
+    # Classification: Acceptable Pattern (generated). Last reviewed: 2026-07-11
+    - "*.pb.go"
+    - "**/*.pb.go"
+    # Committed example CLI output (build artifact, not source).
+    # Classification: Acceptable Pattern (generated output). Last reviewed: 2026-07-11
+    - examples/auto-output.json
+    # VerdictSec scanner state (the repo's existing SAST tool) — .verdict/
+    # holds cached scan results and a baseline whose stored finding snippets and
+    # SHA-256 fingerprints re-trip the secret/entropy detectors. Never scan a
+    # scanner's own cache. Same category as .nox/ below.
+    # Classification: Acceptable Pattern (scanner state). Last reviewed: 2026-07-11
+    - .verdict/
+    - .verdict-baseline.json
+    # nox's own baseline/cache and report output — finding fingerprints are
+    # SHA-256 hex that re-trip the secret detector. Never scan the scanner.
+    # Classification: Acceptable Pattern (scanner state). Last reviewed: 2026-07-11
+    - .nox/
+    - findings.json
+    - nox-results/
+    - nox-baseline/
+    - "*.sarif"
+    - "**/*.sarif"
