@@ -41,7 +41,14 @@ func (m *mockSigner) Sign(data []byte) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 
-	signature := append(r.Bytes(), s.Bytes()...)
+	// Encode as fixed-width r || s. big.Int.Bytes() strips leading zero
+	// bytes, which intermittently yields <64-byte signatures that the
+	// verifier (which splits at a fixed 32-byte boundary) rejects. FillBytes
+	// guarantees a constant-width encoding matching AuditVerifier.Verify.
+	byteLen := (m.privateKey.Curve.Params().BitSize + 7) / 8
+	signature := make([]byte, 2*byteLen)
+	r.FillBytes(signature[:byteLen])
+	s.FillBytes(signature[byteLen:])
 
 	publicKeyBytes, err := x509.MarshalPKIXPublicKey(&m.privateKey.PublicKey)
 	if err != nil {
