@@ -19,8 +19,15 @@ import (
 type ApprovalDecision int
 
 const (
+	// ApprovalRejected indicates the user explicitly declined the plan
+	// (said "no"). It is the zero value so an unset decision defaults to
+	// "not approved" rather than accidentally proceeding.
 	ApprovalRejected ApprovalDecision = iota
+	// ApprovalApproved indicates the user accepted the plan and the run
+	// may proceed.
 	ApprovalApproved
+	// ApprovalCancelled indicates the user aborted the gate (e.g. pressed
+	// Esc) without making an explicit approve/reject choice.
 	ApprovalCancelled
 )
 

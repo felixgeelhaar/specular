@@ -59,8 +59,8 @@ func MeasureStartup(binary string, args []string, iterations int) (*StartupResul
 		}
 		c.Stdout = nil
 		c.Stderr = nil
-		if err := c.Run(); err != nil {
-			return nil, fmt.Errorf("command failed: %w", err)
+		if runErr := c.Run(); runErr != nil {
+			return nil, fmt.Errorf("command failed: %w", runErr)
 		}
 		durations = append(durations, time.Since(start))
 	}

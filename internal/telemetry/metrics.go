@@ -129,146 +129,163 @@ func initMetrics() error {
 		return nil
 	}
 
-	var initErr error
-	func() {
-		meter := globalMeterProvider.Meter("github.com/felixgeelhaar/specular")
+	meter := globalMeterProvider.Meter("github.com/felixgeelhaar/specular")
+	m := &Metrics{}
 
-		m := &Metrics{}
-
-		// Command metrics
-		m.CommandCounter, initErr = meter.Int64Counter(
-			"specular.command.invocations",
-			metric.WithDescription("Total number of command invocations"),
-			metric.WithUnit("{invocation}"),
-		)
-		if initErr != nil {
-			return
+	// Register each cohesive group of instruments. Any failure leaves
+	// `metrics` nil so a later call can retry the whole set.
+	for _, register := range []func(metric.Meter, *Metrics) error{
+		initCommandMetrics,
+		initProviderMetrics,
+		initActivationMetrics,
+		initAITrustMetrics,
+	} {
+		if err := register(meter, m); err != nil {
+			return err
 		}
+	}
 
-		m.CommandDuration, initErr = meter.Float64Histogram(
-			"specular.command.duration",
-			metric.WithDescription("Command execution duration in seconds"),
-			metric.WithUnit("s"),
-		)
-		if initErr != nil {
-			return
-		}
+	metrics = m
+	return nil
+}
 
-		m.CommandErrorCounter, initErr = meter.Int64Counter(
-			"specular.command.errors",
-			metric.WithDescription("Total number of command errors"),
-			metric.WithUnit("{error}"),
-		)
-		if initErr != nil {
-			return
-		}
+// initCommandMetrics registers the command-level instruments.
+func initCommandMetrics(meter metric.Meter, m *Metrics) error {
+	var err error
 
-		// Provider metrics
-		m.ProviderCallCounter, initErr = meter.Int64Counter(
-			"specular.provider.calls",
-			metric.WithDescription("Total number of provider API calls"),
-			metric.WithUnit("{call}"),
-		)
-		if initErr != nil {
-			return
-		}
+	m.CommandCounter, err = meter.Int64Counter(
+		"specular.command.invocations",
+		metric.WithDescription("Total number of command invocations"),
+		metric.WithUnit("{invocation}"),
+	)
+	if err != nil {
+		return err
+	}
 
-		m.ProviderLatency, initErr = meter.Float64Histogram(
-			"specular.provider.latency",
-			metric.WithDescription("Provider API call latency in seconds"),
-			metric.WithUnit("s"),
-		)
-		if initErr != nil {
-			return
-		}
+	m.CommandDuration, err = meter.Float64Histogram(
+		"specular.command.duration",
+		metric.WithDescription("Command execution duration in seconds"),
+		metric.WithUnit("s"),
+	)
+	if err != nil {
+		return err
+	}
 
-		m.ProviderErrorCounter, initErr = meter.Int64Counter(
-			"specular.provider.errors",
-			metric.WithDescription("Total number of provider API errors"),
-			metric.WithUnit("{error}"),
-		)
-		if initErr != nil {
-			return
-		}
+	m.CommandErrorCounter, err = meter.Int64Counter(
+		"specular.command.errors",
+		metric.WithDescription("Total number of command errors"),
+		metric.WithUnit("{error}"),
+	)
+	return err
+}
 
-		m.ProviderTokenCounter, initErr = meter.Int64Counter(
-			"specular.provider.tokens",
-			metric.WithDescription("Total number of tokens used"),
-			metric.WithUnit("{token}"),
-		)
-		if initErr != nil {
-			return
-		}
+// initProviderMetrics registers the provider (LLM API) instruments.
+func initProviderMetrics(meter metric.Meter, m *Metrics) error {
+	var err error
 
-		// Activation funnel metrics
-		m.ActivationStepCounter, initErr = meter.Int64Counter(
-			"specular.activation.step",
-			metric.WithDescription("Activation funnel events keyed by step and status (drives drop-off analysis)"),
-			metric.WithUnit("{event}"),
-		)
-		if initErr != nil {
-			return
-		}
+	m.ProviderCallCounter, err = meter.Int64Counter(
+		"specular.provider.calls",
+		metric.WithDescription("Total number of provider API calls"),
+		metric.WithUnit("{call}"),
+	)
+	if err != nil {
+		return err
+	}
 
-		m.ActivationDuration, initErr = meter.Float64Histogram(
-			"specular.activation.duration",
-			metric.WithDescription("Elapsed time from activation start to a milestone such as init_complete or first_success"),
-			metric.WithUnit("s"),
-		)
-		if initErr != nil {
-			return
-		}
+	m.ProviderLatency, err = meter.Float64Histogram(
+		"specular.provider.latency",
+		metric.WithDescription("Provider API call latency in seconds"),
+		metric.WithUnit("s"),
+	)
+	if err != nil {
+		return err
+	}
 
-		// AI trust metrics
-		m.RoutingDecisionCounter, initErr = meter.Int64Counter(
-			"specular.ai_trust.routing_decision",
-			metric.WithDescription("Router model selection events with explainability attributes (provider, model, hint, reason, cost_band)"),
-			metric.WithUnit("{decision}"),
-		)
-		if initErr != nil {
-			return
-		}
+	m.ProviderErrorCounter, err = meter.Int64Counter(
+		"specular.provider.errors",
+		metric.WithDescription("Total number of provider API errors"),
+		metric.WithUnit("{error}"),
+	)
+	if err != nil {
+		return err
+	}
 
-		m.RoutingCostEstimate, initErr = meter.Float64Histogram(
-			"specular.ai_trust.routing_cost_estimate",
-			metric.WithDescription("Estimated USD cost of selected routing decision at decision time"),
-			metric.WithUnit("USD"),
-		)
-		if initErr != nil {
-			return
-		}
+	m.ProviderTokenCounter, err = meter.Int64Counter(
+		"specular.provider.tokens",
+		metric.WithDescription("Total number of tokens used"),
+		metric.WithUnit("{token}"),
+	)
+	return err
+}
 
-		m.InterventionCounter, initErr = meter.Int64Counter(
-			"specular.ai_trust.intervention",
-			metric.WithDescription("Human-in-the-loop intervention events keyed by gate type and decision (approved|rejected)"),
-			metric.WithUnit("{event}"),
-		)
-		if initErr != nil {
-			return
-		}
+// initActivationMetrics registers the activation-funnel instruments.
+func initActivationMetrics(meter metric.Meter, m *Metrics) error {
+	var err error
 
-		m.RegenerateCounter, initErr = meter.Int64Counter(
-			"specular.ai_trust.regenerate",
-			metric.WithDescription("Regeneration of AI output keyed by command, trigger (user_reject|eval_failure|agent_self_correct|drift_revert|policy_block), and previous_model"),
-			metric.WithUnit("{event}"),
-		)
-		if initErr != nil {
-			return
-		}
+	m.ActivationStepCounter, err = meter.Int64Counter(
+		"specular.activation.step",
+		metric.WithDescription("Activation funnel events keyed by step and status (drives drop-off analysis)"),
+		metric.WithUnit("{event}"),
+	)
+	if err != nil {
+		return err
+	}
 
-		m.SafetyEventCounter, initErr = meter.Int64Counter(
-			"specular.ai_trust.safety_event",
-			metric.WithDescription("Off-policy AI behaviour observations keyed by category (prompt_injection|secret_leak|forbidden_tool_call|scope_violation|refusal|jailbreak_attempt), severity, and action_taken"),
-			metric.WithUnit("{event}"),
-		)
-		if initErr != nil {
-			return
-		}
+	m.ActivationDuration, err = meter.Float64Histogram(
+		"specular.activation.duration",
+		metric.WithDescription("Elapsed time from activation start to a milestone such as init_complete or first_success"),
+		metric.WithUnit("s"),
+	)
+	return err
+}
 
-		metrics = m
-	}()
+// initAITrustMetrics registers the AI-trust instruments (routing,
+// intervention, regeneration, and safety observability).
+func initAITrustMetrics(meter metric.Meter, m *Metrics) error {
+	var err error
 
-	return initErr
+	m.RoutingDecisionCounter, err = meter.Int64Counter(
+		"specular.ai_trust.routing_decision",
+		metric.WithDescription("Router model selection events with explainability attributes (provider, model, hint, reason, cost_band)"),
+		metric.WithUnit("{decision}"),
+	)
+	if err != nil {
+		return err
+	}
+
+	m.RoutingCostEstimate, err = meter.Float64Histogram(
+		"specular.ai_trust.routing_cost_estimate",
+		metric.WithDescription("Estimated USD cost of selected routing decision at decision time"),
+		metric.WithUnit("USD"),
+	)
+	if err != nil {
+		return err
+	}
+
+	m.InterventionCounter, err = meter.Int64Counter(
+		"specular.ai_trust.intervention",
+		metric.WithDescription("Human-in-the-loop intervention events keyed by gate type and decision (approved|rejected)"),
+		metric.WithUnit("{event}"),
+	)
+	if err != nil {
+		return err
+	}
+
+	m.RegenerateCounter, err = meter.Int64Counter(
+		"specular.ai_trust.regenerate",
+		metric.WithDescription("Regeneration of AI output keyed by command, trigger (user_reject|eval_failure|agent_self_correct|drift_revert|policy_block), and previous_model"),
+		metric.WithUnit("{event}"),
+	)
+	if err != nil {
+		return err
+	}
+
+	m.SafetyEventCounter, err = meter.Int64Counter(
+		"specular.ai_trust.safety_event",
+		metric.WithDescription("Off-policy AI behaviour observations keyed by category (prompt_injection|secret_leak|forbidden_tool_call|scope_violation|refusal|jailbreak_attempt), severity, and action_taken"),
+		metric.WithUnit("{event}"),
+	)
+	return err
 }
 
 // resetMetricsForRetry is a test-only helper that clears the cached metrics
