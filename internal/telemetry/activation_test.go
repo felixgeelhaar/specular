@@ -323,9 +323,9 @@ func TestActivationMetricContract(t *testing.T) {
 	RecordSafetyEvent(ctx, SafetyCategorySecretLeak, SafetySeverityHigh, SafetyActionBlocked)
 
 	type contract struct {
-		requiredKeys map[string]struct{}
+		requiredKeys  map[string]struct{}
 		forbiddenKeys map[string]struct{}
-		enumValues   map[string]map[string]struct{} // key -> allowed values; empty map = any value allowed
+		enumValues    map[string]map[string]struct{} // key -> allowed values; empty map = any value allowed
 	}
 
 	contracts := map[string]contract{

@@ -51,9 +51,9 @@ func (p *fallbackTestProvider) GetInfo() *provider.ProviderInfo {
 	return &provider.ProviderInfo{Name: p.name}
 }
 
-func (p *fallbackTestProvider) IsAvailable() bool { return true }
+func (p *fallbackTestProvider) IsAvailable() bool            { return true }
 func (p *fallbackTestProvider) Health(context.Context) error { return nil }
-func (p *fallbackTestProvider) Close() error { return nil }
+func (p *fallbackTestProvider) Close() error                 { return nil }
 
 func makeFallbackRouter(t *testing.T, local provider.ProviderClient, openai provider.ProviderClient) *Router {
 	t.Helper()

@@ -13,13 +13,13 @@ import (
 // Activation funnel step identifiers. Values are kept short and stable so they
 // stay safe to pin in dashboards and alerts.
 const (
-	ActivationStepStarted          = "started"
-	ActivationStepDetected         = "context_detected"
-	ActivationStepConfigWritten    = "config_written"
-	ActivationStepProvidersReady   = "providers_configured"
-	ActivationStepCompleted        = "completed"
-	ActivationStepAbandoned        = "abandoned"
-	ActivationStepFirstSuccess     = "first_command_success"
+	ActivationStepStarted           = "started"
+	ActivationStepDetected          = "context_detected"
+	ActivationStepConfigWritten     = "config_written"
+	ActivationStepProvidersReady    = "providers_configured"
+	ActivationStepCompleted         = "completed"
+	ActivationStepAbandoned         = "abandoned"
+	ActivationStepFirstSuccess      = "first_command_success"
 	ActivationStepFirstWedgeSuccess = "first_wedge_success"
 )
 
@@ -39,8 +39,8 @@ const (
 // drift), i.e. they have produced audit evidence. Time-to-first-wedge-success
 // is what the GTM pilot success criteria anchor on.
 const (
-	ActivationMilestoneInitComplete   = "init_complete"
-	ActivationMilestoneFirstSuccess   = "first_success"
+	ActivationMilestoneInitComplete      = "init_complete"
+	ActivationMilestoneFirstSuccess      = "first_success"
 	ActivationMilestoneFirstWedgeSuccess = "first_wedge_success"
 )
 
@@ -56,8 +56,8 @@ const (
 
 // Intervention decisions.
 const (
-	InterventionDecisionApproved      = "approved"
-	InterventionDecisionRejected      = "rejected"
+	InterventionDecisionApproved       = "approved"
+	InterventionDecisionRejected       = "rejected"
 	InterventionDecisionImplicitReject = "implicit_reject"
 )
 
@@ -76,12 +76,12 @@ const (
 // and CISOs ask about. Wired into hooks, policy checkers, and the executor
 // sandbox so the metric fires mid-build, not only after generation.
 const (
-	SafetyCategoryPromptInjection    = "prompt_injection"
-	SafetyCategorySecretLeak         = "secret_leak"
-	SafetyCategoryForbiddenToolCall  = "forbidden_tool_call"
-	SafetyCategoryScopeViolation     = "scope_violation"
-	SafetyCategoryRefusal            = "refusal"
-	SafetyCategoryJailbreakAttempt   = "jailbreak_attempt"
+	SafetyCategoryPromptInjection   = "prompt_injection"
+	SafetyCategorySecretLeak        = "secret_leak"
+	SafetyCategoryForbiddenToolCall = "forbidden_tool_call"
+	SafetyCategoryScopeViolation    = "scope_violation"
+	SafetyCategoryRefusal           = "refusal"
+	SafetyCategoryJailbreakAttempt  = "jailbreak_attempt"
 )
 
 // Safety severities. low/medium/high align with common SIEM rule taxonomies.
