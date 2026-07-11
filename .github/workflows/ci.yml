@@ -82,7 +82,7 @@ jobs:
         run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Install coverctl
-        run: go install github.com/felixgeelhaar/coverctl/cmd/coverctl@latest
+        run: go install go.klarlabs.de/coverctl/cmd/coverctl@latest
 
       - name: Check coverage with coverctl
         run: coverctl report --profile coverage.out
