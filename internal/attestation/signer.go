@@ -44,8 +44,17 @@ func (s *EphemeralSigner) Sign(data []byte) (signature []byte, publicKey crypto.
 		return nil, nil, fmt.Errorf("failed to sign: %w", err)
 	}
 
-	// Encode signature (r || s)
-	signature = append(r.Bytes(), sigS.Bytes()...)
+	// Encode signature as fixed-width r || s, padding each value to the
+	// curve's byte size (32 bytes for P-256). big.Int.Bytes() strips
+	// leading zero bytes, so when r or s has a high zero byte (~1/256 each)
+	// the concatenation would be shorter than 64 bytes and the verifier,
+	// which splits at a fixed 32-byte boundary, would reject it. This is the
+	// source of intermittent "invalid signature length" verification
+	// failures. FillBytes guarantees a constant-width encoding.
+	byteLen := (s.privateKey.Curve.Params().BitSize + 7) / 8
+	signature = make([]byte, 2*byteLen)
+	r.FillBytes(signature[:byteLen])
+	sigS.FillBytes(signature[byteLen:])
 
 	return signature, &s.privateKey.PublicKey, nil
 }
