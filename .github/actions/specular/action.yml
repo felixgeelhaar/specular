@@ -286,7 +286,7 @@ runs:
 
     - name: Upload SARIF report
       if: always() && inputs.command == 'drift' && inputs.upload-sarif == 'true'
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@b7351df727350dca84cb9d725d57dcf5bc82ba26 # v3
       with:
         sarif_file: ${{ inputs.sarif-output }}
         category: specular-drift
