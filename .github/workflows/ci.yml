@@ -128,33 +128,8 @@ jobs:
       - name: Run tests
         run: go test -v -race ./...
 
-  # Security scan - only on PRs to main
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-          cache: true
-
-      - name: Install VerdictSec
-        run: go install github.com/felixgeelhaar/verdictsec/cmd/verdict@latest
-
-      - name: Run VerdictSec Security Scan
-        run: verdict scan --sarif -o verdict-results.sarif || true
-
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v4
-        continue-on-error: true
-        with:
-          sarif_file: verdict-results.sarif
-        if: hashFiles('verdict-results.sarif') != ''
+  # Security scanning lives in nox-scan.yml ("Security (nox)"), which runs on
+  # the same triggers as this workflow. The job that used to sit here installed
+  # VerdictSec from @latest and ran it under `|| true`: a scanner discontinued
+  # upstream, pulled unpinned, whose findings could never fail the build. It
+  # reported green whether it found nothing or never ran at all.
