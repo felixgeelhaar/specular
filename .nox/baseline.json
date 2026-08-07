@@ -2065,6 +2065,216 @@
       "file_path": "scripts/verify-release.sh",
       "severity": "high",
       "created_at": "2026-07-11T11:18:49.231827Z"
+    },
+    {
+      "fingerprint": "c5bad79a7d743393c1a2da3638befa21f19253b46ac4e8babe3be4360a096ff3",
+      "rule_id": "HARDEN-001",
+      "file_path": "internal/vault/client.go",
+      "severity": "high",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "739e462b5efd69933915ec7ad09def3fc36e907a51f855cc4986fe4b7c05c1b8",
+      "rule_id": "IAC-018",
+      "file_path": ".github/workflows/nox-scan.yml",
+      "severity": "low",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "a05758076a77c196214331d7ca550fb829ac6a056927125c85264ae3a205cf61",
+      "rule_id": "IAC-121",
+      "file_path": "Dockerfile.release",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "d19236a0f33e1da0198cb55d510316410ae2b72f96171f6cfa76f0a98898ea20",
+      "rule_id": "IAC-123",
+      "file_path": "Dockerfile.release",
+      "severity": "low",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "9680ec7ec3efffae543b380396cdea3875c15fa86f2aa151fc2c8aaf764ba823",
+      "rule_id": "IAC-124",
+      "file_path": "Dockerfile.release",
+      "severity": "low",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "6cf1356c35611d9b3f1c8e6b2e4e06304ddd329bd55d714f4d2a65974f730b17",
+      "rule_id": "IAC-132",
+      "file_path": "deployments/kubernetes/deployment.yaml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "b7b92ab149b86f9ec2e51872446cf9299350332c083341ac9dc7d5871f9c3b01",
+      "rule_id": "IAC-132",
+      "file_path": "internal/templates/workflows/microservice.yaml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "1bf1b59aafcbfcdb24ebf899275b265b876f33a135097cb5c31cdc7e55520af1",
+      "rule_id": "IAC-135",
+      "file_path": "deployments/kubernetes/deployment.yaml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "f0c87cc2f81dc7b9a3ecba8375def9cb637ca9c69cde33594ab6d78067bb77c1",
+      "rule_id": "IAC-142",
+      "file_path": "deployments/kubernetes/deployment.yaml",
+      "severity": "low",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "222a21070030b4fe32865fcfcd29d66dee218ff9ad9ba453a20dd69a41677060",
+      "rule_id": "IAC-142",
+      "file_path": "internal/templates/workflows/microservice.yaml",
+      "severity": "low",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "19b1f43e85e496db4491ace8367b56fdcbfb557d322f91d8c486f85a9b275742",
+      "rule_id": "IAC-145",
+      "file_path": "internal/templates/workflows/microservice.yaml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "1eec6eddbdb72d2d3f7f975db200e870a3e922b1cb2862d1841877dbb012e407",
+      "rule_id": "IAC-153",
+      "file_path": ".github/workflows/examples/continuous-build.yml",
+      "severity": "low",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "04616222110dbc6fd273d6576e56c985f280f01fadc5386d756b58e1853fa0ee",
+      "rule_id": "IAC-153",
+      "file_path": ".github/workflows/integration-tests.yml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "685a2f4b9461897e460c17088ff2b04ee85d6586cb4442b69adf3ec2c8e9ee21",
+      "rule_id": "IAC-153",
+      "file_path": ".github/workflows/nox-scan.yml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "718b5bd2e60cb3009ac63c664d2f6e60d43a2405c5e2231c17400d05f663d0eb",
+      "rule_id": "IAC-153",
+      "file_path": ".github/workflows/performance.yml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "97ad188e0785ddce4eefe6d2d1e10de2c1c850dcab14aa15399d987f5cb53c29",
+      "rule_id": "IAC-153",
+      "file_path": ".github/workflows/release.yml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "19d0be304df23dccc7dd52c6b6419139db8d95dfdd34d537f8f064a66c7b63d7",
+      "rule_id": "IAC-153",
+      "file_path": "examples/ci-cd/github-actions-basic.yml",
+      "severity": "low",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "4979d5c9122511e8b74923f912c71b0316e3d19736874271656d90da28b72eab",
+      "rule_id": "IAC-153",
+      "file_path": "internal/templates/workflows/ci-pipeline.yaml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "b0c630008e8dbd0396f3cef5072a45c98a3e5beaf8b76edeb8e1ebfda9a74671",
+      "rule_id": "IAC-176",
+      "file_path": "internal/templates/workflows/microservice.yaml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "0698acd17cd06fd40b39607e084f320cabeb729d991c22b77ee5e5fca2d02f3d",
+      "rule_id": "IAC-183",
+      "file_path": "deployments/kubernetes/deployment.yaml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "634d0f87ad1cd2b1c691af811d497607db65a4726207da35e44830a5ed2a2407",
+      "rule_id": "IAC-183",
+      "file_path": "internal/templates/workflows/microservice.yaml",
+      "severity": "medium",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "f6f18d3ceb27158fefc976837743474613268bdc8d80d2a93b3a27bcb75bb007",
+      "rule_id": "IAC-351",
+      "file_path": "examples/projects/mobile-backend/spec.yaml",
+      "severity": "high",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "072109fa6913394ab91c061a95fde5bb9f7d532d9458bbc1c9d2cc3f0c1855e7",
+      "rule_id": "IAC-351",
+      "file_path": "examples/projects/mobile-backend/spec.yaml",
+      "severity": "high",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "c1dc6a05a4b75bbf181cb5d1724673ee814919deaef01baacc49e411b7fb26f1",
+      "rule_id": "IAC-351",
+      "file_path": "examples/projects/web-app-store/spec.yaml",
+      "severity": "high",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "a097647ea7a654a89268717d0ba23b7b3314dc4e67439c19c37e8e6f0046d9bf",
+      "rule_id": "IAC-351",
+      "file_path": "examples/projects/web-app-store/spec.yaml",
+      "severity": "high",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "2cedd37294770c99135089abfcbe8bdf05ec038eac32d286eeadebff01166ca3",
+      "rule_id": "IAC-351",
+      "file_path": "examples/web-app/openapi.yaml",
+      "severity": "high",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "198092bc2afd11a538e2ca97243cd36bad8e8a082ace31c710d3b890a3517707",
+      "rule_id": "VULN-001",
+      "file_path": "examples/projects/cli-task-manager/go.mod",
+      "severity": "info",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "05b43792a3d5429d3a34065155bc7304734e0bf69a96e759fa9fb967fe9b96c5",
+      "rule_id": "VULN-001",
+      "file_path": "examples/projects/cli-task-manager/go.mod",
+      "severity": "info",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "2c96708b5504a5c9684f6bec102c0408efd82d345bb4437c87b3ad951251082e",
+      "rule_id": "VULN-001",
+      "file_path": "go.mod",
+      "severity": "info",
+      "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "3a426f957431089b2582e79f030e4320d98b7097518bd4045248de5f78e29a57",
+      "rule_id": "VULN-001",
+      "file_path": "go.mod",
+      "severity": "info",
+      "created_at": "2026-08-03T20:12:38.228633Z"
     }
   ]
 }

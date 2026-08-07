@@ -41,8 +41,8 @@ jobs:
       security-events: write
       pull-requests: write   # nox annotate
     env:
-      NOX_VERSION: "1.7.1"
-      NOX_SHA256: "3106ab3ce7197f43a45fc1128ea27112686421e8ec3eac9be356d4ca42ab4c89"
+      NOX_VERSION: "1.26.0"
+      NOX_SHA256: "6879f8c7b523ebab9920d40919917b422bb952f9252fbadde9061cb37827793c"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -60,11 +60,28 @@ jobs:
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
       - name: Install taint-analysis plugin
-        continue-on-error: true  # plugin registry 404s are not a security failure
         # nox owns code-level SAST: source-to-sink taint (SSRF, injection, path
         # traversal). The plugin is cosign-signed; with cosign present nox
         # promotes it to community trust and installs it (no bypass).
-        run: nox plugin install nox/taint-analysis@0.7.0
+        #
+        # #40 added `continue-on-error: true` here on the reasoning that a
+        # plugin-registry 404 is not a security failure. The consequence was
+        # that a 404 produced a green scan with no SAST coverage, reported
+        # identically to a clean one — absence of coverage presented as absence
+        # of findings. The install is asserted instead; re-run the job if the
+        # registry is briefly unavailable.
+        #
+        # The 404 itself came from pinning @0.7.0 against nox 1.7.1. The pin is
+        # dropped and nox bumped to 1.26.0, where the lookup resolves.
+        #
+        # Installing is also not enough on its own: nox runs only the plugins
+        # listed under plugins.required in .nox.yaml.
+        run: |
+          nox plugin install nox/taint-analysis
+          nox plugin list | grep -q '^nox/taint-analysis' || {
+            echo "::error::taint-analysis plugin is not installed; this scan would have no SAST coverage."
+            exit 1
+          }
 
       - name: Scan
         run: nox scan . -format json,sarif -output nox-results || true

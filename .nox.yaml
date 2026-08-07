@@ -8,6 +8,16 @@
 # positives accepted via .nox/baseline.json, never by blinding whole source
 # directories.
 
+plugins:
+  # Installing a plugin does NOT make it run. nox executes only the plugins
+  # listed here; anything installed but unlisted is reported as [degraded] and
+  # its findings are simply absent. CI installed nox/taint-analysis without
+  # this list, so every scan ran with no SAST coverage and reported the same
+  # green as a clean one.
+  required:
+    # Source-to-sink taint analysis: SSRF, injection, path traversal.
+    - nox/taint-analysis
+
 scan:
   exclude:
     # Go module checksum database — SHA-256 module digests read as high-entropy
@@ -41,11 +51,10 @@ scan:
     # Committed example CLI output (build artifact, not source).
     # Classification: Acceptable Pattern (generated output). Last reviewed: 2026-07-11
     - examples/auto-output.json
-    # VerdictSec scanner state (the repo's existing SAST tool) — .verdict/
-    # holds cached scan results and a baseline whose stored finding snippets and
-    # SHA-256 fingerprints re-trip the secret/entropy detectors. Never scan a
-    # scanner's own cache. Same category as .nox/ below.
-    # Classification: Acceptable Pattern (scanner state). Last reviewed: 2026-07-11
+    # VerdictSec scanner state. .verdict/ was deleted when the scanner was
+    # dropped (discontinued upstream); these entries stay only so a stray
+    # leftover copy is never scanned. Never scan a scanner's own cache.
+    # Classification: Acceptable Pattern (scanner state). Last reviewed: 2026-08-03
     - .verdict/
     - .verdict-baseline.json
     # nox's own baseline/cache and report output — finding fingerprints are
