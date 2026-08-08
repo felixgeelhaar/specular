@@ -10,6 +10,14 @@
 /guardrail
 test_register.sh
 
+# Compiled provider wrappers and example plugins. These are built on demand
+# (scripts/package-cli-wrappers.sh writes to build/providers/; the plugin
+# README builds the example before installing it). Go binaries have no file
+# extension, so the *.exe/*.so/*.dylib patterns above cannot match them —
+# they must be ignored by path.
+/providers/*/*-provider
+/examples/plugins/slack-notifier/slack-notifier
+
 # Test binary, built with `go test -c`
 *.test
 
