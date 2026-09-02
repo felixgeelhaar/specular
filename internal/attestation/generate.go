@@ -112,19 +112,19 @@ func (g *Generator) gatherProvenance(result *auto.Result, config *auto.Config) (
 	}
 
 	provenance := &Provenance{
-		Hostname:         hostname,
-		Platform:         runtime.GOOS,
-		Arch:             runtime.GOARCH,
-		SpecularVersion:  g.version,
-		Profile:          getProfileName(config),
-		Models:           extractModelUsage(result),
-		TotalCost:        result.TotalCost,
-		TasksExecuted:    result.TasksExecuted,
-		TasksFailed:      result.TasksFailed,
-		Harness:          harness,
-		WorktreePath:     config.WorktreePath,
-		WorktreeBranch:   config.WorktreeBranch,
-		WorktreeName:     config.WorktreeName,
+		Hostname:        hostname,
+		Platform:        runtime.GOOS,
+		Arch:            runtime.GOARCH,
+		SpecularVersion: g.version,
+		Profile:         getProfileName(config),
+		Models:          extractModelUsage(result),
+		TotalCost:       result.TotalCost,
+		TasksExecuted:   result.TasksExecuted,
+		TasksFailed:     result.TasksFailed,
+		Harness:         harness,
+		WorktreePath:    config.WorktreePath,
+		WorktreeBranch:  config.WorktreeBranch,
+		WorktreeName:    config.WorktreeName,
 	}
 
 	// Prefer audit trail harness/worktree when AutoOutput is present

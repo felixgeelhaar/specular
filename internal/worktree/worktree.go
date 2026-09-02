@@ -35,15 +35,15 @@ var (
 
 // Info describes a managed worktree.
 type Info struct {
-	Name       string `json:"name"`
-	Path       string `json:"path"`
-	Branch     string `json:"branch"`
-	Head       string `json:"head,omitempty"`
-	CreatedAt  string `json:"createdAt,omitempty"`
-	Bare       bool   `json:"bare,omitempty"`
-	Detached   bool   `json:"detached,omitempty"`
-	Managed    bool   `json:"managed"` // true if under .specular/worktrees
-	RepoRoot   string `json:"repoRoot,omitempty"`
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Branch    string `json:"branch"`
+	Head      string `json:"head,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	Bare      bool   `json:"bare,omitempty"`
+	Detached  bool   `json:"detached,omitempty"`
+	Managed   bool   `json:"managed"` // true if under .specular/worktrees
+	RepoRoot  string `json:"repoRoot,omitempty"`
 }
 
 // Options controls worktree creation.
@@ -117,12 +117,12 @@ func (m *Manager) Create(ctx context.Context, opts Options) (*Info, error) {
 	}
 
 	path := filepath.Join(parent, sanitizeDirName(name))
-	if _, err := os.Stat(path); err == nil {
+	if _, statErr := os.Stat(path); statErr == nil {
 		if !opts.Force {
 			return nil, fmt.Errorf("worktree: path already exists: %s", path)
 		}
-		if err := os.RemoveAll(path); err != nil {
-			return nil, fmt.Errorf("worktree: remove existing path: %w", err)
+		if rmErr := os.RemoveAll(path); rmErr != nil {
+			return nil, fmt.Errorf("worktree: remove existing path: %w", rmErr)
 		}
 	}
 
@@ -181,11 +181,11 @@ func (m *Manager) Remove(ctx context.Context, path string, deleteBranch bool) er
 		branch, _ = revParse(ctx, abs, "--abbrev-ref", "HEAD")
 	}
 
-	if err := runGit(ctx, m.repoRoot, "worktree", "remove", "--force", abs); err != nil {
+	if removeErr := runGit(ctx, m.repoRoot, "worktree", "remove", "--force", abs); removeErr != nil {
 		// Fall back to prune + directory removal for broken worktrees.
 		_ = runGit(ctx, m.repoRoot, "worktree", "prune")
 		if rmErr := os.RemoveAll(abs); rmErr != nil {
-			return fmt.Errorf("worktree: remove: %w (also: %v)", err, rmErr)
+			return fmt.Errorf("worktree: remove: %w (also: %v)", removeErr, rmErr)
 		}
 	}
 
