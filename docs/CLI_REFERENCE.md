@@ -34,6 +34,8 @@ Complete reference for Specular CLI commands and flags.
   - [auto](#auto)
 - [Checkpoint Commands](#checkpoint-commands)
   - [checkpoint](#checkpoint)
+- [Worktree Commands](#worktree-commands)
+  - [worktree](#worktree)
 - [Provider Commands](#provider-commands)
   - [provider](#provider)
 - [Utility Commands](#utility-commands)
@@ -1953,9 +1955,12 @@ specular auto "<description>" [flags]
 |------|------|-------------|
 | `--max-steps <n>` | int | Maximum steps to execute |
 | `--scope <scope>` | string | Limit scope (module, file, function) |
-| `--interactive` | bool | Enable interactive TUI mode |
+| `--interactive` / `--tui` | bool | Enable interactive TUI mode |
 | `--resume <checkpoint>` | string | Resume from checkpoint |
 | `--output <dir>` | string | Directory to save spec/plan files |
+| `--worktree <name>` | string | Run inside an isolated Git worktree under `.specular/worktrees/<name>` |
+| `--harness <label>` | string | Coding-agent harness label recorded in attestation provenance (default: `specular-auto`) |
+| `--attest` | bool | Generate cryptographic attestation of the workflow |
 
 **Example:**
 ```bash
@@ -1963,7 +1968,9 @@ $ specular auto "Add user authentication with JWT"
 
 $ specular auto "Refactor payment processing" --scope module:payment
 
-$ specular auto "Fix bug in login" --interactive
+$ specular auto "Fix bug in login" --tui
+
+$ specular auto --worktree parallel-1 --attest "Add /healthz endpoint"
 ```
 
 ---
@@ -1983,6 +1990,38 @@ specular checkpoint <subcommand>
 
 - `checkpoint list` - List available checkpoints
 - `checkpoint show <id>` - Show checkpoint details
+
+---
+
+## Worktree Commands
+
+### worktree
+
+Manage Git worktrees for parallel Specular (or external coding-agent) sessions.
+Each managed worktree lives under `.specular/worktrees/<name>` on branch
+`specular/<name>`. Path and branch are recorded in attestation provenance when
+used with `specular auto --worktree`.
+
+**Usage:**
+```bash
+specular worktree <subcommand>
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `worktree create [name]` | Create an isolated worktree and branch |
+| `worktree list [--managed]` | List worktrees (optionally only Specular-managed) |
+| `worktree remove <name-or-path> [--delete-branch]` | Remove a worktree |
+
+**Example:**
+```bash
+$ specular worktree create fix-auth
+$ specular auto --worktree fix-auth "Harden auth middleware"
+$ specular worktree list --managed
+$ specular worktree remove fix-auth --delete-branch
+```
 
 ---
 

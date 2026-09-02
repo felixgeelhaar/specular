@@ -98,8 +98,8 @@ is the qualifying event:
   "MLSecOps," or "responsible AI lead"** in the last 90 days
   (LinkedIn search; the AppSec specialisation is the strongest signal).
 - **Public adoption of Cursor Enterprise, GitHub Copilot Enterprise,
-  Claude Code, or Devin** at organization scale (press releases,
-  earnings calls, conference talks).
+  Claude Code, Devin, or Spotify Xirp** at organization scale (press
+  releases, earnings calls, conference talks, beta waitlists).
 - **CISO or CTO mentioning AI change-control, AI auditability, or
   EU AI Act readiness** on a podcast, panel, or blog post.
 
@@ -139,6 +139,8 @@ build, not buy).
 - [`distribution.md`](./distribution.md) — three asymmetric distribution
   channels (auditor enablement, compliance-influencer co-marketing, and
   the public bundle gallery).
+- [`competitive/xirp.md`](./competitive/xirp.md) — competitive brief vs
+  Spotify Xirp (complement story, threat model, talking points).
 
 ## Maintained metrics for GTM health
 

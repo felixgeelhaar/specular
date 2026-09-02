@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Competitive response to Spotify Xirp**
+  - GTM brief at `docs/gtm/competitive/xirp.md` (complement thesis, threat model, talking points)
+  - Anti-positioning rows for agentic session managers and software catalogs
+  - Objection #10 for Xirp / Portal adoption in `docs/gtm/playbooks/objection-handling.md`
+  - `specular worktree` CLI for Git worktree isolation (`.specular/worktrees/<name>`)
+  - `specular auto --worktree <name>` runs autonomous mode in an isolated checkout
+  - `specular auto --harness <label>` plus attestation `provenance.harness` /
+    `worktreePath` / `worktreeBranch` / `worktreeName` for auditor-ready attribution
+
 - **Release Automation (M8.1)**
   - Relicta integration for release orchestration
   - New Makefile targets: release-plan, release-bump, release-notes, release-evaluate

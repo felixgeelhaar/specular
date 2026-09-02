@@ -28,6 +28,7 @@ specular/
 │   ├── session/          # Session management
 │   ├── spec/             # Specification models
 │   ├── trace/            # Trace logging
+│   ├── worktree/         # Git worktree isolation for parallel agent sessions
 │   └── ux/               # User experience (formatting, output)
 ├── pkg/                   # Public SDK for external integrations
 │   └── specular/         # Public API

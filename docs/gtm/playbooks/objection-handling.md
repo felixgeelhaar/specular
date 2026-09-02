@@ -1,6 +1,6 @@
 # Objection handling
 
-The seven objections we hear most often, with the answer that has actually
+The ten objections we hear most often, with the answer that has actually
 worked, and the proof we lean on. Steal these for your own briefing notes.
 
 ---
@@ -164,6 +164,34 @@ identically by construction.
 directly to main. Show the next CI run failing the drift gate. Then
 show `specular approve drift-<hash>` from a TTY user as the only path
 back to green. This is the answer that closes the deal in agent-heavy orgs.
+
+---
+
+## 10. "We're adopting Xirp / Spotify Portal for AI coding."
+
+**The objection.** "Xirp already gives us vendor-neutral multi-agent
+sessions, worktrees, and org context from Portal. Why add Specular?"
+
+**The answer.** Xirp is an **inner-loop session manager**. Specular is the
+**outer-loop change-control gate**. They solve different problems:
+
+| Need | Xirp | Specular |
+|------|------|----------|
+| 50 parallel Claude/Codex/Gemini sessions | Yes | Not the product |
+| Git worktree isolation | Yes | Yes (`auto --worktree`) |
+| Catalog / Workspace context | Via Portal | Spec + policy as governed inputs |
+| Signed, auditor-ready evidence of what shipped | No | Yes (bundles + drift hashes) |
+| Harness attribution in the audit chain | Transcript only | `provenance.harness` + worktree fields |
+| Secret-safe by default | Transcripts are **not** redacted on upload | No transcript upload required |
+
+Recommend coexistence: keep Xirp (or any harness) for authoring; wire
+`specular eval drift` + `bundle create` so every session that lands a PR
+still hits one gate. See [`competitive/xirp.md`](../competitive/xirp.md).
+
+**Proof.** Show an attestation JSON with `harness` and `worktreeBranch`
+populated after `specular auto --worktree demo --attest "..."`. Then show
+the Xirp FAQ line that transcripts are not redacted. Security buyers close
+here.
 
 ---
 

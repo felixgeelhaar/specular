@@ -136,6 +136,14 @@ type AuditTrail struct {
 
 	// Version tracks the Specular version used
 	Version string `json:"version,omitempty"`
+
+	// Harness identifies the coding-agent / orchestration surface
+	Harness string `json:"harness,omitempty"`
+
+	// Worktree isolation metadata (when session ran in a managed worktree)
+	WorktreePath   string `json:"worktreePath,omitempty"`
+	WorktreeBranch string `json:"worktreeBranch,omitempty"`
+	WorktreeName   string `json:"worktreeName,omitempty"`
 }
 
 // ApprovalEvent records a user approval interaction.
@@ -289,4 +297,16 @@ func (o *AutoOutput) SetHostname(hostname string) {
 // SetVersion sets the Specular version.
 func (o *AutoOutput) SetVersion(version string) {
 	o.Audit.Version = version
+}
+
+// SetHarness records which coding-agent / orchestration surface authored changes.
+func (o *AutoOutput) SetHarness(harness string) {
+	o.Audit.Harness = harness
+}
+
+// SetWorktree records Git worktree isolation metadata for the session.
+func (o *AutoOutput) SetWorktree(name, path, branch string) {
+	o.Audit.WorktreeName = name
+	o.Audit.WorktreePath = path
+	o.Audit.WorktreeBranch = branch
 }

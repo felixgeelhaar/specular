@@ -106,19 +106,40 @@ func (g *Generator) Generate(result *auto.Result, config *auto.Config, planJSON 
 func (g *Generator) gatherProvenance(result *auto.Result, config *auto.Config) (*Provenance, error) {
 	hostname, _ := os.Hostname() // Hostname is best-effort, empty string is acceptable
 
-	provenance := &Provenance{
-		Hostname:        hostname,
-		Platform:        runtime.GOOS,
-		Arch:            runtime.GOARCH,
-		SpecularVersion: g.version,
-		Profile:         getProfileName(config),
-		Models:          extractModelUsage(result),
-		TotalCost:       result.TotalCost,
-		TasksExecuted:   result.TasksExecuted,
-		TasksFailed:     result.TasksFailed,
+	harness := config.Harness
+	if harness == "" {
+		harness = "specular-auto"
 	}
 
-	// Try to gather git information
+	provenance := &Provenance{
+		Hostname:         hostname,
+		Platform:         runtime.GOOS,
+		Arch:             runtime.GOARCH,
+		SpecularVersion:  g.version,
+		Profile:          getProfileName(config),
+		Models:           extractModelUsage(result),
+		TotalCost:        result.TotalCost,
+		TasksExecuted:    result.TasksExecuted,
+		TasksFailed:      result.TasksFailed,
+		Harness:          harness,
+		WorktreePath:     config.WorktreePath,
+		WorktreeBranch:   config.WorktreeBranch,
+		WorktreeName:     config.WorktreeName,
+	}
+
+	// Prefer audit trail harness/worktree when AutoOutput is present
+	if result.AutoOutput != nil {
+		if result.AutoOutput.Audit.Harness != "" {
+			provenance.Harness = result.AutoOutput.Audit.Harness
+		}
+		if result.AutoOutput.Audit.WorktreePath != "" {
+			provenance.WorktreePath = result.AutoOutput.Audit.WorktreePath
+			provenance.WorktreeBranch = result.AutoOutput.Audit.WorktreeBranch
+			provenance.WorktreeName = result.AutoOutput.Audit.WorktreeName
+		}
+	}
+
+	// Try to gather git information (from current cwd — typically the worktree)
 	gitInfo, err := gatherGitInfo()
 	if err == nil {
 		provenance.GitRepo = gitInfo.Repo

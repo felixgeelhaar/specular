@@ -18,7 +18,7 @@
 | GitHub Actions / GitLab CI / Jenkins      | A drop-in CI step that gates AI-authored changes. |
 | OPA, Conftest, Sentinel, custom policies  | AI-development-aware policies via `policies.yaml`.|
 | Snyk / Sonar / Semgrep                    | Coexists; we govern, they scan.                   |
-| Cursor / Continue / Cline / pure Claude   | Coexists; we govern at the gate, not the editor.  |
+| Cursor / Continue / Cline / Claude Code / Xirp | Coexists; we govern at the gate, not the session manager. |
 | Internal docs telling people "use approved models" | Enforcement plus a metric that proves it.   |
 
 ## The 30-minute walkthrough
@@ -56,8 +56,8 @@ After step 4 you have:
 Engineer
   │
   ▼
-[ IDE / Cursor / Claude Code ]   ← we do nothing here, by design
-  │
+[ IDE / Cursor / Claude Code / Xirp sessions ]   ← we do nothing here, by design
+  │                                              ← optional: specular auto --worktree
   ▼
 [ Pull Request ]
   │
@@ -67,6 +67,10 @@ Engineer
   ▼
 [ CD: deploy on green + signed bundle ]
 ```
+
+Xirp and other agentic session managers multiply how many AI sessions your
+engineers run; Specular is the gate that makes their output auditable.
+See [`../competitive/xirp.md`](../competitive/xirp.md).
 
 The shape we keep seeing: **add Specular as a single CI job, then gradually
 push policies and approvals upstream into pre-commit hooks** as developer

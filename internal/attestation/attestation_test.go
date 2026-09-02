@@ -77,15 +77,19 @@ func TestAttestationSerialization(t *testing.T) {
 
 func TestProvenanceFields(t *testing.T) {
 	provenance := Provenance{
-		Hostname:        "test-host",
-		Platform:        "darwin",
-		Arch:            "arm64",
-		GitRepo:         "https://github.com/user/repo",
-		GitCommit:       "abc123",
-		GitBranch:       "main",
-		GitDirty:        false,
-		SpecularVersion: "1.0.0",
-		Profile:         "ci",
+		Hostname:         "test-host",
+		Platform:         "darwin",
+		Arch:             "arm64",
+		GitRepo:          "https://github.com/user/repo",
+		GitCommit:        "abc123",
+		GitBranch:        "main",
+		GitDirty:         false,
+		Harness:          "specular-auto",
+		WorktreePath:     "/repo/.specular/worktrees/s1",
+		WorktreeBranch:   "specular/s1",
+		WorktreeName:     "s1",
+		SpecularVersion:  "1.0.0",
+		Profile:          "ci",
 		Models: []ModelUsage{
 			{
 				Provider: "openai",
@@ -117,6 +121,18 @@ func TestProvenanceFields(t *testing.T) {
 	}
 	if parsed.Platform != provenance.Platform {
 		t.Errorf("Platform mismatch")
+	}
+	if parsed.Harness != provenance.Harness {
+		t.Errorf("Harness mismatch: %s != %s", parsed.Harness, provenance.Harness)
+	}
+	if parsed.WorktreePath != provenance.WorktreePath {
+		t.Errorf("WorktreePath mismatch")
+	}
+	if parsed.WorktreeBranch != provenance.WorktreeBranch {
+		t.Errorf("WorktreeBranch mismatch")
+	}
+	if parsed.WorktreeName != provenance.WorktreeName {
+		t.Errorf("WorktreeName mismatch")
 	}
 	if parsed.GitRepo != provenance.GitRepo {
 		t.Errorf("GitRepo mismatch")
