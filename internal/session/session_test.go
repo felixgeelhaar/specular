@@ -145,6 +145,35 @@ func TestFork(t *testing.T) {
 	}
 }
 
+func TestStartWithWorktree(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal:       "create worktree session",
+		Name:       "wt-sess",
+		Detach:     false,
+		NoApproval: true,
+		Binary:     stub,
+	})
+	if err != nil {
+		t.Fatalf("Start: %v (log=%s)", err, mustRead(t, rec.LogPath))
+	}
+	if rec.WorktreePath == "" {
+		t.Fatal("expected worktree path")
+	}
+	if _, err := os.Stat(rec.WorktreePath); err != nil {
+		t.Fatalf("worktree missing: %v", err)
+	}
+	if rec.Status != StatusCompleted {
+		t.Fatalf("status=%s err=%s", rec.Status, rec.Error)
+	}
+}
+
 func initTempRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
