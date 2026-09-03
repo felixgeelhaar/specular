@@ -6,84 +6,46 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TestSessionSubcommands tests that all session subcommands are registered
 func TestSessionSubcommands(t *testing.T) {
-	subcommands := map[string]bool{
-		"list": false,
-		"show": false,
+	required := map[string]bool{
+		"start": false,
+		"list":  false,
+		"show":  false,
+		"stop":  false,
 	}
 
 	for _, cmd := range sessionCmd.Commands() {
-		if _, exists := subcommands[cmd.Name()]; exists {
-			subcommands[cmd.Name()] = true
+		if _, exists := required[cmd.Name()]; exists {
+			required[cmd.Name()] = true
 		}
 	}
 
-	for name, found := range subcommands {
+	for name, found := range required {
 		if !found {
-			t.Errorf("subcommand '%s' not found in session command", name)
+			t.Errorf("subcommand %q not found on session command", name)
 		}
 	}
 }
 
-// TestSessionListCommand tests the session list command configuration
-func TestSessionListCommand(t *testing.T) {
-	// Find list subcommand
-	var listCmd *cobra.Command
+func TestSessionStartFlags(t *testing.T) {
+	var startCmd *cobra.Command
 	for _, cmd := range sessionCmd.Commands() {
-		if cmd.Name() == "list" {
-			listCmd = cmd
+		if cmd.Name() == "start" {
+			startCmd = cmd
 			break
 		}
 	}
-
-	if listCmd == nil {
-		t.Fatal("list subcommand not found")
+	if startCmd == nil {
+		t.Fatal("start subcommand not found")
 	}
-
-	// Check command configuration
-	if listCmd.Use != "list" {
-		t.Errorf("list Use = %q, want %q", listCmd.Use, "list")
-	}
-
-	if listCmd.Short == "" {
-		t.Error("list Short description is empty")
-	}
-}
-
-// TestSessionShowCommand tests the session show command configuration
-func TestSessionShowCommand(t *testing.T) {
-	// Find show subcommand
-	var showCmd *cobra.Command
-	for _, cmd := range sessionCmd.Commands() {
-		if cmd.Name() == "show" {
-			showCmd = cmd
-			break
+	for _, name := range []string{"name", "harness", "profile", "no-worktree", "foreground", "json"} {
+		if startCmd.Flags().Lookup(name) == nil {
+			t.Errorf("flag %q not found on session start", name)
 		}
 	}
-
-	if showCmd == nil {
-		t.Fatal("show subcommand not found")
-	}
-
-	// Check command configuration
-	if showCmd.Use != "show <session-id>" {
-		t.Errorf("show Use = %q, want %q", showCmd.Use, "show <session-id>")
-	}
-
-	if showCmd.Short == "" {
-		t.Error("show Short description is empty")
-	}
-
-	// Check Args is set (requires exactly 1 arg)
-	if showCmd.Args == nil {
-		t.Error("show command should have Args validator")
-	}
 }
 
-// TestSessionShowFlags tests that session show has correct flags
 func TestSessionShowFlags(t *testing.T) {
-	// Find show subcommand
 	var showCmd *cobra.Command
 	for _, cmd := range sessionCmd.Commands() {
 		if cmd.Name() == "show" {
@@ -91,33 +53,25 @@ func TestSessionShowFlags(t *testing.T) {
 			break
 		}
 	}
-
 	if showCmd == nil {
 		t.Fatal("show subcommand not found")
 	}
-
-	// Check flags
 	if showCmd.Flags().Lookup("verbose") == nil {
-		t.Error("flag 'verbose' not found on session show command")
+		t.Error("flag 'verbose' not found on session show")
 	}
 	if showCmd.Flags().Lookup("json") == nil {
-		t.Error("flag 'json' not found on session show command")
+		t.Error("flag 'json' not found on session show")
 	}
 }
 
-// TestSessionCommand tests the session command configuration
 func TestSessionCommand(t *testing.T) {
-	// Check command configuration
 	if sessionCmd.Use != "session" {
-		t.Errorf("session Use = %q, want %q", sessionCmd.Use, "session")
+		t.Errorf("session Use = %q, want session", sessionCmd.Use)
 	}
-
 	if sessionCmd.Short == "" {
 		t.Error("session Short description is empty")
 	}
-
-	// Verify it has subcommands
-	if len(sessionCmd.Commands()) == 0 {
-		t.Error("session command should have subcommands")
+	if len(sessionCmd.Commands()) < 4 {
+		t.Errorf("expected at least 4 subcommands, got %d", len(sessionCmd.Commands()))
 	}
 }

@@ -172,26 +172,29 @@ back to green. This is the answer that closes the deal in agent-heavy orgs.
 **The objection.** "Xirp already gives us vendor-neutral multi-agent
 sessions, worktrees, and org context from Portal. Why add Specular?"
 
-**The answer.** Xirp is an **inner-loop session manager**. Specular is the
-**outer-loop change-control gate**. They solve different problems:
+**The answer.** Specular manages **both loops**. Xirp is a macOS desktop
+session grid; Specular is the cross-platform CLI that runs parallel
+sessions **and** the auditor-ready change-control gate:
 
 | Need | Xirp | Specular |
 |------|------|----------|
-| 50 parallel Claude/Codex/Gemini sessions | Yes | Not the product |
-| Git worktree isolation | Yes | Yes (`auto --worktree`) |
+| Parallel agent sessions | Desktop grid | `session start/list/stop` + worktrees |
+| Git worktree isolation | Yes | Yes |
 | Catalog / Workspace context | Via Portal | Spec + policy as governed inputs |
-| Signed, auditor-ready evidence of what shipped | No | Yes (bundles + drift hashes) |
+| Signed, auditor-ready evidence | No | Yes (bundles + drift hashes) |
 | Harness attribution in the audit chain | Transcript only | `provenance.harness` + worktree fields |
-| Secret-safe by default | Transcripts are **not** redacted on upload | No transcript upload required |
+| Secret-safe by default | Transcripts **not** redacted on upload | No transcript upload required |
+| Platforms | macOS only | Linux / macOS / Windows |
 
-Recommend coexistence: keep Xirp (or any harness) for authoring; wire
-`specular eval drift` + `bundle create` so every session that lands a PR
-still hits one gate. See [`competitive/xirp.md`](../competitive/xirp.md).
+If the team loves Xirp's PTY grid, keep it — Specular still gates what
+ships. If they want one tool for authoring + governance, use
+`specular session start` with the drift gate. See
+[`competitive/xirp.md`](../competitive/xirp.md).
 
-**Proof.** Show an attestation JSON with `harness` and `worktreeBranch`
-populated after `specular auto --worktree demo --attest "..."`. Then show
-the Xirp FAQ line that transcripts are not redacted. Security buyers close
-here.
+**Proof.** Demo: `specular session start --name demo "Add /healthz"`,
+`session list`, then attestation JSON with `harness` + `worktreeBranch`.
+Follow with the Xirp FAQ line that transcripts are not redacted.
+Platform + Security both close here.
 
 ---
 

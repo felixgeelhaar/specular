@@ -3,130 +3,184 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
+	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/checkpoint"
+	"github.com/felixgeelhaar/specular/internal/session"
 )
 
 var sessionCmd = &cobra.Command{
 	Use:   "session",
-	Short: "Manage workflow sessions and checkpoints",
-	Long: `Manage workflow sessions and checkpoints for resumable execution.
+	Short: "Manage parallel agent sessions (inner loop + governance)",
+	Long: `Manage Specular agent sessions across both loops:
 
-Sessions are created automatically during autonomous mode execution and can be
-used to resume interrupted or failed workflows.
+  Inner loop — start/stop parallel auto runs in isolated Git worktrees
+  Outer loop — harness + worktree provenance flows into attestations and the drift gate
 
-Commands:
-  list     List all available sessions
-  show     Show detailed information about a session
+Sessions are first-class tracked runs (not just checkpoints). Use
+'session start' to launch a goal in the background; 'session list' to
+see working/completed/failed; 'session stop' to terminate.
 
-To resume a session, use: specular auto --resume <session-id>
+Legacy auto checkpoints under .specular/checkpoints remain visible via
+'session list --checkpoints'.
 
 Examples:
+  specular session start "Add /healthz endpoint"
+  specular session start --name auth-fix --harness claude-code "Harden JWT validation"
   specular session list
-  specular session show auto-1762811730
-  specular auto --resume auto-1762811730`,
+  specular session show auth-fix
+  specular session stop auth-fix
+  specular auto --resume <checkpoint-id>
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},
 }
 
-var sessionListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all available sessions",
-	Long: `List all sessions saved in .specular/checkpoints directory.
+var sessionStartCmd = &cobra.Command{
+	Use:   "start <goal>",
+	Short: "Start a parallel agent session in an isolated worktree",
+	Long: `Start a Specular auto run as a managed background session.
 
-Shows session ID, status, created time, and task completion.`,
+Creates (or reuses) a Git worktree under .specular/worktrees/<name>,
+launches 'specular auto' detached with harness provenance, and records
+the session under .specular/sessions/.
+
+This is the inner-loop orchestration surface: many sessions can run in
+parallel; each still hits the same outer-loop drift/policy gate when its
+changes land.
+`,
+	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Create checkpoint manager
-		checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
-
-		// List all checkpoints
-		checkpointIDs, err := checkpointMgr.List()
-		if err != nil {
-			return fmt.Errorf("failed to list sessions: %w", err)
+		goal := args[0]
+		for i := 1; i < len(args); i++ {
+			goal += " " + args[i]
 		}
 
-		if len(checkpointIDs) == 0 {
-			fmt.Println("No sessions found.")
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+
+		name, _ := cmd.Flags().GetString("name")
+		harness, _ := cmd.Flags().GetString("harness")
+		profile, _ := cmd.Flags().GetString("profile")
+		noWorktree, _ := cmd.Flags().GetBool("no-worktree")
+		foreground, _ := cmd.Flags().GetBool("foreground")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		rec, err := mgr.Start(cmd.Context(), session.StartOptions{
+			Goal:         goal,
+			Name:         name,
+			Harness:      harness,
+			Profile:      profile,
+			NoApproval:   true,
+			Detach:       !foreground,
+			SkipWorktree: noWorktree,
+		})
+		if err != nil && rec == nil {
+			return err
+		}
+
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(rec)
+			return err
+		}
+
+		fmt.Printf("Started session %s\n", rec.ID)
+		fmt.Printf("  Status:   %s\n", rec.Status)
+		fmt.Printf("  Harness:  %s\n", rec.Harness)
+		if rec.WorktreePath != "" {
+			fmt.Printf("  Worktree: %s (%s)\n", rec.WorktreePath, rec.WorktreeBranch)
+		}
+		if rec.PID > 0 {
+			fmt.Printf("  PID:      %d\n", rec.PID)
+		}
+		if rec.LogPath != "" {
+			fmt.Printf("  Log:      %s\n", rec.LogPath)
+		}
+		fmt.Printf("\n  specular session show %s\n", rec.ID)
+		fmt.Printf("  specular session stop %s\n", rec.ID)
+		return err
+	},
+}
+
+var sessionListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List managed agent sessions",
+	Long: `List Specular-managed sessions from .specular/sessions.
+
+Use --checkpoints to also show legacy auto checkpoint sessions.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		includeCheckpoints, _ := cmd.Flags().GetBool("checkpoints")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			// Not a git repo — fall back to checkpoints only.
+			if includeCheckpoints {
+				return listCheckpointSessions(jsonOut)
+			}
+			return err
+		}
+
+		list, err := mgr.List()
+		if err != nil {
+			return err
+		}
+
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(list)
+		}
+
+		if len(list) == 0 && !includeCheckpoints {
+			fmt.Println("No managed sessions. Start one with: specular session start \"your goal\"")
 			return nil
 		}
 
-		// Load and display each checkpoint
-		type sessionInfo struct {
-			ID          string
-			Status      string
-			StartedAt   time.Time
-			Product     string
-			Goal        string
-			Completed   int
-			Total       int
-			FailedTasks int
+		if len(list) > 0 {
+			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tWORKTREE\tPID\tGOAL")
+			for _, s := range list {
+				goal := s.Goal
+				if len(goal) > 48 {
+					goal = goal[:45] + "..."
+				}
+				pid := "-"
+				if s.PID > 0 {
+					pid = fmt.Sprintf("%d", s.PID)
+				}
+				wt := s.WorktreeName
+				if wt == "" {
+					wt = "-"
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, wt, pid, goal)
+			}
+			_ = w.Flush()
 		}
 
-		var sessions []sessionInfo
-
-		for _, id := range checkpointIDs {
-			cpState, err := checkpointMgr.Load(id)
-			if err != nil {
-				continue // Skip invalid checkpoints
-			}
-
-			product, _ := cpState.GetMetadata("product")
-			goal, _ := cpState.GetMetadata("goal")
-
-			completed := len(cpState.GetCompletedTasks())
-			failed := len(cpState.GetFailedTasks())
-			total := len(cpState.Tasks)
-
-			sessions = append(sessions, sessionInfo{
-				ID:          id,
-				Status:      cpState.Status,
-				StartedAt:   cpState.StartedAt,
-				Product:     product,
-				Goal:        goal,
-				Completed:   completed,
-				Total:       total,
-				FailedTasks: failed,
-			})
-		}
-
-		// Sort by started time (newest first)
-		sort.Slice(sessions, func(i, j int) bool {
-			return sessions[i].StartedAt.After(sessions[j].StartedAt)
-		})
-
-		// Print header
-		fmt.Println("Sessions:")
-		fmt.Println()
-
-		// Print sessions
-		for _, s := range sessions {
-			statusIcon := "📦"
-			switch s.Status {
-			case "completed":
-				statusIcon = "✅"
-			case "failed":
-				statusIcon = "✗"
-			case "running":
-				statusIcon = "⏳"
-			}
-
-			fmt.Printf("%s %s\n", statusIcon, s.ID)
-			fmt.Printf("   Status:   %s\n", s.Status)
-			fmt.Printf("   Product:  %s\n", s.Product)
-			fmt.Printf("   Started:  %s\n", s.StartedAt.Format("2006-01-02 15:04:05"))
-			fmt.Printf("   Progress: %d/%d tasks", s.Completed, s.Total)
-			if s.FailedTasks > 0 {
-				fmt.Printf(" (%d failed)", s.FailedTasks)
-			}
+		if includeCheckpoints {
 			fmt.Println()
-			fmt.Println()
+			fmt.Println("Legacy checkpoints:")
+			return listCheckpointSessions(false)
 		}
-
 		return nil
 	},
 }
@@ -134,108 +188,198 @@ Shows session ID, status, created time, and task completion.`,
 var sessionShowCmd = &cobra.Command{
 	Use:   "show <session-id>",
 	Short: "Show detailed information about a session",
-	Long: `Show detailed information about a specific session.
-
-Displays session metadata, task status, and execution details.`,
-	Args: cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		sessionID := args[0]
-
-		// Create checkpoint manager
-		checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
-
-		// Load checkpoint
-		cpState, err := checkpointMgr.Load(sessionID)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		// Get metadata
-		product, _ := cpState.GetMetadata("product")
-		goal, _ := cpState.GetMetadata("goal")
-
-		// Get task lists
-		completed := cpState.GetCompletedTasks()
-		pending := cpState.GetPendingTasks()
-		failed := cpState.GetFailedTasks()
-
-		// Print session info
-		fmt.Printf("Session: %s\n\n", sessionID)
-		fmt.Printf("Status:     %s\n", cpState.Status)
-		fmt.Printf("Product:    %s\n", product)
-		fmt.Printf("Goal:       %s\n", goal)
-		fmt.Printf("Started:    %s\n", cpState.StartedAt.Format("2006-01-02 15:04:05"))
-		fmt.Printf("Updated:    %s\n", cpState.UpdatedAt.Format("2006-01-02 15:04:05"))
-		fmt.Printf("Duration:   %s\n", cpState.UpdatedAt.Sub(cpState.StartedAt).Round(time.Second))
-		fmt.Println()
-
-		// Print task summary
-		fmt.Printf("Tasks:\n")
-		fmt.Printf("  ✓ Completed: %d\n", len(completed))
-		fmt.Printf("  ⏳ Pending:   %d\n", len(pending))
-		if len(failed) > 0 {
-			fmt.Printf("  ✗ Failed:    %d\n", len(failed))
-		}
-		fmt.Println()
-
-		// Show task details in verbose mode
+		id := args[0]
+		jsonOut, _ := cmd.Flags().GetBool("json")
 		verbose, _ := cmd.Flags().GetBool("verbose")
-		if verbose {
-			// Show spec and plan if available
-			if specJSON, ok := cpState.GetMetadata("spec_json"); ok && specJSON != "" {
-				fmt.Println("📄 Spec available (use --json to view)")
-			}
-			if planJSON, ok := cpState.GetMetadata("plan_json"); ok && planJSON != "" {
-				fmt.Println("📋 Plan available (use --json to view)")
-			}
-			fmt.Println()
 
-			// Show task details
-			if len(cpState.Tasks) > 0 {
-				fmt.Println("Task Details:")
-				for id, task := range cpState.Tasks {
-					statusIcon := "⏳"
-					switch task.Status {
-					case "completed":
-						statusIcon = "✓"
-					case "failed":
-						statusIcon = "✗"
-					case "pending":
-						statusIcon = "○"
-					}
-					fmt.Printf("  %s %s (%s)\n", statusIcon, id, task.Status)
-					if task.Error != "" {
-						fmt.Printf("      Error: %s\n", task.Error)
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+
+		if mgr, err := session.NewManager(cwd); err == nil {
+			if rec, err := mgr.Get(id); err == nil {
+				if jsonOut {
+					enc := json.NewEncoder(os.Stdout)
+					enc.SetIndent("", "  ")
+					return enc.Encode(rec)
+				}
+				fmt.Printf("Session: %s\n\n", rec.ID)
+				fmt.Printf("Status:     %s\n", rec.Status)
+				fmt.Printf("Goal:       %s\n", rec.Goal)
+				fmt.Printf("Harness:    %s\n", rec.Harness)
+				fmt.Printf("Profile:    %s\n", rec.Profile)
+				if rec.WorktreePath != "" {
+					fmt.Printf("Worktree:   %s\n", rec.WorktreePath)
+					fmt.Printf("Branch:     %s\n", rec.WorktreeBranch)
+				}
+				if rec.PID > 0 {
+					fmt.Printf("PID:        %d\n", rec.PID)
+				}
+				fmt.Printf("Created:    %s\n", rec.CreatedAt.Format(time.RFC3339))
+				fmt.Printf("Updated:    %s\n", rec.UpdatedAt.Format(time.RFC3339))
+				if rec.LogPath != "" {
+					fmt.Printf("Log:        %s\n", rec.LogPath)
+				}
+				if rec.Error != "" {
+					fmt.Printf("Error:      %s\n", rec.Error)
+				}
+				if verbose && rec.LogPath != "" {
+					if b, err := os.ReadFile(rec.LogPath); err == nil && len(b) > 0 {
+						fmt.Println("\n--- log (tail) ---")
+						fmt.Print(tailBytes(b, 4000))
 					}
 				}
+				return nil
 			}
 		}
 
-		// Show JSON output if requested
-		asJSON, _ := cmd.Flags().GetBool("json")
-		if asJSON {
-			jsonData, err := json.MarshalIndent(cpState, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to marshal session: %w", err)
-			}
-			fmt.Println()
-			fmt.Println("JSON:")
-			fmt.Println(string(jsonData))
-		}
+		// Fall back to checkpoint show
+		return showCheckpointSession(id, jsonOut, verbose)
+	},
+}
 
+var sessionStopCmd = &cobra.Command{
+	Use:   "stop <session-id>",
+	Short: "Stop a running agent session",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		rec, err := mgr.Stop(args[0])
+		if err != nil {
+			return err
+		}
+		jsonOut, _ := cmd.Flags().GetBool("json")
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(rec)
+		}
+		fmt.Printf("Stopped session %s\n", rec.ID)
 		return nil
 	},
 }
 
-func init() {
-	// Add show command flags
-	sessionShowCmd.Flags().BoolP("verbose", "v", false, "Show detailed task information")
-	sessionShowCmd.Flags().Bool("json", false, "Output session as JSON")
+func listCheckpointSessions(asJSON bool) error {
+	checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
+	checkpointIDs, err := checkpointMgr.List()
+	if err != nil {
+		return fmt.Errorf("failed to list checkpoints: %w", err)
+	}
+	if len(checkpointIDs) == 0 {
+		fmt.Println("No checkpoint sessions found.")
+		return nil
+	}
 
-	// Add subcommands
+	type sessionInfo struct {
+		ID        string    `json:"id"`
+		Status    string    `json:"status"`
+		StartedAt time.Time `json:"startedAt"`
+		Product   string    `json:"product"`
+		Goal      string    `json:"goal"`
+		Completed int       `json:"completed"`
+		Total     int       `json:"total"`
+		Failed    int       `json:"failed"`
+	}
+
+	var sessions []sessionInfo
+	for _, id := range checkpointIDs {
+		cpState, err := checkpointMgr.Load(id)
+		if err != nil {
+			continue
+		}
+		product, _ := cpState.GetMetadata("product")
+		goal, _ := cpState.GetMetadata("goal")
+		sessions = append(sessions, sessionInfo{
+			ID:        id,
+			Status:    cpState.Status,
+			StartedAt: cpState.StartedAt,
+			Product:   product,
+			Goal:      goal,
+			Completed: len(cpState.GetCompletedTasks()),
+			Total:     len(cpState.Tasks),
+			Failed:    len(cpState.GetFailedTasks()),
+		})
+	}
+	sort.Slice(sessions, func(i, j int) bool {
+		return sessions[i].StartedAt.After(sessions[j].StartedAt)
+	})
+
+	if asJSON {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(sessions)
+	}
+
+	for _, s := range sessions {
+		fmt.Printf("%s  %s  %d/%d  %s\n", s.ID, s.Status, s.Completed, s.Total, s.Goal)
+	}
+	return nil
+}
+
+func showCheckpointSession(id string, asJSON, verbose bool) error {
+	checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
+	cpState, err := checkpointMgr.Load(id)
+	if err != nil {
+		return fmt.Errorf("session not found in registry or checkpoints: %s", id)
+	}
+	if asJSON {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(cpState)
+	}
+	product, _ := cpState.GetMetadata("product")
+	goal, _ := cpState.GetMetadata("goal")
+	fmt.Printf("Checkpoint session: %s\n\n", id)
+	fmt.Printf("Status:     %s\n", cpState.Status)
+	fmt.Printf("Product:    %s\n", product)
+	fmt.Printf("Goal:       %s\n", goal)
+	fmt.Printf("Started:    %s\n", cpState.StartedAt.Format("2006-01-02 15:04:05"))
+	fmt.Printf("Updated:    %s\n", cpState.UpdatedAt.Format("2006-01-02 15:04:05"))
+	fmt.Printf("Progress:   %d/%d completed\n", len(cpState.GetCompletedTasks()), len(cpState.Tasks))
+	if verbose {
+		for tid, task := range cpState.Tasks {
+			fmt.Printf("  %s (%s)\n", tid, task.Status)
+		}
+	}
+	return nil
+}
+
+func tailBytes(b []byte, n int) string {
+	if len(b) <= n {
+		return string(b)
+	}
+	return string(b[len(b)-n:])
+}
+
+func init() {
+	sessionStartCmd.Flags().String("name", "", "Session / worktree name (default: sess-<timestamp>)")
+	sessionStartCmd.Flags().String("harness", "specular-auto", "Harness label recorded in attestation provenance")
+	sessionStartCmd.Flags().String("profile", "ci", "Auto profile to use")
+	sessionStartCmd.Flags().Bool("no-worktree", false, "Run in the current checkout (not isolated)")
+	sessionStartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
+	sessionStartCmd.Flags().Bool("json", false, "Emit JSON")
+
+	sessionListCmd.Flags().Bool("checkpoints", false, "Also list legacy auto checkpoints")
+	sessionListCmd.Flags().Bool("json", false, "Emit JSON")
+
+	sessionShowCmd.Flags().BoolP("verbose", "v", false, "Show log tail / task details")
+	sessionShowCmd.Flags().Bool("json", false, "Emit JSON")
+
+	sessionStopCmd.Flags().Bool("json", false, "Emit JSON")
+
+	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionListCmd)
 	sessionCmd.AddCommand(sessionShowCmd)
-
-	// Add session command to root
+	sessionCmd.AddCommand(sessionStopCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

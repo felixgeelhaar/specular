@@ -32,6 +32,8 @@ Complete reference for Specular CLI commands and flags.
 - [Drift Detection](#drift-detection)
 - [Autonomous Mode Commands](#autonomous-mode-commands)
   - [auto](#auto)
+- [Session Commands](#session-commands)
+  - [session](#session)
 - [Checkpoint Commands](#checkpoint-commands)
   - [checkpoint](#checkpoint)
 - [Worktree Commands](#worktree-commands)
@@ -1971,6 +1973,50 @@ $ specular auto "Refactor payment processing" --scope module:payment
 $ specular auto "Fix bug in login" --tui
 
 $ specular auto --worktree parallel-1 --attest "Add /healthz endpoint"
+```
+
+---
+
+## Session Commands
+
+### session
+
+Manage parallel agent sessions across Specular's **inner loop** (authoring)
+and **outer loop** (governance). Each managed session typically runs in an
+isolated Git worktree; harness and worktree identity flow into attestation
+provenance.
+
+**Usage:**
+```bash
+specular session <subcommand>
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `session start <goal>` | Start a detached auto run in an isolated worktree |
+| `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
+| `session show <id>` | Show session status, worktree, harness, log path |
+| `session stop <id>` | Stop a running session process |
+
+**Start flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--name <slug>` | Session / worktree name (default `sess-<timestamp>`) |
+| `--harness <label>` | Harness label for attestation (default `specular-auto`) |
+| `--profile <name>` | Auto profile (default `ci`) |
+| `--no-worktree` | Run in the current checkout |
+| `--foreground` | Do not detach |
+| `--json` | Emit JSON |
+
+**Example:**
+```bash
+$ specular session start --name auth-fix "Harden JWT validation"
+$ specular session list
+$ specular session show auth-fix -v
+$ specular session stop auth-fix
 ```
 
 ---

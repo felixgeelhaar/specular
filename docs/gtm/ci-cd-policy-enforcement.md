@@ -119,7 +119,7 @@ plainly is part of the wedge.
 | Adjacent category            | Why we are not it                                  |
 |------------------------------|----------------------------------------------------|
 | AI IDE assistant             | We do not author code; we govern it.               |
-| Agentic session manager (Xirp, Cursor multi-agent) | We do not host parallel terminals or grid views; we gate what those sessions ship. See [`competitive/xirp.md`](./competitive/xirp.md). |
+| Agentic desktop session manager (Xirp) | We run parallel sessions in the CLI (`session start`) and gate what they ship; we do not ship a macOS grid GUI. See [`competitive/xirp.md`](./competitive/xirp.md). |
 | Generic policy-as-code (OPA) | We are AI-development-aware; OPA is not.           |
 | LLM observability platform   | We instrument the dev workflow, not the model API. |
 | Code-review SaaS             | Humans still review; we add the gate.              |

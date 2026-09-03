@@ -140,7 +140,7 @@ build, not buy).
   channels (auditor enablement, compliance-influencer co-marketing, and
   the public bundle gallery).
 - [`competitive/xirp.md`](./competitive/xirp.md) — competitive brief vs
-  Spotify Xirp (complement story, threat model, talking points).
+  Spotify Xirp (both-loops thesis: CLI sessions + gate vs desktop grid).
 
 ## Maintained metrics for GTM health
 
