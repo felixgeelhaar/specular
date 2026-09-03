@@ -27,8 +27,9 @@ var sessionCmd = &cobra.Command{
 Examples:
   specular session start --harness claude-code "Add /healthz endpoint"
   specular session start --name auth --harness codex "Harden JWT validation"
-  specular session list
+  specular session status --watch
   specular session logs auth --follow
+  cd "$(specular session open auth)"
   specular session fork auth --name auth-alt
   specular session stop auth
 `,
@@ -352,15 +353,157 @@ var sessionForkCmd = &cobra.Command{
 
 var sessionHarnessesCmd = &cobra.Command{
 	Use:   "harnesses",
-	Short: "List supported coding-agent harnesses",
+	Short: "List supported coding-agent harnesses and PATH availability",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		for _, h := range session.KnownHarness {
-			kind := "specular"
-			if session.IsNativeHarness(h) {
-				kind = "native"
-			}
-			fmt.Printf("%-14s  %s\n", h, kind)
+		jsonOut, _ := cmd.Flags().GetBool("json")
+		list := session.ProbeHarnesses()
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(list)
 		}
+		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+		fmt.Fprintln(w, "NAME\tKIND\tBINARY\tAVAILABLE")
+		for _, h := range list {
+			avail := "no"
+			if h.Available {
+				avail = "yes"
+			}
+			bin := h.Binary
+			if bin == "" {
+				bin = "(self)"
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", h.Name, h.Kind, bin, avail)
+		}
+		return w.Flush()
+	},
+}
+
+var sessionStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Live multi-session overview (Xirp-style control surface)",
+	Long: `Show a compact status board for all managed sessions.
+
+Use --watch to refresh periodically — the CLI equivalent of a session minimap.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		watch, _ := cmd.Flags().GetBool("watch")
+		interval, _ := cmd.Flags().GetDuration("interval")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+		if interval <= 0 {
+			interval = 2 * time.Second
+		}
+
+		printOnce := func() error {
+			list, listErr := mgr.List()
+			if listErr != nil {
+				return listErr
+			}
+			if jsonOut {
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(list)
+			}
+			if len(list) == 0 {
+				fmt.Println("No managed sessions.")
+				return nil
+			}
+			working, done, failed, stopped := 0, 0, 0, 0
+			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tPID\tBRANCH\tGOAL")
+			for _, s := range list {
+				switch s.Status {
+				case session.StatusWorking, session.StatusIdle, session.StatusWaiting:
+					working++
+				case session.StatusCompleted:
+					done++
+				case session.StatusFailed:
+					failed++
+				case session.StatusStopped:
+					stopped++
+				}
+				goal := s.Goal
+				if len(goal) > 40 {
+					goal = goal[:37] + "..."
+				}
+				pid := "-"
+				if s.PID > 0 {
+					pid = fmt.Sprintf("%d", s.PID)
+				}
+				branch := s.WorktreeBranch
+				if branch == "" {
+					branch = "-"
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, pid, branch, goal)
+			}
+			_ = w.Flush()
+			fmt.Printf("\nworking=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
+				working, done, failed, stopped, len(list))
+			return nil
+		}
+
+		if !watch {
+			return printOnce()
+		}
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		clear := func() { fmt.Print("\033[H\033[2J") }
+		for {
+			clear()
+			fmt.Printf("specular session status  (refresh %s, Ctrl-C to exit)\n\n", interval)
+			if err := printOnce(); err != nil {
+				return err
+			}
+			select {
+			case <-cmd.Context().Done():
+				return nil
+			case <-ticker.C:
+			}
+		}
+	},
+}
+
+var sessionOpenCmd = &cobra.Command{
+	Use:   "open <session-id>",
+	Short: "Print the session worktree path (for cd / editors)",
+	Long: `Print the isolated worktree path for a session.
+
+  specular session open demo           # path only
+  cd "$(specular session open demo)"   # enter worktree
+  specular session open demo --shell   # prints: cd /path/to/worktree
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		rec, err := mgr.Get(args[0])
+		if err != nil {
+			return err
+		}
+		path := rec.WorktreePath
+		if path == "" {
+			return fmt.Errorf("session %s has no worktree (started with --no-worktree?)", rec.ID)
+		}
+		shell, _ := cmd.Flags().GetBool("shell")
+		if shell {
+			fmt.Printf("cd %q\n", path)
+			return nil
+		}
+		fmt.Println(path)
 		return nil
 	},
 }
@@ -519,6 +662,12 @@ func init() {
 	sessionForkCmd.Flags().Bool("start", false, "Start the forked session immediately")
 	sessionForkCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionHarnessesCmd.Flags().Bool("json", false, "Emit JSON")
+	sessionStatusCmd.Flags().Bool("watch", false, "Refresh the status board until interrupted")
+	sessionStatusCmd.Flags().Duration("interval", 2*time.Second, "Refresh interval for --watch")
+	sessionStatusCmd.Flags().Bool("json", false, "Emit JSON")
+	sessionOpenCmd.Flags().Bool("shell", false, "Print a cd command instead of the bare path")
+
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionListCmd)
 	sessionCmd.AddCommand(sessionShowCmd)
@@ -526,5 +675,7 @@ func init() {
 	sessionCmd.AddCommand(sessionLogsCmd)
 	sessionCmd.AddCommand(sessionForkCmd)
 	sessionCmd.AddCommand(sessionHarnessesCmd)
+	sessionCmd.AddCommand(sessionStatusCmd)
+	sessionCmd.AddCommand(sessionOpenCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

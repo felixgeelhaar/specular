@@ -3,6 +3,7 @@ package session
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -17,6 +18,55 @@ var KnownHarness = []string{
 	"codex-cli",
 	"gemini",
 	"gemini-cli",
+}
+
+// HarnessInfo describes a harness and whether its CLI is on PATH.
+type HarnessInfo struct {
+	Name      string `json:"name"`
+	Kind      string `json:"kind"` // specular | native
+	Binary    string `json:"binary"`
+	Available bool   `json:"available"`
+	Path      string `json:"path,omitempty"`
+}
+
+// ProbeHarnesses returns availability for each known harness.
+func ProbeHarnesses() []HarnessInfo {
+	out := make([]HarnessInfo, 0, len(KnownHarness))
+	for _, name := range KnownHarness {
+		info := HarnessInfo{
+			Name:   name,
+			Kind:   "specular",
+			Binary: harnessCLIName(name),
+		}
+		if IsNativeHarness(name) {
+			info.Kind = "native"
+		}
+		if info.Binary == "" {
+			// specular-auto uses this process; always "available".
+			info.Available = true
+			out = append(out, info)
+			continue
+		}
+		if resolved, err := exec.LookPath(info.Binary); err == nil {
+			info.Available = true
+			info.Path = resolved
+		}
+		out = append(out, info)
+	}
+	return out
+}
+
+func harnessCLIName(name string) string {
+	switch normalizeHarness(name) {
+	case "claude-code", "claude":
+		return "claude"
+	case "codex", "codex-cli":
+		return "codex"
+	case "gemini", "gemini-cli":
+		return "gemini"
+	default:
+		return ""
+	}
 }
 
 // LaunchPlan is the resolved process Specular will start for a session.
@@ -71,7 +121,6 @@ func ResolveLaunch(opts StartOptions, rec *Record) (LaunchPlan, error) {
 			return LaunchPlan{}, binErr
 		}
 		plan.Binary = bin
-		// Agentic non-interactive run inside an isolated worktree.
 		plan.Args = []string{
 			"--print",
 			"--permission-mode", "acceptEdits",

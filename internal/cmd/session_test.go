@@ -15,6 +15,8 @@ func TestSessionSubcommands(t *testing.T) {
 		"logs":      false,
 		"fork":      false,
 		"harnesses": false,
+		"status":    false,
+		"open":      false,
 	}
 
 	for _, cmd := range sessionCmd.Commands() {
@@ -45,6 +47,32 @@ func TestSessionStartFlags(t *testing.T) {
 		if startCmd.Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session start", name)
 		}
+	}
+}
+
+func TestSessionStatusAndOpenFlags(t *testing.T) {
+	var statusCmd, openCmd *cobra.Command
+	for _, cmd := range sessionCmd.Commands() {
+		switch cmd.Name() {
+		case "status":
+			statusCmd = cmd
+		case "open":
+			openCmd = cmd
+		}
+	}
+	if statusCmd == nil {
+		t.Fatal("status subcommand not found")
+	}
+	if openCmd == nil {
+		t.Fatal("open subcommand not found")
+	}
+	for _, name := range []string{"watch", "interval", "json"} {
+		if statusCmd.Flags().Lookup(name) == nil {
+			t.Errorf("flag %q not found on session status", name)
+		}
+	}
+	if openCmd.Flags().Lookup("shell") == nil {
+		t.Error("flag \"shell\" not found on session open")
 	}
 }
 

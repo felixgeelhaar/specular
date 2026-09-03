@@ -189,9 +189,10 @@ Keep Xirp only if the Mac grid UI is non-negotiable. Otherwise Specular
 replaces it for authoring *and* covers the audit trail. See
 [`competitive/xirp.md`](../competitive/xirp.md).
 
-**Proof.** `session harnesses`, then start Claude + Codex sessions side
-by side, `session list`, then show attestation `harness` fields and a
-failing drift gate. Close with the Xirp FAQ "no redaction" line.
+**Proof.** `session harnesses` (PATH probe), start Claude + Codex sessions
+side by side, `session status --watch`, `session open`, then show
+attestation `harness` fields and a failing drift gate. Close with the
+Xirp FAQ "no redaction" line.
 
 ---
 

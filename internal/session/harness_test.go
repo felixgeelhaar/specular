@@ -72,6 +72,26 @@ func TestNormalizeAndNative(t *testing.T) {
 	}
 }
 
+func TestProbeHarnesses(t *testing.T) {
+	t.Parallel()
+	list := ProbeHarnesses()
+	if len(list) != len(KnownHarness) {
+		t.Fatalf("len=%d", len(list))
+	}
+	foundAuto := false
+	for _, h := range list {
+		if h.Name == "specular-auto" {
+			foundAuto = true
+			if !h.Available {
+				t.Fatal("specular-auto should be available")
+			}
+		}
+	}
+	if !foundAuto {
+		t.Fatal("missing specular-auto")
+	}
+}
+
 func joinArgs(args []string) string {
 	out := ""
 	for _, a := range args {

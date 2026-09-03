@@ -1997,11 +1997,13 @@ specular session <subcommand>
 |---------|-------------|
 | `session start <goal>` | Start a detached harness run in an isolated worktree |
 | `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
-| `session show <id>` | Show session status, worktree, harness, log path |
+| `session show <id>` | Show session details, worktree, harness, log path |
+| `session status [--watch]` | Live multi-session board (counts + PID/branch/goal) |
 | `session logs <id> [--follow]` | Print or follow the session log |
+| `session open <id> [--shell]` | Print worktree path (or a `cd` command) |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop <id>` | Stop a running session process |
-| `session harnesses` | List supported harnesses (`claude-code`, `codex`, `gemini`, `specular-auto`) |
+| `session harnesses` | List harnesses with PATH availability |
 
 **Start flags:**
 
@@ -2014,12 +2016,22 @@ specular session <subcommand>
 | `--foreground` | Do not detach |
 | `--json` | Emit JSON |
 
+**Status / open flags:**
+
+| Flag | Description |
+|------|-------------|
+| `status --watch` | Refresh the board until interrupted |
+| `status --interval <dur>` | Refresh interval (default `2s`) |
+| `open --shell` | Print `cd "<worktree>"` instead of the bare path |
+
 **Example:**
 ```bash
 $ specular session harnesses
 $ specular session start --harness claude-code --name auth "Harden JWT validation"
 $ specular session start --harness codex --name ratelimit "Add rate limiting"
-$ specular session list
+$ specular session status
+$ specular session status --watch
+$ cd "$(specular session open auth)"
 $ specular session logs auth --follow
 $ specular session fork auth --name auth-alt --start
 $ specular session stop auth
