@@ -1995,28 +1995,34 @@ specular session <subcommand>
 
 | Command | Description |
 |---------|-------------|
-| `session start <goal>` | Start a detached auto run in an isolated worktree |
+| `session start <goal>` | Start a detached harness run in an isolated worktree |
 | `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
 | `session show <id>` | Show session status, worktree, harness, log path |
+| `session logs <id> [--follow]` | Print or follow the session log |
+| `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop <id>` | Stop a running session process |
+| `session harnesses` | List supported harnesses (`claude-code`, `codex`, `gemini`, `specular-auto`) |
 
 **Start flags:**
 
 | Flag | Description |
 |------|-------------|
 | `--name <slug>` | Session / worktree name (default `sess-<timestamp>`) |
-| `--harness <label>` | Harness label for attestation (default `specular-auto`) |
-| `--profile <name>` | Auto profile (default `ci`) |
+| `--harness <name>` | `specular-auto` (default), `claude-code`, `codex`, or `gemini` |
+| `--profile <name>` | Auto profile for `specular-auto` (default `ci`) |
 | `--no-worktree` | Run in the current checkout |
 | `--foreground` | Do not detach |
 | `--json` | Emit JSON |
 
 **Example:**
 ```bash
-$ specular session start --name auth-fix "Harden JWT validation"
+$ specular session harnesses
+$ specular session start --harness claude-code --name auth "Harden JWT validation"
+$ specular session start --harness codex --name ratelimit "Add rate limiting"
 $ specular session list
-$ specular session show auth-fix -v
-$ specular session stop auth-fix
+$ specular session logs auth --follow
+$ specular session fork auth --name auth-alt --start
+$ specular session stop auth
 ```
 
 ---

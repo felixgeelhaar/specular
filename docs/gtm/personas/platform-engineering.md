@@ -18,7 +18,7 @@
 | GitHub Actions / GitLab CI / Jenkins      | A drop-in CI step that gates AI-authored changes. |
 | OPA, Conftest, Sentinel, custom policies  | AI-development-aware policies via `policies.yaml`.|
 | Snyk / Sonar / Semgrep                    | Coexists; we govern, they scan.                   |
-| Cursor / Continue / Cline / Claude Code / Xirp | Specular sessions can replace or coexist; we also govern at the gate. |
+| Cursor / Continue / Cline / Claude Code / Xirp | Specular launches the same harnesses in worktrees; Xirp is optional Mac UI. |
 | Internal docs telling people "use approved models" | Enforcement plus a metric that proves it.   |
 
 ## The 30-minute walkthrough

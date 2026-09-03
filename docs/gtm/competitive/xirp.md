@@ -1,118 +1,91 @@
 # Competitive brief: Spotify Xirp
 
-> Internal brief for champions and design partners. Specular manages **both**
-> loops — parallel agent authoring and the change-control gate. Updated after
-> the decision to own inner-loop session orchestration (not only complement
-> Xirp).
+> Specular is built to **win** the agent-session category against Xirp —
+> not to sit politely beside it. We compete on parallel harness sessions
+> *and* on the governance Xirp does not ship.
 
 ## What Xirp is
 
-Xirp is Spotify's **vendor-neutral agentic development environment**: a
-macOS desktop app that orchestrates many concurrent coding-agent sessions
-(Claude Code, Codex, Gemini CLI) across projects and Git worktrees. Optional
-Spotify Portal connection injects software-catalog context over MCP and
-lets teams share session transcripts.
+Xirp is Spotify's macOS desktop app for running Claude Code, Codex, and
+Gemini sessions in parallel Git worktrees, with optional Portal catalog
+context. It proved demand for vendor-neutral multi-agent orchestration.
 
-Xirp proved the category of **parallel agent session management**. Specular
-implements that category in the CLI — and keeps the governance gate that
-Xirp does not have.
+## Where Specular competes — and wins
 
 | Dimension | Xirp | Specular |
 |-----------|------|----------|
-| Primary job | Desktop session grid for coding agents | **Both loops**: parallel sessions + auditable change control |
-| Surface | macOS desktop app | Cross-platform CLI + CI action |
-| Inner loop | Persistent terminals, grid, worktrees | `session start/list/show/stop` + worktree isolation |
-| Outer loop | Transcripts (manual upload; no redaction) | Drift gate, policy, signed bundles, harness provenance |
-| Vendor neutrality | Wraps Claude Code / Codex / Gemini CLIs | Routes API + CLI providers; harness label in attestation |
-| Org context | Portal catalog / Workspaces via MCP | Spec + policy + ADR/spec lock as governed inputs |
-| Evidence | Session transcripts | Signed bundles + drift hashes + harness/worktree fields |
-| Open source | No (proprietary; Portal commercial) | Apache 2.0 core |
-| Platforms | macOS only (beta) | Linux / macOS / Windows |
+| Parallel sessions | Desktop grid | `session start/list/logs/fork/stop` |
+| Harnesses | Claude Code, Codex, Gemini | **Same**, plus governed `specular-auto` |
+| Isolation | Git worktrees | Git worktrees (`.specular/worktrees/`) |
+| Platforms | **macOS only** | **Linux / macOS / Windows** |
+| License | Proprietary + Portal upsell | **Apache 2.0** |
+| Governance gate | None (transcripts, no redaction) | **Drift + policy + signed bundles** |
+| Harness attribution | Transcript only | **`provenance.harness` + worktree fields** |
+| Org context | Portal catalog (paid) | Spec + policy + ADR (in-repo) |
 
-## Threat model
+**Competitive thesis**
 
-Xirp still matters even when Specular owns both loops:
+> Specular is the open, cross-platform control plane for parallel coding
+> agents — with the only auditor-ready change-control gate in the category.
 
-1. **Desktop UX density.** Grid view and persistent PTYs are a polished
-   authoring experience. Specular's first slice is CLI session orchestration
-   — not a macOS GUI. Buyers who want a visual grid may still install Xirp.
-2. **Portal catalog distribution.** Spotify can bundle sessions with Portal
-   commercial motion. Specular wins on evidence and open core, not on
-   Backstage marketplace presence.
-3. **"Vendor neutrality" mindshare.** Continue naming multi-harness
-   explicitly so "don't lock to one agent" maps to Specular sessions +
-   providers, not only to Xirp.
+Xirp's desktop grid is a UX advantage on Mac. Everywhere else — and
+everywhere compliance matters — Specular is the stronger product.
 
-## Response thesis
+## Threat model (still take Xirp seriously)
 
-> **Specular manages both loops: parallel agent sessions in the inner loop,
-> and the only auditor-ready change-control gate in the outer loop.**
+1. **Desktop polish.** Grid + PTY is sticky for Mac-native teams. We do
+   not ship a GUI yet; we win on CLI density, CI, and evidence.
+2. **Portal distribution.** Spotify can attach sessions to Backstage
+   commercial motion. Counter with open core + auditor enablement.
+3. **Mindshare.** Keep saying "Claude Code / Codex / Gemini in worktrees
+   *and* a drift gate" so buyers don't map the whole category to Xirp.
 
-We do **not** defer authoring to Xirp. We:
+## Product posture
 
-- **Own the inner loop (CLI)** — `specular session start` launches goals in
-  isolated worktrees; `list` / `show` / `stop` track parallel runs with
-  harness provenance.
-- **Own the outer loop** — drift, policy, signed bundles; every session's
-  harness + worktree identity is in the attestation.
-- **Differentiate on evidence** — no transcript upload required; no macOS
-  lock-in; Apache 2.0.
-- **Coexist when useful** — if a team already runs Xirp for PTY grid UX,
-  Specular still gates what ships. That is coexistence, not dependency.
+**Ship to compete**
 
-## What we build vs defer
-
-**Build (both-loops roadmap)**
-
-- Session registry: start / list / show / stop
+- Native harness launch: `claude-code`, `codex`, `gemini`, `specular-auto`
 - Worktree isolation per session
-- Harness + worktree provenance in attestations
-- Multi-session status (`working` / `completed` / `failed` / `stopped`)
-- Later: attach logs, mid-session harness switch, richer status
-  (`waiting` on approval)
+- `session logs --follow`, `session fork`
+- Harness + worktree provenance into attestations
+- Drift / policy / bundle outer loop
 
-**Defer (do not clone the desktop)**
+**Do not clone**
 
-- macOS grid-view GUI
-- Portal-style catalog marketplace
-- Transcript social sharing
-- Session forking as a social UX product
-
-Deferring the desktop is not deferring the inner loop. The CLI session
-manager **is** the inner loop.
+- macOS-only GUI grid
+- Portal marketplace / transcript social sharing
 
 ## Talking points
 
-**For Platform Engineering**
+**Platform**
 
-> "One CLI owns parallel agents and the gate. `session start` for isolated
-> work; `eval drift` for ship. You do not need a second vendor for
-> authoring just to get governance."
+> "Same harnesses as Xirp — Claude, Codex, Gemini — in worktrees, on every
+> OS, open source. Plus the CI gate Xirp never built. One tool."
 
-**For Security / GRC**
+**Security**
 
-> "Xirp FAQ: transcripts are not redacted before Portal upload. Specular
-> sessions never require uploading conversation history — evidence is the
-> signed bundle and drift hash in *your* repo, with harness attribution."
+> "Xirp does not redact transcript uploads. Specular never requires
+> uploading conversations. The evidence is a signed bundle in your repo."
 
-**For "we're standardising on Portal / Xirp"**
+**Against Portal lock-in**
 
-> "Keep Xirp if you want the desktop grid. Specular still runs the sessions
-> you want governed — or gates PRs from any harness. Portal context and
-> Specular policy are complementary inputs; only Specular produces change-
-> control evidence."
+> "Portal is a catalog. Specular is change control. If you already bought
+> Portal, keep it — and still run Specular sessions so shipping stays
+> auditable."
 
-## Proof artefacts to show
+## Proof
 
-1. `specular session start --name demo "Add /healthz"` then
-   `specular session list` — parallel inner-loop control surface.
-2. `specular auto --worktree demo --attest "..."` — harness + worktree in
-   attestation JSON.
-3. Side-by-side: Xirp FAQ "Does Xirp redact secrets?" → No; Specular
-   bundle YAML with no transcript requirement.
+```bash
+specular session harnesses
+specular session start --harness claude-code --name demo "Add /healthz"
+specular session start --harness codex --name demo-2 "Add rate limiting"
+specular session list
+specular session logs demo --follow
+specular eval drift --fail-on-change
+```
 
 ## Sources
 
-- [Introducing Xirp (Spotify Portal blog)](https://portal.spotify.com/blog/introducing-xirp)
+- [Introducing Xirp](https://portal.spotify.com/blog/introducing-xirp)
 - [Xirp docs](https://backstage.spotify.com/docs/xirp)
-- [Xirp FAQ](https://backstage.spotify.com/docs/xirp/faq) — proprietary, macOS-only, no transcript redaction
+- [Xirp FAQ](https://backstage.spotify.com/docs/xirp/faq) — macOS-only, proprietary, no transcript redaction

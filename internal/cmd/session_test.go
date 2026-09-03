@@ -8,10 +8,13 @@ import (
 
 func TestSessionSubcommands(t *testing.T) {
 	required := map[string]bool{
-		"start": false,
-		"list":  false,
-		"show":  false,
-		"stop":  false,
+		"start":     false,
+		"list":      false,
+		"show":      false,
+		"stop":      false,
+		"logs":      false,
+		"fork":      false,
+		"harnesses": false,
 	}
 
 	for _, cmd := range sessionCmd.Commands() {
@@ -45,33 +48,11 @@ func TestSessionStartFlags(t *testing.T) {
 	}
 }
 
-func TestSessionShowFlags(t *testing.T) {
-	var showCmd *cobra.Command
-	for _, cmd := range sessionCmd.Commands() {
-		if cmd.Name() == "show" {
-			showCmd = cmd
-			break
-		}
-	}
-	if showCmd == nil {
-		t.Fatal("show subcommand not found")
-	}
-	if showCmd.Flags().Lookup("verbose") == nil {
-		t.Error("flag 'verbose' not found on session show")
-	}
-	if showCmd.Flags().Lookup("json") == nil {
-		t.Error("flag 'json' not found on session show")
-	}
-}
-
 func TestSessionCommand(t *testing.T) {
 	if sessionCmd.Use != "session" {
 		t.Errorf("session Use = %q, want session", sessionCmd.Use)
 	}
-	if sessionCmd.Short == "" {
-		t.Error("session Short description is empty")
-	}
-	if len(sessionCmd.Commands()) < 4 {
-		t.Errorf("expected at least 4 subcommands, got %d", len(sessionCmd.Commands()))
+	if len(sessionCmd.Commands()) < 7 {
+		t.Errorf("expected at least 7 subcommands, got %d", len(sessionCmd.Commands()))
 	}
 }

@@ -193,7 +193,8 @@ func NewManager(repoRoot string) (*Manager, error) {
 // Store exposes the underlying store (for tests / CLI).
 func (m *Manager) Store() *Store { return m.store }
 
-// Start creates an isolated worktree (unless skipped) and launches specular auto.
+// Start creates an isolated worktree (unless skipped) and launches the
+// selected harness (specular-auto, claude-code, codex, or gemini).
 func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error) {
 	rec, prepErr := m.prepareRecord(ctx, opts)
 	if prepErr != nil {
@@ -203,23 +204,22 @@ func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error)
 		return nil, saveErr
 	}
 
-	binary, binErr := resolveBinary(opts.Binary)
-	if binErr != nil {
-		return nil, binErr
+	plan, planErr := ResolveLaunch(opts, rec)
+	if planErr != nil {
+		return m.failRecord(rec, planErr)
 	}
-	args := buildAutoArgs(opts, rec)
 
 	logFile, logErr := os.OpenFile(rec.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if logErr != nil {
 		return nil, fmt.Errorf("session: open log: %w", logErr)
 	}
 
-	cmd, cmdErr := safeutil.SafeCommand(ctx, binary, args...)
+	cmd, cmdErr := safeutil.SafeCommand(ctx, plan.Binary, plan.Args...)
 	if cmdErr != nil {
 		_ = logFile.Close()
 		return m.failRecord(rec, cmdErr)
 	}
-	cmd.Dir = m.repoRoot
+	cmd.Dir = plan.WorkDir
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	configureProcessGroup(cmd)
@@ -242,6 +242,47 @@ func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error)
 	return m.waitForeground(rec, cmd, logFile)
 }
 
+// Fork duplicates a session's worktree onto a new branch/name without starting
+// a process. Pass StartOptions.Detach/Goal via a subsequent Start, or use
+// CLI `session fork --start`.
+func (m *Manager) Fork(ctx context.Context, sourceID, newName string) (*Record, error) {
+	src, loadErr := m.Get(sourceID)
+	if loadErr != nil {
+		return nil, loadErr
+	}
+	if newName == "" {
+		newName = src.ID + "-fork"
+	}
+	info, wtErr := m.worktrees.Create(ctx, worktree.Options{
+		Name: newName,
+		Base: src.WorktreeBranch,
+	})
+	if wtErr != nil {
+		// Fall back to HEAD if source branch is gone.
+		info, wtErr = m.worktrees.Create(ctx, worktree.Options{Name: newName})
+		if wtErr != nil {
+			return nil, wtErr
+		}
+	}
+	rec := &Record{
+		ID:             newName,
+		Goal:           src.Goal,
+		Harness:        src.Harness,
+		Profile:        src.Profile,
+		WorktreeName:   info.Name,
+		WorktreePath:   info.Path,
+		WorktreeBranch: info.Branch,
+		Status:         StatusIdle,
+		CreatedAt:      time.Now().UTC(),
+		UpdatedAt:      time.Now().UTC(),
+		LogPath:        filepath.Join(m.store.Dir(), newName+".log"),
+	}
+	if saveErr := m.store.Save(rec); saveErr != nil {
+		return nil, saveErr
+	}
+	return rec, nil
+}
+
 func (m *Manager) prepareRecord(ctx context.Context, opts StartOptions) (*Record, error) {
 	goal := strings.TrimSpace(opts.Goal)
 	if goal == "" {
@@ -251,9 +292,10 @@ func (m *Manager) prepareRecord(ctx context.Context, opts StartOptions) (*Record
 	if name == "" {
 		name = fmt.Sprintf("sess-%d", time.Now().Unix())
 	}
-	harness := opts.Harness
-	if harness == "" {
-		harness = "specular-auto"
+	harness := normalizeHarness(opts.Harness)
+	if !isKnownHarness(harness) {
+		return nil, fmt.Errorf("session: unknown harness %q (supported: %s)",
+			opts.Harness, strings.Join(KnownHarness, ", "))
 	}
 	profile := opts.Profile
 	if profile == "" {

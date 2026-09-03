@@ -73,7 +73,7 @@ func TestStartDetachStop(t *testing.T) {
 	rec, err := mgr.Start(ctx, StartOptions{
 		Goal:         "noop goal for session manager",
 		Name:         "parallel-a",
-		Harness:      "test-harness",
+		Harness:      "specular-auto",
 		Detach:       true,
 		NoApproval:   true,
 		SkipWorktree: true, // avoid needing full worktree for stub args
@@ -89,7 +89,7 @@ func TestStartDetachStop(t *testing.T) {
 	if rec.Status != StatusWorking {
 		t.Fatalf("status=%s", rec.Status)
 	}
-	if rec.Harness != "test-harness" {
+	if rec.Harness != "specular-auto" {
 		t.Fatalf("harness=%s", rec.Harness)
 	}
 
@@ -113,32 +113,35 @@ func TestStartDetachStop(t *testing.T) {
 	}
 }
 
-func TestStartWithWorktree(t *testing.T) {
+func TestFork(t *testing.T) {
 	repo := initTempRepo(t)
 	mgr, err := NewManager(repo)
 	if err != nil {
 		t.Fatal(err)
 	}
 	stub := writeExitStub(t, 0)
-
-	rec, err := mgr.Start(context.Background(), StartOptions{
-		Goal:       "create worktree session",
-		Name:       "wt-sess",
+	src, err := mgr.Start(context.Background(), StartOptions{
+		Goal:       "source session",
+		Name:       "src-sess",
 		Detach:     false,
 		NoApproval: true,
 		Binary:     stub,
 	})
 	if err != nil {
-		t.Fatalf("Start: %v (log=%s)", err, mustRead(t, rec.LogPath))
+		t.Fatalf("Start: %v", err)
 	}
-	if rec.WorktreePath == "" {
-		t.Fatal("expected worktree path")
+	forked, err := mgr.Fork(context.Background(), src.ID, "src-fork")
+	if err != nil {
+		t.Fatalf("Fork: %v", err)
 	}
-	if _, err := os.Stat(rec.WorktreePath); err != nil {
-		t.Fatalf("worktree missing: %v", err)
+	if forked.ID != "src-fork" {
+		t.Fatalf("id=%s", forked.ID)
 	}
-	if rec.Status != StatusCompleted {
-		t.Fatalf("status=%s err=%s", rec.Status, rec.Error)
+	if forked.Status != StatusIdle {
+		t.Fatalf("status=%s", forked.Status)
+	}
+	if forked.WorktreePath == "" || forked.WorktreePath == src.WorktreePath {
+		t.Fatalf("expected distinct worktree, got %s vs %s", forked.WorktreePath, src.WorktreePath)
 	}
 }
 

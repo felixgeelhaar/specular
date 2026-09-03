@@ -11,12 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Both-loops session management (response to Xirp)**
   - Specular now owns the **inner loop** as well as the outer gate:
-    `specular session start|list|show|stop` launches and tracks parallel
-    auto runs in isolated Git worktrees with harness provenance
+    `specular session start|list|show|stop|logs|fork|harnesses`
+  - **Native harness launch**: Claude Code, Codex, and Gemini run in
+    isolated worktrees (not just provenance labels on `specular-auto`)
+  - Session fork + log follow for multi-agent operations
+  - GTM repositioned to **compete** with Xirp on sessions and win on
+    governance (`docs/gtm/competitive/xirp.md`)
   - New `internal/session` registry under `.specular/sessions/`
-  - GTM repositioned: Specular manages both loops; Xirp is an optional
-    macOS desktop grid, not a required authoring dependency
-    (`docs/gtm/competitive/xirp.md`)
 
 - **Competitive response to Spotify Xirp (worktree + provenance)**
   - GTM brief at `docs/gtm/competitive/xirp.md` (threat model, talking points)
