@@ -14,10 +14,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/worktree"
 )
 
@@ -72,9 +74,10 @@ type StartOptions struct {
 	NoApproval bool
 	// Detach starts auto in the background.
 	Detach bool
-	// Binary overrides the specular executable path (tests).
+	// Binary overrides the specular executable path (tests only).
+	// Must be an absolute path to a trusted binary.
 	Binary string
-	// ExtraArgs are appended to the auto invocation.
+	// ExtraArgs are appended to the auto invocation (validated for null bytes).
 	ExtraArgs []string
 	// SkipWorktree runs in the current checkout (not recommended for parallel).
 	SkipWorktree bool
@@ -87,13 +90,13 @@ type Store struct {
 
 // NewStore creates a session store under repoRoot/.specular/sessions.
 func NewStore(repoRoot string) (*Store, error) {
-	abs, err := filepath.Abs(repoRoot)
-	if err != nil {
-		return nil, fmt.Errorf("session: resolve root: %w", err)
+	abs, absErr := filepath.Abs(repoRoot)
+	if absErr != nil {
+		return nil, fmt.Errorf("session: resolve root: %w", absErr)
 	}
 	dir := filepath.Join(abs, DefaultRelativeDir)
-	if err := os.MkdirAll(dir, 0o750); err != nil {
-		return nil, fmt.Errorf("session: create store: %w", err)
+	if mkdirErr := os.MkdirAll(dir, 0o750); mkdirErr != nil {
+		return nil, fmt.Errorf("session: create store: %w", mkdirErr)
 	}
 	return &Store{dir: dir}, nil
 }
@@ -107,43 +110,43 @@ func (s *Store) Save(rec *Record) error {
 		return fmt.Errorf("session: empty record")
 	}
 	rec.UpdatedAt = time.Now().UTC()
-	data, err := json.MarshalIndent(rec, "", "  ")
-	if err != nil {
-		return err
+	data, marshalErr := json.MarshalIndent(rec, "", "  ")
+	if marshalErr != nil {
+		return marshalErr
 	}
 	path := s.path(rec.ID)
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
-		return fmt.Errorf("session: write: %w", err)
+	if writeErr := os.WriteFile(tmp, data, 0o600); writeErr != nil {
+		return fmt.Errorf("session: write: %w", writeErr)
 	}
-	if err := os.Rename(tmp, path); err != nil {
+	if renameErr := os.Rename(tmp, path); renameErr != nil {
 		_ = os.Remove(tmp)
-		return fmt.Errorf("session: rename: %w", err)
+		return fmt.Errorf("session: rename: %w", renameErr)
 	}
 	return nil
 }
 
 // Load reads a session by ID.
 func (s *Store) Load(id string) (*Record, error) {
-	data, err := os.ReadFile(s.path(id))
-	if err != nil {
-		return nil, fmt.Errorf("session: load %s: %w", id, err)
+	data, readErr := os.ReadFile(s.path(id))
+	if readErr != nil {
+		return nil, fmt.Errorf("session: load %s: %w", id, readErr)
 	}
 	var rec Record
-	if err := json.Unmarshal(data, &rec); err != nil {
-		return nil, fmt.Errorf("session: decode %s: %w", id, err)
+	if decodeErr := json.Unmarshal(data, &rec); decodeErr != nil {
+		return nil, fmt.Errorf("session: decode %s: %w", id, decodeErr)
 	}
 	return &rec, nil
 }
 
 // List returns all session records, newest first.
 func (s *Store) List() ([]Record, error) {
-	entries, err := os.ReadDir(s.dir)
-	if err != nil {
-		if os.IsNotExist(err) {
+	entries, readErr := os.ReadDir(s.dir)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, readErr
 	}
 	var out []Record
 	for _, e := range entries {
@@ -151,19 +154,15 @@ func (s *Store) List() ([]Record, error) {
 			continue
 		}
 		id := strings.TrimSuffix(e.Name(), ".json")
-		rec, err := s.Load(id)
-		if err != nil {
+		rec, loadErr := s.Load(id)
+		if loadErr != nil {
 			continue
 		}
 		out = append(out, *rec)
 	}
-	for i := 0; i < len(out); i++ {
-		for j := i + 1; j < len(out); j++ {
-			if out[j].CreatedAt.After(out[i].CreatedAt) {
-				out[i], out[j] = out[j], out[i]
-			}
-		}
-	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].CreatedAt.After(out[j].CreatedAt)
+	})
 	return out, nil
 }
 
@@ -180,13 +179,13 @@ type Manager struct {
 
 // NewManager builds a session manager for a git repository.
 func NewManager(repoRoot string) (*Manager, error) {
-	store, err := NewStore(repoRoot)
-	if err != nil {
-		return nil, err
+	store, storeErr := NewStore(repoRoot)
+	if storeErr != nil {
+		return nil, storeErr
 	}
-	wt, err := worktree.NewManager(repoRoot)
-	if err != nil {
-		return nil, err
+	wt, wtErr := worktree.NewManager(repoRoot)
+	if wtErr != nil {
+		return nil, wtErr
 	}
 	return &Manager{store: store, worktrees: wt, repoRoot: wt.RepoRoot()}, nil
 }
@@ -196,11 +195,58 @@ func (m *Manager) Store() *Store { return m.store }
 
 // Start creates an isolated worktree (unless skipped) and launches specular auto.
 func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error) {
+	rec, prepErr := m.prepareRecord(ctx, opts)
+	if prepErr != nil {
+		return nil, prepErr
+	}
+	if saveErr := m.store.Save(rec); saveErr != nil {
+		return nil, saveErr
+	}
+
+	binary, binErr := resolveBinary(opts.Binary)
+	if binErr != nil {
+		return nil, binErr
+	}
+	args := buildAutoArgs(opts, rec)
+
+	logFile, logErr := os.OpenFile(rec.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if logErr != nil {
+		return nil, fmt.Errorf("session: open log: %w", logErr)
+	}
+
+	cmd, cmdErr := safeutil.SafeCommand(ctx, binary, args...)
+	if cmdErr != nil {
+		_ = logFile.Close()
+		return m.failRecord(rec, cmdErr)
+	}
+	cmd.Dir = m.repoRoot
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	configureProcessGroup(cmd)
+
+	if startErr := cmd.Start(); startErr != nil {
+		_ = logFile.Close()
+		return m.failRecord(rec, startErr)
+	}
+
+	rec.PID = cmd.Process.Pid
+	if saveErr := m.store.Save(rec); saveErr != nil {
+		_ = logFile.Close()
+		return rec, saveErr
+	}
+
+	if opts.Detach {
+		go m.reapDetached(*rec, cmd, logFile)
+		return rec, nil
+	}
+	return m.waitForeground(rec, cmd, logFile)
+}
+
+func (m *Manager) prepareRecord(ctx context.Context, opts StartOptions) (*Record, error) {
 	goal := strings.TrimSpace(opts.Goal)
 	if goal == "" {
 		return nil, fmt.Errorf("session: goal is required")
 	}
-
 	name := strings.TrimSpace(opts.Name)
 	if name == "" {
 		name = fmt.Sprintf("sess-%d", time.Now().Unix())
@@ -222,105 +268,87 @@ func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error)
 		Status:    StatusWorking,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
+		LogPath:   filepath.Join(m.store.Dir(), name+".log"),
 	}
 
-	if !opts.SkipWorktree {
-		info, err := m.ensureWorktree(ctx, name)
-		if err != nil {
-			return nil, err
-		}
-		rec.WorktreeName = info.Name
-		rec.WorktreePath = info.Path
-		rec.WorktreeBranch = info.Branch
+	if opts.SkipWorktree {
+		return rec, nil
 	}
-
-	logPath := filepath.Join(m.store.Dir(), name+".log")
-	rec.LogPath = logPath
-
-	if err := m.store.Save(rec); err != nil {
-		return nil, err
+	info, wtErr := m.ensureWorktree(ctx, name)
+	if wtErr != nil {
+		return nil, wtErr
 	}
+	rec.WorktreeName = info.Name
+	rec.WorktreePath = info.Path
+	rec.WorktreeBranch = info.Branch
+	return rec, nil
+}
 
-	binary := opts.Binary
-	if binary == "" {
-		var err error
-		binary, err = os.Executable()
-		if err != nil {
-			binary = os.Args[0]
-		}
-	}
-
+func buildAutoArgs(opts StartOptions, rec *Record) []string {
 	args := []string{
 		"auto",
-		"--profile", profile,
-		"--harness", harness,
+		"--profile", rec.Profile,
+		"--harness", rec.Harness,
 		"--json",
 	}
 	if opts.NoApproval || opts.Detach {
 		args = append(args, "--no-approval")
 	}
 	if !opts.SkipWorktree {
-		args = append(args, "--worktree", name)
+		args = append(args, "--worktree", rec.ID)
 	}
 	args = append(args, opts.ExtraArgs...)
-	args = append(args, goal)
+	args = append(args, rec.Goal)
+	return args
+}
 
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
-	if err != nil {
-		return nil, fmt.Errorf("session: open log: %w", err)
+func resolveBinary(override string) (string, error) {
+	if override != "" {
+		if !filepath.IsAbs(override) {
+			return "", fmt.Errorf("session: binary override must be absolute")
+		}
+		return override, nil
 	}
-
-	cmd := exec.CommandContext(ctx, binary, args...) // #nosec G204 -- binary is self or test override
-	cmd.Dir = m.repoRoot
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
-	configureProcessGroup(cmd)
-
-	if err := cmd.Start(); err != nil {
-		_ = logFile.Close()
-		rec.Status = StatusFailed
-		rec.Error = err.Error()
-		_ = m.store.Save(rec)
-		return rec, fmt.Errorf("session: start auto: %w", err)
+	exe, exeErr := os.Executable()
+	if exeErr != nil {
+		return "", fmt.Errorf("session: resolve executable: %w", exeErr)
 	}
+	return exe, nil
+}
 
-	rec.PID = cmd.Process.Pid
-	if err := m.store.Save(rec); err != nil {
-		_ = logFile.Close()
-		return rec, err
+func (m *Manager) failRecord(rec *Record, cause error) (*Record, error) {
+	rec.Status = StatusFailed
+	rec.Error = cause.Error()
+	_ = m.store.Save(rec)
+	return rec, fmt.Errorf("session: start auto: %w", cause)
+}
+
+func (m *Manager) reapDetached(seed Record, cmd *exec.Cmd, logFile *os.File) {
+	defer func() { _ = logFile.Close() }()
+	waitErr := cmd.Wait()
+	latest, loadErr := m.store.Load(seed.ID)
+	if loadErr != nil || latest.Status == StatusStopped {
+		return
 	}
-
-	if opts.Detach {
-		go func(r Record, c *exec.Cmd, f *os.File) {
-			defer f.Close()
-			waitErr := c.Wait()
-			latest, loadErr := m.store.Load(r.ID)
-			if loadErr != nil {
-				return
-			}
-			if latest.Status == StatusStopped {
-				return
-			}
-			code := 0
-			if waitErr != nil {
-				latest.Status = StatusFailed
-				latest.Error = waitErr.Error()
-				if ee, ok := waitErr.(*exec.ExitError); ok {
-					code = ee.ExitCode()
-				} else {
-					code = 1
-				}
-			} else {
-				latest.Status = StatusCompleted
-			}
-			latest.ExitCode = &code
-			latest.PID = 0
-			_ = m.store.Save(latest)
-		}(*rec, cmd, logFile)
-		return rec, nil
+	code := 0
+	if waitErr != nil {
+		latest.Status = StatusFailed
+		latest.Error = waitErr.Error()
+		if ee, ok := waitErr.(*exec.ExitError); ok {
+			code = ee.ExitCode()
+		} else {
+			code = 1
+		}
+	} else {
+		latest.Status = StatusCompleted
 	}
+	latest.ExitCode = &code
+	latest.PID = 0
+	_ = m.store.Save(latest)
+}
 
-	defer logFile.Close()
+func (m *Manager) waitForeground(rec *Record, cmd *exec.Cmd, logFile *os.File) (*Record, error) {
+	defer func() { _ = logFile.Close() }()
 	waitErr := cmd.Wait()
 	code := 0
 	if waitErr != nil {
@@ -341,8 +369,8 @@ func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error)
 }
 
 func (m *Manager) ensureWorktree(ctx context.Context, name string) (*worktree.Info, error) {
-	list, err := m.worktrees.List(ctx)
-	if err == nil {
+	list, listErr := m.worktrees.List(ctx)
+	if listErr == nil {
 		for i := range list {
 			if list[i].Managed && (list[i].Name == name || list[i].Branch == worktree.BranchPrefix+name) {
 				return &list[i], nil
@@ -354,9 +382,9 @@ func (m *Manager) ensureWorktree(ctx context.Context, name string) (*worktree.In
 
 // Get loads and refreshes a session's live status.
 func (m *Manager) Get(id string) (*Record, error) {
-	rec, err := m.store.Load(id)
-	if err != nil {
-		return nil, err
+	rec, loadErr := m.store.Load(id)
+	if loadErr != nil {
+		return nil, loadErr
 	}
 	_ = m.Refresh(rec)
 	return rec, nil
@@ -364,9 +392,9 @@ func (m *Manager) Get(id string) (*Record, error) {
 
 // List returns refreshed session records.
 func (m *Manager) List() ([]Record, error) {
-	list, err := m.store.List()
-	if err != nil {
-		return nil, err
+	list, listErr := m.store.List()
+	if listErr != nil {
+		return nil, listErr
 	}
 	for i := range list {
 		_ = m.Refresh(&list[i])
@@ -379,40 +407,36 @@ func (m *Manager) Refresh(rec *Record) error {
 	if rec == nil {
 		return nil
 	}
-	if rec.Status == StatusCompleted || rec.Status == StatusFailed || rec.Status == StatusStopped {
+	switch rec.Status {
+	case StatusCompleted, StatusFailed, StatusStopped:
 		return nil
 	}
-	if rec.PID <= 0 {
+	if rec.PID <= 0 || processAlive(rec.PID) {
 		return nil
 	}
-	if !processAlive(rec.PID) {
-		if rec.Status == StatusWorking || rec.Status == StatusIdle || rec.Status == StatusWaiting {
-			rec.Status = StatusFailed
-			if rec.Error == "" {
-				rec.Error = "process exited"
-			}
-			rec.PID = 0
-			return m.store.Save(rec)
-		}
+	rec.Status = StatusFailed
+	if rec.Error == "" {
+		rec.Error = "process exited"
 	}
-	return nil
+	rec.PID = 0
+	return m.store.Save(rec)
 }
 
 // Stop terminates a running session process.
 func (m *Manager) Stop(id string) (*Record, error) {
-	rec, err := m.store.Load(id)
-	if err != nil {
-		return nil, err
+	rec, loadErr := m.store.Load(id)
+	if loadErr != nil {
+		return nil, loadErr
 	}
 	if rec.PID > 0 && processAlive(rec.PID) {
-		if err := killProcess(rec.PID); err != nil {
-			return rec, fmt.Errorf("session: stop pid %d: %w", rec.PID, err)
+		if killErr := killProcess(rec.PID); killErr != nil {
+			return rec, fmt.Errorf("session: stop pid %d: %w", rec.PID, killErr)
 		}
 	}
 	rec.Status = StatusStopped
 	rec.PID = 0
-	if err := m.store.Save(rec); err != nil {
-		return rec, err
+	if saveErr := m.store.Save(rec); saveErr != nil {
+		return rec, saveErr
 	}
 	return rec, nil
 }
