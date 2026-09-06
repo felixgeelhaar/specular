@@ -21,6 +21,7 @@ func TestSessionSubcommands(t *testing.T) {
 		"restart":   false,
 		"rm":        false,
 		"prune":     false,
+		"diff":      false,
 	}
 
 	for _, cmd := range sessionCmd.Commands() {
@@ -55,69 +56,48 @@ func TestSessionStartFlags(t *testing.T) {
 }
 
 func TestSessionLifecycleFlags(t *testing.T) {
-	var statusCmd, openCmd, waitCmd, restartCmd, rmCmd, pruneCmd *cobra.Command
+	found := map[string]*cobra.Command{}
 	for _, cmd := range sessionCmd.Commands() {
-		switch cmd.Name() {
-		case "status":
-			statusCmd = cmd
-		case "open":
-			openCmd = cmd
-		case "wait":
-			waitCmd = cmd
-		case "restart":
-			restartCmd = cmd
-		case "rm":
-			rmCmd = cmd
-		case "prune":
-			pruneCmd = cmd
+		found[cmd.Name()] = cmd
+	}
+	for _, name := range []string{"status", "open", "wait", "restart", "rm", "prune", "diff"} {
+		if found[name] == nil {
+			t.Fatalf("%s subcommand not found", name)
 		}
 	}
-	if statusCmd == nil {
-		t.Fatal("status subcommand not found")
-	}
-	if openCmd == nil {
-		t.Fatal("open subcommand not found")
-	}
-	if waitCmd == nil {
-		t.Fatal("wait subcommand not found")
-	}
-	if restartCmd == nil {
-		t.Fatal("restart subcommand not found")
-	}
-	if rmCmd == nil {
-		t.Fatal("rm subcommand not found")
-	}
-	if pruneCmd == nil {
-		t.Fatal("prune subcommand not found")
-	}
 	for _, name := range []string{"watch", "interval", "json"} {
-		if statusCmd.Flags().Lookup(name) == nil {
+		if found["status"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session status", name)
 		}
 	}
 	for _, name := range []string{"shell", "editor"} {
-		if openCmd.Flags().Lookup(name) == nil {
+		if found["open"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session open", name)
 		}
 	}
 	for _, name := range []string{"timeout", "interval", "any", "json"} {
-		if waitCmd.Flags().Lookup(name) == nil {
+		if found["wait"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session wait", name)
 		}
 	}
 	for _, name := range []string{"harness", "goal", "profile", "force", "foreground", "json"} {
-		if restartCmd.Flags().Lookup(name) == nil {
+		if found["restart"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session restart", name)
 		}
 	}
 	for _, name := range []string{"force", "keep-worktree", "delete-branch", "json"} {
-		if rmCmd.Flags().Lookup(name) == nil {
+		if found["rm"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session rm", name)
 		}
 	}
 	for _, name := range []string{"older-than", "keep-worktree", "delete-branch", "json"} {
-		if pruneCmd.Flags().Lookup(name) == nil {
+		if found["prune"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session prune", name)
+		}
+	}
+	for _, name := range []string{"base", "against", "stat", "name-only", "patch", "json"} {
+		if found["diff"].Flags().Lookup(name) == nil {
+			t.Errorf("flag %q not found on session diff", name)
 		}
 	}
 }
@@ -126,7 +106,7 @@ func TestSessionCommand(t *testing.T) {
 	if sessionCmd.Use != "session" {
 		t.Errorf("session Use = %q, want session", sessionCmd.Use)
 	}
-	if len(sessionCmd.Commands()) < 9 {
-		t.Errorf("expected at least 9 subcommands, got %d", len(sessionCmd.Commands()))
+	if len(sessionCmd.Commands()) < 10 {
+		t.Errorf("expected at least 10 subcommands, got %d", len(sessionCmd.Commands()))
 	}
 }

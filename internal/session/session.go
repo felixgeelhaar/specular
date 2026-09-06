@@ -862,6 +862,143 @@ func (m *Manager) Restart(ctx context.Context, id string, opts RestartOptions) (
 	})
 }
 
+// DiffOptions configures Manager.Diff.
+type DiffOptions struct {
+	// Base is the git ref to compare against (default: main/master/HEAD).
+	Base string
+	// Against is another session ID; when set, compares the two session HEADs.
+	Against string
+	// Stat requests a --stat summary (default when neither NameOnly nor Patch).
+	Stat bool
+	// NameOnly lists changed paths only.
+	NameOnly bool
+	// Patch requests a full unified diff.
+	Patch bool
+}
+
+// DiffResult is the git diff for a session worktree (or between two sessions).
+type DiffResult struct {
+	SessionID    string `json:"sessionId"`
+	AgainstID    string `json:"againstId,omitempty"`
+	Base         string `json:"base,omitempty"`
+	WorktreePath string `json:"worktreePath,omitempty"`
+	Branch       string `json:"branch,omitempty"`
+	Output       string `json:"output"`
+}
+
+// Diff shows changes in a session worktree versus a base ref, or versus
+// another session's HEAD — the scriptable analogue of Xirp's per-session
+// Git changes panel.
+func (m *Manager) Diff(ctx context.Context, id string, opts DiffOptions) (*DiffResult, error) {
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	if rec.WorktreePath == "" {
+		return nil, fmt.Errorf("session: %s has no worktree (started with --no-worktree?)", id)
+	}
+
+	stat := opts.Stat
+	nameOnly := opts.NameOnly
+	if !opts.Patch && !opts.Stat && !opts.NameOnly {
+		stat = true
+	}
+	if opts.Patch {
+		stat = false
+		nameOnly = false
+	}
+
+	result := &DiffResult{
+		SessionID:    rec.ID,
+		WorktreePath: rec.WorktreePath,
+		Branch:       rec.WorktreeBranch,
+	}
+
+	if opts.Against != "" {
+		other, otherErr := m.Get(opts.Against)
+		if otherErr != nil {
+			return nil, otherErr
+		}
+		if other.WorktreePath == "" {
+			return nil, fmt.Errorf("session: %s has no worktree", opts.Against)
+		}
+		left, leftErr := m.worktrees.HeadSHA(ctx, rec.WorktreePath)
+		if leftErr != nil {
+			return nil, fmt.Errorf("session: resolve %s HEAD: %w", id, leftErr)
+		}
+		right, rightErr := m.worktrees.HeadSHA(ctx, other.WorktreePath)
+		if rightErr != nil {
+			return nil, fmt.Errorf("session: resolve %s HEAD: %w", opts.Against, rightErr)
+		}
+		out, diffErr := m.worktrees.Diff(ctx, worktree.DiffOptions{
+			Base:        left,
+			AgainstHead: right,
+			Stat:        stat,
+			NameOnly:    nameOnly,
+		})
+		if diffErr != nil {
+			return nil, fmt.Errorf("session: diff %s..%s: %w", id, opts.Against, diffErr)
+		}
+		result.AgainstID = other.ID
+		result.Base = left
+		result.Output = out
+		return result, nil
+	}
+
+	base := opts.Base
+	if base == "" {
+		var baseErr error
+		base, baseErr = m.worktrees.DefaultBase(ctx)
+		if baseErr != nil {
+			return nil, baseErr
+		}
+	}
+	out, diffErr := m.worktrees.Diff(ctx, worktree.DiffOptions{
+		WorkDir:  rec.WorktreePath,
+		Base:     base,
+		Stat:     stat,
+		NameOnly: nameOnly,
+	})
+	if diffErr != nil {
+		return nil, fmt.Errorf("session: diff %s: %w", id, diffErr)
+	}
+	if untracked, uErr := m.worktrees.UntrackedFiles(ctx, rec.WorktreePath); uErr == nil && len(untracked) > 0 {
+		out = appendUntracked(out, untracked, nameOnly, stat)
+	}
+	result.Base = base
+	result.Output = out
+	return result, nil
+}
+
+func appendUntracked(out string, files []string, nameOnly, stat bool) string {
+	if nameOnly {
+		var b strings.Builder
+		b.WriteString(out)
+		if out != "" && !strings.HasSuffix(out, "\n") {
+			b.WriteByte('\n')
+		}
+		for _, f := range files {
+			b.WriteString(f)
+			b.WriteByte('\n')
+		}
+		return b.String()
+	}
+	var b strings.Builder
+	b.WriteString(out)
+	if out != "" && !strings.HasSuffix(out, "\n") {
+		b.WriteByte('\n')
+	}
+	if stat || strings.TrimSpace(out) == "" {
+		b.WriteString(" Untracked files:\n")
+		for _, f := range files {
+			b.WriteString("  ")
+			b.WriteString(f)
+			b.WriteByte('\n')
+		}
+	}
+	return b.String()
+}
+
 // ParsePID is a small helper for tests.
 func ParsePID(s string) (int, error) {
 	return strconv.Atoi(s)

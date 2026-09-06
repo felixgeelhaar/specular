@@ -2005,6 +2005,7 @@ specular session <subcommand>
 | `session restart <id>` | Re-launch in the same worktree (optional harness swap) |
 | `session rm <id…>` | Remove session records (and worktrees by default) |
 | `session prune` | Remove finished sessions (optional age filter) |
+| `session diff <id>` | Show Git changes for a session worktree |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop <id>` | Stop a running session process |
 | `session harnesses` | List harnesses with PATH availability |
@@ -2020,7 +2021,7 @@ specular session <subcommand>
 | `--foreground` | Do not detach |
 | `--json` | Emit JSON |
 
-**Status / wait / open / restart / rm / prune flags:**
+**Status / wait / open / restart / rm / prune / diff flags:**
 
 | Flag | Description |
 |------|-------------|
@@ -2039,6 +2040,11 @@ specular session <subcommand>
 | `prune --older-than <dur>` | Only prune sessions older than duration |
 | `prune --keep-worktree` | Leave Git worktrees in place |
 | `prune --delete-branch` | Also delete managed worktree branches |
+| `diff --base <ref>` | Compare against ref (default main/master/HEAD) |
+| `diff --against <id>` | Compare against another session's HEAD |
+| `diff --stat` | Show diffstat summary (default) |
+| `diff --name-only` | List changed paths only |
+| `diff --patch` | Show full unified diff |
 
 **Example:**
 ```bash
@@ -2047,6 +2053,8 @@ $ specular session start --harness claude-code --name auth "Harden JWT validatio
 $ specular session start --harness codex --name ratelimit "Add rate limiting"
 $ specular session status
 $ specular session wait auth ratelimit
+$ specular session diff auth --stat
+$ specular session diff auth --against ratelimit
 $ specular session restart auth --harness gemini --force
 $ cd "$(specular session open auth)"
 $ specular session logs auth --follow

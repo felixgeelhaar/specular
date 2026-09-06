@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -434,6 +435,73 @@ func TestRemoveAndPrune(t *testing.T) {
 	// Active session must survive prune.
 	if _, err := mgr.Get(live.ID); err != nil {
 		t.Fatalf("active session should remain: %v", err)
+	}
+}
+
+func TestSessionDiff(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "diff me", Name: "diff-a", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.WorktreePath == "" {
+		t.Fatal("expected worktree")
+	}
+
+	changed := filepath.Join(rec.WorktreePath, "feature.txt")
+	if err := os.WriteFile(changed, []byte("hello from session\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := mgr.Diff(context.Background(), rec.ID, DiffOptions{NameOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Base == "" {
+		t.Fatal("expected base")
+	}
+	if !strings.Contains(res.Output, "feature.txt") {
+		t.Fatalf("expected feature.txt in diff output, got %q", res.Output)
+	}
+
+	other, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "other", Name: "diff-b", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherFile := filepath.Join(other.WorktreePath, "other.txt")
+	if err := os.WriteFile(otherFile, []byte("other\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run(t, other.WorktreePath, "git", "add", "other.txt")
+	run(t, other.WorktreePath, "git", "commit", "-m", "other change")
+
+	run(t, rec.WorktreePath, "git", "add", "feature.txt")
+	run(t, rec.WorktreePath, "git", "commit", "-m", "feature change")
+
+	cross, err := mgr.Diff(context.Background(), rec.ID, DiffOptions{
+		Against: other.ID,
+		Stat:    true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cross.AgainstID != other.ID {
+		t.Fatalf("against=%s", cross.AgainstID)
+	}
+	if strings.TrimSpace(cross.Output) == "" {
+		t.Fatal("expected non-empty cross-session diff")
 	}
 }
 

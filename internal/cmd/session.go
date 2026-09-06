@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -36,6 +37,7 @@ Examples:
   specular session fork auth --name auth-alt
   specular session stop auth
   specular session prune --delete-branch
+  specular session diff auth --stat
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
@@ -751,6 +753,70 @@ Examples:
 	},
 }
 
+var sessionDiffCmd = &cobra.Command{
+	Use:   "diff <session-id>",
+	Short: "Show Git changes for a session worktree",
+	Long: `Show changes in a session worktree versus a base ref (default: main/master/HEAD).
+
+Compare two sessions with --against. This is Specular's scriptable stand-in
+for Xirp's per-session Git changes panel.
+
+Examples:
+  specular session diff demo
+  specular session diff demo --name-only
+  specular session diff demo --patch
+  specular session diff demo --base origin/main
+  specular session diff demo --against demo-2 --stat
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		base, _ := cmd.Flags().GetString("base")
+		against, _ := cmd.Flags().GetString("against")
+		stat, _ := cmd.Flags().GetBool("stat")
+		nameOnly, _ := cmd.Flags().GetBool("name-only")
+		patch, _ := cmd.Flags().GetBool("patch")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		res, diffErr := mgr.Diff(cmd.Context(), args[0], session.DiffOptions{
+			Base:     base,
+			Against:  against,
+			Stat:     stat,
+			NameOnly: nameOnly,
+			Patch:    patch,
+		})
+		if diffErr != nil {
+			return diffErr
+		}
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(res)
+		}
+		if against != "" {
+			fmt.Printf("# session %s .. %s\n", res.SessionID, res.AgainstID)
+		} else {
+			fmt.Printf("# session %s vs %s\n", res.SessionID, res.Base)
+		}
+		if strings.TrimSpace(res.Output) == "" {
+			fmt.Println("(no changes)")
+			return nil
+		}
+		fmt.Print(res.Output)
+		if !strings.HasSuffix(res.Output, "\n") {
+			fmt.Println()
+		}
+		return nil
+	},
+}
+
 func listCheckpointSessions(asJSON bool) error {
 	checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
 	checkpointIDs, err := checkpointMgr.List()
@@ -934,6 +1000,13 @@ func init() {
 	sessionPruneCmd.Flags().Bool("delete-branch", false, "Also delete managed worktree branches")
 	sessionPruneCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionDiffCmd.Flags().String("base", "", "Base ref to compare against (default: main/master/HEAD)")
+	sessionDiffCmd.Flags().String("against", "", "Compare against another session's HEAD")
+	sessionDiffCmd.Flags().Bool("stat", false, "Show --stat summary (default when neither --name-only nor --patch)")
+	sessionDiffCmd.Flags().Bool("name-only", false, "List changed file paths only")
+	sessionDiffCmd.Flags().Bool("patch", false, "Show full unified diff")
+	sessionDiffCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionListCmd)
 	sessionCmd.AddCommand(sessionShowCmd)
@@ -947,5 +1020,6 @@ func init() {
 	sessionCmd.AddCommand(sessionRestartCmd)
 	sessionCmd.AddCommand(sessionRmCmd)
 	sessionCmd.AddCommand(sessionPruneCmd)
+	sessionCmd.AddCommand(sessionDiffCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

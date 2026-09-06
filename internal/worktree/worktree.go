@@ -267,6 +267,92 @@ func revParse(ctx context.Context, dir string, args ...string) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// DiffOptions configures Manager.Diff.
+type DiffOptions struct {
+	// WorkDir is the directory to run git in (typically a session worktree).
+	WorkDir string
+	// Base is the ref/tree to compare against. Empty uses DefaultBase.
+	Base string
+	// AgainstHead, when set, compares BaseHead..AgainstHead from the repo root
+	// instead of a worktree working-tree diff.
+	AgainstHead string
+	// Stat requests --stat output.
+	Stat bool
+	// NameOnly requests --name-only output.
+	NameOnly bool
+}
+
+// DefaultBase picks a sensible comparison ref: main, master, or HEAD.
+func (m *Manager) DefaultBase(ctx context.Context) (string, error) {
+	for _, candidate := range []string{"main", "master", "HEAD"} {
+		if _, err := revParse(ctx, m.repoRoot, "--verify", candidate); err == nil {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("worktree: no default base ref found")
+}
+
+// HeadSHA resolves HEAD in dir to a full commit SHA.
+func (m *Manager) HeadSHA(ctx context.Context, dir string) (string, error) {
+	if dir == "" {
+		dir = m.repoRoot
+	}
+	return revParse(ctx, dir, "HEAD")
+}
+
+// Diff returns git diff output for a worktree (or between two commits).
+func (m *Manager) Diff(ctx context.Context, opts DiffOptions) (string, error) {
+	args := []string{"diff", "--no-ext-diff"}
+	if opts.NameOnly {
+		args = append(args, "--name-only")
+	} else if opts.Stat {
+		args = append(args, "--stat")
+	}
+
+	if opts.AgainstHead != "" {
+		left := opts.Base
+		if left == "" {
+			return "", fmt.Errorf("worktree: base head required for against-diff")
+		}
+		args = append(args, left, opts.AgainstHead)
+		return runGitOutput(ctx, m.repoRoot, args...)
+	}
+
+	workDir := opts.WorkDir
+	if workDir == "" {
+		workDir = m.repoRoot
+	}
+	base := opts.Base
+	if base == "" {
+		var baseErr error
+		base, baseErr = m.DefaultBase(ctx)
+		if baseErr != nil {
+			return "", baseErr
+		}
+	}
+	args = append(args, base)
+	return runGitOutput(ctx, workDir, args...)
+}
+
+// UntrackedFiles lists untracked (and not ignored) paths under dir.
+func (m *Manager) UntrackedFiles(ctx context.Context, dir string) ([]string, error) {
+	if dir == "" {
+		dir = m.repoRoot
+	}
+	out, err := runGitOutput(ctx, dir, "ls-files", "--others", "--exclude-standard")
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			files = append(files, line)
+		}
+	}
+	return files, nil
+}
+
 func parsePorcelain(out, repoRoot string) []Info {
 	managedPrefix := filepath.Join(repoRoot, DefaultRelativeDir)
 	var results []Info
