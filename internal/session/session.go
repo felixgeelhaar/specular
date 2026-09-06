@@ -898,54 +898,62 @@ func (m *Manager) Diff(ctx context.Context, id string, opts DiffOptions) (*DiffR
 		return nil, fmt.Errorf("session: %s has no worktree (started with --no-worktree?)", id)
 	}
 
-	stat := opts.Stat
-	nameOnly := opts.NameOnly
-	if !opts.Patch && !opts.Stat && !opts.NameOnly {
-		stat = true
-	}
-	if opts.Patch {
-		stat = false
-		nameOnly = false
-	}
-
+	stat, nameOnly := normalizeDiffFormat(opts)
 	result := &DiffResult{
 		SessionID:    rec.ID,
 		WorktreePath: rec.WorktreePath,
 		Branch:       rec.WorktreeBranch,
 	}
-
 	if opts.Against != "" {
-		other, otherErr := m.Get(opts.Against)
-		if otherErr != nil {
-			return nil, otherErr
-		}
-		if other.WorktreePath == "" {
-			return nil, fmt.Errorf("session: %s has no worktree", opts.Against)
-		}
-		left, leftErr := m.worktrees.HeadSHA(ctx, rec.WorktreePath)
-		if leftErr != nil {
-			return nil, fmt.Errorf("session: resolve %s HEAD: %w", id, leftErr)
-		}
-		right, rightErr := m.worktrees.HeadSHA(ctx, other.WorktreePath)
-		if rightErr != nil {
-			return nil, fmt.Errorf("session: resolve %s HEAD: %w", opts.Against, rightErr)
-		}
-		out, diffErr := m.worktrees.Diff(ctx, worktree.DiffOptions{
-			Base:        left,
-			AgainstHead: right,
-			Stat:        stat,
-			NameOnly:    nameOnly,
-		})
-		if diffErr != nil {
-			return nil, fmt.Errorf("session: diff %s..%s: %w", id, opts.Against, diffErr)
-		}
-		result.AgainstID = other.ID
-		result.Base = left
-		result.Output = out
-		return result, nil
+		return m.diffAgainstSession(ctx, result, rec, opts.Against, stat, nameOnly)
 	}
+	return m.diffAgainstBase(ctx, result, rec, opts.Base, stat, nameOnly)
+}
 
-	base := opts.Base
+func normalizeDiffFormat(opts DiffOptions) (stat, nameOnly bool) {
+	stat = opts.Stat
+	nameOnly = opts.NameOnly
+	if !opts.Patch && !opts.Stat && !opts.NameOnly {
+		stat = true
+	}
+	if opts.Patch {
+		return false, false
+	}
+	return stat, nameOnly
+}
+
+func (m *Manager) diffAgainstSession(ctx context.Context, result *DiffResult, rec *Record, againstID string, stat, nameOnly bool) (*DiffResult, error) {
+	other, otherErr := m.Get(againstID)
+	if otherErr != nil {
+		return nil, otherErr
+	}
+	if other.WorktreePath == "" {
+		return nil, fmt.Errorf("session: %s has no worktree", againstID)
+	}
+	left, leftErr := m.worktrees.HeadSHA(ctx, rec.WorktreePath)
+	if leftErr != nil {
+		return nil, fmt.Errorf("session: resolve %s HEAD: %w", rec.ID, leftErr)
+	}
+	right, rightErr := m.worktrees.HeadSHA(ctx, other.WorktreePath)
+	if rightErr != nil {
+		return nil, fmt.Errorf("session: resolve %s HEAD: %w", againstID, rightErr)
+	}
+	out, diffErr := m.worktrees.Diff(ctx, worktree.DiffOptions{
+		Base:        left,
+		AgainstHead: right,
+		Stat:        stat,
+		NameOnly:    nameOnly,
+	})
+	if diffErr != nil {
+		return nil, fmt.Errorf("session: diff %s..%s: %w", rec.ID, againstID, diffErr)
+	}
+	result.AgainstID = other.ID
+	result.Base = left
+	result.Output = out
+	return result, nil
+}
+
+func (m *Manager) diffAgainstBase(ctx context.Context, result *DiffResult, rec *Record, base string, stat, nameOnly bool) (*DiffResult, error) {
 	if base == "" {
 		var baseErr error
 		base, baseErr = m.worktrees.DefaultBase(ctx)
@@ -960,7 +968,7 @@ func (m *Manager) Diff(ctx context.Context, id string, opts DiffOptions) (*DiffR
 		NameOnly: nameOnly,
 	})
 	if diffErr != nil {
-		return nil, fmt.Errorf("session: diff %s: %w", id, diffErr)
+		return nil, fmt.Errorf("session: diff %s: %w", rec.ID, diffErr)
 	}
 	if untracked, uErr := m.worktrees.UntrackedFiles(ctx, rec.WorktreePath); uErr == nil && len(untracked) > 0 {
 		out = appendUntracked(out, untracked, nameOnly, stat)
