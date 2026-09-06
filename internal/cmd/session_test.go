@@ -19,6 +19,8 @@ func TestSessionSubcommands(t *testing.T) {
 		"open":      false,
 		"wait":      false,
 		"restart":   false,
+		"rm":        false,
+		"prune":     false,
 	}
 
 	for _, cmd := range sessionCmd.Commands() {
@@ -52,8 +54,8 @@ func TestSessionStartFlags(t *testing.T) {
 	}
 }
 
-func TestSessionStatusOpenWaitRestartFlags(t *testing.T) {
-	var statusCmd, openCmd, waitCmd, restartCmd *cobra.Command
+func TestSessionLifecycleFlags(t *testing.T) {
+	var statusCmd, openCmd, waitCmd, restartCmd, rmCmd, pruneCmd *cobra.Command
 	for _, cmd := range sessionCmd.Commands() {
 		switch cmd.Name() {
 		case "status":
@@ -64,6 +66,10 @@ func TestSessionStatusOpenWaitRestartFlags(t *testing.T) {
 			waitCmd = cmd
 		case "restart":
 			restartCmd = cmd
+		case "rm":
+			rmCmd = cmd
+		case "prune":
+			pruneCmd = cmd
 		}
 	}
 	if statusCmd == nil {
@@ -77,6 +83,12 @@ func TestSessionStatusOpenWaitRestartFlags(t *testing.T) {
 	}
 	if restartCmd == nil {
 		t.Fatal("restart subcommand not found")
+	}
+	if rmCmd == nil {
+		t.Fatal("rm subcommand not found")
+	}
+	if pruneCmd == nil {
+		t.Fatal("prune subcommand not found")
 	}
 	for _, name := range []string{"watch", "interval", "json"} {
 		if statusCmd.Flags().Lookup(name) == nil {
@@ -98,13 +110,23 @@ func TestSessionStatusOpenWaitRestartFlags(t *testing.T) {
 			t.Errorf("flag %q not found on session restart", name)
 		}
 	}
+	for _, name := range []string{"force", "keep-worktree", "delete-branch", "json"} {
+		if rmCmd.Flags().Lookup(name) == nil {
+			t.Errorf("flag %q not found on session rm", name)
+		}
+	}
+	for _, name := range []string{"older-than", "keep-worktree", "delete-branch", "json"} {
+		if pruneCmd.Flags().Lookup(name) == nil {
+			t.Errorf("flag %q not found on session prune", name)
+		}
+	}
 }
 
 func TestSessionCommand(t *testing.T) {
 	if sessionCmd.Use != "session" {
 		t.Errorf("session Use = %q, want session", sessionCmd.Use)
 	}
-	if len(sessionCmd.Commands()) < 7 {
-		t.Errorf("expected at least 7 subcommands, got %d", len(sessionCmd.Commands()))
+	if len(sessionCmd.Commands()) < 9 {
+		t.Errorf("expected at least 9 subcommands, got %d", len(sessionCmd.Commands()))
 	}
 }

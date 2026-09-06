@@ -35,6 +35,7 @@ Examples:
   cd "$(specular session open auth)"
   specular session fork auth --name auth-alt
   specular session stop auth
+  specular session prune --delete-branch
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
@@ -644,6 +645,112 @@ Examples:
 	},
 }
 
+var sessionRmCmd = &cobra.Command{
+	Use:   "rm <session-id> [session-id...]",
+	Short: "Remove session records (and worktrees by default)",
+	Long: `Delete finished session records, logs, and exit sidecars.
+
+By default also removes the associated Git worktree. Use --force to stop
+a still-running session before removal.
+
+Examples:
+  specular session rm demo
+  specular session rm auth ratelimit --delete-branch
+  specular session rm stuck --force
+  specular session rm demo --keep-worktree
+`,
+	Args: cobra.MinimumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		force, _ := cmd.Flags().GetBool("force")
+		keepWT, _ := cmd.Flags().GetBool("keep-worktree")
+		delBranch, _ := cmd.Flags().GetBool("delete-branch")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		var removed []session.Record
+		for _, id := range args {
+			rec, rmErr := mgr.Remove(cmd.Context(), id, session.RemoveOptions{
+				Force:        force,
+				KeepWorktree: keepWT,
+				DeleteBranch: delBranch,
+			})
+			if rmErr != nil {
+				return rmErr
+			}
+			if rec != nil {
+				removed = append(removed, *rec)
+			}
+		}
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(removed)
+		}
+		for _, rec := range removed {
+			fmt.Printf("Removed session %s (%s)\n", rec.ID, rec.Status)
+		}
+		return nil
+	},
+}
+
+var sessionPruneCmd = &cobra.Command{
+	Use:   "prune",
+	Short: "Remove finished sessions (optional age filter)",
+	Long: `Prune terminal sessions (completed, failed, stopped, idle).
+
+Closes the scriptable parallel loop: start → wait → drift → prune.
+
+Examples:
+  specular session prune
+  specular session prune --older-than 24h
+  specular session prune --delete-branch
+  specular session prune --keep-worktree
+`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		older, _ := cmd.Flags().GetDuration("older-than")
+		keepWT, _ := cmd.Flags().GetBool("keep-worktree")
+		delBranch, _ := cmd.Flags().GetBool("delete-branch")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		removed, pruneErr := mgr.Prune(cmd.Context(), session.PruneOptions{
+			OlderThan:    older,
+			KeepWorktree: keepWT,
+			DeleteBranch: delBranch,
+		})
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(removed)
+			return pruneErr
+		}
+		if len(removed) == 0 {
+			fmt.Println("No finished sessions to prune.")
+			return pruneErr
+		}
+		for _, rec := range removed {
+			fmt.Printf("Pruned session %s (%s)\n", rec.ID, rec.Status)
+		}
+		fmt.Printf("Removed %d session(s).\n", len(removed))
+		return pruneErr
+	},
+}
+
 func listCheckpointSessions(asJSON bool) error {
 	checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
 	checkpointIDs, err := checkpointMgr.List()
@@ -817,6 +924,16 @@ func init() {
 	sessionRestartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
 	sessionRestartCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionRmCmd.Flags().Bool("force", false, "Stop a still-running session before removal")
+	sessionRmCmd.Flags().Bool("keep-worktree", false, "Leave the Git worktree in place")
+	sessionRmCmd.Flags().Bool("delete-branch", false, "Also delete the managed worktree branch")
+	sessionRmCmd.Flags().Bool("json", false, "Emit JSON")
+
+	sessionPruneCmd.Flags().Duration("older-than", 0, "Only prune sessions older than this duration (0 = all finished)")
+	sessionPruneCmd.Flags().Bool("keep-worktree", false, "Leave Git worktrees in place")
+	sessionPruneCmd.Flags().Bool("delete-branch", false, "Also delete managed worktree branches")
+	sessionPruneCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionListCmd)
 	sessionCmd.AddCommand(sessionShowCmd)
@@ -828,5 +945,7 @@ func init() {
 	sessionCmd.AddCommand(sessionOpenCmd)
 	sessionCmd.AddCommand(sessionWaitCmd)
 	sessionCmd.AddCommand(sessionRestartCmd)
+	sessionCmd.AddCommand(sessionRmCmd)
+	sessionCmd.AddCommand(sessionPruneCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

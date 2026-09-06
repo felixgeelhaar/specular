@@ -353,6 +353,90 @@ func TestRestartRequiresForceWhenRunning(t *testing.T) {
 	}
 }
 
+func TestRemoveAndPrune(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+
+	done, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "cleanup me", Name: "rm-me", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wt := done.WorktreePath
+	if wt == "" {
+		t.Fatal("expected worktree")
+	}
+	if _, err := os.Stat(wt); err != nil {
+		t.Fatalf("worktree missing before remove: %v", err)
+	}
+
+	// Running session should require --force.
+	live, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "live", Name: "still-running", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: writeSleepStub(t),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _, _ = mgr.Stop(live.ID) }()
+
+	if _, err := mgr.Remove(context.Background(), live.ID, RemoveOptions{}); err == nil {
+		t.Fatal("expected error removing running session without force")
+	}
+
+	snap, err := mgr.Remove(context.Background(), done.ID, RemoveOptions{DeleteBranch: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snap.ID != "rm-me" {
+		t.Fatalf("id=%s", snap.ID)
+	}
+	if _, err := mgr.Get("rm-me"); err == nil {
+		t.Fatal("expected session gone after remove")
+	}
+	if _, err := os.Stat(filepath.Join(mgr.Store().Dir(), "rm-me.json")); !os.IsNotExist(err) {
+		t.Fatalf("json should be gone: %v", err)
+	}
+	if _, err := os.Stat(wt); !os.IsNotExist(err) {
+		t.Fatalf("worktree should be gone: %v", err)
+	}
+
+	// Prune terminal sessions, keep worktrees for a second completed one.
+	keepWT, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "prune keep wt", Name: "prune-me", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pruneWT := keepWT.WorktreePath
+
+	removed, err := mgr.Prune(context.Background(), PruneOptions{KeepWorktree: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(removed) < 1 {
+		t.Fatalf("expected pruned sessions, got %d", len(removed))
+	}
+	if _, err := mgr.Get("prune-me"); err == nil {
+		t.Fatal("expected prune-me gone")
+	}
+	if _, err := os.Stat(pruneWT); err != nil {
+		t.Fatalf("worktree should remain with KeepWorktree: %v", err)
+	}
+
+	// Active session must survive prune.
+	if _, err := mgr.Get(live.ID); err != nil {
+		t.Fatalf("active session should remain: %v", err)
+	}
+}
+
 func initTempRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()

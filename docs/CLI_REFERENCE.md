@@ -2003,6 +2003,8 @@ specular session <subcommand>
 | `session logs <id> [--follow]` | Print or follow the session log |
 | `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
 | `session restart <id>` | Re-launch in the same worktree (optional harness swap) |
+| `session rm <id…>` | Remove session records (and worktrees by default) |
+| `session prune` | Remove finished sessions (optional age filter) |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop <id>` | Stop a running session process |
 | `session harnesses` | List harnesses with PATH availability |
@@ -2018,7 +2020,7 @@ specular session <subcommand>
 | `--foreground` | Do not detach |
 | `--json` | Emit JSON |
 
-**Status / wait / open / restart flags:**
+**Status / wait / open / restart / rm / prune flags:**
 
 | Flag | Description |
 |------|-------------|
@@ -2031,6 +2033,12 @@ specular session <subcommand>
 | `restart --harness <name>` | Switch harness on restart |
 | `restart --goal <text>` | Override goal on restart |
 | `restart --force` | Stop a still-running session before restart |
+| `rm --force` | Stop a still-running session before removal |
+| `rm --keep-worktree` | Leave the Git worktree in place |
+| `rm --delete-branch` | Also delete the managed worktree branch |
+| `prune --older-than <dur>` | Only prune sessions older than duration |
+| `prune --keep-worktree` | Leave Git worktrees in place |
+| `prune --delete-branch` | Also delete managed worktree branches |
 
 **Example:**
 ```bash
@@ -2044,6 +2052,7 @@ $ cd "$(specular session open auth)"
 $ specular session logs auth --follow
 $ specular session fork auth --name auth-alt --start
 $ specular session stop auth
+$ specular session prune --delete-branch
 ```
 
 ---

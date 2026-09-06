@@ -192,7 +192,8 @@ replaces it for authoring *and* covers the audit trail. See
 **Proof.** `session harnesses` (PATH probe), start Claude + Codex sessions
 side by side, `session status --watch`, `session wait`, then
 `session restart --harness …` / `session open`, show attestation `harness`
-fields and a failing drift gate. Close with the Xirp FAQ "no redaction" line.
+fields and a failing drift gate, finish with `session prune`. Close with
+the Xirp FAQ "no redaction" line.
 
 ---
 

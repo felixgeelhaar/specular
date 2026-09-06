@@ -11,13 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Both-loops session management (response to Xirp)**
   - Specular now owns the **inner loop** as well as the outer gate:
-    `specular session start|list|show|status|wait|open|restart|stop|logs|fork|harnesses`
+    `specular session start|list|show|status|wait|open|restart|rm|prune|stop|logs|fork|harnesses`
   - **Native harness launch**: Claude Code, Codex, and Gemini run in
     isolated worktrees (not just provenance labels on `specular-auto`)
   - **Live session board**: `session status [--watch]` plus harness PATH
     probe via `session harnesses`; `session open` for worktree `cd`/`$EDITOR`
   - **Scriptable parallel gate**: `session wait [--any] [--timeout]` then drift
   - **Harness swap**: `session restart --harness …` reuses the worktree
+  - **Lifecycle cleanup**: `session rm` / `session prune` tear down records,
+    logs, exit sidecars, and worktrees after parallel fleets finish
   - Session fork + log follow for multi-agent operations
   - GTM repositioned to **compete** with Xirp on sessions and win on
     governance (`docs/gtm/competitive/xirp.md`)

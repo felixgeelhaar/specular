@@ -174,6 +174,23 @@ func (s *Store) exitPath(id string) string {
 	return filepath.Join(s.dir, id+".exit")
 }
 
+func (s *Store) logPath(id string) string {
+	return filepath.Join(s.dir, id+".log")
+}
+
+// Delete removes the session JSON record plus log and exit sidecars.
+func (s *Store) Delete(id string) error {
+	if id == "" {
+		return fmt.Errorf("session: empty id")
+	}
+	if err := os.Remove(s.path(id)); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("session: delete %s: %w", id, err)
+	}
+	_ = os.Remove(s.exitPath(id))
+	_ = os.Remove(s.logPath(id))
+	return nil
+}
+
 // Manager orchestrates session lifecycle over worktrees + specular auto.
 type Manager struct {
 	store     *Store
@@ -585,6 +602,93 @@ func (m *Manager) Stop(id string) (*Record, error) {
 		return rec, saveErr
 	}
 	return rec, nil
+}
+
+// RemoveOptions configures Manager.Remove.
+type RemoveOptions struct {
+	// Force stops a still-running session before removal.
+	Force bool
+	// KeepWorktree leaves the Git worktree and branch in place.
+	KeepWorktree bool
+	// DeleteBranch deletes the managed worktree branch (ignored when KeepWorktree).
+	DeleteBranch bool
+}
+
+// Remove stops (optional) and deletes a session record, logs, exit sidecar,
+// and by default the associated worktree — closing the start→wait→cleanup loop.
+func (m *Manager) Remove(ctx context.Context, id string, opts RemoveOptions) (*Record, error) {
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	running := !IsTerminal(rec.Status) || (rec.PID > 0 && processAlive(rec.PID))
+	if running {
+		if !opts.Force {
+			return nil, fmt.Errorf("session: %s is still %s; pass --force to stop and remove", id, rec.Status)
+		}
+		if _, stopErr := m.Stop(id); stopErr != nil {
+			return nil, stopErr
+		}
+		// Reload after stop so the returned snapshot is accurate.
+		if latest, loadErr := m.store.Load(id); loadErr == nil {
+			rec = latest
+		}
+	}
+
+	if !opts.KeepWorktree && rec.WorktreePath != "" {
+		if rmErr := m.worktrees.Remove(ctx, rec.WorktreePath, opts.DeleteBranch); rmErr != nil {
+			return rec, fmt.Errorf("session: remove worktree: %w", rmErr)
+		}
+	}
+
+	snapshot := *rec
+	if delErr := m.store.Delete(id); delErr != nil {
+		return &snapshot, delErr
+	}
+	return &snapshot, nil
+}
+
+// PruneOptions configures Manager.Prune.
+type PruneOptions struct {
+	// OlderThan keeps terminal sessions newer than this age (0 = prune all terminal).
+	OlderThan time.Duration
+	// KeepWorktree leaves Git worktrees in place.
+	KeepWorktree bool
+	// DeleteBranch deletes managed worktree branches when removing worktrees.
+	DeleteBranch bool
+}
+
+// Prune removes terminal sessions (completed/failed/stopped/idle), optionally
+// filtered by age. Returns the removed records.
+func (m *Manager) Prune(ctx context.Context, opts PruneOptions) ([]Record, error) {
+	list, listErr := m.List()
+	if listErr != nil {
+		return nil, listErr
+	}
+	var cutoff time.Time
+	if opts.OlderThan > 0 {
+		cutoff = time.Now().UTC().Add(-opts.OlderThan)
+	}
+	var removed []Record
+	for _, rec := range list {
+		if !IsTerminal(rec.Status) {
+			continue
+		}
+		if !cutoff.IsZero() && rec.UpdatedAt.After(cutoff) {
+			continue
+		}
+		got, rmErr := m.Remove(ctx, rec.ID, RemoveOptions{
+			KeepWorktree: opts.KeepWorktree,
+			DeleteBranch: opts.DeleteBranch,
+		})
+		if rmErr != nil {
+			return removed, rmErr
+		}
+		if got != nil {
+			removed = append(removed, *got)
+		}
+	}
+	return removed, nil
 }
 
 // WaitOptions configures Manager.Wait.

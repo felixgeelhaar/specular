@@ -48,6 +48,7 @@ everywhere compliance matters — Specular is the stronger product.
 - Worktree isolation per session
 - `session status [--watch]` live board + `session open` worktree helper
 - `session wait` scriptable parallel gate + `session restart` harness swap
+- `session rm` / `session prune` lifecycle cleanup after fleets finish
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
 - Harness + worktree provenance into attestations
@@ -88,6 +89,7 @@ cd "$(specular session open demo)"
 specular session restart demo --harness gemini --force
 specular session logs demo --follow
 specular eval drift --fail-on-change
+specular session prune --delete-branch
 ```
 
 ## Sources
