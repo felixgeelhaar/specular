@@ -1,6 +1,6 @@
 # Objection handling
 
-The seven objections we hear most often, with the answer that has actually
+The ten objections we hear most often, with the answer that has actually
 worked, and the proof we lean on. Steal these for your own briefing notes.
 
 ---
@@ -164,6 +164,36 @@ identically by construction.
 directly to main. Show the next CI run failing the drift gate. Then
 show `specular approve drift-<hash>` from a TTY user as the only path
 back to green. This is the answer that closes the deal in agent-heavy orgs.
+
+---
+
+## 10. "We're adopting Xirp / Spotify Portal for AI coding."
+
+**The objection.** "Xirp already gives us vendor-neutral multi-agent
+sessions, worktrees, and org context from Portal. Why add Specular?"
+
+**The answer.** Specular **competes with Xirp on sessions** and **wins on
+governance**. Same harnesses (Claude Code, Codex, Gemini), worktree
+isolation, plus the drift gate Xirp does not have:
+
+| Need | Xirp | Specular |
+|------|------|----------|
+| Parallel Claude / Codex / Gemini | macOS desktop | `session start --harness …` |
+| Git worktree isolation | Yes | Yes |
+| Linux / CI / Windows | No | Yes |
+| Open source | No | Apache 2.0 |
+| Signed change-control evidence | No | Yes |
+| Transcript upload redaction | **None** | No transcript upload required |
+
+Keep Xirp only if the Mac grid UI is non-negotiable. Otherwise Specular
+replaces it for authoring *and* covers the audit trail. See
+[`competitive/xirp.md`](../competitive/xirp.md).
+
+**Proof.** `session harnesses` (PATH probe), start Claude + Codex sessions
+side by side, `session status --watch`, `session wait`, then
+`session restart --harness …` / `session open`, show attestation `harness`
+fields and a failing drift gate, finish with `session prune`. Close with
+the Xirp FAQ "no redaction" line.
 
 ---
 

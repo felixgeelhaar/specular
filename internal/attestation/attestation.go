@@ -46,6 +46,17 @@ type Provenance struct {
 	GitBranch string `json:"gitBranch,omitempty"`
 	GitDirty  bool   `json:"gitDirty,omitempty"`
 
+	// Harness identifies the coding-agent / orchestration surface that authored
+	// the change (e.g. "specular-auto", "claude-code", "codex-cli", "gemini-cli").
+	// This is the governance-plane answer to vendor-neutral session managers
+	// that orchestrate multiple harnesses without recording which one shipped.
+	Harness string `json:"harness,omitempty"`
+
+	// Worktree isolation (when the session ran in a managed Git worktree)
+	WorktreePath   string `json:"worktreePath,omitempty"`
+	WorktreeBranch string `json:"worktreeBranch,omitempty"`
+	WorktreeName   string `json:"worktreeName,omitempty"`
+
 	// Specular version
 	SpecularVersion string `json:"specularVersion"`
 

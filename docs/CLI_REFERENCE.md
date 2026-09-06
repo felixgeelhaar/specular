@@ -32,8 +32,12 @@ Complete reference for Specular CLI commands and flags.
 - [Drift Detection](#drift-detection)
 - [Autonomous Mode Commands](#autonomous-mode-commands)
   - [auto](#auto)
+- [Session Commands](#session-commands)
+  - [session](#session)
 - [Checkpoint Commands](#checkpoint-commands)
   - [checkpoint](#checkpoint)
+- [Worktree Commands](#worktree-commands)
+  - [worktree](#worktree)
 - [Provider Commands](#provider-commands)
   - [provider](#provider)
 - [Utility Commands](#utility-commands)
@@ -1953,9 +1957,12 @@ specular auto "<description>" [flags]
 |------|------|-------------|
 | `--max-steps <n>` | int | Maximum steps to execute |
 | `--scope <scope>` | string | Limit scope (module, file, function) |
-| `--interactive` | bool | Enable interactive TUI mode |
+| `--interactive` / `--tui` | bool | Enable interactive TUI mode |
 | `--resume <checkpoint>` | string | Resume from checkpoint |
 | `--output <dir>` | string | Directory to save spec/plan files |
+| `--worktree <name>` | string | Run inside an isolated Git worktree under `.specular/worktrees/<name>` |
+| `--harness <label>` | string | Coding-agent harness label recorded in attestation provenance (default: `specular-auto`) |
+| `--attest` | bool | Generate cryptographic attestation of the workflow |
 
 **Example:**
 ```bash
@@ -1963,7 +1970,97 @@ $ specular auto "Add user authentication with JWT"
 
 $ specular auto "Refactor payment processing" --scope module:payment
 
-$ specular auto "Fix bug in login" --interactive
+$ specular auto "Fix bug in login" --tui
+
+$ specular auto --worktree parallel-1 --attest "Add /healthz endpoint"
+```
+
+---
+
+## Session Commands
+
+### session
+
+Manage parallel agent sessions across Specular's **inner loop** (authoring)
+and **outer loop** (governance). Each managed session typically runs in an
+isolated Git worktree; harness and worktree identity flow into attestation
+provenance.
+
+**Usage:**
+```bash
+specular session <subcommand>
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `session start <goal>` | Start a detached harness run in an isolated worktree |
+| `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
+| `session show <id>` | Show session details, worktree, harness, log path |
+| `session status [--watch]` | Live multi-session board (counts + PID/branch/goal) |
+| `session wait [id…]` | Block until sessions finish (scriptable parallel gate) |
+| `session logs <id> [--follow]` | Print or follow the session log |
+| `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
+| `session restart <id>` | Re-launch in the same worktree (optional harness swap) |
+| `session rm <id…>` | Remove session records (and worktrees by default) |
+| `session prune` | Remove finished sessions (optional age filter) |
+| `session diff <id>` | Show Git changes for a session worktree |
+| `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
+| `session stop <id>` | Stop a running session process |
+| `session harnesses` | List harnesses with PATH availability |
+
+**Start flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--name <slug>` | Session / worktree name (default `sess-<timestamp>`) |
+| `--harness <name>` | `specular-auto` (default), `claude-code`, `codex`, or `gemini` |
+| `--profile <name>` | Auto profile for `specular-auto` (default `ci`) |
+| `--no-worktree` | Run in the current checkout |
+| `--foreground` | Do not detach |
+| `--json` | Emit JSON |
+
+**Status / wait / open / restart / rm / prune / diff flags:**
+
+| Flag | Description |
+|------|-------------|
+| `status --watch` | Refresh the board until interrupted |
+| `status --interval <dur>` | Refresh interval (default `2s`) |
+| `wait --timeout <dur>` | Fail if sessions are still running after duration |
+| `wait --any` | Return when the first named session finishes |
+| `open --shell` | Print `cd "<worktree>"` instead of the bare path |
+| `open --editor` | Open the worktree in `$EDITOR` / `$VISUAL` |
+| `restart --harness <name>` | Switch harness on restart |
+| `restart --goal <text>` | Override goal on restart |
+| `restart --force` | Stop a still-running session before restart |
+| `rm --force` | Stop a still-running session before removal |
+| `rm --keep-worktree` | Leave the Git worktree in place |
+| `rm --delete-branch` | Also delete the managed worktree branch |
+| `prune --older-than <dur>` | Only prune sessions older than duration |
+| `prune --keep-worktree` | Leave Git worktrees in place |
+| `prune --delete-branch` | Also delete managed worktree branches |
+| `diff --base <ref>` | Compare against ref (default main/master/HEAD) |
+| `diff --against <id>` | Compare against another session's HEAD |
+| `diff --stat` | Show diffstat summary (default) |
+| `diff --name-only` | List changed paths only |
+| `diff --patch` | Show full unified diff |
+
+**Example:**
+```bash
+$ specular session harnesses
+$ specular session start --harness claude-code --name auth "Harden JWT validation"
+$ specular session start --harness codex --name ratelimit "Add rate limiting"
+$ specular session status
+$ specular session wait auth ratelimit
+$ specular session diff auth --stat
+$ specular session diff auth --against ratelimit
+$ specular session restart auth --harness gemini --force
+$ cd "$(specular session open auth)"
+$ specular session logs auth --follow
+$ specular session fork auth --name auth-alt --start
+$ specular session stop auth
+$ specular session prune --delete-branch
 ```
 
 ---
@@ -1983,6 +2080,38 @@ specular checkpoint <subcommand>
 
 - `checkpoint list` - List available checkpoints
 - `checkpoint show <id>` - Show checkpoint details
+
+---
+
+## Worktree Commands
+
+### worktree
+
+Manage Git worktrees for parallel Specular (or external coding-agent) sessions.
+Each managed worktree lives under `.specular/worktrees/<name>` on branch
+`specular/<name>`. Path and branch are recorded in attestation provenance when
+used with `specular auto --worktree`.
+
+**Usage:**
+```bash
+specular worktree <subcommand>
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `worktree create [name]` | Create an isolated worktree and branch |
+| `worktree list [--managed]` | List worktrees (optionally only Specular-managed) |
+| `worktree remove <name-or-path> [--delete-branch]` | Remove a worktree |
+
+**Example:**
+```bash
+$ specular worktree create fix-auth
+$ specular auto --worktree fix-auth "Harden auth middleware"
+$ specular worktree list --managed
+$ specular worktree remove fix-auth --delete-branch
+```
 
 ---
 
