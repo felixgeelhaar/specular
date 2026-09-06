@@ -170,6 +170,10 @@ func (s *Store) path(id string) string {
 	return filepath.Join(s.dir, id+".json")
 }
 
+func (s *Store) exitPath(id string) string {
+	return filepath.Join(s.dir, id+".exit")
+}
+
 // Manager orchestrates session lifecycle over worktrees + specular auto.
 type Manager struct {
 	store     *Store
@@ -209,6 +213,13 @@ func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error)
 		return m.failRecord(rec, planErr)
 	}
 
+	if opts.Detach {
+		return m.startDetached(rec, plan)
+	}
+	return m.startForeground(ctx, rec, plan)
+}
+
+func (m *Manager) startForeground(ctx context.Context, rec *Record, plan LaunchPlan) (*Record, error) {
 	logFile, logErr := os.OpenFile(rec.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if logErr != nil {
 		return nil, fmt.Errorf("session: open log: %w", logErr)
@@ -234,12 +245,51 @@ func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error)
 		_ = logFile.Close()
 		return rec, saveErr
 	}
-
-	if opts.Detach {
-		go m.reapDetached(*rec, cmd, logFile)
-		return rec, nil
-	}
 	return m.waitForeground(rec, cmd, logFile)
+}
+
+// startDetached launches the harness under a shell wrapper that survives the
+// CLI process exiting. The wrapper writes <id>.exit so Wait/Refresh can read
+// the real exit code after the parent is gone. Uses context.Background so
+// cobra canceling the start command does not SIGKILL the child.
+func (m *Manager) startDetached(rec *Record, plan LaunchPlan) (*Record, error) {
+	probe, probeErr := safeutil.SafeCommand(context.Background(), plan.Binary, plan.Args...)
+	if probeErr != nil {
+		return m.failRecord(rec, probeErr)
+	}
+	bin := probe.Path
+	args := probe.Args[1:]
+
+	exitPath := m.store.exitPath(rec.ID)
+	_ = os.Remove(exitPath)
+	logFile, logErr := os.OpenFile(rec.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if logErr != nil {
+		return nil, fmt.Errorf("session: open log: %w", logErr)
+	}
+	_ = logFile.Close()
+
+	script := `"$SPECULAR_SESSION_BIN" "$@" >>"$SPECULAR_SESSION_LOG" 2>&1; code=$?; echo "$code" > "$SPECULAR_SESSION_EXIT"; exit "$code"`
+	cmdArgs := append([]string{"-c", script, "specular-session"}, args...)
+	cmd := exec.Command("/bin/sh", cmdArgs...) // #nosec G204 -- binary/args validated via SafeCommand
+	cmd.Dir = plan.WorkDir
+	cmd.Env = append(os.Environ(),
+		"SPECULAR_SESSION_BIN="+bin,
+		"SPECULAR_SESSION_LOG="+rec.LogPath,
+		"SPECULAR_SESSION_EXIT="+exitPath,
+	)
+	configureProcessGroup(cmd)
+
+	if startErr := cmd.Start(); startErr != nil {
+		return m.failRecord(rec, startErr)
+	}
+
+	rec.PID = cmd.Process.Pid
+	if saveErr := m.store.Save(rec); saveErr != nil {
+		return rec, saveErr
+	}
+	// Best-effort in-process reaper when the CLI stays alive (e.g. tests).
+	go m.reapDetached(*rec, cmd, nil)
+	return rec, nil
 }
 
 // Fork duplicates a session's worktree onto a new branch/name without starting
@@ -366,10 +416,17 @@ func (m *Manager) failRecord(rec *Record, cause error) (*Record, error) {
 }
 
 func (m *Manager) reapDetached(seed Record, cmd *exec.Cmd, logFile *os.File) {
-	defer func() { _ = logFile.Close() }()
+	if logFile != nil {
+		defer func() { _ = logFile.Close() }()
+	}
 	waitErr := cmd.Wait()
 	latest, loadErr := m.store.Load(seed.ID)
 	if loadErr != nil || latest.Status == StatusStopped {
+		return
+	}
+	// Prefer the detach wrapper's exit sidecar when present.
+	if m.applyExitFile(latest) {
+		_ = m.store.Save(latest)
 		return
 	}
 	code := 0
@@ -383,6 +440,7 @@ func (m *Manager) reapDetached(seed Record, cmd *exec.Cmd, logFile *os.File) {
 		}
 	} else {
 		latest.Status = StatusCompleted
+		latest.Error = ""
 	}
 	latest.ExitCode = &code
 	latest.PID = 0
@@ -453,7 +511,30 @@ func (m *Manager) Refresh(rec *Record) error {
 	case StatusCompleted, StatusFailed, StatusStopped:
 		return nil
 	}
-	if rec.PID <= 0 || processAlive(rec.PID) {
+	if rec.PID > 0 && processAlive(rec.PID) {
+		return nil
+	}
+
+	// Process exited (or never had a PID). Prefer exit-code sidecar from the
+	// detached wrapper, then the in-process reaper's store write.
+	if m.applyExitFile(rec) {
+		return m.store.Save(rec)
+	}
+
+	latest, loadErr := m.store.Load(rec.ID)
+	if loadErr == nil {
+		if IsTerminal(latest.Status) {
+			*rec = *latest
+			return nil
+		}
+		if time.Since(latest.UpdatedAt) < 5*time.Second {
+			*rec = *latest
+			return nil
+		}
+		*rec = *latest
+	}
+
+	if rec.PID <= 0 {
 		return nil
 	}
 	rec.Status = StatusFailed
@@ -462,6 +543,29 @@ func (m *Manager) Refresh(rec *Record) error {
 	}
 	rec.PID = 0
 	return m.store.Save(rec)
+}
+
+func (m *Manager) applyExitFile(rec *Record) bool {
+	b, err := os.ReadFile(m.store.exitPath(rec.ID))
+	if err != nil {
+		return false
+	}
+	code, convErr := strconv.Atoi(strings.TrimSpace(string(b)))
+	if convErr != nil {
+		return false
+	}
+	rec.ExitCode = &code
+	rec.PID = 0
+	if code == 0 {
+		rec.Status = StatusCompleted
+		rec.Error = ""
+	} else {
+		rec.Status = StatusFailed
+		if rec.Error == "" {
+			rec.Error = fmt.Sprintf("exit code %d", code)
+		}
+	}
+	return true
 }
 
 // Stop terminates a running session process.
@@ -481,6 +585,177 @@ func (m *Manager) Stop(id string) (*Record, error) {
 		return rec, saveErr
 	}
 	return rec, nil
+}
+
+// WaitOptions configures Manager.Wait.
+type WaitOptions struct {
+	// Timeout bounds how long to wait. Zero means no deadline (context only).
+	Timeout time.Duration
+	// Interval is the poll period (default 500ms).
+	Interval time.Duration
+	// Any returns as soon as one target reaches a terminal status.
+	Any bool
+}
+
+// IsTerminal reports whether status is a finished session state.
+func IsTerminal(status string) bool {
+	switch status {
+	case StatusCompleted, StatusFailed, StatusStopped, StatusIdle:
+		return true
+	default:
+		return false
+	}
+}
+
+// Wait blocks until the named sessions finish (or all active sessions when
+// ids is empty). Returns the final records. An error is returned on timeout
+// or when any waited session ends in failed/stopped (completed and idle are OK).
+func (m *Manager) Wait(ctx context.Context, ids []string, opts WaitOptions) ([]Record, error) {
+	if opts.Interval <= 0 {
+		opts.Interval = 500 * time.Millisecond
+	}
+	targets, resolveErr := m.resolveWaitTargets(ids)
+	if resolveErr != nil {
+		return nil, resolveErr
+	}
+	if len(targets) == 0 {
+		return nil, nil
+	}
+
+	if opts.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+		defer cancel()
+	}
+
+	ticker := time.NewTicker(opts.Interval)
+	defer ticker.Stop()
+
+	for {
+		done, pending, pollErr := m.pollWait(targets, opts.Any)
+		if pollErr != nil {
+			return done, pollErr
+		}
+		if opts.Any && len(done) > 0 {
+			return done, waitOutcomeError(done)
+		}
+		if len(pending) == 0 {
+			return done, waitOutcomeError(done)
+		}
+		select {
+		case <-ctx.Done():
+			return done, fmt.Errorf("session: wait timed out; still running: %s", strings.Join(pending, ", "))
+		case <-ticker.C:
+		}
+	}
+}
+
+func (m *Manager) resolveWaitTargets(ids []string) ([]string, error) {
+	if len(ids) > 0 {
+		for _, id := range ids {
+			if _, err := m.store.Load(id); err != nil {
+				return nil, err
+			}
+		}
+		return append([]string(nil), ids...), nil
+	}
+	list, listErr := m.List()
+	if listErr != nil {
+		return nil, listErr
+	}
+	var active []string
+	for _, rec := range list {
+		if !IsTerminal(rec.Status) {
+			active = append(active, rec.ID)
+		}
+	}
+	return active, nil
+}
+
+func (m *Manager) pollWait(ids []string, any bool) (done []Record, pending []string, err error) {
+	for _, id := range ids {
+		rec, getErr := m.Get(id)
+		if getErr != nil {
+			return done, pending, getErr
+		}
+		if IsTerminal(rec.Status) {
+			done = append(done, *rec)
+			if any {
+				return done, nil, nil
+			}
+			continue
+		}
+		pending = append(pending, id)
+	}
+	return done, pending, nil
+}
+
+func waitOutcomeError(recs []Record) error {
+	var failed []string
+	for _, rec := range recs {
+		switch rec.Status {
+		case StatusFailed, StatusStopped:
+			failed = append(failed, fmt.Sprintf("%s(%s)", rec.ID, rec.Status))
+		}
+	}
+	if len(failed) == 0 {
+		return nil
+	}
+	return fmt.Errorf("session: wait finished with failures: %s", strings.Join(failed, ", "))
+}
+
+// RestartOptions configures Manager.Restart (same worktree, optional new harness).
+type RestartOptions struct {
+	Harness    string
+	Goal       string
+	Profile    string
+	Force      bool
+	Detach     bool
+	NoApproval bool
+	Binary     string
+	ExtraArgs  []string
+}
+
+// Restart stops (optional) and re-launches a session in its existing worktree,
+// optionally switching harness or goal — the CLI analogue of Xirp agent swap.
+func (m *Manager) Restart(ctx context.Context, id string, opts RestartOptions) (*Record, error) {
+	rec, loadErr := m.Get(id)
+	if loadErr != nil {
+		return nil, loadErr
+	}
+	if rec.PID > 0 && processAlive(rec.PID) {
+		if !opts.Force {
+			return nil, fmt.Errorf("session: %s still running (pid %d); pass --force to stop it", id, rec.PID)
+		}
+		if _, stopErr := m.Stop(id); stopErr != nil {
+			return nil, stopErr
+		}
+	}
+
+	goal := strings.TrimSpace(opts.Goal)
+	if goal == "" {
+		goal = rec.Goal
+	}
+	harness := opts.Harness
+	if harness == "" {
+		harness = rec.Harness
+	}
+	profile := opts.Profile
+	if profile == "" {
+		profile = rec.Profile
+	}
+
+	return m.Start(ctx, StartOptions{
+		Goal:         goal,
+		Name:         id,
+		Harness:      harness,
+		Profile:      profile,
+		Detach:       opts.Detach,
+		NoApproval:   opts.NoApproval || opts.Detach,
+		Binary:       opts.Binary,
+		ExtraArgs:    opts.ExtraArgs,
+		SkipWorktree: rec.WorktreePath == "",
+	})
 }
 
 // ParsePID is a small helper for tests.

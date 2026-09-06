@@ -1999,8 +1999,10 @@ specular session <subcommand>
 | `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
 | `session show <id>` | Show session details, worktree, harness, log path |
 | `session status [--watch]` | Live multi-session board (counts + PID/branch/goal) |
+| `session wait [id…]` | Block until sessions finish (scriptable parallel gate) |
 | `session logs <id> [--follow]` | Print or follow the session log |
-| `session open <id> [--shell]` | Print worktree path (or a `cd` command) |
+| `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
+| `session restart <id>` | Re-launch in the same worktree (optional harness swap) |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop <id>` | Stop a running session process |
 | `session harnesses` | List harnesses with PATH availability |
@@ -2016,13 +2018,19 @@ specular session <subcommand>
 | `--foreground` | Do not detach |
 | `--json` | Emit JSON |
 
-**Status / open flags:**
+**Status / wait / open / restart flags:**
 
 | Flag | Description |
 |------|-------------|
 | `status --watch` | Refresh the board until interrupted |
 | `status --interval <dur>` | Refresh interval (default `2s`) |
+| `wait --timeout <dur>` | Fail if sessions are still running after duration |
+| `wait --any` | Return when the first named session finishes |
 | `open --shell` | Print `cd "<worktree>"` instead of the bare path |
+| `open --editor` | Open the worktree in `$EDITOR` / `$VISUAL` |
+| `restart --harness <name>` | Switch harness on restart |
+| `restart --goal <text>` | Override goal on restart |
+| `restart --force` | Stop a still-running session before restart |
 
 **Example:**
 ```bash
@@ -2030,7 +2038,8 @@ $ specular session harnesses
 $ specular session start --harness claude-code --name auth "Harden JWT validation"
 $ specular session start --harness codex --name ratelimit "Add rate limiting"
 $ specular session status
-$ specular session status --watch
+$ specular session wait auth ratelimit
+$ specular session restart auth --harness gemini --force
 $ cd "$(specular session open auth)"
 $ specular session logs auth --follow
 $ specular session fork auth --name auth-alt --start

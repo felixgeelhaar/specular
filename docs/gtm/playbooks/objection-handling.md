@@ -190,9 +190,9 @@ replaces it for authoring *and* covers the audit trail. See
 [`competitive/xirp.md`](../competitive/xirp.md).
 
 **Proof.** `session harnesses` (PATH probe), start Claude + Codex sessions
-side by side, `session status --watch`, `session open`, then show
-attestation `harness` fields and a failing drift gate. Close with the
-Xirp FAQ "no redaction" line.
+side by side, `session status --watch`, `session wait`, then
+`session restart --harness …` / `session open`, show attestation `harness`
+fields and a failing drift gate. Close with the Xirp FAQ "no redaction" line.
 
 ---
 

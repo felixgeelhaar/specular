@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"sort"
 	"text/tabwriter"
 	"time"
@@ -28,6 +29,8 @@ Examples:
   specular session start --harness claude-code "Add /healthz endpoint"
   specular session start --name auth --harness codex "Harden JWT validation"
   specular session status --watch
+  specular session wait auth ratelimit
+  specular session restart auth --harness gemini --force
   specular session logs auth --follow
   cd "$(specular session open auth)"
   specular session fork auth --name auth-alt
@@ -479,6 +482,7 @@ var sessionOpenCmd = &cobra.Command{
   specular session open demo           # path only
   cd "$(specular session open demo)"   # enter worktree
   specular session open demo --shell   # prints: cd /path/to/worktree
+  specular session open demo --editor  # open worktree in $EDITOR
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -498,6 +502,21 @@ var sessionOpenCmd = &cobra.Command{
 		if path == "" {
 			return fmt.Errorf("session %s has no worktree (started with --no-worktree?)", rec.ID)
 		}
+		editor, _ := cmd.Flags().GetBool("editor")
+		if editor {
+			ed := os.Getenv("EDITOR")
+			if ed == "" {
+				ed = os.Getenv("VISUAL")
+			}
+			if ed == "" {
+				return fmt.Errorf("EDITOR (or VISUAL) is not set")
+			}
+			edCmd := exec.Command(ed, path) //nolint:gosec // intentional user $EDITOR
+			edCmd.Stdin = os.Stdin
+			edCmd.Stdout = os.Stdout
+			edCmd.Stderr = os.Stderr
+			return edCmd.Run()
+		}
 		shell, _ := cmd.Flags().GetBool("shell")
 		if shell {
 			fmt.Printf("cd %q\n", path)
@@ -505,6 +524,123 @@ var sessionOpenCmd = &cobra.Command{
 		}
 		fmt.Println(path)
 		return nil
+	},
+}
+
+var sessionWaitCmd = &cobra.Command{
+	Use:   "wait [session-id...]",
+	Short: "Block until sessions finish (scriptable parallel gate)",
+	Long: `Wait for managed sessions to reach a terminal status.
+
+With no IDs, waits for every currently active (working/waiting) session.
+Exit non-zero if any waited session fails or is stopped, or on timeout.
+
+Examples:
+  specular session wait
+  specular session wait auth ratelimit
+  specular session wait --any auth ratelimit
+  specular session wait --timeout 10m && specular eval drift --fail-on-change
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		timeout, _ := cmd.Flags().GetDuration("timeout")
+		interval, _ := cmd.Flags().GetDuration("interval")
+		anyDone, _ := cmd.Flags().GetBool("any")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		recs, waitErr := mgr.Wait(cmd.Context(), args, session.WaitOptions{
+			Timeout:  timeout,
+			Interval: interval,
+			Any:      anyDone,
+		})
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(recs)
+			return waitErr
+		}
+		if len(recs) == 0 {
+			fmt.Println("No active sessions to wait for.")
+			return waitErr
+		}
+		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+		fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tEXIT")
+		for _, s := range recs {
+			exit := "-"
+			if s.ExitCode != nil {
+				exit = fmt.Sprintf("%d", *s.ExitCode)
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, exit)
+		}
+		_ = w.Flush()
+		return waitErr
+	},
+}
+
+var sessionRestartCmd = &cobra.Command{
+	Use:   "restart <session-id>",
+	Short: "Re-launch a session in its worktree (optional harness swap)",
+	Long: `Restart a managed session, reusing its isolated worktree.
+
+Optionally switch harness or goal — Specular's CLI analogue of swapping
+agents without losing project isolation.
+
+Examples:
+  specular session restart demo
+  specular session restart demo --harness gemini
+  specular session restart demo --force --goal "Retry with tests"
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		harness, _ := cmd.Flags().GetString("harness")
+		goal, _ := cmd.Flags().GetString("goal")
+		profile, _ := cmd.Flags().GetString("profile")
+		force, _ := cmd.Flags().GetBool("force")
+		foreground, _ := cmd.Flags().GetBool("foreground")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		rec, err := mgr.Restart(cmd.Context(), args[0], session.RestartOptions{
+			Harness:    harness,
+			Goal:       goal,
+			Profile:    profile,
+			Force:      force,
+			Detach:     !foreground,
+			NoApproval: true,
+		})
+		if err != nil && rec == nil {
+			return err
+		}
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(rec)
+			return err
+		}
+		fmt.Printf("Restarted session %s\n", rec.ID)
+		fmt.Printf("  Status:   %s\n", rec.Status)
+		fmt.Printf("  Harness:  %s\n", rec.Harness)
+		if rec.WorktreePath != "" {
+			fmt.Printf("  Worktree: %s (%s)\n", rec.WorktreePath, rec.WorktreeBranch)
+		}
+		if rec.PID > 0 {
+			fmt.Printf("  PID:      %d\n", rec.PID)
+		}
+		return err
 	},
 }
 
@@ -667,6 +803,19 @@ func init() {
 	sessionStatusCmd.Flags().Duration("interval", 2*time.Second, "Refresh interval for --watch")
 	sessionStatusCmd.Flags().Bool("json", false, "Emit JSON")
 	sessionOpenCmd.Flags().Bool("shell", false, "Print a cd command instead of the bare path")
+	sessionOpenCmd.Flags().Bool("editor", false, "Open the worktree in $EDITOR")
+
+	sessionWaitCmd.Flags().Duration("timeout", 0, "Maximum time to wait (0 = no limit)")
+	sessionWaitCmd.Flags().Duration("interval", 500*time.Millisecond, "Poll interval")
+	sessionWaitCmd.Flags().Bool("any", false, "Return when any named session finishes")
+	sessionWaitCmd.Flags().Bool("json", false, "Emit JSON")
+
+	sessionRestartCmd.Flags().String("harness", "", "Switch harness on restart")
+	sessionRestartCmd.Flags().String("goal", "", "Override goal on restart")
+	sessionRestartCmd.Flags().String("profile", "", "Override auto profile on restart")
+	sessionRestartCmd.Flags().Bool("force", false, "Stop a still-running session before restart")
+	sessionRestartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
+	sessionRestartCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionListCmd)
@@ -677,5 +826,7 @@ func init() {
 	sessionCmd.AddCommand(sessionHarnessesCmd)
 	sessionCmd.AddCommand(sessionStatusCmd)
 	sessionCmd.AddCommand(sessionOpenCmd)
+	sessionCmd.AddCommand(sessionWaitCmd)
+	sessionCmd.AddCommand(sessionRestartCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

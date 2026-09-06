@@ -174,6 +174,185 @@ func TestStartWithWorktree(t *testing.T) {
 	}
 }
 
+func TestWaitCompletedAndFailed(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	okStub := writeExitStub(t, 0)
+	failStub := writeExitStub(t, 1)
+
+	okRec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "ok", Name: "wait-ok", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: okStub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	failRec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "fail", Name: "wait-fail", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: failStub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = mgr.Wait(ctx, []string{okRec.ID}, WaitOptions{})
+	if err != nil {
+		t.Fatalf("wait ok: %v", err)
+	}
+
+	_, err = mgr.Wait(ctx, []string{failRec.ID}, WaitOptions{})
+	if err == nil {
+		t.Fatal("expected failure from failed session")
+	}
+}
+
+func TestWaitTimeout(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeSleepStub(t)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "slow", Name: "wait-timeout", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _, _ = mgr.Stop(rec.ID) }()
+
+	_, err = mgr.Wait(context.Background(), []string{rec.ID}, WaitOptions{
+		Timeout:  200 * time.Millisecond,
+		Interval: 50 * time.Millisecond,
+	})
+	if err == nil {
+		t.Fatal("expected timeout")
+	}
+}
+
+func TestWaitAny(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fast := writeExitStub(t, 0)
+	slow := writeSleepStub(t)
+
+	a, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "a", Name: "wait-any-a", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: fast,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "b", Name: "wait-any-b", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: slow,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _, _ = mgr.Stop(b.ID) }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	done, err := mgr.Wait(ctx, []string{a.ID, b.ID}, WaitOptions{Any: true, Interval: 50 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(done) != 1 || done[0].ID != a.ID {
+		t.Fatalf("done=%+v", done)
+	}
+}
+
+func TestRestartSwitchesHarness(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "first", Name: "restart-me", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wt := rec.WorktreePath
+	if wt == "" {
+		t.Fatal("expected worktree")
+	}
+
+	// Pretend claude is available via absolute binary override.
+	restarted, err := mgr.Restart(context.Background(), rec.ID, RestartOptions{
+		Harness:    "claude-code",
+		Goal:       "second pass",
+		Detach:     false,
+		NoApproval: true,
+		Binary:     stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.Harness != "claude-code" {
+		t.Fatalf("harness=%s", restarted.Harness)
+	}
+	if restarted.Goal != "second pass" {
+		t.Fatalf("goal=%s", restarted.Goal)
+	}
+	if restarted.WorktreePath != wt {
+		t.Fatalf("worktree changed: %s vs %s", restarted.WorktreePath, wt)
+	}
+	if restarted.Status != StatusCompleted {
+		t.Fatalf("status=%s", restarted.Status)
+	}
+}
+
+func TestRestartRequiresForceWhenRunning(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeSleepStub(t)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "run", Name: "force-me", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _, _ = mgr.Stop(rec.ID) }()
+
+	_, err = mgr.Restart(context.Background(), rec.ID, RestartOptions{
+		Detach: true, NoApproval: true, Binary: stub,
+	})
+	if err == nil {
+		t.Fatal("expected error without --force")
+	}
+
+	restarted, err := mgr.Restart(context.Background(), rec.ID, RestartOptions{
+		Force: true, Detach: true, NoApproval: true, Binary: writeExitStub(t, 0),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.Status != StatusWorking && restarted.Status != StatusCompleted {
+		t.Fatalf("status=%s", restarted.Status)
+	}
+}
+
 func initTempRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()

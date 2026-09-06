@@ -47,6 +47,7 @@ everywhere compliance matters — Specular is the stronger product.
 - Native harness launch: `claude-code`, `codex`, `gemini`, `specular-auto`
 - Worktree isolation per session
 - `session status [--watch]` live board + `session open` worktree helper
+- `session wait` scriptable parallel gate + `session restart` harness swap
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
 - Harness + worktree provenance into attestations
@@ -82,7 +83,9 @@ specular session harnesses
 specular session start --harness claude-code --name demo "Add /healthz"
 specular session start --harness codex --name demo-2 "Add rate limiting"
 specular session status --watch
+specular session wait demo demo-2
 cd "$(specular session open demo)"
+specular session restart demo --harness gemini --force
 specular session logs demo --follow
 specular eval drift --fail-on-change
 ```
