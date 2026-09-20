@@ -559,6 +559,64 @@ func TestSessionExec(t *testing.T) {
 	}
 }
 
+func TestSessionCommit(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "commit me please", Name: "commit-a", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := mgr.Commit(context.Background(), rec.ID, CommitOptions{}); err == nil {
+		t.Fatal("expected nothing-to-commit error")
+	}
+
+	tracked := filepath.Join(rec.WorktreePath, "README.md")
+	if err := os.WriteFile(tracked, []byte("updated by session\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := mgr.Commit(context.Background(), rec.ID, CommitOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.SHA == "" || !strings.Contains(res.Message, "commit-a") {
+		t.Fatalf("%+v", res)
+	}
+
+	untracked := filepath.Join(rec.WorktreePath, "new-file.txt")
+	if err := os.WriteFile(untracked, []byte("brand new\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), rec.ID, CommitOptions{}); err == nil {
+		t.Fatal("expected nothing-to-commit without --all for untracked-only")
+	}
+	allRes, err := mgr.Commit(context.Background(), rec.ID, CommitOptions{All: true, Message: "add new-file"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if allRes.SHA == res.SHA {
+		t.Fatal("expected new commit SHA after --all")
+	}
+
+	noWT, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "no wt", Name: "commit-nowt", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub, SkipWorktree: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), noWT.ID, CommitOptions{AllowEmpty: true}); err == nil {
+		t.Fatal("expected no-worktree error")
+	}
+}
+
 func initTempRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()

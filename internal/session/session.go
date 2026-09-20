@@ -577,6 +577,82 @@ func (m *Manager) Exec(ctx context.Context, id string, argv []string, opts ExecO
 	}, nil
 }
 
+// CommitOptions configures Manager.Commit.
+type CommitOptions struct {
+	// Message overrides the default provenance-aware commit message.
+	Message string
+	// All stages untracked files (git add -A). Default stages tracked only.
+	All bool
+	// AllowEmpty creates a commit even with a clean tree.
+	AllowEmpty bool
+	// Force allows committing while the session process is still running.
+	Force bool
+}
+
+// CommitResult is the outcome of committing a session worktree.
+type CommitResult struct {
+	SessionID    string `json:"sessionId"`
+	WorktreePath string `json:"worktreePath"`
+	Branch       string `json:"branch,omitempty"`
+	SHA          string `json:"sha"`
+	Message      string `json:"message"`
+}
+
+// Commit stages and commits changes in the session worktree.
+func (m *Manager) Commit(ctx context.Context, id string, opts CommitOptions) (*CommitResult, error) {
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	if rec.WorktreePath == "" {
+		return nil, fmt.Errorf("session: %s has no worktree (started with --no-worktree?)", rec.ID)
+	}
+	if !opts.Force && sessionStillRunning(rec) {
+		return nil, fmt.Errorf("session: %s is still %s (stop it first, or pass --force)", rec.ID, rec.Status)
+	}
+	msg := strings.TrimSpace(opts.Message)
+	if msg == "" {
+		msg = defaultCommitMessage(rec)
+	}
+	wtRes, wtErr := m.worktrees.Commit(ctx, worktree.CommitOptions{
+		WorkDir:    rec.WorktreePath,
+		Message:    msg,
+		All:        opts.All,
+		AllowEmpty: opts.AllowEmpty,
+	})
+	if wtErr != nil {
+		return nil, wtErr
+	}
+	return &CommitResult{
+		SessionID:    rec.ID,
+		WorktreePath: rec.WorktreePath,
+		Branch:       rec.WorktreeBranch,
+		SHA:          wtRes.SHA,
+		Message:      wtRes.Message,
+	}, nil
+}
+
+func sessionStillRunning(rec *Record) bool {
+	if rec == nil {
+		return false
+	}
+	if !IsTerminal(rec.Status) && rec.Status != StatusQueued {
+		return true
+	}
+	return rec.PID > 0 && processAlive(rec.PID)
+}
+
+func defaultCommitMessage(rec *Record) string {
+	goal := strings.TrimSpace(rec.Goal)
+	if len(goal) > 60 {
+		goal = goal[:57] + "..."
+	}
+	if goal == "" {
+		goal = "(no goal)"
+	}
+	return fmt.Sprintf("specular session %s (%s): %s", rec.ID, rec.Harness, goal)
+}
+
 // List returns refreshed session records.
 func (m *Manager) List() ([]Record, error) {
 	list, listErr := m.store.List()

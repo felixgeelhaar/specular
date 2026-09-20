@@ -39,6 +39,7 @@ Examples:
   specular session prune --delete-branch
   specular session diff auth --stat
   specular session exec auth -- go test ./...
+  specular session commit auth
   specular session batch fleet.yaml
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -965,6 +966,60 @@ Put session flags before the session id; use -- before commands that take flags.
 	},
 }
 
+var sessionCommitCmd = &cobra.Command{
+	Use:   "commit <session-id>",
+	Short: "Commit changes in a session worktree",
+	Long: `Stage and commit changes in a session's isolated worktree.
+
+Default message embeds session id, harness, and goal for provenance.
+Use --all to include untracked files; without it only tracked modifications
+are staged. Refuses while the session is still running unless --force.
+
+  specular session commit auth
+  specular session commit auth -m "Harden JWT validation"
+  specular session commit auth --all
+  specular session commit auth --json
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		msg, _ := cmd.Flags().GetString("message")
+		all, _ := cmd.Flags().GetBool("all")
+		allowEmpty, _ := cmd.Flags().GetBool("allow-empty")
+		force, _ := cmd.Flags().GetBool("force")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		res, commitErr := mgr.Commit(cmd.Context(), args[0], session.CommitOptions{
+			Message:    msg,
+			All:        all,
+			AllowEmpty: allowEmpty,
+			Force:      force,
+		})
+		if commitErr != nil {
+			return commitErr
+		}
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(res)
+		}
+		fmt.Printf("Committed session %s\n", res.SessionID)
+		fmt.Printf("  SHA:     %s\n", res.SHA)
+		if res.Branch != "" {
+			fmt.Printf("  Branch:  %s\n", res.Branch)
+		}
+		fmt.Printf("  Message: %s\n", res.Message)
+		return nil
+	},
+}
+
 func listCheckpointSessions(asJSON bool) error {
 	checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
 	checkpointIDs, err := checkpointMgr.List()
@@ -1165,6 +1220,12 @@ func init() {
 	sessionExecCmd.Flags().Bool("log", false, "Append command output to the session log file")
 	sessionExecCmd.Flags().Bool("json", false, "Emit JSON result (after command stdout/stderr)")
 
+	sessionCommitCmd.Flags().StringP("message", "m", "", "Commit message (default: provenance-aware)")
+	sessionCommitCmd.Flags().Bool("all", false, "Stage untracked files too (git add -A)")
+	sessionCommitCmd.Flags().Bool("allow-empty", false, "Allow an empty commit")
+	sessionCommitCmd.Flags().Bool("force", false, "Commit even if the session is still running")
+	sessionCommitCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionBatchCmd)
 	sessionCmd.AddCommand(sessionListCmd)
@@ -1181,5 +1242,6 @@ func init() {
 	sessionCmd.AddCommand(sessionPruneCmd)
 	sessionCmd.AddCommand(sessionDiffCmd)
 	sessionCmd.AddCommand(sessionExecCmd)
+	sessionCmd.AddCommand(sessionCommitCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

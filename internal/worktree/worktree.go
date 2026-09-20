@@ -353,6 +353,84 @@ func (m *Manager) UntrackedFiles(ctx context.Context, dir string) ([]string, err
 	return files, nil
 }
 
+// CommitOptions configures Manager.Commit in a worktree.
+type CommitOptions struct {
+	// WorkDir is the git working directory (session worktree).
+	WorkDir string
+	// Message is the commit message (required).
+	Message string
+	// All stages untracked files as well (git add -A). Without All, only
+	// tracked modifications are staged (git add -u).
+	All bool
+	// AllowEmpty creates a commit even when the index has no changes.
+	AllowEmpty bool
+}
+
+// CommitResult is the outcome of a worktree commit.
+type CommitResult struct {
+	SHA     string `json:"sha"`
+	Message string `json:"message"`
+}
+
+// Dirty reports whether dir has staged, unstaged, or (optionally) untracked changes.
+func (m *Manager) Dirty(ctx context.Context, dir string, includeUntracked bool) (bool, error) {
+	if dir == "" {
+		dir = m.repoRoot
+	}
+	args := []string{"status", "--porcelain"}
+	if !includeUntracked {
+		args = append(args, "--untracked-files=no")
+	}
+	out, err := runGitOutput(ctx, dir, args...)
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(out) != "", nil
+}
+
+// Commit stages and commits changes in WorkDir. Returns the new HEAD SHA.
+func (m *Manager) Commit(ctx context.Context, opts CommitOptions) (*CommitResult, error) {
+	dir := opts.WorkDir
+	if dir == "" {
+		dir = m.repoRoot
+	}
+	msg := strings.TrimSpace(opts.Message)
+	if msg == "" {
+		return nil, fmt.Errorf("worktree: commit message is required")
+	}
+
+	dirty, dirtyErr := m.Dirty(ctx, dir, opts.All)
+	if dirtyErr != nil {
+		return nil, dirtyErr
+	}
+	if !dirty && !opts.AllowEmpty {
+		return nil, fmt.Errorf("worktree: nothing to commit")
+	}
+
+	if dirty {
+		addArgs := []string{"add", "-u"}
+		if opts.All {
+			addArgs = []string{"add", "-A"}
+		}
+		if addErr := runGit(ctx, dir, addArgs...); addErr != nil {
+			return nil, fmt.Errorf("worktree: git add: %w", addErr)
+		}
+	}
+
+	commitArgs := []string{"commit", "-m", msg}
+	if opts.AllowEmpty {
+		commitArgs = append(commitArgs, "--allow-empty")
+	}
+	if commitErr := runGit(ctx, dir, commitArgs...); commitErr != nil {
+		return nil, fmt.Errorf("worktree: git commit: %w", commitErr)
+	}
+	sha, shaErr := m.HeadSHA(ctx, dir)
+	if shaErr != nil {
+		return nil, shaErr
+	}
+	return &CommitResult{SHA: sha, Message: msg}, nil
+}
+
 func parsePorcelain(out, repoRoot string) []Info {
 	managedPrefix := filepath.Join(repoRoot, DefaultRelativeDir)
 	var results []Info

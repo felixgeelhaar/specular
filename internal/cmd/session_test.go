@@ -24,6 +24,7 @@ func TestSessionSubcommands(t *testing.T) {
 		"prune":     false,
 		"diff":      false,
 		"exec":      false,
+		"commit":    false,
 	}
 
 	for _, cmd := range sessionCmd.Commands() {
@@ -62,7 +63,7 @@ func TestSessionLifecycleFlags(t *testing.T) {
 	for _, cmd := range sessionCmd.Commands() {
 		found[cmd.Name()] = cmd
 	}
-	for _, name := range []string{"status", "open", "wait", "restart", "rm", "prune", "diff", "batch", "exec"} {
+	for _, name := range []string{"status", "open", "wait", "restart", "rm", "prune", "diff", "batch", "exec", "commit"} {
 		if found[name] == nil {
 			t.Fatalf("%s subcommand not found", name)
 		}
@@ -110,6 +111,11 @@ func TestSessionLifecycleFlags(t *testing.T) {
 	for _, name := range []string{"log", "json"} {
 		if found["exec"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session exec", name)
+		}
+	}
+	for _, name := range []string{"message", "all", "allow-empty", "force", "json"} {
+		if found["commit"].Flags().Lookup(name) == nil {
+			t.Errorf("flag %q not found on session commit", name)
 		}
 	}
 }
