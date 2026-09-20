@@ -617,6 +617,126 @@ func TestSessionCommit(t *testing.T) {
 	}
 }
 
+func TestSessionSync(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "sync me", Name: "sync-a", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Session-side change.
+	sessFile := filepath.Join(rec.WorktreePath, "session.txt")
+	if err := os.WriteFile(sessFile, []byte("from session\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), rec.ID, CommitOptions{All: true, Message: "session change"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Advance base in the primary checkout.
+	if err := os.WriteFile(filepath.Join(repo, "base.txt"), []byte("from base\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run(t, repo, "git", "add", "base.txt")
+	run(t, repo, "git", "commit", "-m", "base advance")
+
+	res, err := mgr.Sync(context.Background(), rec.ID, SyncOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.BeforeSHA == "" || res.AfterSHA == "" || res.Strategy != "rebase" {
+		t.Fatalf("%+v", res)
+	}
+	if res.AfterSHA == res.BeforeSHA {
+		t.Fatal("expected HEAD to move after sync onto advanced base")
+	}
+	// Session commit should still be reachable and base.txt present after rebase.
+	if _, err := os.Stat(filepath.Join(rec.WorktreePath, "base.txt")); err != nil {
+		t.Fatalf("base.txt missing after sync: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(rec.WorktreePath, "session.txt")); err != nil {
+		t.Fatalf("session.txt missing after sync: %v", err)
+	}
+
+	// Dirty refusal.
+	if err := os.WriteFile(filepath.Join(rec.WorktreePath, "dirty.txt"), []byte("x\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Sync(context.Background(), rec.ID, SyncOptions{}); err == nil {
+		t.Fatal("expected dirty error")
+	}
+	if _, err := mgr.Sync(context.Background(), rec.ID, SyncOptions{Autostash: true}); err != nil {
+		t.Fatalf("autostash sync: %v", err)
+	}
+
+	noWT, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "no wt", Name: "sync-nowt", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub, SkipWorktree: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Sync(context.Background(), noWT.ID, SyncOptions{}); err == nil {
+		t.Fatal("expected no-worktree error")
+	}
+}
+
+func TestSessionSyncConflict(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "conflict", Name: "sync-conflict", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rec.WorktreePath, "README.md"), []byte("session edit\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), rec.ID, CommitOptions{Message: "session readme"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("base edit\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run(t, repo, "git", "add", "README.md")
+	run(t, repo, "git", "commit", "-m", "base readme")
+
+	res, err := mgr.Sync(context.Background(), rec.ID, SyncOptions{})
+	if err == nil {
+		t.Fatal("expected conflict error")
+	}
+	if res == nil {
+		t.Fatal("expected result with conflict metadata")
+	}
+	// After abort, worktree should not be mid-rebase.
+	cmd := exec.Command("git", "rev-parse", "--git-path", "rebase-merge")
+	cmd.Dir = rec.WorktreePath
+	out, _ := cmd.Output()
+	rebasePath := strings.TrimSpace(string(out))
+	if rebasePath != "" {
+		if !filepath.IsAbs(rebasePath) {
+			rebasePath = filepath.Join(rec.WorktreePath, rebasePath)
+		}
+		if st, stErr := os.Stat(rebasePath); stErr == nil && st.IsDir() {
+			t.Fatal("rebase should have been aborted")
+		}
+	}
+}
+
 func initTempRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()

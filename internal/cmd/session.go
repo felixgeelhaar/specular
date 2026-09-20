@@ -40,6 +40,7 @@ Examples:
   specular session diff auth --stat
   specular session exec auth -- go test ./...
   specular session commit auth
+  specular session sync auth
   specular session batch fleet.yaml
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -1020,6 +1021,70 @@ are staged. Refuses while the session is still running unless --force.
 	},
 }
 
+var sessionSyncCmd = &cobra.Command{
+	Use:   "sync <session-id>",
+	Short: "Rebase (or merge) a session worktree onto a base ref",
+	Long: `Bring a session branch up to date with the repo base (default: main/master/HEAD).
+
+Default strategy is rebase. Use --merge for a merge commit. Dirty trees are
+refused unless --autostash. Conflicts abort the operation and report paths
+(CI-scriptable non-zero exit).
+
+  specular session sync auth
+  specular session sync auth --onto origin/main
+  specular session sync auth --merge
+  specular session sync auth --autostash --json
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		onto, _ := cmd.Flags().GetString("onto")
+		merge, _ := cmd.Flags().GetBool("merge")
+		autostash, _ := cmd.Flags().GetBool("autostash")
+		force, _ := cmd.Flags().GetBool("force")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		res, syncErr := mgr.Sync(cmd.Context(), args[0], session.SyncOptions{
+			Onto:      onto,
+			Merge:     merge,
+			Autostash: autostash,
+			Force:     force,
+		})
+		if jsonOut && res != nil {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(res)
+		}
+		if syncErr != nil {
+			if !jsonOut && res != nil && len(res.Conflicts) > 0 {
+				fmt.Fprintf(os.Stderr, "Conflicts:\n")
+				for _, p := range res.Conflicts {
+					fmt.Fprintf(os.Stderr, "  %s\n", p)
+				}
+			}
+			return syncErr
+		}
+		if jsonOut {
+			return nil
+		}
+		fmt.Printf("Synced session %s\n", res.SessionID)
+		fmt.Printf("  Strategy: %s onto %s\n", res.Strategy, res.Onto)
+		fmt.Printf("  Before:   %s\n", res.BeforeSHA)
+		fmt.Printf("  After:    %s\n", res.AfterSHA)
+		if res.Stashed {
+			fmt.Printf("  Stash:    popped\n")
+		}
+		return nil
+	},
+}
+
 func listCheckpointSessions(asJSON bool) error {
 	checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
 	checkpointIDs, err := checkpointMgr.List()
@@ -1226,6 +1291,12 @@ func init() {
 	sessionCommitCmd.Flags().Bool("force", false, "Commit even if the session is still running")
 	sessionCommitCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionSyncCmd.Flags().String("onto", "", "Base ref to sync onto (default: main/master/HEAD)")
+	sessionSyncCmd.Flags().Bool("merge", false, "Merge instead of rebase")
+	sessionSyncCmd.Flags().Bool("autostash", false, "Stash dirty changes before sync and pop after")
+	sessionSyncCmd.Flags().Bool("force", false, "Sync even if the session is still running")
+	sessionSyncCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionBatchCmd)
 	sessionCmd.AddCommand(sessionListCmd)
@@ -1243,5 +1314,6 @@ func init() {
 	sessionCmd.AddCommand(sessionDiffCmd)
 	sessionCmd.AddCommand(sessionExecCmd)
 	sessionCmd.AddCommand(sessionCommitCmd)
+	sessionCmd.AddCommand(sessionSyncCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

@@ -377,15 +377,7 @@ func (m *Manager) Dirty(ctx context.Context, dir string, includeUntracked bool) 
 	if dir == "" {
 		dir = m.repoRoot
 	}
-	args := []string{"status", "--porcelain"}
-	if !includeUntracked {
-		args = append(args, "--untracked-files=no")
-	}
-	out, err := runGitOutput(ctx, dir, args...)
-	if err != nil {
-		return false, err
-	}
-	return strings.TrimSpace(out) != "", nil
+	return isDirty(ctx, dir, includeUntracked)
 }
 
 // Commit stages and commits changes in WorkDir. Returns the new HEAD SHA.
@@ -429,6 +421,152 @@ func (m *Manager) Commit(ctx context.Context, opts CommitOptions) (*CommitResult
 		return nil, shaErr
 	}
 	return &CommitResult{SHA: sha, Message: msg}, nil
+}
+
+// SyncOptions configures Manager.Sync in a worktree.
+type SyncOptions struct {
+	// WorkDir is the git working directory (session worktree).
+	WorkDir string
+	// Onto is the ref to rebase/merge onto. Empty uses DefaultBase.
+	Onto string
+	// Merge uses merge instead of rebase.
+	Merge bool
+	// Autostash stashes dirty changes before sync and pops afterward.
+	Autostash bool
+}
+
+// SyncResult is the outcome of syncing a worktree onto a base ref.
+type SyncResult struct {
+	Onto      string   `json:"onto"`
+	Strategy  string   `json:"strategy"`
+	BeforeSHA string   `json:"beforeSha"`
+	AfterSHA  string   `json:"afterSha"`
+	Conflicts []string `json:"conflicts,omitempty"`
+	Stashed   bool     `json:"stashed,omitempty"`
+}
+
+// Sync rebases (default) or merges WorkDir onto Onto.
+// On conflict, aborts the in-progress operation and returns Conflicts.
+func (m *Manager) Sync(ctx context.Context, opts SyncOptions) (*SyncResult, error) {
+	dir, onto, strategy, err := m.resolveSyncTarget(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	before, beforeErr := m.HeadSHA(ctx, dir)
+	if beforeErr != nil {
+		return nil, beforeErr
+	}
+	res := &SyncResult{Onto: onto, Strategy: strategy, BeforeSHA: before}
+
+	stashed, stashErr := prepareSyncStash(ctx, dir, opts.Autostash)
+	if stashErr != nil {
+		return nil, stashErr
+	}
+	res.Stashed = stashed
+
+	if syncErr := runSyncOp(ctx, dir, onto, opts.Merge); syncErr != nil {
+		return m.failSync(ctx, dir, res, opts.Merge, syncErr)
+	}
+	if res.Stashed {
+		if popErr := runGit(ctx, dir, "stash", "pop"); popErr != nil {
+			res.Conflicts = conflictedPaths(ctx, dir)
+			res.AfterSHA, _ = m.HeadSHA(ctx, dir)
+			return res, fmt.Errorf("worktree: stash pop after sync: %w", popErr)
+		}
+	}
+	after, afterErr := m.HeadSHA(ctx, dir)
+	if afterErr != nil {
+		return res, afterErr
+	}
+	res.AfterSHA = after
+	return res, nil
+}
+
+func (m *Manager) resolveSyncTarget(ctx context.Context, opts SyncOptions) (dir, onto, strategy string, err error) {
+	dir = opts.WorkDir
+	if dir == "" {
+		dir = m.repoRoot
+	}
+	onto = strings.TrimSpace(opts.Onto)
+	if onto == "" {
+		onto, err = m.DefaultBase(ctx)
+		if err != nil {
+			return "", "", "", err
+		}
+	}
+	strategy = "rebase"
+	if opts.Merge {
+		strategy = "merge"
+	}
+	return dir, onto, strategy, nil
+}
+
+func prepareSyncStash(ctx context.Context, dir string, autostash bool) (bool, error) {
+	dirty, dirtyErr := isDirty(ctx, dir, true)
+	if dirtyErr != nil {
+		return false, dirtyErr
+	}
+	if !dirty {
+		return false, nil
+	}
+	if !autostash {
+		return false, fmt.Errorf("worktree: dirty working tree (commit first, or pass --autostash)")
+	}
+	if stashErr := runGit(ctx, dir, "stash", "push", "-u", "-m", "specular session sync"); stashErr != nil {
+		return false, fmt.Errorf("worktree: stash: %w", stashErr)
+	}
+	return true, nil
+}
+
+func isDirty(ctx context.Context, dir string, includeUntracked bool) (bool, error) {
+	args := []string{"status", "--porcelain"}
+	if !includeUntracked {
+		args = append(args, "--untracked-files=no")
+	}
+	out, err := runGitOutput(ctx, dir, args...)
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(out) != "", nil
+}
+
+func runSyncOp(ctx context.Context, dir, onto string, merge bool) error {
+	if merge {
+		return runGit(ctx, dir, "merge", "--no-edit", onto)
+	}
+	return runGit(ctx, dir, "rebase", onto)
+}
+
+func (m *Manager) failSync(ctx context.Context, dir string, res *SyncResult, merge bool, syncErr error) (*SyncResult, error) {
+	res.Conflicts = conflictedPaths(ctx, dir)
+	_ = abortSync(ctx, dir, merge)
+	if res.Stashed {
+		_ = runGit(ctx, dir, "stash", "pop")
+	}
+	res.AfterSHA, _ = m.HeadSHA(ctx, dir)
+	return res, fmt.Errorf("worktree: %s onto %s failed: %w", res.Strategy, res.Onto, syncErr)
+}
+
+func abortSync(ctx context.Context, dir string, merge bool) error {
+	if merge {
+		return runGit(ctx, dir, "merge", "--abort")
+	}
+	return runGit(ctx, dir, "rebase", "--abort")
+}
+
+func conflictedPaths(ctx context.Context, dir string) []string {
+	out, err := runGitOutput(ctx, dir, "diff", "--name-only", "--diff-filter=U")
+	if err != nil {
+		return nil
+	}
+	var paths []string
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			paths = append(paths, line)
+		}
+	}
+	return paths
 }
 
 func parsePorcelain(out, repoRoot string) []Info {

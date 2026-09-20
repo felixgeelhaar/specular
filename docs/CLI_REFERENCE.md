@@ -2010,6 +2010,7 @@ specular session <subcommand>
 | `session diff <id>` | Show Git changes for a session worktree |
 | `session exec <id> -- <cmd>…` | Run a command in the session worktree (exit code passthrough) |
 | `session commit <id>` | Commit worktree changes (provenance-aware message) |
+| `session sync <id>` | Rebase/merge worktree onto base (main/master/HEAD) |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop <id>` | Stop a running session process |
 | `session harnesses` | List harnesses with PATH availability |
@@ -2076,6 +2077,10 @@ specular session <subcommand>
 | `commit --all` | Stage untracked files too (`git add -A`) |
 | `commit --allow-empty` | Allow an empty commit |
 | `commit --force` | Commit even if the session is still running |
+| `sync --onto <ref>` | Base ref to sync onto (default main/master/HEAD) |
+| `sync --merge` | Merge instead of rebase |
+| `sync --autostash` | Stash dirty changes before sync and pop after |
+| `sync --force` | Sync even if the session is still running |
 
 **Example:**
 ```bash
@@ -2101,6 +2106,7 @@ $ specular session wait auth ratelimit review
 $ specular session exec auth -- go test ./...
 $ specular session diff auth --stat
 $ specular session commit auth --all
+$ specular session sync auth
 $ specular session diff auth --against ratelimit
 $ specular session restart auth --harness gemini --force
 $ cd "$(specular session open auth)"

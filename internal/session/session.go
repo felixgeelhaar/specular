@@ -653,6 +653,64 @@ func defaultCommitMessage(rec *Record) string {
 	return fmt.Sprintf("specular session %s (%s): %s", rec.ID, rec.Harness, goal)
 }
 
+// SyncOptions configures Manager.Sync.
+type SyncOptions struct {
+	// Onto is the ref to rebase/merge onto. Empty uses the repo default base.
+	Onto string
+	// Merge uses merge instead of rebase.
+	Merge bool
+	// Autostash stashes dirty changes before sync and pops afterward.
+	Autostash bool
+	// Force allows syncing while the session process is still running.
+	Force bool
+}
+
+// SyncResult is the outcome of syncing a session worktree onto a base ref.
+type SyncResult struct {
+	SessionID    string   `json:"sessionId"`
+	WorktreePath string   `json:"worktreePath"`
+	Branch       string   `json:"branch,omitempty"`
+	Onto         string   `json:"onto"`
+	Strategy     string   `json:"strategy"`
+	BeforeSHA    string   `json:"beforeSha"`
+	AfterSHA     string   `json:"afterSha"`
+	Conflicts    []string `json:"conflicts,omitempty"`
+	Stashed      bool     `json:"stashed,omitempty"`
+}
+
+// Sync rebases (default) or merges the session worktree onto a base ref.
+func (m *Manager) Sync(ctx context.Context, id string, opts SyncOptions) (*SyncResult, error) {
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	if rec.WorktreePath == "" {
+		return nil, fmt.Errorf("session: %s has no worktree (started with --no-worktree?)", rec.ID)
+	}
+	if !opts.Force && sessionStillRunning(rec) {
+		return nil, fmt.Errorf("session: %s is still %s (stop it first, or pass --force)", rec.ID, rec.Status)
+	}
+	wtRes, wtErr := m.worktrees.Sync(ctx, worktree.SyncOptions{
+		WorkDir:   rec.WorktreePath,
+		Onto:      opts.Onto,
+		Merge:     opts.Merge,
+		Autostash: opts.Autostash,
+	})
+	res := &SyncResult{SessionID: rec.ID, WorktreePath: rec.WorktreePath, Branch: rec.WorktreeBranch}
+	if wtRes != nil {
+		res.Onto = wtRes.Onto
+		res.Strategy = wtRes.Strategy
+		res.BeforeSHA = wtRes.BeforeSHA
+		res.AfterSHA = wtRes.AfterSHA
+		res.Conflicts = wtRes.Conflicts
+		res.Stashed = wtRes.Stashed
+	}
+	if wtErr != nil {
+		return res, wtErr
+	}
+	return res, nil
+}
+
 // List returns refreshed session records.
 func (m *Manager) List() ([]Record, error) {
 	list, listErr := m.store.List()
