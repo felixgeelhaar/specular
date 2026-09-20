@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     when main moves (conflicts abort + report paths)
   - **Session attest**: `session attest` / `wait --attest` writes signed
     attestations with harness + worktree provenance for native harnesses
+  - **Session gate**: `session wait --gate` runs outer-loop drift after wait
+    (and optional `--attest`) with fail-on-drift (exit 4) — fleet→evidence
+    proof in one command
   - Session fork + log follow for multi-agent operations
   - GTM repositioned to **compete** with Xirp on sessions and win on
     governance (`docs/gtm/competitive/xirp.md`)

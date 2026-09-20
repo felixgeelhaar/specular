@@ -88,6 +88,9 @@ func TestSessionLifecycleFlags(t *testing.T) {
 	if found["wait"].Flags().Lookup("attest") == nil {
 		t.Errorf("flag %q not found on session wait", "attest")
 	}
+	if found["wait"].Flags().Lookup("gate") == nil {
+		t.Errorf("flag %q not found on session wait", "gate")
+	}
 	for _, name := range []string{"harness", "goal", "profile", "force", "foreground", "json"} {
 		if found["restart"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session restart", name)

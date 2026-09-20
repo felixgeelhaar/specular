@@ -56,6 +56,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session commit` lands worktree changes with provenance-aware messages
 - `session sync` rebases/merges worktrees onto base when main moves
 - `session attest` / `wait --attest` signed provenance for native harnesses
+- `session wait --gate` fleet→evidence drift proof (fail-on-drift, exit 4)
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
 - Harness + worktree provenance into attestations
@@ -103,18 +104,16 @@ cat > fleet.yaml <<'EOF'
 EOF
 specular session batch fleet.yaml
 specular session status --watch
-specular session wait demo demo-2 review
+specular session wait --attest --gate demo demo-2 review
 specular session exec demo -- go test ./...
 specular session diff demo --stat
 specular session commit demo --all
 specular session sync demo
-specular session attest demo
 specular auto verify .specular/sessions/demo.attestation.json
 specular session diff demo --against demo-2
 cd "$(specular session open demo)"
 specular session restart demo --harness gemini --force
 specular session logs demo --follow
-specular eval drift --fail-on-change
 specular session prune --delete-branch
 ```
 

@@ -639,8 +639,9 @@ Examples:
   specular session wait
   specular session wait auth ratelimit
   specular session wait --any auth ratelimit
-  specular session wait --timeout 10m && specular eval drift --fail-on-change
+  specular session wait --timeout 10m && specular eval drift --fail-on-drift
   specular session wait --attest auth ratelimit
+  specular session wait --attest --gate
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
@@ -656,6 +657,7 @@ Examples:
 		anyDone, _ := cmd.Flags().GetBool("any")
 		jsonOut, _ := cmd.Flags().GetBool("json")
 		doAttest, _ := cmd.Flags().GetBool("attest")
+		doGate, _ := cmd.Flags().GetBool("gate")
 
 		recs, waitErr := mgr.Wait(cmd.Context(), args, session.WaitOptions{
 			Timeout:  timeout,
@@ -670,13 +672,24 @@ Examples:
 				return waitErr
 			}
 			if doAttest {
-				return attestSessionRecords(cmd.Context(), mgr, recs, false)
+				if attestErr := attestSessionRecords(cmd.Context(), mgr, recs, false); attestErr != nil {
+					return attestErr
+				}
+			}
+			if doGate {
+				return runSessionDriftGate(sessionDriftGateOptions{Quiet: true})
 			}
 			return nil
 		}
 		if len(recs) == 0 {
 			fmt.Println("No active sessions to wait for.")
-			return waitErr
+			if waitErr != nil {
+				return waitErr
+			}
+			if doGate {
+				return runSessionDriftGate(sessionDriftGateOptions{})
+			}
+			return nil
 		}
 		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tEXIT")
@@ -692,7 +705,12 @@ Examples:
 			return waitErr
 		}
 		if doAttest {
-			return attestSessionRecords(cmd.Context(), mgr, recs, true)
+			if attestErr := attestSessionRecords(cmd.Context(), mgr, recs, true); attestErr != nil {
+				return attestErr
+			}
+		}
+		if doGate {
+			return runSessionDriftGate(sessionDriftGateOptions{})
 		}
 		return nil
 	},
@@ -1341,6 +1359,7 @@ func init() {
 	sessionWaitCmd.Flags().Duration("interval", 500*time.Millisecond, "Poll interval")
 	sessionWaitCmd.Flags().Bool("any", false, "Return when any named session finishes")
 	sessionWaitCmd.Flags().Bool("attest", false, "Write session attestations after wait succeeds")
+	sessionWaitCmd.Flags().Bool("gate", false, "Run outer-loop drift gate after wait succeeds (fail-on-drift)")
 	sessionWaitCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionRestartCmd.Flags().String("harness", "", "Switch harness on restart")
