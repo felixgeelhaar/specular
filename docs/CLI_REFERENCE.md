@@ -2041,6 +2041,7 @@ specular session <subcommand>
 | `session exec <id> -- <cmd>…` | Run a command in the session worktree (exit code passthrough) |
 | `session commit <id>` | Commit worktree changes (provenance-aware message) |
 | `session sync <id>` | Rebase/merge worktree onto base (main/master/HEAD) |
+| `session push <id>` | Push worktree branch (`--pr` opens a GitHub PR via gh) |
 | `session attest <id>` | Write signed attestation with harness/worktree provenance |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop <id>` | Stop a running session process |
@@ -2121,6 +2122,12 @@ specular session <subcommand>
 | `sync --merge` | Merge instead of rebase |
 | `sync --autostash` | Stash dirty changes before sync and pop after |
 | `sync --force` | Sync even if the session is still running |
+| `push --remote <name>` | Git remote (default `origin`) |
+| `push --pr` | Open a pull request with `gh` after push |
+| `push --title <text>` | PR title override |
+| `push --body <text>` | PR body override |
+| `push --base <branch>` | PR base branch for `gh --base` |
+| `push --force` | Push even if the session is still running |
 | `attest --output <path>` | Override attestation path (default `.specular/sessions/<id>.attestation.json`) |
 | `attest --force` | Attest even if the session is still running |
 
@@ -2152,6 +2159,7 @@ $ specular session exec auth -- go test ./...
 $ specular session diff auth --stat
 $ specular session commit auth --all
 $ specular session sync auth
+$ specular session push auth --pr
 $ specular session attest auth
 $ specular auto verify .specular/sessions/auth.attestation.json
 $ specular session diff auth --against ratelimit

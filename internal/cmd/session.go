@@ -41,6 +41,7 @@ Examples:
   specular session exec auth -- go test ./...
   specular session commit auth
   specular session sync auth
+  specular session push auth --pr
   specular session attest auth
   specular session batch fleet.yaml
 `,
@@ -267,7 +268,7 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 
 		if len(list) > 0 {
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tWORKTREE\tPID\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tWORKTREE\tPID\tGOAL")
 			for _, s := range list {
 				goal := s.Goal
 				if len(goal) > 48 {
@@ -281,7 +282,11 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 				if wt == "" {
 					wt = "-"
 				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, wt, pid, goal)
+				gov := "-"
+				if s.Governed {
+					gov = "yes"
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, gov, wt, pid, goal)
 			}
 			_ = w.Flush()
 		}
@@ -1137,6 +1142,66 @@ refused unless --autostash. Conflicts abort the operation and report paths
 	},
 }
 
+var sessionPushCmd = &cobra.Command{
+	Use:   "push <session-id>",
+	Short: "Push a session worktree branch (optional --pr)",
+	Long: `Publish the session branch to the remote and optionally open a pull request.
+
+Uses git push -u to the session worktree branch. With --pr, runs gh pr create
+with harness/goal provenance in the body (requires gh on PATH).
+
+  specular session push auth
+  specular session push auth --pr
+  specular session push auth --pr --base main --title "Harden JWT"
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		remote, _ := cmd.Flags().GetString("remote")
+		force, _ := cmd.Flags().GetBool("force")
+		createPR, _ := cmd.Flags().GetBool("pr")
+		title, _ := cmd.Flags().GetString("title")
+		body, _ := cmd.Flags().GetString("body")
+		base, _ := cmd.Flags().GetString("base")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		res, pushErr := mgr.Push(cmd.Context(), args[0], session.PushOptions{
+			Remote:   remote,
+			Force:    force,
+			CreatePR: createPR,
+			PRTitle:  title,
+			PRBody:   body,
+			Base:     base,
+		})
+		if jsonOut && res != nil {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(res)
+		}
+		if pushErr != nil {
+			return pushErr
+		}
+		if jsonOut {
+			return nil
+		}
+		fmt.Printf("Pushed session %s\n", res.SessionID)
+		fmt.Printf("  Remote: %s\n", res.Remote)
+		fmt.Printf("  Branch: %s\n", res.Branch)
+		fmt.Printf("  SHA:    %s\n", res.SHA)
+		if res.PRURL != "" {
+			fmt.Printf("  PR:     %s\n", res.PRURL)
+		}
+		return nil
+	},
+}
+
 var sessionAttestCmd = &cobra.Command{
 	Use:   "attest <session-id>",
 	Short: "Write a signed attestation with harness/worktree provenance",
@@ -1427,6 +1492,14 @@ func init() {
 	sessionSyncCmd.Flags().Bool("force", false, "Sync even if the session is still running")
 	sessionSyncCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionPushCmd.Flags().String("remote", "origin", "Git remote to push to")
+	sessionPushCmd.Flags().Bool("pr", false, "Open a pull request with gh after push")
+	sessionPushCmd.Flags().String("title", "", "PR title (default: session id + goal)")
+	sessionPushCmd.Flags().String("body", "", "PR body (default: harness/goal provenance)")
+	sessionPushCmd.Flags().String("base", "", "PR base branch for gh --base")
+	sessionPushCmd.Flags().Bool("force", false, "Push even if the session is still running")
+	sessionPushCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionAttestCmd.Flags().String("output", "", "Attestation output path (default: .specular/sessions/<id>.attestation.json)")
 	sessionAttestCmd.Flags().Bool("force", false, "Attest even if the session is still running")
 	sessionAttestCmd.Flags().Bool("json", false, "Emit JSON")
@@ -1449,6 +1522,7 @@ func init() {
 	sessionCmd.AddCommand(sessionExecCmd)
 	sessionCmd.AddCommand(sessionCommitCmd)
 	sessionCmd.AddCommand(sessionSyncCmd)
+	sessionCmd.AddCommand(sessionPushCmd)
 	sessionCmd.AddCommand(sessionAttestCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

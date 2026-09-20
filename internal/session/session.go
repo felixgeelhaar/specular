@@ -748,6 +748,117 @@ func (m *Manager) Sync(ctx context.Context, id string, opts SyncOptions) (*SyncR
 	return res, nil
 }
 
+// PushOptions configures Manager.Push.
+type PushOptions struct {
+	// Remote defaults to origin.
+	Remote string
+	// Force allows pushing while the session process is still running.
+	Force bool
+	// CreatePR runs `gh pr create` after a successful push.
+	CreatePR bool
+	// PRTitle overrides the default PR title (session id + goal).
+	PRTitle string
+	// PRBody overrides the default PR body (harness/goal provenance).
+	PRBody string
+	// Base is the PR base branch (passed to gh --base when set).
+	Base string
+}
+
+// PushResult is the outcome of pushing a session branch (and optional PR).
+type PushResult struct {
+	SessionID    string `json:"sessionId"`
+	WorktreePath string `json:"worktreePath"`
+	Remote       string `json:"remote"`
+	Branch       string `json:"branch"`
+	SHA          string `json:"sha"`
+	PRURL        string `json:"prUrl,omitempty"`
+}
+
+// Push publishes the session worktree branch and optionally opens a PR via gh.
+func (m *Manager) Push(ctx context.Context, id string, opts PushOptions) (*PushResult, error) {
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	if rec.WorktreePath == "" {
+		return nil, fmt.Errorf("session: %s has no worktree (started with --no-worktree?)", rec.ID)
+	}
+	if !opts.Force && sessionStillRunning(rec) {
+		return nil, fmt.Errorf("session: %s is still %s (stop it first, or pass --force)", rec.ID, rec.Status)
+	}
+	wtRes, wtErr := m.worktrees.Push(ctx, worktree.PushOptions{
+		WorkDir:     rec.WorktreePath,
+		Remote:      opts.Remote,
+		Branch:      rec.WorktreeBranch,
+		SetUpstream: true,
+	})
+	if wtErr != nil {
+		return nil, wtErr
+	}
+	res := &PushResult{
+		SessionID:    rec.ID,
+		WorktreePath: rec.WorktreePath,
+		Remote:       wtRes.Remote,
+		Branch:       wtRes.Branch,
+		SHA:          wtRes.SHA,
+	}
+	if opts.CreatePR {
+		url, prErr := createSessionPullRequest(ctx, rec, opts)
+		if prErr != nil {
+			return res, prErr
+		}
+		res.PRURL = url
+	}
+	return res, nil
+}
+
+func createSessionPullRequest(ctx context.Context, rec *Record, opts PushOptions) (string, error) {
+	title := strings.TrimSpace(opts.PRTitle)
+	if title == "" {
+		goal := strings.TrimSpace(rec.Goal)
+		if len(goal) > 72 {
+			goal = goal[:69] + "..."
+		}
+		if goal == "" {
+			goal = rec.ID
+		}
+		title = fmt.Sprintf("session %s: %s", rec.ID, goal)
+	}
+	body := strings.TrimSpace(opts.PRBody)
+	if body == "" {
+		body = fmt.Sprintf("## Specular session\n\n- **ID:** `%s`\n- **Harness:** `%s`\n- **Governed:** %v\n- **Goal:** %s\n\nLanded via `specular session push --pr`.\n",
+			rec.ID, rec.Harness, rec.Governed, rec.Goal)
+	}
+	args := []string{"pr", "create", "--title", title, "--body", body}
+	if base := strings.TrimSpace(opts.Base); base != "" {
+		args = append(args, "--base", base)
+	}
+	if branch := strings.TrimSpace(rec.WorktreeBranch); branch != "" {
+		args = append(args, "--head", branch)
+	}
+	cmd, cmdErr := safeutil.SafeCommand(ctx, "gh", args...)
+	if cmdErr != nil {
+		return "", fmt.Errorf("session: gh not available for --pr: %w", cmdErr)
+	}
+	cmd.Dir = rec.WorktreePath
+	out, runErr := cmd.CombinedOutput()
+	text := strings.TrimSpace(string(out))
+	if runErr != nil {
+		if text == "" {
+			text = runErr.Error()
+		}
+		return "", fmt.Errorf("session: gh pr create: %s", text)
+	}
+	lines := strings.Split(text, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
+			return line, nil
+		}
+	}
+	return text, nil
+}
+
 // AttestOptions configures Manager.Attest.
 type AttestOptions struct {
 	// OutputPath overrides the default .specular/sessions/<id>.attestation.json.

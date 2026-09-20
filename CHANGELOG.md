@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session push / PR**: `session push [--pr]` publishes the worktree
+  branch (`git push -u`) and optionally opens a PR via `gh` with
+  harness/goal provenance — closes fleet → evidence → land
+
 - **Governed native sessions**: `session start --governed` (and
   `batch`/`restart`/manifest `governed:`) launches Claude/Codex without
   skip-permissions/full-auto, prepends a Specular governance preamble
@@ -16,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `provenance.governed` on attestations
 - **Fleet→evidence CI example**: `examples/cicd-github-actions/session-fleet-bundle.yml`
   plus README quick proof (`policy library` → `session batch --governed` →
-  `wait --bundle`); `session status`/`show` surface the governed flag
+  `wait --bundle`); `session status`/`show`/`list` surface the governed flag
 
 - **Session evidence bundle**: `session wait --bundle` packages
   attestations + drift SARIF (+ `--policy` library fragments) into

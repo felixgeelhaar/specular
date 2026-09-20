@@ -423,6 +423,60 @@ func (m *Manager) Commit(ctx context.Context, opts CommitOptions) (*CommitResult
 	return &CommitResult{SHA: sha, Message: msg}, nil
 }
 
+// PushOptions configures Manager.Push.
+type PushOptions struct {
+	WorkDir string
+	// Remote defaults to "origin".
+	Remote string
+	// Branch is the local branch to push. Empty uses the current branch.
+	Branch string
+	// SetUpstream passes --set-upstream.
+	SetUpstream bool
+}
+
+// PushResult is the outcome of pushing a worktree branch.
+type PushResult struct {
+	Remote string
+	Branch string
+	SHA    string
+}
+
+// Push publishes the worktree branch to the remote.
+func (m *Manager) Push(ctx context.Context, opts PushOptions) (*PushResult, error) {
+	dir := opts.WorkDir
+	if dir == "" {
+		dir = m.repoRoot
+	}
+	remote := strings.TrimSpace(opts.Remote)
+	if remote == "" {
+		remote = "origin"
+	}
+	branch := strings.TrimSpace(opts.Branch)
+	if branch == "" {
+		cur, err := revParse(ctx, dir, "--abbrev-ref", "HEAD")
+		if err != nil {
+			return nil, fmt.Errorf("worktree: resolve branch: %w", err)
+		}
+		if cur == "" || cur == "HEAD" {
+			return nil, fmt.Errorf("worktree: detached HEAD; cannot push without --branch")
+		}
+		branch = cur
+	}
+	args := []string{"push"}
+	if opts.SetUpstream {
+		args = append(args, "-u")
+	}
+	args = append(args, remote, branch)
+	if err := runGit(ctx, dir, args...); err != nil {
+		return nil, fmt.Errorf("worktree: git push: %w", err)
+	}
+	sha, shaErr := m.HeadSHA(ctx, dir)
+	if shaErr != nil {
+		return nil, shaErr
+	}
+	return &PushResult{Remote: remote, Branch: branch, SHA: sha}, nil
+}
+
 // SyncOptions configures Manager.Sync in a worktree.
 type SyncOptions struct {
 	// WorkDir is the git working directory (session worktree).

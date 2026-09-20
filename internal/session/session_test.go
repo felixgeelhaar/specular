@@ -619,6 +619,60 @@ func TestSessionCommit(t *testing.T) {
 	}
 }
 
+func TestSessionPush(t *testing.T) {
+	repo := initTempRepo(t)
+	bare := t.TempDir()
+	run(t, bare, "git", "init", "--bare")
+	run(t, repo, "git", "remote", "add", "origin", bare)
+
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "push me", Name: "push-a", Harness: "claude-code",
+		Detach: false, NoApproval: true, Binary: stub, Governed: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rec.WorktreePath, "README.md"), []byte("pushed\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), rec.ID, CommitOptions{Message: "ready to push"}); err != nil {
+		t.Fatal(err)
+	}
+	res, err := mgr.Push(context.Background(), rec.ID, PushOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Remote != "origin" || res.Branch == "" || res.SHA == "" {
+		t.Fatalf("%+v", res)
+	}
+	// Verify bare remote received the branch.
+	cmd := exec.Command("git", "branch", "--list", rec.WorktreeBranch)
+	cmd.Dir = bare
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("list remote branches: %v\n%s", err, out)
+	}
+	if !strings.Contains(string(out), rec.WorktreeBranch) {
+		t.Fatalf("branch missing on remote: %q", out)
+	}
+
+	noWT, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "no wt", Name: "push-nowt", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub, SkipWorktree: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Push(context.Background(), noWT.ID, PushOptions{}); err == nil {
+		t.Fatal("expected no-worktree error")
+	}
+}
+
 func TestSessionSync(t *testing.T) {
 	repo := initTempRepo(t)
 	mgr, err := NewManager(repo)
