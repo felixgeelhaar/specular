@@ -2038,10 +2038,11 @@ specular session <subcommand>
 | Field | Description |
 |-------|-------------|
 | `goal` | Required prompt for the harness |
-| `name` | Optional session / worktree slug (must be unique) |
+| `name` | Optional session / worktree slug (must be unique; required if others `dependsOn` it) |
 | `harness` | Optional per-entry harness override |
 | `profile` | Optional per-entry auto profile |
 | `noWorktree` | Optional; skip worktree for that entry |
+| `dependsOn` | Optional list of parent session names; stays `queued` until all parents `completed` |
 
 **Status / wait / open / restart / rm / prune / diff flags:**
 
@@ -2081,10 +2082,14 @@ $ cat > fleet.yaml <<'EOF'
 - name: ratelimit
   harness: codex
   goal: Add rate limiting
+- name: review
+  harness: gemini
+  goal: Review auth + ratelimit
+  dependsOn: [auth, ratelimit]
 EOF
 $ specular session batch fleet.yaml
 $ specular session status
-$ specular session wait auth ratelimit
+$ specular session wait auth ratelimit review
 $ specular session diff auth --stat
 $ specular session diff auth --against ratelimit
 $ specular session restart auth --harness gemini --force

@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     another session (Xirp changes-panel analogue)
   - **Fleet manifest launch**: `session batch` / `session start --manifest`
     starts many harness sessions from YAML/JSON (CI-native vs Xirp Mac grid)
+  - **Fleet dependsOn**: manifest entries can wait on parent sessions
+    (`queued` until parents `completed`; failed parents abort the chain)
   - Session fork + log follow for multi-agent operations
   - GTM repositioned to **compete** with Xirp on sessions and win on
     governance (`docs/gtm/competitive/xirp.md`)

@@ -51,6 +51,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session rm` / `session prune` lifecycle cleanup after fleets finish
 - `session diff` worktree changes vs base or another session
 - `session batch` / `session start --manifest` fleet launch (CI-native vs Mac grid)
+- Manifest `dependsOn` for sequential pipelines (implement → review) without a second CI job
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
 - Harness + worktree provenance into attestations
@@ -91,10 +92,14 @@ cat > fleet.yaml <<'EOF'
 - name: demo-2
   harness: codex
   goal: Add rate limiting
+- name: review
+  harness: gemini
+  goal: Review both changes
+  dependsOn: [demo, demo-2]
 EOF
 specular session batch fleet.yaml
 specular session status --watch
-specular session wait demo demo-2
+specular session wait demo demo-2 review
 specular session diff demo --stat
 specular session diff demo --against demo-2
 cd "$(specular session open demo)"

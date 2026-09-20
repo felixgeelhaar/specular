@@ -146,6 +146,13 @@ Manifest is a YAML/JSON array of entries, or an object with a "sessions" key:
   - name: ratelimit
     harness: codex
     goal: Add rate limiting
+  - name: review
+    harness: gemini
+    goal: Review auth + ratelimit diffs
+    dependsOn: [auth, ratelimit]
+
+Entries with dependsOn stay queued until every parent completes successfully.
+A failed parent aborts the remaining chain.
 
 Then:
 
@@ -505,13 +512,15 @@ Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 				fmt.Println("No managed sessions.")
 				return nil
 			}
-			working, done, failed, stopped := 0, 0, 0, 0
+			working, queued, done, failed, stopped := 0, 0, 0, 0, 0
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tPID\tBRANCH\tGOAL")
 			for _, s := range list {
 				switch s.Status {
 				case session.StatusWorking, session.StatusIdle, session.StatusWaiting:
 					working++
+				case session.StatusQueued:
+					queued++
 				case session.StatusCompleted:
 					done++
 				case session.StatusFailed:
@@ -534,8 +543,8 @@ Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, pid, branch, goal)
 			}
 			_ = w.Flush()
-			fmt.Printf("\nworking=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
-				working, done, failed, stopped, len(list))
+			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
+				working, queued, done, failed, stopped, len(list))
 			return nil
 		}
 

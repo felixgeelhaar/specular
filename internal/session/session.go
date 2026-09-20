@@ -33,6 +33,8 @@ const (
 	StatusIdle = "idle"
 	// StatusWaiting means the process is blocked on approval / policy.
 	StatusWaiting = "waiting"
+	// StatusQueued means the session is declared in a fleet but waiting on dependsOn.
+	StatusQueued = "queued"
 	// StatusCompleted means the run finished successfully.
 	StatusCompleted = "completed"
 	// StatusFailed means the run exited non-zero.
@@ -1008,34 +1010,57 @@ func appendUntracked(out string, files []string, nameOnly, stat bool) string {
 }
 
 // StartMany launches each manifest entry as a detached session.
+// Entries with dependsOn wait until every parent reaches StatusCompleted;
+// a failed/stopped parent aborts the remaining chain.
 // Defaults supply shared Binary/Harness/Profile/SkipWorktree overrides (tests/CLI).
 // On the first failure, returns sessions started so far plus the error.
 func (m *Manager) StartMany(ctx context.Context, entries []ManifestEntry, defaults StartOptions) ([]*Record, error) {
 	if len(entries) == 0 {
 		return nil, fmt.Errorf("session: no manifest entries")
 	}
+	if err := m.saveQueuedPlaceholders(entries, defaults); err != nil {
+		return nil, err
+	}
+	remaining := append([]ManifestEntry(nil), entries...)
 	started := make([]*Record, 0, len(entries))
-	for i, entry := range entries {
-		harness := entry.Harness
-		if harness == "" {
-			harness = defaults.Harness
+	completedOK := map[string]bool{}
+
+	for len(remaining) > 0 {
+		ready, rest := partitionReadyEntries(remaining, completedOK)
+		if len(ready) == 0 {
+			return started, fmt.Errorf("session: no runnable manifest entries (unmet dependsOn)")
 		}
-		profile := entry.Profile
-		if profile == "" {
-			profile = defaults.Profile
+		wave, startErr := m.startManifestWave(ctx, ready, defaults)
+		started = append(started, wave...)
+		if startErr != nil {
+			return started, startErr
 		}
-		opts := StartOptions{
-			Goal:         entry.Goal,
-			Name:         entry.Name,
-			Harness:      harness,
-			Profile:      profile,
-			NoApproval:   true,
-			Detach:       true,
-			Binary:       defaults.Binary,
-			ExtraArgs:    defaults.ExtraArgs,
-			SkipWorktree: entry.NoWorktree || defaults.SkipWorktree,
+		remaining = rest
+		if len(remaining) == 0 {
+			break
 		}
-		rec, err := m.Start(ctx, opts)
+		waitIDs := parentIDsStillNeeded(remaining, wave)
+		if len(waitIDs) == 0 {
+			continue
+		}
+		waited, waitErr := m.Wait(ctx, waitIDs, WaitOptions{})
+		for _, rec := range waited {
+			if rec.Status == StatusCompleted {
+				completedOK[rec.ID] = true
+			}
+		}
+		if waitErr != nil {
+			_ = m.failQueuedDependents(remaining, waitErr)
+			return started, fmt.Errorf("session: dependency wait: %w", waitErr)
+		}
+	}
+	return started, nil
+}
+
+func (m *Manager) startManifestWave(ctx context.Context, ready []ManifestEntry, defaults StartOptions) ([]*Record, error) {
+	started := make([]*Record, 0, len(ready))
+	for i, entry := range ready {
+		rec, err := m.Start(ctx, manifestStartOptions(entry, defaults))
 		if err != nil && rec == nil {
 			return started, fmt.Errorf("session: manifest entry %d (%s): %w", i, entry.Name, err)
 		}
@@ -1047,6 +1072,128 @@ func (m *Manager) StartMany(ctx context.Context, entries []ManifestEntry, defaul
 		}
 	}
 	return started, nil
+}
+
+func manifestStartOptions(entry ManifestEntry, defaults StartOptions) StartOptions {
+	harness := entry.Harness
+	if harness == "" {
+		harness = defaults.Harness
+	}
+	profile := entry.Profile
+	if profile == "" {
+		profile = defaults.Profile
+	}
+	return StartOptions{
+		Goal:         entry.Goal,
+		Name:         entry.Name,
+		Harness:      harness,
+		Profile:      profile,
+		NoApproval:   true,
+		Detach:       true,
+		Binary:       defaults.Binary,
+		ExtraArgs:    defaults.ExtraArgs,
+		SkipWorktree: entry.NoWorktree || defaults.SkipWorktree,
+	}
+}
+
+func partitionReadyEntries(entries []ManifestEntry, completedOK map[string]bool) (ready, rest []ManifestEntry) {
+	for _, e := range entries {
+		if depsSatisfied(e.DependsOn, completedOK) {
+			ready = append(ready, e)
+			continue
+		}
+		rest = append(rest, e)
+	}
+	return ready, rest
+}
+
+func depsSatisfied(deps []string, completedOK map[string]bool) bool {
+	for _, d := range deps {
+		if !completedOK[d] {
+			return false
+		}
+	}
+	return true
+}
+
+func parentIDsStillNeeded(remaining []ManifestEntry, wave []*Record) []string {
+	launched := map[string]bool{}
+	for _, rec := range wave {
+		if rec != nil && rec.ID != "" {
+			launched[rec.ID] = true
+		}
+	}
+	needed := map[string]bool{}
+	for _, e := range remaining {
+		for _, d := range e.DependsOn {
+			if launched[d] {
+				needed[d] = true
+			}
+		}
+	}
+	ids := make([]string, 0, len(needed))
+	for id := range needed {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	return ids
+}
+
+func (m *Manager) saveQueuedPlaceholders(entries []ManifestEntry, defaults StartOptions) error {
+	for _, e := range entries {
+		if len(e.DependsOn) == 0 || e.Name == "" {
+			continue
+		}
+		if existing, err := m.store.Load(e.Name); err == nil && existing != nil {
+			continue
+		}
+		opts := manifestStartOptions(e, defaults)
+		harness := normalizeHarness(opts.Harness)
+		if harness == "" {
+			harness = "specular-auto"
+		}
+		profile := opts.Profile
+		if profile == "" {
+			profile = "ci"
+		}
+		rec := &Record{
+			ID:        e.Name,
+			Goal:      e.Goal,
+			Harness:   harness,
+			Profile:   profile,
+			Status:    StatusQueued,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+			LogPath:   filepath.Join(m.store.Dir(), e.Name+".log"),
+			Error:     "waiting on dependsOn: " + strings.Join(e.DependsOn, ", "),
+		}
+		if saveErr := m.store.Save(rec); saveErr != nil {
+			return saveErr
+		}
+	}
+	return nil
+}
+
+func (m *Manager) failQueuedDependents(remaining []ManifestEntry, cause error) error {
+	var first error
+	for _, e := range remaining {
+		if e.Name == "" {
+			continue
+		}
+		rec, loadErr := m.store.Load(e.Name)
+		if loadErr != nil || rec == nil {
+			continue
+		}
+		if rec.Status != StatusQueued && rec.Status != StatusWaiting {
+			continue
+		}
+		rec.Status = StatusFailed
+		rec.Error = "dependency failed: " + cause.Error()
+		if saveErr := m.store.Save(rec); saveErr != nil && first == nil {
+			first = saveErr
+		}
+	}
+	return first
 }
 
 // ParsePID is a small helper for tests.
