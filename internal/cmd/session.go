@@ -65,6 +65,10 @@ launches the selected harness:
 
 Harness + worktree identity are recorded for the outer-loop drift gate.
 
+Native harnesses auto-enable --governed when .specular/policy.yaml (or
+policies.yaml) is present. Pass --no-governed to keep skip-permissions /
+full-auto even with a policy file.
+
 Fleet launch (CI-native vs Xirp's Mac grid):
 
   specular session start --manifest fleet.yaml
@@ -99,7 +103,11 @@ Fleet launch (CI-native vs Xirp's Mac grid):
 		noWorktree, _ := cmd.Flags().GetBool("no-worktree")
 		foreground, _ := cmd.Flags().GetBool("foreground")
 		governed, _ := cmd.Flags().GetBool("governed")
+		noGoverned, _ := cmd.Flags().GetBool("no-governed")
 		jsonOut, _ := cmd.Flags().GetBool("json")
+		if governed && noGoverned {
+			return fmt.Errorf("session: --governed and --no-governed are mutually exclusive")
+		}
 
 		rec, err := mgr.Start(cmd.Context(), session.StartOptions{
 			Goal:         goal,
@@ -110,6 +118,7 @@ Fleet launch (CI-native vs Xirp's Mac grid):
 			Detach:       !foreground,
 			SkipWorktree: noWorktree,
 			Governed:     governed,
+			NoGoverned:   noGoverned,
 		})
 		if err != nil && rec == nil {
 			return err
@@ -197,13 +206,18 @@ func runSessionManifest(cmd *cobra.Command, manifestPath string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	noWorktree, _ := cmd.Flags().GetBool("no-worktree")
 	governed, _ := cmd.Flags().GetBool("governed")
+	noGoverned, _ := cmd.Flags().GetBool("no-governed")
 	jsonOut, _ := cmd.Flags().GetBool("json")
+	if governed && noGoverned {
+		return fmt.Errorf("session: --governed and --no-governed are mutually exclusive")
+	}
 
 	started, startErr := mgr.StartMany(cmd.Context(), entries, session.StartOptions{
 		Harness:      harness,
 		Profile:      profile,
 		SkipWorktree: noWorktree,
 		Governed:     governed,
+		NoGoverned:   noGoverned,
 	})
 	if jsonOut {
 		enc := json.NewEncoder(os.Stdout)
@@ -1412,6 +1426,7 @@ func init() {
 	sessionStartCmd.Flags().Bool("no-worktree", false, "Run in the current checkout (not isolated)")
 	sessionStartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
 	sessionStartCmd.Flags().Bool("governed", false, "Safer native launch (no skip-permissions/full-auto) + governance preamble")
+	sessionStartCmd.Flags().Bool("no-governed", false, "Disable auto-governed even when .specular/policy.yaml is present")
 	sessionStartCmd.Flags().Bool("json", false, "Emit JSON")
 	sessionStartCmd.Flags().String("manifest", "", "Start a fleet from a YAML/JSON manifest file")
 
@@ -1419,6 +1434,7 @@ func init() {
 	sessionBatchCmd.Flags().String("profile", "", "Default profile when an entry omits profile")
 	sessionBatchCmd.Flags().Bool("no-worktree", false, "Run all entries in the current checkout")
 	sessionBatchCmd.Flags().Bool("governed", false, "Default governed=true for native harness entries")
+	sessionBatchCmd.Flags().Bool("no-governed", false, "Disable auto-governed even when a policy file is present")
 	sessionBatchCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionListCmd.Flags().Bool("checkpoints", false, "Also list legacy auto checkpoints")

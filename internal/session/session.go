@@ -93,6 +93,8 @@ type StartOptions struct {
 	// Governed launches native harnesses without skip-permissions / full-auto
 	// and prepends a Specular governance preamble (deny-tools from policy.yaml).
 	Governed bool
+	// NoGoverned disables auto-governed when a policy file is present.
+	NoGoverned bool
 	// DenyTools are tool names injected into the governed preamble (optional).
 	DenyTools []string
 }
@@ -231,6 +233,7 @@ func (m *Manager) Store() *Store { return m.store }
 // Start creates an isolated worktree (unless skipped) and launches the
 // selected harness (specular-auto, claude-code, codex, or gemini).
 func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error) {
+	opts = resolveGovernedMode(m.repoRoot, opts)
 	if opts.Governed {
 		opts = enrichGovernedOptions(m.repoRoot, opts)
 	}
@@ -251,6 +254,34 @@ func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error)
 		return m.startDetached(rec, plan)
 	}
 	return m.startForeground(ctx, rec, plan)
+}
+
+// resolveGovernedMode applies explicit flags, then auto-enables governed
+// for native harnesses when a Specular policy file is present.
+func resolveGovernedMode(repoRoot string, opts StartOptions) StartOptions {
+	if opts.NoGoverned {
+		opts.Governed = false
+		return opts
+	}
+	if opts.Governed {
+		return opts
+	}
+	if IsNativeHarness(opts.Harness) && policyFilePresent(repoRoot) {
+		opts.Governed = true
+	}
+	return opts
+}
+
+func policyFilePresent(repoRoot string) bool {
+	for _, path := range []string{
+		filepath.Join(repoRoot, ".specular", "policy.yaml"),
+		filepath.Join(repoRoot, ".specular", "policies.yaml"),
+	} {
+		if st, err := os.Stat(path); err == nil && !st.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Manager) startForeground(ctx context.Context, rec *Record, plan LaunchPlan) (*Record, error) {
@@ -1534,6 +1565,7 @@ func manifestStartOptions(entry ManifestEntry, defaults StartOptions) StartOptio
 		ExtraArgs:    defaults.ExtraArgs,
 		SkipWorktree: entry.NoWorktree || defaults.SkipWorktree,
 		Governed:     entry.Governed || defaults.Governed,
+		NoGoverned:   entry.NoGoverned || defaults.NoGoverned,
 		DenyTools:    defaults.DenyTools,
 	}
 }

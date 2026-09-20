@@ -2058,7 +2058,11 @@ specular session <subcommand>
 | `--no-worktree` | Run in the current checkout |
 | `--foreground` | Do not detach |
 | `--governed` | Safer native launch (no skip-permissions/full-auto) + governance preamble |
+| `--no-governed` | Disable auto-governed even when `.specular/policy.yaml` is present |
 | `--json` | Emit JSON |
+
+Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
+`.specular/policies.yaml` exists (unless `--no-governed` / `noGoverned`).
 
 **Batch / manifest flags** (also on `session start --manifest`):
 
@@ -2068,6 +2072,7 @@ specular session <subcommand>
 | `--profile <name>` | Default profile when a manifest entry omits `profile` |
 | `--no-worktree` | Run all entries in the current checkout |
 | `--governed` | Default `governed=true` for entries |
+| `--no-governed` | Disable auto-governed even when a policy file is present |
 | `--json` | Emit JSON array of started sessions |
 
 **Manifest shape** (YAML or JSON array, or `{ "sessions": [...] }`):
@@ -2081,6 +2086,7 @@ specular session <subcommand>
 | `noWorktree` | Optional; skip worktree for that entry |
 | `dependsOn` | Optional list of parent session names; stays `queued` until all parents `completed` |
 | `governed` | Optional; safer native launch for that entry |
+| `noGoverned` | Optional; disable auto-governed when a policy file is present |
 
 **Status / wait / open / restart / rm / prune / diff flags:**
 
