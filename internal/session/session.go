@@ -1136,6 +1136,40 @@ func (m *Manager) Stop(id string) (*Record, error) {
 	return rec, nil
 }
 
+// StopMany stops each session ID. Returns stopped records; on the first hard
+// error, returns what was stopped so far plus the error.
+func (m *Manager) StopMany(ids []string) ([]Record, error) {
+	var stopped []Record
+	for _, id := range ids {
+		rec, err := m.Stop(id)
+		if rec != nil {
+			stopped = append(stopped, *rec)
+		}
+		if err != nil {
+			return stopped, err
+		}
+	}
+	return stopped, nil
+}
+
+// StopAll stops every non-terminal session (Xirp grid kill-all analogue).
+func (m *Manager) StopAll() ([]Record, error) {
+	list, listErr := m.List()
+	if listErr != nil {
+		return nil, listErr
+	}
+	var ids []string
+	for _, rec := range list {
+		if !IsTerminal(rec.Status) || (rec.PID > 0 && processAlive(rec.PID)) {
+			ids = append(ids, rec.ID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return m.StopMany(ids)
+}
+
 // RemoveOptions configures Manager.Remove.
 type RemoveOptions struct {
 	// Force stops a still-running session before removal.
@@ -1231,6 +1265,8 @@ type WaitOptions struct {
 	Interval time.Duration
 	// Any returns as soon as one target reaches a terminal status.
 	Any bool
+	// StopOnTimeout stops still-running targets when the wait times out.
+	StopOnTimeout bool
 }
 
 // IsTerminal reports whether status is a finished session state.
@@ -1280,6 +1316,11 @@ func (m *Manager) Wait(ctx context.Context, ids []string, opts WaitOptions) ([]R
 		}
 		select {
 		case <-ctx.Done():
+			if opts.StopOnTimeout && len(pending) > 0 {
+				_, _ = m.StopMany(pending)
+				final, _, _ := m.pollWait(targets, false)
+				return final, fmt.Errorf("session: wait timed out; stopped: %s", strings.Join(pending, ", "))
+			}
 			return done, fmt.Errorf("session: wait timed out; still running: %s", strings.Join(pending, ", "))
 		case <-ticker.C:
 		}
@@ -1355,6 +1396,9 @@ type RestartOptions struct {
 	// Restart inherits rec.Governed.
 	Governed    bool
 	UseGoverned bool
+	// NoGoverned / UseNoGoverned opt out of auto-governed on restart.
+	NoGoverned    bool
+	UseNoGoverned bool
 }
 
 // Restart stops (optional) and re-launches a session in its existing worktree,
@@ -1385,10 +1429,7 @@ func (m *Manager) Restart(ctx context.Context, id string, opts RestartOptions) (
 	if profile == "" {
 		profile = rec.Profile
 	}
-	governed := rec.Governed
-	if opts.UseGoverned {
-		governed = opts.Governed
-	}
+	governed, noGoverned := resolveRestartGoverned(rec.Governed, opts)
 
 	return m.Start(ctx, StartOptions{
 		Goal:         goal,
@@ -1401,7 +1442,20 @@ func (m *Manager) Restart(ctx context.Context, id string, opts RestartOptions) (
 		ExtraArgs:    opts.ExtraArgs,
 		SkipWorktree: rec.WorktreePath == "",
 		Governed:     governed,
+		NoGoverned:   noGoverned,
 	})
+}
+
+func resolveRestartGoverned(priorGoverned bool, opts RestartOptions) (governed, noGoverned bool) {
+	governed = priorGoverned
+	noGoverned = !priorGoverned // keep prior ungoverned despite policy.yaml
+	if opts.UseNoGoverned {
+		return false, true
+	}
+	if opts.UseGoverned {
+		return opts.Governed, !opts.Governed
+	}
+	return governed, noGoverned
 }
 
 // DiffOptions configures Manager.Diff.

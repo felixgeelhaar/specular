@@ -375,9 +375,15 @@ var sessionShowCmd = &cobra.Command{
 }
 
 var sessionStopCmd = &cobra.Command{
-	Use:   "stop <session-id>",
-	Short: "Stop a running agent session",
-	Args:  cobra.ExactArgs(1),
+	Use:   "stop [session-id...]",
+	Short: "Stop running agent session(s)",
+	Long: `Stop one or more managed sessions (Xirp grid kill analogue).
+
+  specular session stop auth
+  specular session stop auth ratelimit
+  specular session stop --all
+`,
+	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -387,18 +393,36 @@ var sessionStopCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		rec, err := mgr.Stop(args[0])
-		if err != nil {
-			return err
-		}
+		all, _ := cmd.Flags().GetBool("all")
 		jsonOut, _ := cmd.Flags().GetBool("json")
+		if all && len(args) > 0 {
+			return fmt.Errorf("session: pass session IDs or --all, not both")
+		}
+		if !all && len(args) == 0 {
+			return fmt.Errorf("session: session ID required (or pass --all)")
+		}
+
+		var stopped []session.Record
+		var stopErr error
+		if all {
+			stopped, stopErr = mgr.StopAll()
+		} else {
+			stopped, stopErr = mgr.StopMany(args)
+		}
 		if jsonOut {
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
-			return enc.Encode(rec)
+			_ = enc.Encode(stopped)
+			return stopErr
 		}
-		fmt.Printf("Stopped session %s\n", rec.ID)
-		return nil
+		if len(stopped) == 0 {
+			fmt.Println("No sessions to stop.")
+			return stopErr
+		}
+		for _, rec := range stopped {
+			fmt.Printf("Stopped session %s\n", rec.ID)
+		}
+		return stopErr
 	},
 }
 
@@ -678,6 +702,7 @@ Examples:
   specular session wait auth ratelimit
   specular session wait --any auth ratelimit
   specular session wait --timeout 10m && specular eval drift --fail-on-drift
+  specular session wait --timeout 45m --stop
   specular session wait --attest auth ratelimit
   specular session wait --attest --gate
   specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml
@@ -694,17 +719,22 @@ Examples:
 		timeout, _ := cmd.Flags().GetDuration("timeout")
 		interval, _ := cmd.Flags().GetDuration("interval")
 		anyDone, _ := cmd.Flags().GetBool("any")
+		stopOnTimeout, _ := cmd.Flags().GetBool("stop")
 		jsonOut, _ := cmd.Flags().GetBool("json")
 		doAttest, _ := cmd.Flags().GetBool("attest")
 		doGate, _ := cmd.Flags().GetBool("gate")
 		doBundle, _ := cmd.Flags().GetBool("bundle")
 		bundleOut, _ := cmd.Flags().GetString("bundle-out")
 		policies, _ := cmd.Flags().GetStringSlice("policy")
+		if stopOnTimeout && timeout <= 0 {
+			return fmt.Errorf("session: --stop requires --timeout")
+		}
 
 		recs, waitErr := mgr.Wait(cmd.Context(), args, session.WaitOptions{
-			Timeout:  timeout,
-			Interval: interval,
-			Any:      anyDone,
+			Timeout:       timeout,
+			Interval:      interval,
+			Any:           anyDone,
+			StopOnTimeout: stopOnTimeout,
 		})
 		if jsonOut {
 			enc := json.NewEncoder(os.Stdout)
@@ -763,6 +793,7 @@ Examples:
   specular session restart demo
   specular session restart demo --harness gemini
   specular session restart demo --force --goal "Retry with tests"
+  specular session restart demo --no-governed --force
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -782,16 +813,23 @@ Examples:
 		jsonOut, _ := cmd.Flags().GetBool("json")
 		governedChanged := cmd.Flags().Changed("governed")
 		governed, _ := cmd.Flags().GetBool("governed")
+		noGovernedChanged := cmd.Flags().Changed("no-governed")
+		noGoverned, _ := cmd.Flags().GetBool("no-governed")
+		if governedChanged && noGovernedChanged {
+			return fmt.Errorf("session: --governed and --no-governed are mutually exclusive")
+		}
 
 		rec, err := mgr.Restart(cmd.Context(), args[0], session.RestartOptions{
-			Harness:     harness,
-			Goal:        goal,
-			Profile:     profile,
-			Force:       force,
-			Detach:      !foreground,
-			NoApproval:  true,
-			Governed:    governed,
-			UseGoverned: governedChanged,
+			Harness:       harness,
+			Goal:          goal,
+			Profile:       profile,
+			Force:         force,
+			Detach:        !foreground,
+			NoApproval:    true,
+			Governed:      governed,
+			UseGoverned:   governedChanged,
+			NoGoverned:    noGoverned,
+			UseNoGoverned: noGovernedChanged,
 		})
 		if err != nil && rec == nil {
 			return err
@@ -1505,6 +1543,7 @@ func init() {
 	sessionShowCmd.Flags().BoolP("verbose", "v", false, "Show log tail / task details")
 	sessionShowCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionStopCmd.Flags().Bool("all", false, "Stop every non-terminal session")
 	sessionStopCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionLogsCmd.Flags().Bool("follow", false, "Follow log output")
@@ -1522,6 +1561,7 @@ func init() {
 	sessionWaitCmd.Flags().Duration("timeout", 0, "Maximum time to wait (0 = no limit)")
 	sessionWaitCmd.Flags().Duration("interval", 500*time.Millisecond, "Poll interval")
 	sessionWaitCmd.Flags().Bool("any", false, "Return when any named session finishes")
+	sessionWaitCmd.Flags().Bool("stop", false, "Stop still-running sessions when --timeout fires")
 	sessionWaitCmd.Flags().Bool("attest", false, "Write session attestations after wait succeeds")
 	sessionWaitCmd.Flags().Bool("gate", false, "Run outer-loop drift gate after wait succeeds (fail-on-drift)")
 	sessionWaitCmd.Flags().Bool("bundle", false, "Package attestations + drift (+ policies) into an evidence bundle (implies --gate)")
@@ -1535,6 +1575,7 @@ func init() {
 	sessionRestartCmd.Flags().Bool("force", false, "Stop a still-running session before restart")
 	sessionRestartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
 	sessionRestartCmd.Flags().Bool("governed", false, "Safer native launch on restart (omit to keep prior setting)")
+	sessionRestartCmd.Flags().Bool("no-governed", false, "Disable auto-governed on restart even when a policy file is present")
 	sessionRestartCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionRmCmd.Flags().Bool("force", false, "Stop a still-running session before removal")

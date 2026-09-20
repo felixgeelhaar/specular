@@ -57,6 +57,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session sync` rebases/merges worktrees onto base when main moves
 - `session push [--pr]` lands the branch (and optional GitHub PR)
 - `session merge [--into]` lands the branch into the primary checkout (no gh)
+- `session stop [ids…] [--all]` / `wait --timeout --stop` fleet abort
 - `session attest` / `wait --attest` signed provenance for native harnesses
 - `session wait --gate` fleet→evidence drift proof (fail-on-drift, exit 4)
 - `session wait --bundle` one-command attest/gate/evidence packet
@@ -113,6 +114,9 @@ specular session batch --governed fleet.yaml
 specular session status --watch
 specular policy library install soc2-cc8.1
 specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml demo demo-2 review
+# Or abort a stuck fleet:
+# specular session wait --timeout 45m --stop
+# specular session stop --all
 specular session exec demo -- go test ./...
 specular session diff demo --stat
 specular session commit demo --all

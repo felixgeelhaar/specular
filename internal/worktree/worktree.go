@@ -568,8 +568,8 @@ func (m *Manager) ensureOnBranch(ctx context.Context, branch string) error {
 	if cur == branch {
 		return nil
 	}
-	if err := runGit(ctx, m.repoRoot, "checkout", branch); err != nil {
-		return fmt.Errorf("worktree: checkout %s: %w", branch, err)
+	if checkoutErr := runGit(ctx, m.repoRoot, "checkout", branch); checkoutErr != nil {
+		return fmt.Errorf("worktree: checkout %s: %w", branch, checkoutErr)
 	}
 	return nil
 }
