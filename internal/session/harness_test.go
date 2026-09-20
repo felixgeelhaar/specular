@@ -54,7 +54,7 @@ func TestResolveLaunchCodexGemini(t *testing.T) {
 
 func TestResolveLaunchClaudeGoverned(t *testing.T) {
 	t.Parallel()
-	plan, err := ResolveLaunch(StartOptions{Governed: true, DenyTools: []string{"bash"}}, &Record{
+	plan, err := ResolveLaunch(StartOptions{Governed: true, DenyTools: []string{"web_search"}}, &Record{
 		ID: "g1", Goal: "ship it", Harness: "claude-code", WorktreePath: "/w",
 	})
 	if err != nil {
@@ -67,7 +67,7 @@ func TestResolveLaunchClaudeGoverned(t *testing.T) {
 	if !strings.Contains(joined, "Specular governed session") {
 		t.Fatalf("missing preamble: %v", plan.Args)
 	}
-	if !strings.Contains(joined, "Denied tools: bash") {
+	if !strings.Contains(joined, "Denied tools: web_search") {
 		t.Fatalf("missing deny tools: %v", plan.Args)
 	}
 	if !strings.Contains(joined, "ship it") {
