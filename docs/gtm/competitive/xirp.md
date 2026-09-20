@@ -56,6 +56,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session commit` lands worktree changes with provenance-aware messages
 - `session sync` rebases/merges worktrees onto base when main moves
 - `session push [--pr]` lands the branch (and optional GitHub PR)
+- `session merge [--into]` lands the branch into the primary checkout (no gh)
 - `session attest` / `wait --attest` signed provenance for native harnesses
 - `session wait --gate` fleet→evidence drift proof (fail-on-drift, exit 4)
 - `session wait --bundle` one-command attest/gate/evidence packet
@@ -117,6 +118,7 @@ specular session diff demo --stat
 specular session commit demo --all
 specular session sync demo
 specular session push demo --pr
+specular session merge demo
 specular auto verify .specular/sessions/demo.attestation.json
 specular session diff demo --against demo-2
 cd "$(specular session open demo)"

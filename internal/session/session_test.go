@@ -793,6 +793,86 @@ func TestSessionSyncConflict(t *testing.T) {
 	}
 }
 
+func TestSessionMerge(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+
+	// Fast-forward: session tip is a linear descendant of main.
+	ffRec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "ff land", Name: "merge-ff", Harness: "claude-code",
+		Detach: false, NoApproval: true, Binary: stub, Governed: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ffRec.WorktreePath, "ff.txt"), []byte("ff\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), ffRec.ID, CommitOptions{All: true, Message: "ff tip"}); err != nil {
+		t.Fatal(err)
+	}
+	ff, err := mgr.Merge(context.Background(), ffRec.ID, MergeOptions{FFOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ff.Strategy != "ff-only" || ff.AfterSHA == ff.BeforeSHA {
+		t.Fatalf("%+v", ff)
+	}
+	if _, err := os.Stat(filepath.Join(repo, "ff.txt")); err != nil {
+		t.Fatalf("ff.txt missing after ff-only: %v", err)
+	}
+
+	// No-ff: force a merge commit even when FF would work.
+	nfRec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "noff land", Name: "merge-noff", Harness: "codex",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nfRec.WorktreePath, "noff.txt"), []byte("noff\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), nfRec.ID, CommitOptions{All: true, Message: "noff tip"}); err != nil {
+		t.Fatal(err)
+	}
+	nf, err := mgr.Merge(context.Background(), nfRec.ID, MergeOptions{NoFF: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nf.Strategy != "no-ff" || nf.AfterSHA == nf.BeforeSHA {
+		t.Fatalf("%+v", nf)
+	}
+	if _, err := os.Stat(filepath.Join(repo, "noff.txt")); err != nil {
+		t.Fatalf("noff.txt missing after no-ff: %v", err)
+	}
+	// Merge commit has two parents.
+	cmd := exec.Command("git", "rev-list", "--parents", "-n", "1", "HEAD")
+	cmd.Dir = repo
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("rev-list: %v\n%s", err, out)
+	}
+	if len(strings.Fields(strings.TrimSpace(string(out)))) < 3 {
+		t.Fatalf("expected merge commit with 2 parents, got %q", out)
+	}
+
+	noWT, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "no wt", Name: "merge-nowt", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub, SkipWorktree: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Merge(context.Background(), noWT.ID, MergeOptions{}); err == nil {
+		t.Fatal("expected no-worktree error")
+	}
+}
+
 func TestSessionAttest(t *testing.T) {
 	repo := initTempRepo(t)
 	mgr, err := NewManager(repo)

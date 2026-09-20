@@ -2134,6 +2134,11 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `push --body <text>` | PR body override |
 | `push --base <branch>` | PR base branch for `gh --base` |
 | `push --force` | Push even if the session is still running |
+| `merge --into <branch>` | Target branch (default main/master/HEAD) |
+| `merge --ff-only` | Require a fast-forward merge |
+| `merge --no-ff` | Always create a merge commit |
+| `merge -m <msg>` | Override provenance-aware merge message |
+| `merge --force` | Merge even if the session is still running |
 | `attest --output <path>` | Override attestation path (default `.specular/sessions/<id>.attestation.json`) |
 | `attest --force` | Attest even if the session is still running |
 
@@ -2166,6 +2171,7 @@ $ specular session diff auth --stat
 $ specular session commit auth --all
 $ specular session sync auth
 $ specular session push auth --pr
+$ specular session merge auth
 $ specular session attest auth
 $ specular auto verify .specular/sessions/auth.attestation.json
 $ specular session diff auth --against ratelimit
