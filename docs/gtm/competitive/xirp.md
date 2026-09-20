@@ -14,7 +14,7 @@ context. It proved demand for vendor-neutral multi-agent orchestration.
 
 | Dimension | Xirp | Specular |
 |-----------|------|----------|
-| Parallel sessions | Desktop grid | `session start/list/logs/fork/stop` |
+| Parallel sessions | Desktop grid | `session start/batch/list/logs/fork/stop` |
 | Harnesses | Claude Code, Codex, Gemini | **Same**, plus governed `specular-auto` |
 | Isolation | Git worktrees | Git worktrees (`.specular/worktrees/`) |
 | Platforms | **macOS only** | **Linux / macOS / Windows** |
@@ -50,6 +50,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session wait` scriptable parallel gate + `session restart` harness swap
 - `session rm` / `session prune` lifecycle cleanup after fleets finish
 - `session diff` worktree changes vs base or another session
+- `session batch` / `session start --manifest` fleet launch (CI-native vs Mac grid)
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
 - Harness + worktree provenance into attestations
@@ -82,8 +83,16 @@ everywhere compliance matters — Specular is the stronger product.
 
 ```bash
 specular session harnesses
-specular session start --harness claude-code --name demo "Add /healthz"
-specular session start --harness codex --name demo-2 "Add rate limiting"
+# One-shot fleet (CI-native vs Xirp's Mac grid):
+cat > fleet.yaml <<'EOF'
+- name: demo
+  harness: claude-code
+  goal: Add /healthz
+- name: demo-2
+  harness: codex
+  goal: Add rate limiting
+EOF
+specular session batch fleet.yaml
 specular session status --watch
 specular session wait demo demo-2
 specular session diff demo --stat

@@ -1996,6 +1996,8 @@ specular session <subcommand>
 | Command | Description |
 |---------|-------------|
 | `session start <goal>` | Start a detached harness run in an isolated worktree |
+| `session start --manifest <file>` | Start a fleet from a YAML/JSON manifest |
+| `session batch <manifest>` | Alias for fleet launch from a manifest |
 | `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
 | `session show <id>` | Show session details, worktree, harness, log path |
 | `session status [--watch]` | Live multi-session board (counts + PID/branch/goal) |
@@ -2017,9 +2019,29 @@ specular session <subcommand>
 | `--name <slug>` | Session / worktree name (default `sess-<timestamp>`) |
 | `--harness <name>` | `specular-auto` (default), `claude-code`, `codex`, or `gemini` |
 | `--profile <name>` | Auto profile for `specular-auto` (default `ci`) |
+| `--manifest <file>` | Fleet launch from YAML/JSON (skips positional goal) |
 | `--no-worktree` | Run in the current checkout |
 | `--foreground` | Do not detach |
 | `--json` | Emit JSON |
+
+**Batch / manifest flags** (also on `session start --manifest`):
+
+| Flag | Description |
+|------|-------------|
+| `--harness <name>` | Default harness when a manifest entry omits `harness` |
+| `--profile <name>` | Default profile when a manifest entry omits `profile` |
+| `--no-worktree` | Run all entries in the current checkout |
+| `--json` | Emit JSON array of started sessions |
+
+**Manifest shape** (YAML or JSON array, or `{ "sessions": [...] }`):
+
+| Field | Description |
+|-------|-------------|
+| `goal` | Required prompt for the harness |
+| `name` | Optional session / worktree slug (must be unique) |
+| `harness` | Optional per-entry harness override |
+| `profile` | Optional per-entry auto profile |
+| `noWorktree` | Optional; skip worktree for that entry |
 
 **Status / wait / open / restart / rm / prune / diff flags:**
 
@@ -2051,6 +2073,16 @@ specular session <subcommand>
 $ specular session harnesses
 $ specular session start --harness claude-code --name auth "Harden JWT validation"
 $ specular session start --harness codex --name ratelimit "Add rate limiting"
+# Or launch a fleet from a manifest:
+$ cat > fleet.yaml <<'EOF'
+- name: auth
+  harness: claude-code
+  goal: Harden JWT validation
+- name: ratelimit
+  harness: codex
+  goal: Add rate limiting
+EOF
+$ specular session batch fleet.yaml
 $ specular session status
 $ specular session wait auth ratelimit
 $ specular session diff auth --stat

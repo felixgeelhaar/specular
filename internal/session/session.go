@@ -1007,6 +1007,48 @@ func appendUntracked(out string, files []string, nameOnly, stat bool) string {
 	return b.String()
 }
 
+// StartMany launches each manifest entry as a detached session.
+// Defaults supply shared Binary/Harness/Profile/SkipWorktree overrides (tests/CLI).
+// On the first failure, returns sessions started so far plus the error.
+func (m *Manager) StartMany(ctx context.Context, entries []ManifestEntry, defaults StartOptions) ([]*Record, error) {
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("session: no manifest entries")
+	}
+	started := make([]*Record, 0, len(entries))
+	for i, entry := range entries {
+		harness := entry.Harness
+		if harness == "" {
+			harness = defaults.Harness
+		}
+		profile := entry.Profile
+		if profile == "" {
+			profile = defaults.Profile
+		}
+		opts := StartOptions{
+			Goal:         entry.Goal,
+			Name:         entry.Name,
+			Harness:      harness,
+			Profile:      profile,
+			NoApproval:   true,
+			Detach:       true,
+			Binary:       defaults.Binary,
+			ExtraArgs:    defaults.ExtraArgs,
+			SkipWorktree: entry.NoWorktree || defaults.SkipWorktree,
+		}
+		rec, err := m.Start(ctx, opts)
+		if err != nil && rec == nil {
+			return started, fmt.Errorf("session: manifest entry %d (%s): %w", i, entry.Name, err)
+		}
+		if rec != nil {
+			started = append(started, rec)
+		}
+		if err != nil {
+			return started, fmt.Errorf("session: manifest entry %d (%s): %w", i, entry.Name, err)
+		}
+	}
+	return started, nil
+}
+
 // ParsePID is a small helper for tests.
 func ParsePID(s string) (int, error) {
 	return strconv.Atoi(s)

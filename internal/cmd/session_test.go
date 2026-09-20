@@ -9,6 +9,7 @@ import (
 func TestSessionSubcommands(t *testing.T) {
 	required := map[string]bool{
 		"start":     false,
+		"batch":     false,
 		"list":      false,
 		"show":      false,
 		"stop":      false,
@@ -48,7 +49,7 @@ func TestSessionStartFlags(t *testing.T) {
 	if startCmd == nil {
 		t.Fatal("start subcommand not found")
 	}
-	for _, name := range []string{"name", "harness", "profile", "no-worktree", "foreground", "json"} {
+	for _, name := range []string{"name", "harness", "profile", "no-worktree", "foreground", "json", "manifest"} {
 		if startCmd.Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session start", name)
 		}
@@ -60,7 +61,7 @@ func TestSessionLifecycleFlags(t *testing.T) {
 	for _, cmd := range sessionCmd.Commands() {
 		found[cmd.Name()] = cmd
 	}
-	for _, name := range []string{"status", "open", "wait", "restart", "rm", "prune", "diff"} {
+	for _, name := range []string{"status", "open", "wait", "restart", "rm", "prune", "diff", "batch"} {
 		if found[name] == nil {
 			t.Fatalf("%s subcommand not found", name)
 		}
@@ -98,6 +99,11 @@ func TestSessionLifecycleFlags(t *testing.T) {
 	for _, name := range []string{"base", "against", "stat", "name-only", "patch", "json"} {
 		if found["diff"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session diff", name)
+		}
+	}
+	for _, name := range []string{"harness", "profile", "no-worktree", "json"} {
+		if found["batch"].Flags().Lookup(name) == nil {
+			t.Errorf("flag %q not found on session batch", name)
 		}
 	}
 }

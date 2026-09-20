@@ -38,6 +38,7 @@ Examples:
   specular session stop auth
   specular session prune --delete-branch
   specular session diff auth --stat
+  specular session batch fleet.yaml
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
@@ -45,7 +46,7 @@ Examples:
 }
 
 var sessionStartCmd = &cobra.Command{
-	Use:   "start <goal>",
+	Use:   "start [goal]",
 	Short: "Start a parallel agent session in an isolated worktree",
 	Long: `Start a coding-agent session as a managed background process.
 
@@ -58,9 +59,21 @@ launches the selected harness:
   gemini         Google Gemini CLI (--prompt)
 
 Harness + worktree identity are recorded for the outer-loop drift gate.
+
+Fleet launch (CI-native vs Xirp's Mac grid):
+
+  specular session start --manifest fleet.yaml
+  specular session wait
 `,
-	Args: cobra.MinimumNArgs(1),
+	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		manifestPath, _ := cmd.Flags().GetString("manifest")
+		if manifestPath != "" {
+			return runSessionManifest(cmd, manifestPath)
+		}
+		if len(args) < 1 {
+			return fmt.Errorf("goal is required (or pass --manifest)")
+		}
 		goal := args[0]
 		for i := 1; i < len(args); i++ {
 			goal += " " + args[i]
@@ -118,6 +131,77 @@ Harness + worktree identity are recorded for the outer-loop drift gate.
 		fmt.Printf("  specular session stop %s\n", rec.ID)
 		return err
 	},
+}
+
+var sessionBatchCmd = &cobra.Command{
+	Use:   "batch <manifest>",
+	Short: "Start a fleet of sessions from a YAML/JSON manifest",
+	Long: `Launch multiple parallel sessions from a fleet manifest.
+
+Manifest is a YAML/JSON array of entries, or an object with a "sessions" key:
+
+  - name: auth
+    harness: claude-code
+    goal: Harden JWT validation
+  - name: ratelimit
+    harness: codex
+    goal: Add rate limiting
+
+Then:
+
+  specular session batch fleet.yaml
+  specular session wait
+  specular session diff auth --against ratelimit
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runSessionManifest(cmd, args[0])
+	},
+}
+
+func runSessionManifest(cmd *cobra.Command, manifestPath string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	mgr, err := session.NewManager(cwd)
+	if err != nil {
+		return err
+	}
+	data, readErr := os.ReadFile(manifestPath)
+	if readErr != nil {
+		return fmt.Errorf("read manifest: %w", readErr)
+	}
+	entries, parseErr := session.ParseManifest(data)
+	if parseErr != nil {
+		return parseErr
+	}
+	harness, _ := cmd.Flags().GetString("harness")
+	profile, _ := cmd.Flags().GetString("profile")
+	noWorktree, _ := cmd.Flags().GetBool("no-worktree")
+	jsonOut, _ := cmd.Flags().GetBool("json")
+
+	started, startErr := mgr.StartMany(cmd.Context(), entries, session.StartOptions{
+		Harness:      harness,
+		Profile:      profile,
+		SkipWorktree: noWorktree,
+	})
+	if jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(started)
+		return startErr
+	}
+	ids := make([]string, 0, len(started))
+	for _, rec := range started {
+		fmt.Printf("Started session %s (%s) harness=%s\n", rec.ID, rec.Status, rec.Harness)
+		ids = append(ids, rec.ID)
+	}
+	if len(ids) > 0 {
+		fmt.Printf("\n  specular session wait %s\n", strings.Join(ids, " "))
+		fmt.Printf("  specular session status\n")
+	}
+	return startErr
 }
 
 var sessionListCmd = &cobra.Command{
@@ -957,6 +1041,12 @@ func init() {
 	sessionStartCmd.Flags().Bool("no-worktree", false, "Run in the current checkout (not isolated)")
 	sessionStartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
 	sessionStartCmd.Flags().Bool("json", false, "Emit JSON")
+	sessionStartCmd.Flags().String("manifest", "", "Start a fleet from a YAML/JSON manifest file")
+
+	sessionBatchCmd.Flags().String("harness", "", "Default harness when an entry omits harness")
+	sessionBatchCmd.Flags().String("profile", "", "Default profile when an entry omits profile")
+	sessionBatchCmd.Flags().Bool("no-worktree", false, "Run all entries in the current checkout")
+	sessionBatchCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionListCmd.Flags().Bool("checkpoints", false, "Also list legacy auto checkpoints")
 	sessionListCmd.Flags().Bool("json", false, "Emit JSON")
@@ -1008,6 +1098,7 @@ func init() {
 	sessionDiffCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionCmd.AddCommand(sessionStartCmd)
+	sessionCmd.AddCommand(sessionBatchCmd)
 	sessionCmd.AddCommand(sessionListCmd)
 	sessionCmd.AddCommand(sessionShowCmd)
 	sessionCmd.AddCommand(sessionStopCmd)
