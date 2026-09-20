@@ -642,6 +642,7 @@ Examples:
   specular session wait --timeout 10m && specular eval drift --fail-on-drift
   specular session wait --attest auth ratelimit
   specular session wait --attest --gate
+  specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
@@ -658,6 +659,9 @@ Examples:
 		jsonOut, _ := cmd.Flags().GetBool("json")
 		doAttest, _ := cmd.Flags().GetBool("attest")
 		doGate, _ := cmd.Flags().GetBool("gate")
+		doBundle, _ := cmd.Flags().GetBool("bundle")
+		bundleOut, _ := cmd.Flags().GetString("bundle-out")
+		policies, _ := cmd.Flags().GetStringSlice("policy")
 
 		recs, waitErr := mgr.Wait(cmd.Context(), args, session.WaitOptions{
 			Timeout:  timeout,
@@ -671,25 +675,22 @@ Examples:
 			if waitErr != nil {
 				return waitErr
 			}
-			if doAttest {
-				if attestErr := attestSessionRecords(cmd.Context(), mgr, recs, false); attestErr != nil {
-					return attestErr
-				}
-			}
-			if doGate {
-				return runSessionDriftGate(sessionDriftGateOptions{Quiet: true})
-			}
-			return nil
+			return runSessionWaitPost(sessionWaitPostOptions{
+				Ctx: cmd.Context(), Mgr: mgr, Recs: recs,
+				Attest: doAttest, Gate: doGate, Bundle: doBundle,
+				BundleOut: bundleOut, Policies: policies, Quiet: true,
+			})
 		}
 		if len(recs) == 0 {
 			fmt.Println("No active sessions to wait for.")
 			if waitErr != nil {
 				return waitErr
 			}
-			if doGate {
-				return runSessionDriftGate(sessionDriftGateOptions{})
-			}
-			return nil
+			return runSessionWaitPost(sessionWaitPostOptions{
+				Ctx: cmd.Context(), Mgr: mgr, Recs: recs,
+				Attest: doAttest, Gate: doGate, Bundle: doBundle,
+				BundleOut: bundleOut, Policies: policies, Quiet: false,
+			})
 		}
 		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tEXIT")
@@ -704,15 +705,11 @@ Examples:
 		if waitErr != nil {
 			return waitErr
 		}
-		if doAttest {
-			if attestErr := attestSessionRecords(cmd.Context(), mgr, recs, true); attestErr != nil {
-				return attestErr
-			}
-		}
-		if doGate {
-			return runSessionDriftGate(sessionDriftGateOptions{})
-		}
-		return nil
+		return runSessionWaitPost(sessionWaitPostOptions{
+			Ctx: cmd.Context(), Mgr: mgr, Recs: recs,
+			Attest: doAttest, Gate: doGate, Bundle: doBundle,
+			BundleOut: bundleOut, Policies: policies, Quiet: false,
+		})
 	},
 }
 
@@ -1360,6 +1357,9 @@ func init() {
 	sessionWaitCmd.Flags().Bool("any", false, "Return when any named session finishes")
 	sessionWaitCmd.Flags().Bool("attest", false, "Write session attestations after wait succeeds")
 	sessionWaitCmd.Flags().Bool("gate", false, "Run outer-loop drift gate after wait succeeds (fail-on-drift)")
+	sessionWaitCmd.Flags().Bool("bundle", false, "Package attestations + drift (+ policies) into an evidence bundle (implies --gate)")
+	sessionWaitCmd.Flags().String("bundle-out", "session-evidence.sbundle.tgz", "Output path for --bundle")
+	sessionWaitCmd.Flags().StringSlice("policy", nil, "Policy files to include when using --bundle")
 	sessionWaitCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionRestartCmd.Flags().String("harness", "", "Switch harness on restart")

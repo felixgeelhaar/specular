@@ -2031,7 +2031,7 @@ specular session <subcommand>
 | `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
 | `session show <id>` | Show session details, worktree, harness, log path |
 | `session status [--watch]` | Live multi-session board (counts + PID/branch/goal) |
-| `session wait [id…]` | Block until sessions finish; `--attest` / `--gate` close the fleet→evidence loop |
+| `session wait [id…]` | Block until sessions finish; `--attest` / `--gate` / `--bundle` close the fleet→evidence loop |
 | `session logs <id> [--follow]` | Print or follow the session log |
 | `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
 | `session restart <id>` | Re-launch in the same worktree (optional harness swap) |
@@ -2088,6 +2088,9 @@ specular session <subcommand>
 | `wait --any` | Return when the first named session finishes |
 | `wait --attest` | Write `.attestation.json` for each waited session after success |
 | `wait --gate` | After wait (and optional `--attest`) succeeds, run outer-loop drift with fail-on-drift (exit 4) |
+| `wait --bundle` | After wait, run gate (+ attest when sessions exist) and package attestations/drift/policies into an evidence bundle |
+| `wait --bundle-out <path>` | Bundle output path (default `session-evidence.sbundle.tgz`) |
+| `wait --policy <path>` | Policy/library files to include in `--bundle` (repeatable) |
 | `open --shell` | Print `cd "<worktree>"` instead of the bare path |
 | `open --editor` | Open the worktree in `$EDITOR` / `$VISUAL` |
 | `restart --harness <name>` | Switch harness on restart |
@@ -2137,7 +2140,7 @@ $ cat > fleet.yaml <<'EOF'
 EOF
 $ specular session batch fleet.yaml
 $ specular session status
-$ specular session wait --attest --gate auth ratelimit review
+$ specular session wait --attest --gate --bundle --policy .specular/policies/soc2-cc8.1.yaml auth ratelimit review
 $ specular session exec auth -- go test ./...
 $ specular session diff auth --stat
 $ specular session commit auth --all

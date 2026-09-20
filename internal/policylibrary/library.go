@@ -89,8 +89,8 @@ func Install(id, dest string, force bool) error {
 	if err != nil {
 		return err
 	}
-	if err = Validate(e); err != nil {
-		return err
+	if valErr := Validate(e); valErr != nil {
+		return valErr
 	}
 	if dest == "" {
 		dest = DefaultInstallPath(".", id)
@@ -140,16 +140,16 @@ func loadSeed(name string) (Entry, error) {
 		return Entry{}, fmt.Errorf("policylibrary: read %s: %w", name, err)
 	}
 	var e Entry
-	if err = yaml.Unmarshal(raw, &e); err != nil {
-		return Entry{}, fmt.Errorf("policylibrary: parse %s: %w", name, err)
+	if parseErr := yaml.Unmarshal(raw, &e); parseErr != nil {
+		return Entry{}, fmt.Errorf("policylibrary: parse %s: %w", name, parseErr)
 	}
 	e.Raw = raw
 	if e.ID == "" {
 		base := filepath.Base(name)
 		e.ID = strings.TrimSuffix(base, filepath.Ext(base))
 	}
-	if err = Validate(e); err != nil {
-		return Entry{}, err
+	if valErr := Validate(e); valErr != nil {
+		return Entry{}, valErr
 	}
 	return e, nil
 }

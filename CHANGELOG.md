@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session evidence bundle**: `session wait --bundle` packages
+  attestations + drift SARIF (+ `--policy` library fragments) into
+  `session-evidence.sbundle.tgz` after wait (implies `--gate`; attests
+  waited sessions when present) — one-command fleet→auditor packet
+
 - **Open policy library seed (governance moat)**
   - Embedded control mappings: SOC 2 CC8.1, ISO/IEC 42001 Clause 8,
     EU AI Act Art. 17, NIST AI RMF GOVERN 4 (`internal/policylibrary/seed/`)
