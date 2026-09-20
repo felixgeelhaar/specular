@@ -97,6 +97,7 @@ Fleet launch (CI-native vs Xirp's Mac grid):
 		profile, _ := cmd.Flags().GetString("profile")
 		noWorktree, _ := cmd.Flags().GetBool("no-worktree")
 		foreground, _ := cmd.Flags().GetBool("foreground")
+		governed, _ := cmd.Flags().GetBool("governed")
 		jsonOut, _ := cmd.Flags().GetBool("json")
 
 		rec, err := mgr.Start(cmd.Context(), session.StartOptions{
@@ -107,6 +108,7 @@ Fleet launch (CI-native vs Xirp's Mac grid):
 			NoApproval:   true,
 			Detach:       !foreground,
 			SkipWorktree: noWorktree,
+			Governed:     governed,
 		})
 		if err != nil && rec == nil {
 			return err
@@ -122,6 +124,9 @@ Fleet launch (CI-native vs Xirp's Mac grid):
 		fmt.Printf("Started session %s\n", rec.ID)
 		fmt.Printf("  Status:   %s\n", rec.Status)
 		fmt.Printf("  Harness:  %s\n", rec.Harness)
+		if rec.Governed {
+			fmt.Printf("  Governed: true\n")
+		}
 		if rec.WorktreePath != "" {
 			fmt.Printf("  Worktree: %s (%s)\n", rec.WorktreePath, rec.WorktreeBranch)
 		}
@@ -190,12 +195,14 @@ func runSessionManifest(cmd *cobra.Command, manifestPath string) error {
 	harness, _ := cmd.Flags().GetString("harness")
 	profile, _ := cmd.Flags().GetString("profile")
 	noWorktree, _ := cmd.Flags().GetBool("no-worktree")
+	governed, _ := cmd.Flags().GetBool("governed")
 	jsonOut, _ := cmd.Flags().GetBool("json")
 
 	started, startErr := mgr.StartMany(cmd.Context(), entries, session.StartOptions{
 		Harness:      harness,
 		Profile:      profile,
 		SkipWorktree: noWorktree,
+		Governed:     governed,
 	})
 	if jsonOut {
 		enc := json.NewEncoder(os.Stdout)
@@ -205,7 +212,11 @@ func runSessionManifest(cmd *cobra.Command, manifestPath string) error {
 	}
 	ids := make([]string, 0, len(started))
 	for _, rec := range started {
-		fmt.Printf("Started session %s (%s) harness=%s\n", rec.ID, rec.Status, rec.Harness)
+		gov := ""
+		if rec.Governed {
+			gov = " governed=true"
+		}
+		fmt.Printf("Started session %s (%s) harness=%s%s\n", rec.ID, rec.Status, rec.Harness, gov)
 		ids = append(ids, rec.ID)
 	}
 	if len(ids) > 0 {
@@ -742,14 +753,18 @@ Examples:
 		force, _ := cmd.Flags().GetBool("force")
 		foreground, _ := cmd.Flags().GetBool("foreground")
 		jsonOut, _ := cmd.Flags().GetBool("json")
+		governedChanged := cmd.Flags().Changed("governed")
+		governed, _ := cmd.Flags().GetBool("governed")
 
 		rec, err := mgr.Restart(cmd.Context(), args[0], session.RestartOptions{
-			Harness:    harness,
-			Goal:       goal,
-			Profile:    profile,
-			Force:      force,
-			Detach:     !foreground,
-			NoApproval: true,
+			Harness:     harness,
+			Goal:        goal,
+			Profile:     profile,
+			Force:       force,
+			Detach:      !foreground,
+			NoApproval:  true,
+			Governed:    governed,
+			UseGoverned: governedChanged,
 		})
 		if err != nil && rec == nil {
 			return err
@@ -1324,12 +1339,14 @@ func init() {
 	sessionStartCmd.Flags().String("profile", "ci", "Auto profile (specular-auto only)")
 	sessionStartCmd.Flags().Bool("no-worktree", false, "Run in the current checkout (not isolated)")
 	sessionStartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
+	sessionStartCmd.Flags().Bool("governed", false, "Safer native launch (no skip-permissions/full-auto) + governance preamble")
 	sessionStartCmd.Flags().Bool("json", false, "Emit JSON")
 	sessionStartCmd.Flags().String("manifest", "", "Start a fleet from a YAML/JSON manifest file")
 
 	sessionBatchCmd.Flags().String("harness", "", "Default harness when an entry omits harness")
 	sessionBatchCmd.Flags().String("profile", "", "Default profile when an entry omits profile")
 	sessionBatchCmd.Flags().Bool("no-worktree", false, "Run all entries in the current checkout")
+	sessionBatchCmd.Flags().Bool("governed", false, "Default governed=true for native harness entries")
 	sessionBatchCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionListCmd.Flags().Bool("checkpoints", false, "Also list legacy auto checkpoints")
@@ -1367,6 +1384,7 @@ func init() {
 	sessionRestartCmd.Flags().String("profile", "", "Override auto profile on restart")
 	sessionRestartCmd.Flags().Bool("force", false, "Stop a still-running session before restart")
 	sessionRestartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
+	sessionRestartCmd.Flags().Bool("governed", false, "Safer native launch on restart (omit to keep prior setting)")
 	sessionRestartCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionRmCmd.Flags().Bool("force", false, "Stop a still-running session before removal")

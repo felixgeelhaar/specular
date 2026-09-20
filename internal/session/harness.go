@@ -121,14 +121,7 @@ func ResolveLaunch(opts StartOptions, rec *Record) (LaunchPlan, error) {
 			return LaunchPlan{}, binErr
 		}
 		plan.Binary = bin
-		plan.Args = []string{
-			"--print",
-			"--permission-mode", "acceptEdits",
-			"--dangerously-skip-permissions",
-			"--output-format", "text",
-		}
-		plan.Args = append(plan.Args, opts.ExtraArgs...)
-		plan.Args = append(plan.Args, rec.Goal)
+		plan.Args = claudeArgs(opts, rec.Goal)
 		return plan, nil
 
 	case "codex", "codex-cli":
@@ -137,9 +130,7 @@ func ResolveLaunch(opts StartOptions, rec *Record) (LaunchPlan, error) {
 			return LaunchPlan{}, binErr
 		}
 		plan.Binary = bin
-		plan.Args = []string{"exec", "--full-auto"}
-		plan.Args = append(plan.Args, opts.ExtraArgs...)
-		plan.Args = append(plan.Args, rec.Goal)
+		plan.Args = codexArgs(opts, rec.Goal)
 		return plan, nil
 
 	case "gemini", "gemini-cli":
@@ -148,9 +139,7 @@ func ResolveLaunch(opts StartOptions, rec *Record) (LaunchPlan, error) {
 			return LaunchPlan{}, binErr
 		}
 		plan.Binary = bin
-		plan.Args = []string{"--prompt"}
-		plan.Args = append(plan.Args, opts.ExtraArgs...)
-		plan.Args = append(plan.Args, rec.Goal)
+		plan.Args = geminiArgs(opts, rec.Goal)
 		return plan, nil
 
 	default:
@@ -209,4 +198,54 @@ func isKnownHarness(h string) bool {
 		}
 	}
 	return false
+}
+
+func claudeArgs(opts StartOptions, goal string) []string {
+	args := []string{
+		"--print",
+		"--permission-mode", "acceptEdits",
+		"--output-format", "text",
+	}
+	if !opts.Governed {
+		args = append(args, "--dangerously-skip-permissions")
+	}
+	args = append(args, opts.ExtraArgs...)
+	args = append(args, governedGoal(opts, goal))
+	return args
+}
+
+func codexArgs(opts StartOptions, goal string) []string {
+	args := []string{"exec"}
+	if !opts.Governed {
+		args = append(args, "--full-auto")
+	}
+	args = append(args, opts.ExtraArgs...)
+	args = append(args, governedGoal(opts, goal))
+	return args
+}
+
+func geminiArgs(opts StartOptions, goal string) []string {
+	args := []string{"--prompt"}
+	args = append(args, opts.ExtraArgs...)
+	args = append(args, governedGoal(opts, goal))
+	return args
+}
+
+// governedGoal prepends a Specular change-control preamble when Governed.
+func governedGoal(opts StartOptions, goal string) string {
+	if !opts.Governed {
+		return goal
+	}
+	var b strings.Builder
+	b.WriteString("Specular governed session: stay within the assigned worktree; ")
+	b.WriteString("do not weaken CI gates; prefer minimal diffs; leave evidence for ")
+	b.WriteString("`specular session wait --attest --gate --bundle`.")
+	if len(opts.DenyTools) > 0 {
+		b.WriteString(" Denied tools: ")
+		b.WriteString(strings.Join(opts.DenyTools, ", "))
+		b.WriteString(".")
+	}
+	b.WriteString("\n\n")
+	b.WriteString(goal)
+	return b.String()
 }

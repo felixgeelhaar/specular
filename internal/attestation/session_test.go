@@ -40,10 +40,24 @@ func TestGenerateFromSession(t *testing.T) {
 	if att.Provenance.WorktreePath != "/tmp/wt/auth" || att.Provenance.WorktreeBranch != "specular/auth" {
 		t.Fatalf("%+v", att.Provenance)
 	}
+	if att.Provenance.Governed {
+		t.Fatal("expected governed=false by default")
+	}
 	if att.Provenance.SpecularVersion != "9.9.9" {
 		t.Fatalf("version=%s", att.Provenance.SpecularVersion)
 	}
 	if err := NewStandardVerifier().Verify(att); err != nil {
 		t.Fatalf("verify: %v", err)
+	}
+
+	gov, err := gen.GenerateFromSession(SessionInput{
+		ID: "g", Goal: "x", Harness: "claude-code", Status: "completed",
+		CreatedAt: now, UpdatedAt: now, Governed: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !gov.Provenance.Governed {
+		t.Fatal("expected governed=true in provenance")
 	}
 }

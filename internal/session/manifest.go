@@ -16,6 +16,7 @@ type ManifestEntry struct {
 	Profile    string   `json:"profile,omitempty" yaml:"profile,omitempty"`
 	NoWorktree bool     `json:"noWorktree,omitempty" yaml:"noWorktree,omitempty"`
 	DependsOn  []string `json:"dependsOn,omitempty" yaml:"dependsOn,omitempty"`
+	Governed   bool     `json:"governed,omitempty" yaml:"governed,omitempty"`
 }
 
 // ParseManifest decodes a JSON or YAML fleet manifest.

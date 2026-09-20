@@ -135,6 +135,7 @@ type SessionInput struct {
 	WorktreePath   string
 	WorktreeBranch string
 	WorktreeName   string
+	Governed       bool
 }
 
 // GenerateFromSession creates a signed attestation from a managed session record.
@@ -160,6 +161,7 @@ func (g *Generator) GenerateFromSession(in SessionInput) (*Attestation, error) {
 		WorktreePath:    in.WorktreePath,
 		WorktreeBranch:  in.WorktreeBranch,
 		WorktreeName:    in.WorktreeName,
+		Governed:        in.Governed,
 	}
 	gitDir := in.WorktreePath
 	if gitInfo, err := gatherGitInfo(gitDir); err == nil {

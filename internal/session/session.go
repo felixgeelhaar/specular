@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/attestation"
+	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/version"
 	"github.com/felixgeelhaar/specular/internal/worktree"
@@ -63,6 +64,9 @@ type Record struct {
 	LogPath        string    `json:"logPath,omitempty"`
 	Error          string    `json:"error,omitempty"`
 	ExitCode       *int      `json:"exitCode,omitempty"`
+	// Governed is true when the session was started with safer native flags
+	// (no skip-permissions / full-auto) and a Specular governance preamble.
+	Governed bool `json:"governed,omitempty"`
 }
 
 // StartOptions configures a new parallel session.
@@ -86,6 +90,11 @@ type StartOptions struct {
 	ExtraArgs []string
 	// SkipWorktree runs in the current checkout (not recommended for parallel).
 	SkipWorktree bool
+	// Governed launches native harnesses without skip-permissions / full-auto
+	// and prepends a Specular governance preamble (deny-tools from policy.yaml).
+	Governed bool
+	// DenyTools are tool names injected into the governed preamble (optional).
+	DenyTools []string
 }
 
 // Store persists session records as JSON files.
@@ -222,6 +231,9 @@ func (m *Manager) Store() *Store { return m.store }
 // Start creates an isolated worktree (unless skipped) and launches the
 // selected harness (specular-auto, claude-code, codex, or gemini).
 func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error) {
+	if opts.Governed {
+		opts = enrichGovernedOptions(m.repoRoot, opts)
+	}
 	rec, prepErr := m.prepareRecord(ctx, opts)
 	if prepErr != nil {
 		return nil, prepErr
@@ -379,6 +391,7 @@ func (m *Manager) prepareRecord(ctx context.Context, opts StartOptions) (*Record
 		Goal:      goal,
 		Harness:   harness,
 		Profile:   profile,
+		Governed:  opts.Governed,
 		Status:    StatusWorking,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -414,6 +427,28 @@ func buildAutoArgs(opts StartOptions, rec *Record) []string {
 	args = append(args, opts.ExtraArgs...)
 	args = append(args, rec.Goal)
 	return args
+}
+
+// enrichGovernedOptions loads deny-tools from .specular/policy.yaml when present.
+func enrichGovernedOptions(repoRoot string, opts StartOptions) StartOptions {
+	if len(opts.DenyTools) > 0 {
+		return opts
+	}
+	candidates := []string{
+		filepath.Join(repoRoot, ".specular", "policy.yaml"),
+		filepath.Join(repoRoot, ".specular", "policies.yaml"),
+	}
+	for _, path := range candidates {
+		pol, err := policy.LoadPolicy(path)
+		if err != nil {
+			continue
+		}
+		if len(pol.Routing.DenyTools) > 0 {
+			opts.DenyTools = append([]string{}, pol.Routing.DenyTools...)
+			return opts
+		}
+	}
+	return opts
 }
 
 func resolveBinary(override string) (string, error) {
@@ -766,6 +801,7 @@ func (m *Manager) Attest(ctx context.Context, id string, opts AttestOptions) (*A
 		WorktreePath:   rec.WorktreePath,
 		WorktreeBranch: rec.WorktreeBranch,
 		WorktreeName:   rec.WorktreeName,
+		Governed:       rec.Governed,
 	})
 	if genErr != nil {
 		return nil, fmt.Errorf("session: generate attestation: %w", genErr)
@@ -1103,6 +1139,11 @@ type RestartOptions struct {
 	NoApproval bool
 	Binary     string
 	ExtraArgs  []string
+	// Governed overrides the prior session's governed flag when set via CLI.
+	// UseGoverned distinguishes "flag absent" from "flag false" — when false,
+	// Restart inherits rec.Governed.
+	Governed    bool
+	UseGoverned bool
 }
 
 // Restart stops (optional) and re-launches a session in its existing worktree,
@@ -1133,6 +1174,10 @@ func (m *Manager) Restart(ctx context.Context, id string, opts RestartOptions) (
 	if profile == "" {
 		profile = rec.Profile
 	}
+	governed := rec.Governed
+	if opts.UseGoverned {
+		governed = opts.Governed
+	}
 
 	return m.Start(ctx, StartOptions{
 		Goal:         goal,
@@ -1144,6 +1189,7 @@ func (m *Manager) Restart(ctx context.Context, id string, opts RestartOptions) (
 		Binary:       opts.Binary,
 		ExtraArgs:    opts.ExtraArgs,
 		SkipWorktree: rec.WorktreePath == "",
+		Governed:     governed,
 	})
 }
 
@@ -1376,6 +1422,8 @@ func manifestStartOptions(entry ManifestEntry, defaults StartOptions) StartOptio
 		Binary:       defaults.Binary,
 		ExtraArgs:    defaults.ExtraArgs,
 		SkipWorktree: entry.NoWorktree || defaults.SkipWorktree,
+		Governed:     entry.Governed || defaults.Governed,
+		DenyTools:    defaults.DenyTools,
 	}
 }
 

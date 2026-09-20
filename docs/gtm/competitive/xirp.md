@@ -58,6 +58,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session attest` / `wait --attest` signed provenance for native harnesses
 - `session wait --gate` fleet→evidence drift proof (fail-on-drift, exit 4)
 - `session wait --bundle` one-command attest/gate/evidence packet
+- `session start --governed` safer native launch + preamble + attest provenance
 - `policy library` open SOC 2 / ISO 42001 / EU AI Act / NIST AI RMF seeds
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
@@ -104,7 +105,7 @@ cat > fleet.yaml <<'EOF'
   goal: Review both changes
   dependsOn: [demo, demo-2]
 EOF
-specular session batch fleet.yaml
+specular session batch --governed fleet.yaml
 specular session status --watch
 specular policy library install soc2-cc8.1
 specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml demo demo-2 review

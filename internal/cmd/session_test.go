@@ -101,6 +101,15 @@ func TestSessionLifecycleFlags(t *testing.T) {
 			t.Errorf("flag %q not found on session restart", name)
 		}
 	}
+	if found["restart"].Flags().Lookup("governed") == nil {
+		t.Errorf("flag %q not found on session restart", "governed")
+	}
+	if found["start"].Flags().Lookup("governed") == nil {
+		t.Errorf("flag %q not found on session start", "governed")
+	}
+	if found["batch"].Flags().Lookup("governed") == nil {
+		t.Errorf("flag %q not found on session batch", "governed")
+	}
 	for _, name := range []string{"force", "keep-worktree", "delete-branch", "json"} {
 		if found["rm"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session rm", name)

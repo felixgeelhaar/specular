@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Governed native sessions**: `session start --governed` (and
+  `batch`/`restart`/manifest `governed:`) launches Claude/Codex without
+  skip-permissions/full-auto, prepends a Specular governance preamble
+  (deny-tools from `.specular/policy.yaml`), and records
+  `provenance.governed` on attestations
+
 - **Session evidence bundle**: `session wait --bundle` packages
   attestations + drift SARIF (+ `--policy` library fragments) into
   `session-evidence.sbundle.tgz` after wait (implies `--gate`; attests
