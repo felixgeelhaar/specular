@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session merge (local land)**: `session merge [--into] [--ff-only|--no-ff]`
+  merges the worktree branch into the primary checkout — land path without
+  requiring `gh` (complements `push --pr`)
+
 - **Session push / PR**: `session push [--pr]` publishes the worktree
   branch (`git push -u`) and optionally opens a PR via `gh` with
   harness/goal provenance — closes fleet → evidence → land

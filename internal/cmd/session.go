@@ -42,6 +42,7 @@ Examples:
   specular session commit auth
   specular session sync auth
   specular session push auth --pr
+  specular session merge auth
   specular session attest auth
   specular session batch fleet.yaml
 `,
@@ -1216,6 +1217,67 @@ with harness/goal provenance in the body (requires gh on PATH).
 	},
 }
 
+var sessionMergeCmd = &cobra.Command{
+	Use:   "merge <session-id>",
+	Short: "Merge a session worktree branch into a base branch",
+	Long: `Land a session branch into the primary checkout (local merge, no gh).
+
+Checks out --into (default main/master) at the repo root and merges the
+session worktree branch with a provenance-aware message. Requires a clean
+primary working tree. On conflict, aborts and reports conflicted paths.
+
+  specular session merge auth
+  specular session merge auth --into main --no-ff
+  specular session merge auth --ff-only
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		into, _ := cmd.Flags().GetString("into")
+		message, _ := cmd.Flags().GetString("message")
+		ffOnly, _ := cmd.Flags().GetBool("ff-only")
+		noFF, _ := cmd.Flags().GetBool("no-ff")
+		force, _ := cmd.Flags().GetBool("force")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+		if ffOnly && noFF {
+			return fmt.Errorf("session: --ff-only and --no-ff are mutually exclusive")
+		}
+
+		res, mergeErr := mgr.Merge(cmd.Context(), args[0], session.MergeOptions{
+			Into:    into,
+			Message: message,
+			FFOnly:  ffOnly,
+			NoFF:    noFF,
+			Force:   force,
+		})
+		if jsonOut && res != nil {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(res)
+		}
+		if mergeErr != nil {
+			return mergeErr
+		}
+		if jsonOut {
+			return nil
+		}
+		fmt.Printf("Merged session %s\n", res.SessionID)
+		fmt.Printf("  Branch:   %s\n", res.Branch)
+		fmt.Printf("  Into:     %s\n", res.Into)
+		fmt.Printf("  Strategy: %s\n", res.Strategy)
+		fmt.Printf("  Before:   %s\n", res.BeforeSHA)
+		fmt.Printf("  After:    %s\n", res.AfterSHA)
+		return nil
+	},
+}
+
 var sessionAttestCmd = &cobra.Command{
 	Use:   "attest <session-id>",
 	Short: "Write a signed attestation with harness/worktree provenance",
@@ -1516,6 +1578,13 @@ func init() {
 	sessionPushCmd.Flags().Bool("force", false, "Push even if the session is still running")
 	sessionPushCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionMergeCmd.Flags().String("into", "", "Target branch (default: main/master/HEAD)")
+	sessionMergeCmd.Flags().StringP("message", "m", "", "Merge commit message (default: provenance-aware)")
+	sessionMergeCmd.Flags().Bool("ff-only", false, "Require a fast-forward merge")
+	sessionMergeCmd.Flags().Bool("no-ff", false, "Always create a merge commit")
+	sessionMergeCmd.Flags().Bool("force", false, "Merge even if the session is still running")
+	sessionMergeCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionAttestCmd.Flags().String("output", "", "Attestation output path (default: .specular/sessions/<id>.attestation.json)")
 	sessionAttestCmd.Flags().Bool("force", false, "Attest even if the session is still running")
 	sessionAttestCmd.Flags().Bool("json", false, "Emit JSON")
@@ -1539,6 +1608,7 @@ func init() {
 	sessionCmd.AddCommand(sessionCommitCmd)
 	sessionCmd.AddCommand(sessionSyncCmd)
 	sessionCmd.AddCommand(sessionPushCmd)
+	sessionCmd.AddCommand(sessionMergeCmd)
 	sessionCmd.AddCommand(sessionAttestCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

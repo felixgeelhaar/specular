@@ -890,6 +890,75 @@ func createSessionPullRequest(ctx context.Context, rec *Record, opts PushOptions
 	return text, nil
 }
 
+// MergeOptions configures Manager.Merge — land a session branch into a base.
+type MergeOptions struct {
+	// Into is the target branch at the primary checkout (default: main/master/HEAD).
+	Into string
+	// Message overrides the provenance-aware merge commit message.
+	Message string
+	// FFOnly requires a fast-forward merge.
+	FFOnly bool
+	// NoFF always creates a merge commit.
+	NoFF bool
+	// Force allows merging while the session is still running.
+	Force bool
+}
+
+// MergeResult is the outcome of landing a session branch into the primary checkout.
+type MergeResult struct {
+	SessionID    string   `json:"sessionId"`
+	WorktreePath string   `json:"worktreePath"`
+	Branch       string   `json:"branch"`
+	Into         string   `json:"into"`
+	Strategy     string   `json:"strategy"`
+	BeforeSHA    string   `json:"beforeSha"`
+	AfterSHA     string   `json:"afterSha"`
+	Conflicts    []string `json:"conflicts,omitempty"`
+}
+
+// Merge lands the session worktree branch into a target branch at the repo root.
+// This is the local land path (no gh required) after commit/sync/push --pr.
+func (m *Manager) Merge(ctx context.Context, id string, opts MergeOptions) (*MergeResult, error) {
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	if rec.WorktreePath == "" || rec.WorktreeBranch == "" {
+		return nil, fmt.Errorf("session: %s has no worktree branch (started with --no-worktree?)", rec.ID)
+	}
+	if !opts.Force && sessionStillRunning(rec) {
+		return nil, fmt.Errorf("session: %s is still %s (stop it first, or pass --force)", rec.ID, rec.Status)
+	}
+	msg := strings.TrimSpace(opts.Message)
+	if msg == "" {
+		msg = fmt.Sprintf("Merge session %s (%s)\n\nHarness: %s\nGoverned: %v\nGoal: %s\n",
+			rec.ID, rec.WorktreeBranch, rec.Harness, rec.Governed, rec.Goal)
+	}
+	wtRes, wtErr := m.worktrees.Merge(ctx, worktree.MergeOptions{
+		SourceBranch: rec.WorktreeBranch,
+		Into:         opts.Into,
+		Message:      msg,
+		FFOnly:       opts.FFOnly,
+		NoFF:         opts.NoFF,
+	})
+	res := &MergeResult{
+		SessionID:    rec.ID,
+		WorktreePath: rec.WorktreePath,
+		Branch:       rec.WorktreeBranch,
+	}
+	if wtRes != nil {
+		res.Into = wtRes.Into
+		res.Strategy = wtRes.Strategy
+		res.BeforeSHA = wtRes.BeforeSHA
+		res.AfterSHA = wtRes.AfterSHA
+		res.Conflicts = wtRes.Conflicts
+	}
+	if wtErr != nil {
+		return res, wtErr
+	}
+	return res, nil
+}
+
 // AttestOptions configures Manager.Attest.
 type AttestOptions struct {
 	// OutputPath overrides the default .specular/sessions/<id>.attestation.json.
