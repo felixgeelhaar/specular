@@ -57,6 +57,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session sync` rebases/merges worktrees onto base when main moves
 - `session attest` / `wait --attest` signed provenance for native harnesses
 - `session wait --gate` fleet→evidence drift proof (fail-on-drift, exit 4)
+- `policy library` open SOC 2 / ISO 42001 / EU AI Act / NIST AI RMF seeds
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
 - Harness + worktree provenance into attestations
@@ -105,11 +106,13 @@ EOF
 specular session batch fleet.yaml
 specular session status --watch
 specular session wait --attest --gate demo demo-2 review
+specular policy library install soc2-cc8.1
 specular session exec demo -- go test ./...
 specular session diff demo --stat
 specular session commit demo --all
 specular session sync demo
 specular auto verify .specular/sessions/demo.attestation.json
+specular bundle create --policy .specular/policies/soc2-cc8.1.yaml --include .specular/sessions/*.attestation.json evidence.sbundle.tgz
 specular session diff demo --against demo-2
 cd "$(specular session open demo)"
 specular session restart demo --harness gemini --force

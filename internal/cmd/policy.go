@@ -24,11 +24,12 @@ Policies define rules for AI provider usage, cost limits, security requirements,
 and workflow approvals. Policy commands help you maintain governance compliance.
 
 Available commands:
-  init     - Create policies.yaml template
-  validate - Validate policy definitions
-  approve  - Approve policies with signature
-  list     - List all policies
-  diff     - Show policy changes`,
+  init     - Create policies.yaml template (Pro)
+  validate - Validate policy definitions (Pro)
+  approve  - Approve policies with signature (Pro)
+  list     - List all policies (Pro)
+  diff     - Show policy changes (Pro)
+  library  - Browse/install open control-mapping seeds (free)`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},

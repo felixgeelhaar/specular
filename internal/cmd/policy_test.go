@@ -16,6 +16,7 @@ func TestPolicySubcommands(t *testing.T) {
 		"approve":  false,
 		"list":     false,
 		"diff":     false,
+		"library":  false,
 	}
 
 	for _, cmd := range policyCmd.Commands() {

@@ -1,0 +1,31 @@
+# Specular Policy Library — EU AI Act Article 17 (Quality management system)
+id: eu-ai-act-art17
+framework: EU AI Act
+control: Article 17
+title: Quality management system
+summary: >
+  Providers of high-risk AI systems shall put a quality management system in
+  place that ensures compliance, including documentation of design, testing,
+  and post-market monitoring — mapped here to Specular change-control evidence
+  for AI-authored software.
+version: "1.0"
+
+artifacts:
+  - kind: session_attestation
+    path: .specular/sessions/*.attestation.json
+    why: Documented design/execution provenance for AI-assisted changes
+  - kind: drift_sarif
+    path: drift.sarif
+    why: Quality gate that blocks undocumented specification drift
+  - kind: approvals
+    path: .specular/approvals/
+    why: Recorded human oversight before production merge
+
+evidence_commands:
+  - specular session wait --attest --gate
+  - specular bundle create --policy .specular/policies/eu-ai-act-art17.yaml --include .specular/sessions/*.attestation.json evidence.sbundle.tgz
+
+compliance:
+  eu_ai_act_enabled: true
+  control_ids:
+    - "Art.17"

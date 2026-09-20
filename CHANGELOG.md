@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Open policy library seed (governance moat)**
+  - Embedded control mappings: SOC 2 CC8.1, ISO/IEC 42001 Clause 8,
+    EU AI Act Art. 17, NIST AI RMF GOVERN 4 (`internal/policylibrary/seed/`)
+  - `specular policy library list|show|install` (free — not Pro-gated)
+  - Installs to `.specular/policies/<id>.yaml` for `bundle create --policy`
+  - Closes the GTM "policy library" claim that previously had no repo files
+
 - **Both-loops session management (response to Xirp)**
   - Specular now owns the **inner loop** as well as the outer gate:
     `specular session start|batch|list|show|status|wait|open|restart|rm|prune|diff|exec|commit|sync|attest|stop|logs|fork|harnesses`

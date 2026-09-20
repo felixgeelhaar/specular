@@ -144,6 +144,11 @@ tax to fork the library is the same research cost the first
 contributor paid; the tax to switch *away* once you've adopted it is
 proportional to the number of controls you've mapped against it.
 
+**Seed shipped:** `specular policy library list|install` embeds the first
+four mappings (`soc2-cc8.1`, `iso42001-clause8`, `eu-ai-act-art17`,
+`nist-ai-rmf-govern4`). Contribution path: [`policies/library/`](../../policies/library/).
+
+
 **Secondary tailwinds (real but not load-bearing):**
 
 - **Auditor relationships.** Big 4 acceptance of the bundle YAML schema

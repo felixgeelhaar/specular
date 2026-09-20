@@ -1,0 +1,30 @@
+# Specular Policy Library — ISO/IEC 42001 Clause 8 (Operation)
+id: iso42001-clause8
+framework: ISO/IEC 42001
+control: Clause 8
+title: Operation
+summary: >
+  Plan, implement, and control processes needed to meet AI management system
+  requirements, including operational planning, AI system risk assessment, and
+  change control for AI-assisted development.
+version: "1.0"
+
+artifacts:
+  - kind: session_attestation
+    path: .specular/sessions/*.attestation.json
+    why: Attributable AI system / harness identity for operational changes
+  - kind: drift_sarif
+    path: drift.sarif
+    why: Detected unintended deviation from approved specification
+  - kind: approvals
+    path: .specular/approvals/
+    why: Documented operational approval before release
+
+evidence_commands:
+  - specular session wait --attest --gate
+  - specular bundle create --policy .specular/policies/iso42001-clause8.yaml --include .specular/sessions/*.attestation.json evidence.sbundle.tgz
+
+compliance:
+  iso42001_enabled: true
+  control_ids:
+    - "8"

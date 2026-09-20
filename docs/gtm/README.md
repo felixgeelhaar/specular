@@ -63,6 +63,7 @@ fragments back to the open repository. After ten orgs, the library is
 the canonical reference; after fifty, no platform team will start from
 scratch. This is a data network effect anchored in regulated content,
 not a feature; it compounds with adoption, not with engineering effort.
+Start here: `specular policy library list` ([`policies/library/`](../../policies/library/)).
 
 Adjacent moats we are explicitly *not* counting on as primary: bundle
 schema lock-in (low — schema is open), execution-engine performance

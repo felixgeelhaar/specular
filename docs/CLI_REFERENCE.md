@@ -316,6 +316,36 @@ Policy commands help you define, validate, and enforce governance policies for y
 
 **Subcommands:**
 
+#### policy library
+
+Browse and install open framework→evidence control mappings (free; no Pro license).
+
+```bash
+specular policy library list
+specular policy library show <id>
+specular policy library install <id> [--path <file>] [--force]
+```
+
+**Description:**
+
+Ships seed mappings for SOC 2 CC8.1, ISO/IEC 42001 Clause 8, EU AI Act
+Article 17, and NIST AI RMF GOVERN 4. Each fragment lists Specular artifacts
+(session attestations, drift SARIF, approvals) and evidence commands.
+`install` writes `.specular/policies/<id>.yaml` for `bundle create --policy`.
+
+**Example:**
+```bash
+$ specular policy library list
+ID                    FRAMEWORK      CONTROL     TITLE
+soc2-cc8.1            SOC 2          CC8.1       Change Management
+iso42001-clause8      ISO/IEC 42001  Clause 8    Operation
+eu-ai-act-art17       EU AI Act      Article 17  Quality management system
+nist-ai-rmf-govern4   NIST AI RMF    GOVERN 4    Risk management and oversight
+
+$ specular policy library install soc2-cc8.1
+✓ Installed soc2-cc8.1 → .specular/policies/soc2-cc8.1.yaml
+```
+
 #### policy init
 
 Initialize policy configuration with templates.

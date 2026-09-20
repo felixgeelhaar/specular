@@ -1,0 +1,30 @@
+# Specular Policy Library — NIST AI RMF GOVERN 4
+id: nist-ai-rmf-govern4
+framework: NIST AI RMF
+control: GOVERN 4
+title: Risk management and oversight
+summary: >
+  GOVERN 4 emphasizes clear roles, accountability, and oversight for AI risk
+  management. Specular maps this to attributable session provenance, drift
+  gates, and approval records for AI-authored code changes.
+version: "1.0"
+
+artifacts:
+  - kind: session_attestation
+    path: .specular/sessions/*.attestation.json
+    why: Accountability for which harness authored which change
+  - kind: drift_sarif
+    path: drift.sarif
+    why: Oversight signal when implementation diverges from approved spec
+  - kind: approvals
+    path: .specular/approvals/
+    why: Named human oversight before release
+
+evidence_commands:
+  - specular session wait --attest --gate
+  - specular bundle create --policy .specular/policies/nist-ai-rmf-govern4.yaml --include .specular/sessions/*.attestation.json evidence.sbundle.tgz
+
+compliance:
+  nist_ai_rmf_enabled: true
+  control_ids:
+    - GOVERN-4
