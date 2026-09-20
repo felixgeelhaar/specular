@@ -38,6 +38,7 @@ Examples:
   specular session stop auth
   specular session prune --delete-branch
   specular session diff auth --stat
+  specular session exec auth -- go test ./...
   specular session batch fleet.yaml
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -910,6 +911,60 @@ Examples:
 	},
 }
 
+var sessionExecCmd = &cobra.Command{
+	Use:   "exec <session-id> [--] <command>...",
+	Short: "Run a command in a session worktree",
+	Long: `Run a non-interactive command with cwd set to the session worktree.
+
+This is the CI-native substitute for a per-session terminal (Xirp's PTY grid):
+tests, lint, and hooks run in isolation without shell cd gymnastics.
+
+  specular session exec auth -- go test ./...
+  specular session exec auth -- make lint
+  specular session exec --json auth -- git status --porcelain
+
+The child process exit code is propagated (CI fails when tests fail).
+Put session flags before the session id; use -- before commands that take flags.
+`,
+	Args: cobra.MinimumNArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		id := args[0]
+		argv := args[1:]
+		if len(argv) > 0 && argv[0] == "--" {
+			argv = argv[1:]
+		}
+		if len(argv) == 0 {
+			return fmt.Errorf("command is required after session id (e.g. session exec %s -- go test ./...)", id)
+		}
+		appendLog, _ := cmd.Flags().GetBool("log")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		res, execErr := mgr.Exec(cmd.Context(), id, argv, session.ExecOptions{AppendLog: appendLog})
+		if execErr != nil {
+			return execErr
+		}
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			if encErr := enc.Encode(res); encErr != nil {
+				return encErr
+			}
+		}
+		if res.ExitCode != 0 {
+			os.Exit(res.ExitCode)
+		}
+		return nil
+	},
+}
+
 func listCheckpointSessions(asJSON bool) error {
 	checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
 	checkpointIDs, err := checkpointMgr.List()
@@ -1106,6 +1161,10 @@ func init() {
 	sessionDiffCmd.Flags().Bool("patch", false, "Show full unified diff")
 	sessionDiffCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionExecCmd.Flags().SetInterspersed(false)
+	sessionExecCmd.Flags().Bool("log", false, "Append command output to the session log file")
+	sessionExecCmd.Flags().Bool("json", false, "Emit JSON result (after command stdout/stderr)")
+
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionBatchCmd)
 	sessionCmd.AddCommand(sessionListCmd)
@@ -1121,5 +1180,6 @@ func init() {
 	sessionCmd.AddCommand(sessionRmCmd)
 	sessionCmd.AddCommand(sessionPruneCmd)
 	sessionCmd.AddCommand(sessionDiffCmd)
+	sessionCmd.AddCommand(sessionExecCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

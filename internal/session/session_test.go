@@ -505,6 +505,60 @@ func TestSessionDiff(t *testing.T) {
 	}
 }
 
+func TestSessionExec(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "exec me", Name: "exec-a", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.WorktreePath == "" {
+		t.Fatal("expected worktree")
+	}
+
+	marker := filepath.Join(rec.WorktreePath, "from-exec.txt")
+	res, err := mgr.Exec(context.Background(), rec.ID, []string{"sh", "-c", "echo hi > from-exec.txt"}, ExecOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.ExitCode != 0 || res.SessionID != rec.ID {
+		t.Fatalf("%+v", res)
+	}
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatalf("command did not run in worktree: %v", err)
+	}
+
+	fail, err := mgr.Exec(context.Background(), rec.ID, []string{"sh", "-c", "exit 7"}, ExecOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fail.ExitCode != 7 {
+		t.Fatalf("exit=%d want 7", fail.ExitCode)
+	}
+
+	if _, err := mgr.Exec(context.Background(), rec.ID, nil, ExecOptions{}); err == nil {
+		t.Fatal("expected empty argv error")
+	}
+
+	noWT, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "no wt", Name: "exec-nowt", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub, SkipWorktree: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Exec(context.Background(), noWT.ID, []string{"true"}, ExecOptions{}); err == nil {
+		t.Fatal("expected no-worktree error")
+	}
+}
+
 func initTempRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()

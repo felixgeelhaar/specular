@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -507,6 +508,73 @@ func (m *Manager) Get(id string) (*Record, error) {
 	}
 	_ = m.Refresh(rec)
 	return rec, nil
+}
+
+// ExecOptions configures Manager.Exec.
+type ExecOptions struct {
+	// AppendLog tees stdout/stderr onto the session log file.
+	AppendLog bool
+}
+
+// ExecResult is the outcome of a command run in a session worktree.
+type ExecResult struct {
+	SessionID    string   `json:"sessionId"`
+	WorktreePath string   `json:"worktreePath"`
+	Argv         []string `json:"argv"`
+	ExitCode     int      `json:"exitCode"`
+}
+
+// Exec runs argv in the session's worktree (CI substitute for a per-session PTY).
+// The command's exit code is returned in ExecResult; a non-zero exit is not an
+// error unless the process could not be started.
+func (m *Manager) Exec(ctx context.Context, id string, argv []string, opts ExecOptions) (*ExecResult, error) {
+	if len(argv) == 0 {
+		return nil, fmt.Errorf("session: exec requires a command")
+	}
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	if rec.WorktreePath == "" {
+		return nil, fmt.Errorf("session: %s has no worktree (started with --no-worktree?)", rec.ID)
+	}
+	cmd, cmdErr := safeutil.SafeCommand(ctx, argv[0], argv[1:]...)
+	if cmdErr != nil {
+		return nil, cmdErr
+	}
+	cmd.Dir = rec.WorktreePath
+	cmd.Stdin = os.Stdin
+
+	var logFile *os.File
+	if opts.AppendLog && rec.LogPath != "" {
+		f, openErr := os.OpenFile(rec.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+		if openErr != nil {
+			return nil, fmt.Errorf("session: open log: %w", openErr)
+		}
+		logFile = f
+		defer func() { _ = logFile.Close() }()
+		cmd.Stdout = io.MultiWriter(os.Stdout, logFile)
+		cmd.Stderr = io.MultiWriter(os.Stderr, logFile)
+	} else {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+
+	runErr := cmd.Run()
+	code := 0
+	if runErr != nil {
+		ee, ok := runErr.(*exec.ExitError)
+		if !ok {
+			return nil, fmt.Errorf("session: exec: %w", runErr)
+		}
+		code = ee.ExitCode()
+	}
+	return &ExecResult{
+		SessionID:    rec.ID,
+		WorktreePath: rec.WorktreePath,
+		Argv:         append([]string(nil), argv...),
+		ExitCode:     code,
+	}, nil
 }
 
 // List returns refreshed session records.

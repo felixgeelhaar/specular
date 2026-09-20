@@ -2008,6 +2008,7 @@ specular session <subcommand>
 | `session rm <id…>` | Remove session records (and worktrees by default) |
 | `session prune` | Remove finished sessions (optional age filter) |
 | `session diff <id>` | Show Git changes for a session worktree |
+| `session exec <id> -- <cmd>…` | Run a command in the session worktree (exit code passthrough) |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop <id>` | Stop a running session process |
 | `session harnesses` | List harnesses with PATH availability |
@@ -2068,6 +2069,8 @@ specular session <subcommand>
 | `diff --stat` | Show diffstat summary (default) |
 | `diff --name-only` | List changed paths only |
 | `diff --patch` | Show full unified diff |
+| `exec --log` | Append command stdout/stderr to the session log |
+| `exec --json` | Emit JSON `{sessionId, worktreePath, argv, exitCode}` after the command |
 
 **Example:**
 ```bash
@@ -2090,6 +2093,7 @@ EOF
 $ specular session batch fleet.yaml
 $ specular session status
 $ specular session wait auth ratelimit review
+$ specular session exec auth -- go test ./...
 $ specular session diff auth --stat
 $ specular session diff auth --against ratelimit
 $ specular session restart auth --harness gemini --force
