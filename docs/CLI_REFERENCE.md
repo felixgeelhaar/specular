@@ -2011,6 +2011,7 @@ specular session <subcommand>
 | `session exec <id> -- <cmd>…` | Run a command in the session worktree (exit code passthrough) |
 | `session commit <id>` | Commit worktree changes (provenance-aware message) |
 | `session sync <id>` | Rebase/merge worktree onto base (main/master/HEAD) |
+| `session attest <id>` | Write signed attestation with harness/worktree provenance |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop <id>` | Stop a running session process |
 | `session harnesses` | List harnesses with PATH availability |
@@ -2055,6 +2056,7 @@ specular session <subcommand>
 | `status --interval <dur>` | Refresh interval (default `2s`) |
 | `wait --timeout <dur>` | Fail if sessions are still running after duration |
 | `wait --any` | Return when the first named session finishes |
+| `wait --attest` | Write `.attestation.json` for each waited session after success |
 | `open --shell` | Print `cd "<worktree>"` instead of the bare path |
 | `open --editor` | Open the worktree in `$EDITOR` / `$VISUAL` |
 | `restart --harness <name>` | Switch harness on restart |
@@ -2081,6 +2083,8 @@ specular session <subcommand>
 | `sync --merge` | Merge instead of rebase |
 | `sync --autostash` | Stash dirty changes before sync and pop after |
 | `sync --force` | Sync even if the session is still running |
+| `attest --output <path>` | Override attestation path (default `.specular/sessions/<id>.attestation.json`) |
+| `attest --force` | Attest even if the session is still running |
 
 **Example:**
 ```bash
@@ -2102,11 +2106,13 @@ $ cat > fleet.yaml <<'EOF'
 EOF
 $ specular session batch fleet.yaml
 $ specular session status
-$ specular session wait auth ratelimit review
+$ specular session wait --attest auth ratelimit review
 $ specular session exec auth -- go test ./...
 $ specular session diff auth --stat
 $ specular session commit auth --all
 $ specular session sync auth
+$ specular session attest auth
+$ specular auto verify .specular/sessions/auth.attestation.json
 $ specular session diff auth --against ratelimit
 $ specular session restart auth --harness gemini --force
 $ cd "$(specular session open auth)"

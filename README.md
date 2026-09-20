@@ -4,9 +4,14 @@
 
 # Specular
 
-**AI-Native Spec and Build Assistant with Governance**
+**AI Change Control — parallel agent sessions + an auditor-ready gate**
 
-A Go-based CLI tool that enables spec-first, policy-enforced software development using AI. Transform natural language product requirements into structured specifications, executable plans, and production-ready code while maintaining traceability and enforcing organizational guardrails.
+A Go-based CLI that owns both loops of AI-authored software change:
+
+- **Inner loop** — run Claude Code, Codex, Gemini, or governed `specular-auto` in parallel Git worktrees (`specular session`)
+- **Outer loop** — drift detection, policy enforcement, and signed attestations/bundles so what ships is reviewable and attributable
+
+Transform requirements into specs, plans, and production-ready changes while recording which harness authored the work and whether it drifted from intent.
 
 ## Why Specular?
 
@@ -21,16 +26,19 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 
 **Specular solves this** by providing:
 
+✅ **Parallel agent sessions**: Claude Code, Codex, Gemini, and `specular-auto` in isolated worktrees with fleet manifests
 ✅ **Spec-First Development**: Transform requirements into formal specifications with AI-assisted interview mode
 ✅ **Governance & Policy**: Enterprise-grade policy engine with cryptographic approvals and bundle workflows
 ✅ **Multi-Provider AI**: Intelligent routing across local (Ollama) and cloud (OpenAI, Anthropic, Gemini) models
 ✅ **Drift Detection**: Continuous validation of spec → plan → code alignment with SARIF reporting
 ✅ **Docker Sandboxing**: Secure isolated execution with resource limits and image allowlisting
 ✅ **Autonomous Mode**: Checkpoint/resume for long-running workflows with full state preservation
-✅ **Audit & Compliance**: Cryptographic attestations, trace logging, and approval workflows
+✅ **Audit & Compliance**: Cryptographic attestations (including native harness provenance), trace logging, and approval workflows
 
-> **Specular is the control plane and audit layer for AI-driven development.**
-> It replaces "wild west prompting" with structured, governed, policy-compliant workflows.
+> **Specular is the open control plane for parallel coding agents — with the
+> only auditor-ready change-control gate in the category.**
+> Same harnesses as desktop session managers (Claude / Codex / Gemini), plus
+> drift, policy, and signed evidence Xirp-class tools do not ship.
 
 ## Quick Links
 

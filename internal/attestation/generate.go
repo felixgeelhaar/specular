@@ -70,36 +70,7 @@ func (g *Generator) Generate(result *auto.Result, config *auto.Config, planJSON 
 		SignedBy:   g.signer.Identity(),
 	}
 
-	// Serialize attestation data for signing (without signature fields)
-	dataToSign, err := g.serializeForSigning(attestation)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize for signing: %w", err)
-	}
-
-	// Sign the attestation
-	signature, publicKey, err := g.signer.Sign(dataToSign)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign attestation: %w", err)
-	}
-
-	// Encode signature and public key
-	attestation.Signature = EncodeSignature(signature)
-
-	// Get public key bytes
-	if ephemeralSigner, ok := g.signer.(*EphemeralSigner); ok {
-		var pubKeyBytes []byte
-		pubKeyBytes, err = ephemeralSigner.PublicKey()
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode public key: %w", err)
-		}
-		attestation.PublicKey = EncodePublicKey(pubKeyBytes)
-	} else {
-		// For other signer types, we'll need to handle this differently
-		_ = publicKey              // Use the returned publicKey parameter
-		attestation.PublicKey = "" // Placeholder
-	}
-
-	return attestation, nil
+	return g.signAttestation(attestation)
 }
 
 // gatherProvenance collects provenance information
@@ -140,7 +111,7 @@ func (g *Generator) gatherProvenance(result *auto.Result, config *auto.Config) (
 	}
 
 	// Try to gather git information (from current cwd — typically the worktree)
-	gitInfo, err := gatherGitInfo()
+	gitInfo, err := gatherGitInfo("")
 	if err == nil {
 		provenance.GitRepo = gitInfo.Repo
 		provenance.GitCommit = gitInfo.Commit
@@ -149,6 +120,114 @@ func (g *Generator) gatherProvenance(result *auto.Result, config *auto.Config) (
 	}
 
 	return provenance, nil
+}
+
+// SessionInput carries enough session metadata to emit an attestation without
+// an auto.Result — used for native Claude/Codex/Gemini (and auto) sessions.
+type SessionInput struct {
+	ID             string
+	Goal           string
+	Harness        string
+	Profile        string
+	Status         string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	WorktreePath   string
+	WorktreeBranch string
+	WorktreeName   string
+}
+
+// GenerateFromSession creates a signed attestation from a managed session record.
+// Plan/output hashes are empty for native harnesses that do not emit auto JSON.
+func (g *Generator) GenerateFromSession(in SessionInput) (*Attestation, error) {
+	harness := strings.TrimSpace(in.Harness)
+	if harness == "" {
+		harness = "specular-auto"
+	}
+	profile := strings.TrimSpace(in.Profile)
+	if profile == "" {
+		profile = "ci"
+	}
+	hostname, _ := os.Hostname()
+	provenance := &Provenance{
+		Hostname:        hostname,
+		Platform:        runtime.GOOS,
+		Arch:            runtime.GOARCH,
+		SpecularVersion: g.version,
+		Profile:         profile,
+		Models:          []ModelUsage{},
+		Harness:         harness,
+		WorktreePath:    in.WorktreePath,
+		WorktreeBranch:  in.WorktreeBranch,
+		WorktreeName:    in.WorktreeName,
+	}
+	gitDir := in.WorktreePath
+	if gitInfo, err := gatherGitInfo(gitDir); err == nil {
+		provenance.GitRepo = gitInfo.Repo
+		provenance.GitCommit = gitInfo.Commit
+		provenance.GitBranch = gitInfo.Branch
+		provenance.GitDirty = gitInfo.Dirty
+	}
+
+	end := in.UpdatedAt
+	if end.IsZero() {
+		end = time.Now().UTC()
+	}
+	start := in.CreatedAt
+	if start.IsZero() {
+		start = end
+	}
+	attestation := &Attestation{
+		Version:    "1.0",
+		WorkflowID: "session-" + in.ID,
+		Goal:       in.Goal,
+		StartTime:  start,
+		EndTime:    end,
+		Duration:   end.Sub(start).String(),
+		Status:     mapSessionAttestStatus(in.Status),
+		Provenance: *provenance,
+		PlanHash:   hashData(nil),
+		OutputHash: hashData(nil),
+		SignedAt:   time.Now().UTC(),
+		SignedBy:   g.signer.Identity(),
+	}
+	return g.signAttestation(attestation)
+}
+
+func mapSessionAttestStatus(status string) string {
+	switch status {
+	case "completed":
+		return "success"
+	case "failed":
+		return "failed"
+	case "stopped":
+		return "cancelled"
+	default:
+		return status
+	}
+}
+
+func (g *Generator) signAttestation(attestation *Attestation) (*Attestation, error) {
+	dataToSign, err := g.serializeForSigning(attestation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize for signing: %w", err)
+	}
+	signature, publicKey, err := g.signer.Sign(dataToSign)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign attestation: %w", err)
+	}
+	attestation.Signature = EncodeSignature(signature)
+	if ephemeralSigner, ok := g.signer.(*EphemeralSigner); ok {
+		pubKeyBytes, pubErr := ephemeralSigner.PublicKey()
+		if pubErr != nil {
+			return nil, fmt.Errorf("failed to encode public key: %w", pubErr)
+		}
+		attestation.PublicKey = EncodePublicKey(pubKeyBytes)
+	} else {
+		_ = publicKey
+		attestation.PublicKey = ""
+	}
+	return attestation, nil
 }
 
 // serializeForSigning creates a canonical JSON representation for signing
@@ -196,42 +275,34 @@ type gitInfo struct {
 	Dirty  bool
 }
 
-// gatherGitInfo collects git repository information
-func gatherGitInfo() (*gitInfo, error) {
+// gatherGitInfo collects git repository information.
+// When dir is non-empty, git runs in that directory (session worktree).
+func gatherGitInfo(dir string) (*gitInfo, error) {
 	info := &gitInfo{}
-
-	// Get remote URL
-	if gitCmd, cmdErr := safeutil.SafeCommand(context.Background(), "git", "config", "--get", "remote.origin.url"); cmdErr == nil {
-		if output, err := gitCmd.Output(); err == nil {
-			info.Repo = strings.TrimSpace(string(output))
+	run := func(args ...string) string {
+		gitCmd, cmdErr := safeutil.SafeCommand(context.Background(), "git", args...)
+		if cmdErr != nil {
+			return ""
 		}
+		if dir != "" {
+			gitCmd.Dir = dir
+		}
+		output, err := gitCmd.Output()
+		if err != nil {
+			return ""
+		}
+		return strings.TrimSpace(string(output))
 	}
 
-	// Get current commit
-	if gitCmd, cmdErr := safeutil.SafeCommand(context.Background(), "git", "rev-parse", "HEAD"); cmdErr == nil {
-		if output, err := gitCmd.Output(); err == nil {
-			info.Commit = strings.TrimSpace(string(output))
-		}
+	info.Repo = run("config", "--get", "remote.origin.url")
+	info.Commit = run("rev-parse", "HEAD")
+	info.Branch = run("rev-parse", "--abbrev-ref", "HEAD")
+	if st := run("status", "--porcelain"); st != "" {
+		info.Dirty = true
 	}
 
-	// Get current branch
-	if gitCmd, cmdErr := safeutil.SafeCommand(context.Background(), "git", "rev-parse", "--abbrev-ref", "HEAD"); cmdErr == nil {
-		if output, err := gitCmd.Output(); err == nil {
-			info.Branch = strings.TrimSpace(string(output))
-		}
-	}
-
-	// Check for uncommitted changes
-	if gitCmd, cmdErr := safeutil.SafeCommand(context.Background(), "git", "status", "--porcelain"); cmdErr == nil {
-		if output, err := gitCmd.Output(); err == nil {
-			info.Dirty = len(strings.TrimSpace(string(output))) > 0
-		}
-	}
-
-	// Return error if we couldn't get any git info
 	if info.Repo == "" && info.Commit == "" {
 		return nil, fmt.Errorf("not a git repository")
 	}
-
 	return info, nil
 }

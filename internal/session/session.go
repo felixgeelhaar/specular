@@ -20,7 +20,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/felixgeelhaar/specular/internal/attestation"
 	"github.com/felixgeelhaar/specular/internal/safeutil"
+	"github.com/felixgeelhaar/specular/internal/version"
 	"github.com/felixgeelhaar/specular/internal/worktree"
 )
 
@@ -709,6 +711,85 @@ func (m *Manager) Sync(ctx context.Context, id string, opts SyncOptions) (*SyncR
 		return res, wtErr
 	}
 	return res, nil
+}
+
+// AttestOptions configures Manager.Attest.
+type AttestOptions struct {
+	// OutputPath overrides the default .specular/sessions/<id>.attestation.json.
+	OutputPath string
+	// Identity overrides the signer identity (default: $USER or hostname).
+	Identity string
+	// Force allows attesting a still-running session.
+	Force bool
+}
+
+// AttestResult is the outcome of writing a session attestation.
+type AttestResult struct {
+	SessionID string `json:"sessionId"`
+	Path      string `json:"path"`
+	Harness   string `json:"harness"`
+	Status    string `json:"status"`
+}
+
+// Attest writes a signed attestation for a managed session, including harness
+// and worktree provenance — the outer-loop evidence path for native harnesses.
+func (m *Manager) Attest(ctx context.Context, id string, opts AttestOptions) (*AttestResult, error) {
+	_ = ctx
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	if !opts.Force && sessionStillRunning(rec) {
+		return nil, fmt.Errorf("session: %s is still %s (wait/stop first, or pass --force)", rec.ID, rec.Status)
+	}
+	identity := strings.TrimSpace(opts.Identity)
+	if identity == "" {
+		identity = os.Getenv("USER")
+	}
+	if identity == "" {
+		hostname, _ := os.Hostname()
+		identity = hostname
+	}
+	signer, signErr := attestation.NewEphemeralSigner(identity)
+	if signErr != nil {
+		return nil, fmt.Errorf("session: create signer: %w", signErr)
+	}
+	gen := attestation.NewGenerator(signer, version.Version)
+	att, genErr := gen.GenerateFromSession(attestation.SessionInput{
+		ID:             rec.ID,
+		Goal:           rec.Goal,
+		Harness:        rec.Harness,
+		Profile:        rec.Profile,
+		Status:         rec.Status,
+		CreatedAt:      rec.CreatedAt,
+		UpdatedAt:      rec.UpdatedAt,
+		WorktreePath:   rec.WorktreePath,
+		WorktreeBranch: rec.WorktreeBranch,
+		WorktreeName:   rec.WorktreeName,
+	})
+	if genErr != nil {
+		return nil, fmt.Errorf("session: generate attestation: %w", genErr)
+	}
+	path := strings.TrimSpace(opts.OutputPath)
+	if path == "" {
+		path = filepath.Join(m.store.Dir(), rec.ID+".attestation.json")
+	}
+	if mkdirErr := os.MkdirAll(filepath.Dir(path), 0o750); mkdirErr != nil {
+		return nil, fmt.Errorf("session: create attest dir: %w", mkdirErr)
+	}
+	data, jsonErr := att.ToJSON()
+	if jsonErr != nil {
+		return nil, jsonErr
+	}
+	if writeErr := os.WriteFile(path, data, 0o600); writeErr != nil {
+		return nil, fmt.Errorf("session: write attestation: %w", writeErr)
+	}
+	return &AttestResult{
+		SessionID: rec.ID,
+		Path:      path,
+		Harness:   rec.Harness,
+		Status:    att.Status,
+	}, nil
 }
 
 // List returns refreshed session records.

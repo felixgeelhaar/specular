@@ -14,13 +14,13 @@ context. It proved demand for vendor-neutral multi-agent orchestration.
 
 | Dimension | Xirp | Specular |
 |-----------|------|----------|
-| Parallel sessions | Desktop grid | `session start/batch/exec/commit/sync/list/logs/fork/stop` |
+| Parallel sessions | Desktop grid | `session start/batch/exec/commit/sync/attest/list/logs/fork/stop` |
 | Harnesses | Claude Code, Codex, Gemini | **Same**, plus governed `specular-auto` |
 | Isolation | Git worktrees | Git worktrees (`.specular/worktrees/`) |
 | Platforms | **macOS only** | **Linux / macOS / Windows** |
 | License | Proprietary + Portal upsell | **Apache 2.0** |
 | Governance gate | None (transcripts, no redaction) | **Drift + policy + signed bundles** |
-| Harness attribution | Transcript only | **`provenance.harness` + worktree fields** |
+| Harness attribution | Transcript only | **`session attest` → `provenance.harness` + worktree fields** |
 | Org context | Portal catalog (paid) | Spec + policy + ADR (in-repo) |
 
 **Competitive thesis**
@@ -55,6 +55,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session exec` worktree command runner (CI substitute for Xirp's per-session PTY)
 - `session commit` lands worktree changes with provenance-aware messages
 - `session sync` rebases/merges worktrees onto base when main moves
+- `session attest` / `wait --attest` signed provenance for native harnesses
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
 - Harness + worktree provenance into attestations
@@ -107,6 +108,8 @@ specular session exec demo -- go test ./...
 specular session diff demo --stat
 specular session commit demo --all
 specular session sync demo
+specular session attest demo
+specular auto verify .specular/sessions/demo.attestation.json
 specular session diff demo --against demo-2
 cd "$(specular session open demo)"
 specular session restart demo --harness gemini --force

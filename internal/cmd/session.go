@@ -41,6 +41,7 @@ Examples:
   specular session exec auth -- go test ./...
   specular session commit auth
   specular session sync auth
+  specular session attest auth
   specular session batch fleet.yaml
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -639,6 +640,7 @@ Examples:
   specular session wait auth ratelimit
   specular session wait --any auth ratelimit
   specular session wait --timeout 10m && specular eval drift --fail-on-change
+  specular session wait --attest auth ratelimit
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
@@ -653,6 +655,7 @@ Examples:
 		interval, _ := cmd.Flags().GetDuration("interval")
 		anyDone, _ := cmd.Flags().GetBool("any")
 		jsonOut, _ := cmd.Flags().GetBool("json")
+		doAttest, _ := cmd.Flags().GetBool("attest")
 
 		recs, waitErr := mgr.Wait(cmd.Context(), args, session.WaitOptions{
 			Timeout:  timeout,
@@ -663,7 +666,13 @@ Examples:
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
 			_ = enc.Encode(recs)
-			return waitErr
+			if waitErr != nil {
+				return waitErr
+			}
+			if doAttest {
+				return attestSessionRecords(cmd.Context(), mgr, recs, false)
+			}
+			return nil
 		}
 		if len(recs) == 0 {
 			fmt.Println("No active sessions to wait for.")
@@ -679,7 +688,13 @@ Examples:
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, exit)
 		}
 		_ = w.Flush()
-		return waitErr
+		if waitErr != nil {
+			return waitErr
+		}
+		if doAttest {
+			return attestSessionRecords(cmd.Context(), mgr, recs, true)
+		}
+		return nil
 	},
 }
 
@@ -1085,6 +1100,76 @@ refused unless --autostash. Conflicts abort the operation and report paths
 	},
 }
 
+var sessionAttestCmd = &cobra.Command{
+	Use:   "attest <session-id>",
+	Short: "Write a signed attestation with harness/worktree provenance",
+	Long: `Emit outer-loop evidence for a managed session — including native
+Claude Code, Codex, and Gemini runs.
+
+Writes .specular/sessions/<id>.attestation.json with provenance.harness and
+worktree fields, verifiable via specular auto verify.
+
+  specular session attest auth
+  specular session wait --attest auth ratelimit
+  specular auto verify .specular/sessions/auth.attestation.json
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		out, _ := cmd.Flags().GetString("output")
+		force, _ := cmd.Flags().GetBool("force")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+		res, attestErr := mgr.Attest(cmd.Context(), args[0], session.AttestOptions{
+			OutputPath: out,
+			Force:      force,
+		})
+		if attestErr != nil {
+			return attestErr
+		}
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(res)
+		}
+		fmt.Printf("Attested session %s\n", res.SessionID)
+		fmt.Printf("  Harness: %s\n", res.Harness)
+		fmt.Printf("  Status:  %s\n", res.Status)
+		fmt.Printf("  Path:    %s\n", res.Path)
+		fmt.Printf("\n  specular auto verify %s\n", res.Path)
+		return nil
+	},
+}
+
+func attestSessionRecords(ctx context.Context, mgr *session.Manager, recs []session.Record, print bool) error {
+	var first error
+	for _, rec := range recs {
+		if rec.Status != session.StatusCompleted && rec.Status != session.StatusFailed && rec.Status != session.StatusStopped {
+			continue
+		}
+		res, err := mgr.Attest(ctx, rec.ID, session.AttestOptions{})
+		if err != nil {
+			if first == nil {
+				first = err
+			}
+			if print {
+				fmt.Fprintf(os.Stderr, "attest %s: %v\n", rec.ID, err)
+			}
+			continue
+		}
+		if print {
+			fmt.Printf("Attested session %s → %s\n", res.SessionID, res.Path)
+		}
+	}
+	return first
+}
+
 func listCheckpointSessions(asJSON bool) error {
 	checkpointMgr := checkpoint.NewManager(".specular/checkpoints", false, 0)
 	checkpointIDs, err := checkpointMgr.List()
@@ -1255,6 +1340,7 @@ func init() {
 	sessionWaitCmd.Flags().Duration("timeout", 0, "Maximum time to wait (0 = no limit)")
 	sessionWaitCmd.Flags().Duration("interval", 500*time.Millisecond, "Poll interval")
 	sessionWaitCmd.Flags().Bool("any", false, "Return when any named session finishes")
+	sessionWaitCmd.Flags().Bool("attest", false, "Write session attestations after wait succeeds")
 	sessionWaitCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionRestartCmd.Flags().String("harness", "", "Switch harness on restart")
@@ -1297,6 +1383,10 @@ func init() {
 	sessionSyncCmd.Flags().Bool("force", false, "Sync even if the session is still running")
 	sessionSyncCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionAttestCmd.Flags().String("output", "", "Attestation output path (default: .specular/sessions/<id>.attestation.json)")
+	sessionAttestCmd.Flags().Bool("force", false, "Attest even if the session is still running")
+	sessionAttestCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionBatchCmd)
 	sessionCmd.AddCommand(sessionListCmd)
@@ -1315,5 +1405,6 @@ func init() {
 	sessionCmd.AddCommand(sessionExecCmd)
 	sessionCmd.AddCommand(sessionCommitCmd)
 	sessionCmd.AddCommand(sessionSyncCmd)
+	sessionCmd.AddCommand(sessionAttestCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

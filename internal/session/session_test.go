@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/attestation"
 )
 
 func TestStoreSaveLoadList(t *testing.T) {
@@ -734,6 +736,50 @@ func TestSessionSyncConflict(t *testing.T) {
 		if st, stErr := os.Stat(rebasePath); stErr == nil && st.IsDir() {
 			t.Fatal("rebase should have been aborted")
 		}
+	}
+}
+
+func TestSessionAttest(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "attest me", Name: "attest-claude", Harness: "claude-code",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := mgr.Attest(context.Background(), rec.ID, AttestOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Path == "" || res.Harness != "claude-code" {
+		t.Fatalf("%+v", res)
+	}
+	data, readErr := os.ReadFile(res.Path)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	att, parseErr := attestation.FromJSON(data)
+	if parseErr != nil {
+		t.Fatal(parseErr)
+	}
+	if att.Provenance.Harness != "claude-code" {
+		t.Fatalf("harness=%s", att.Provenance.Harness)
+	}
+	if att.Provenance.WorktreePath == "" || att.Provenance.WorktreeBranch == "" {
+		t.Fatalf("missing worktree provenance: %+v", att.Provenance)
+	}
+	if att.Signature == "" || att.PublicKey == "" {
+		t.Fatal("expected signed attestation")
+	}
+	verifier := attestation.NewStandardVerifier()
+	if err := verifier.Verify(att); err != nil {
+		t.Fatalf("verify: %v", err)
 	}
 }
 
