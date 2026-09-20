@@ -241,6 +241,83 @@ func TestWaitTimeout(t *testing.T) {
 	}
 }
 
+func TestWaitTimeoutStop(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeSleepStub(t)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "slow", Name: "wait-stop", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	done, err := mgr.Wait(context.Background(), []string{rec.ID}, WaitOptions{
+		Timeout:       200 * time.Millisecond,
+		Interval:      50 * time.Millisecond,
+		StopOnTimeout: true,
+	})
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if !strings.Contains(err.Error(), "stopped:") {
+		t.Fatalf("error=%v", err)
+	}
+	if len(done) != 1 || done[0].Status != StatusStopped {
+		t.Fatalf("done=%+v", done)
+	}
+	got, getErr := mgr.Get(rec.ID)
+	if getErr != nil {
+		t.Fatal(getErr)
+	}
+	if got.Status != StatusStopped || (got.PID > 0 && processAlive(got.PID)) {
+		t.Fatalf("expected stopped process: %+v", got)
+	}
+}
+
+func TestStopAll(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeSleepStub(t)
+	a, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "a", Name: "stop-all-a", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "b", Name: "stop-all-b", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stopped, err := mgr.StopAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stopped) < 2 {
+		t.Fatalf("stopped=%+v", stopped)
+	}
+	for _, id := range []string{a.ID, b.ID} {
+		got, getErr := mgr.Get(id)
+		if getErr != nil {
+			t.Fatal(getErr)
+		}
+		if got.Status != StatusStopped {
+			t.Fatalf("%s status=%s", id, got.Status)
+		}
+	}
+}
+
 func TestWaitAny(t *testing.T) {
 	repo := initTempRepo(t)
 	mgr, err := NewManager(repo)
@@ -319,6 +396,62 @@ func TestRestartSwitchesHarness(t *testing.T) {
 	}
 	if restarted.Status != StatusCompleted {
 		t.Fatalf("status=%s", restarted.Status)
+	}
+}
+
+func TestRestartPreservesNoGovernedWithPolicy(t *testing.T) {
+	repo := initTempRepo(t)
+	if err := os.MkdirAll(filepath.Join(repo, ".specular"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".specular", "policy.yaml"), []byte("routing:\n  deny_tools: [web_search]\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "ungoverned", Name: "restart-nogov", Harness: "claude-code",
+		Detach: false, NoApproval: true, Binary: stub, NoGoverned: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Governed {
+		t.Fatal("expected start with NoGoverned to stay ungoverned")
+	}
+	// Inherit: restart must not re-enable auto-govern from policy.yaml.
+	restarted, err := mgr.Restart(context.Background(), rec.ID, RestartOptions{
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.Governed {
+		t.Fatal("inherit restart should keep ungoverned despite policy.yaml")
+	}
+	// Explicit --no-governed after a governed start.
+	gov, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "gov", Name: "restart-gov", Harness: "codex",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !gov.Governed {
+		t.Fatal("expected auto-governed from policy")
+	}
+	optOut, err := mgr.Restart(context.Background(), gov.ID, RestartOptions{
+		Detach: false, NoApproval: true, Binary: stub,
+		UseNoGoverned: true, NoGoverned: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if optOut.Governed {
+		t.Fatal("--no-governed should win on restart")
 	}
 }
 

@@ -2044,7 +2044,7 @@ specular session <subcommand>
 | `session push <id>` | Push worktree branch (`--pr` opens a GitHub PR via gh) |
 | `session attest <id>` | Write signed attestation with harness/worktree provenance |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
-| `session stop <id>` | Stop a running session process |
+| `session stop [id…]` / `stop --all` | Stop one, many, or all non-terminal sessions |
 | `session harnesses` | List harnesses with PATH availability |
 
 **Start flags:**
@@ -2095,6 +2095,7 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `status --watch` | Refresh the board until interrupted |
 | `status --interval <dur>` | Refresh interval (default `2s`) |
 | `wait --timeout <dur>` | Fail if sessions are still running after duration |
+| `wait --stop` | With `--timeout`, stop still-running sessions when the deadline fires |
 | `wait --any` | Return when the first named session finishes |
 | `wait --attest` | Write `.attestation.json` for each waited session after success |
 | `wait --gate` | After wait (and optional `--attest`) succeeds, run outer-loop drift with fail-on-drift (exit 4) |
@@ -2105,8 +2106,10 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `open --editor` | Open the worktree in `$EDITOR` / `$VISUAL` |
 | `restart --harness <name>` | Switch harness on restart |
 | `restart --governed` | Safer native launch on restart (omit flag to keep prior setting) |
+| `restart --no-governed` | Disable auto-governed on restart even when a policy file is present |
 | `restart --goal <text>` | Override goal on restart |
 | `restart --force` | Stop a still-running session before restart |
+| `stop --all` | Stop every non-terminal session |
 | `rm --force` | Stop a still-running session before removal |
 | `rm --keep-worktree` | Leave the Git worktree in place |
 | `rm --delete-branch` | Also delete the managed worktree branch |

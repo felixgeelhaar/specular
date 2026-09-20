@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Fleet abort**: `session stop [ids...] [--all]` and `wait --timeout … --stop`
+  kill still-running sessions on timeout (Xirp grid kill-all analogue);
+  `restart --no-governed` keeps opt-out across restarts when policy.yaml exists
+
 - **Session merge (local land)**: `session merge [--into] [--ff-only|--no-ff]`
   merges the worktree branch into the primary checkout — land path without
   requiring `gh` (complements `push --pr`)
