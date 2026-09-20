@@ -38,7 +38,34 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 > **Specular is the open control plane for parallel coding agents — with the
 > only auditor-ready change-control gate in the category.**
 > Same harnesses as desktop session managers (Claude / Codex / Gemini), plus
-> drift, policy, and signed evidence Xirp-class tools do not ship.
+> drift, policy, and signed evidence that those tools do not ship.
+
+### Quick proof (fleet → evidence)
+
+```bash
+# Install a framework control mapping (open policy library)
+specular policy library install soc2-cc8.1
+
+# Launch a governed parallel fleet (CI-native vs Mac-only grids)
+cat > fleet.yaml <<'EOF'
+- name: auth
+  harness: claude-code
+  goal: Harden JWT validation
+  governed: true
+- name: review
+  harness: gemini
+  goal: Review the auth change
+  dependsOn: [auth]
+  governed: true
+EOF
+specular session batch --governed fleet.yaml
+specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml
+
+# Artifacts: session-evidence.sbundle.tgz, drift.sarif, .specular/sessions/*.attestation.json
+```
+
+Copy-paste GitHub Actions: [`examples/cicd-github-actions/session-fleet-bundle.yml`](examples/cicd-github-actions/session-fleet-bundle.yml).
+Competitive brief: [`docs/gtm/competitive/xirp.md`](docs/gtm/competitive/xirp.md).
 
 ## Quick Links
 

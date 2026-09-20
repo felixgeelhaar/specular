@@ -320,6 +320,9 @@ var sessionShowCmd = &cobra.Command{
 				fmt.Printf("Status:     %s\n", rec.Status)
 				fmt.Printf("Goal:       %s\n", rec.Goal)
 				fmt.Printf("Harness:    %s\n", rec.Harness)
+				if rec.Governed {
+					fmt.Printf("Governed:   true\n")
+				}
 				fmt.Printf("Profile:    %s\n", rec.Profile)
 				if rec.WorktreePath != "" {
 					fmt.Printf("Worktree:   %s\n", rec.WorktreePath)
@@ -529,7 +532,7 @@ Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 			}
 			working, queued, done, failed, stopped := 0, 0, 0, 0, 0
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tPID\tBRANCH\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tPID\tBRANCH\tGOAL")
 			for _, s := range list {
 				switch s.Status {
 				case session.StatusWorking, session.StatusIdle, session.StatusWaiting:
@@ -555,7 +558,11 @@ Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 				if branch == "" {
 					branch = "-"
 				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, pid, branch, goal)
+				gov := "-"
+				if s.Governed {
+					gov = "yes"
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, gov, pid, branch, goal)
 			}
 			_ = w.Flush()
 			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",

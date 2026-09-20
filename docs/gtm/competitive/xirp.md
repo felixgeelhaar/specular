@@ -59,6 +59,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session wait --gate` fleet→evidence drift proof (fail-on-drift, exit 4)
 - `session wait --bundle` one-command attest/gate/evidence packet
 - `session start --governed` safer native launch + preamble + attest provenance
+- CI example: `examples/cicd-github-actions/session-fleet-bundle.yml` (fleet→bundle)
 - `policy library` open SOC 2 / ISO 42001 / EU AI Act / NIST AI RMF seeds
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
