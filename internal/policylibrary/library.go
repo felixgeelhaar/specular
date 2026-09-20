@@ -89,7 +89,7 @@ func Install(id, dest string, force bool) error {
 	if err != nil {
 		return err
 	}
-	if err := Validate(e); err != nil {
+	if err = Validate(e); err != nil {
 		return err
 	}
 	if dest == "" {
@@ -140,7 +140,7 @@ func loadSeed(name string) (Entry, error) {
 		return Entry{}, fmt.Errorf("policylibrary: read %s: %w", name, err)
 	}
 	var e Entry
-	if err := yaml.Unmarshal(raw, &e); err != nil {
+	if err = yaml.Unmarshal(raw, &e); err != nil {
 		return Entry{}, fmt.Errorf("policylibrary: parse %s: %w", name, err)
 	}
 	e.Raw = raw
@@ -148,7 +148,7 @@ func loadSeed(name string) (Entry, error) {
 		base := filepath.Base(name)
 		e.ID = strings.TrimSuffix(base, filepath.Ext(base))
 	}
-	if err := Validate(e); err != nil {
+	if err = Validate(e); err != nil {
 		return Entry{}, err
 	}
 	return e, nil
