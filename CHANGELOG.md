@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   skip-permissions/full-auto, prepends a Specular governance preamble
   (deny-tools from `.specular/policy.yaml`), and records
   `provenance.governed` on attestations
+- **Auto-governed**: native harness starts auto-enable governed when
+  `.specular/policy.yaml` (or `policies.yaml`) is present; opt out with
+  `--no-governed` / manifest `noGoverned: true`
 - **Fleet→evidence CI example**: `examples/cicd-github-actions/session-fleet-bundle.yml`
   plus README quick proof (`policy library` → `session batch --governed` →
   `wait --bundle`); `session status`/`show`/`list` surface the governed flag

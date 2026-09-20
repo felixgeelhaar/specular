@@ -1,6 +1,8 @@
 package session
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -86,6 +88,35 @@ func TestResolveLaunchCodexGoverned(t *testing.T) {
 	joined := strings.Join(plan.Args, " ")
 	if strings.Contains(joined, "--full-auto") {
 		t.Fatalf("governed must omit full-auto: %v", plan.Args)
+	}
+}
+
+func TestResolveGovernedModeAuto(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	specular := filepath.Join(dir, ".specular")
+	if err := os.MkdirAll(specular, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(specular, "policy.yaml"), []byte("routing:\n  deny_tools: [web_search]\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	opts := resolveGovernedMode(dir, StartOptions{Harness: "claude-code"})
+	if !opts.Governed {
+		t.Fatal("expected auto-governed when policy.yaml present")
+	}
+	opts = resolveGovernedMode(dir, StartOptions{Harness: "claude-code", NoGoverned: true})
+	if opts.Governed {
+		t.Fatal("NoGoverned should win")
+	}
+	opts = resolveGovernedMode(dir, StartOptions{Harness: "specular-auto"})
+	if opts.Governed {
+		t.Fatal("specular-auto should not auto-govern from policy alone")
+	}
+	empty := t.TempDir()
+	opts = resolveGovernedMode(empty, StartOptions{Harness: "codex"})
+	if opts.Governed {
+		t.Fatal("no policy file => no auto-govern")
 	}
 }
 
