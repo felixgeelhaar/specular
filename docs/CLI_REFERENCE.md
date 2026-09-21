@@ -8,6 +8,7 @@ Complete reference for Specular CLI commands and flags.
 - [Global Flags](#global-flags)
 - [Change Control Gate](#change-control-gate)
   - [gate](#gate)
+  - [provenance](#provenance)
 - [Governance Commands](#governance-commands)
   - [governance](#governance)
   - [doctor](#doctor)
@@ -78,6 +79,10 @@ specular gate [--format text|json|markdown] [--github-annotations] [--json] [--s
 
 **Pipeline:** change discovery → provenance summary → drift (when specs exist) → policy verification (when policy exists) → verdict → evidence record.
 
+When session attestation(s) are present, gate JSON includes an additive
+`provenanceProtocol` block referencing `specular.provenance/v1` (see
+[provenance](#provenance)).
+
 Brownfield repositories without `.specular/spec`+plan+lock skip drift unless `--strict-spec`. Missing policy skips verification. Missing session attestations are reported as unattested (never silently verified).
 
 | Flag | Description |
@@ -95,6 +100,24 @@ Brownfield repositories without `.specular/spec`+plan+lock skip drift unless `--
 Exit codes: `0` ALLOW, `3` policy DENY, `4` drift DENY.
 
 Product intent: [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md).
+
+### provenance
+
+Show open Agent Provenance Protocol documents (`specular.provenance/v1`).
+
+**Usage:**
+```bash
+specular provenance show [session-id] [--json] [--project-root <path>]
+```
+
+Projects existing `.specular/sessions/<id>.attestation.json` provenance
+fields (harness, worktree, governed, git, session id) into a stable
+envelope. Without `session-id`, uses the newest attestation by mtime.
+`--json` emits the document; default is a human summary.
+
+This is PRODUCT_INTENT §9 / P1 #3 starter — a format + emit/consume path,
+not a control plane. Third-party agents can produce the same schema
+without running inside Specular.
 
 ## Governance Commands
 

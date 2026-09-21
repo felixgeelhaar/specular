@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Agent Provenance Protocol (P1 #3)**: `specular.provenance/v1` envelope
+  in `internal/provenance` maps session `attestation.Provenance` into a
+  stable document; `specular provenance show [id] [--json]` projects the
+  latest (or named) session attestation; gate/evidence JSON gain an
+  additive `provenanceProtocol` ref when attested — not a control plane
+
 - **Native agent hooks (P1 #4)**: `specular session integrate <harness>`
   installs a Claude Code Stop hook that calls `session attest` + `gate`
   (`--dry-run` / `--force`); `session start` exports `SPECULAR_SESSION_ID`
