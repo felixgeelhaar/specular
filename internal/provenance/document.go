@@ -187,51 +187,61 @@ func FormatHuman(d *Document) string {
 		fmt.Fprintf(&b, "Harness      %s\n", d.Harness)
 	}
 	fmt.Fprintf(&b, "Governed     %v\n", d.Governed)
-	if d.Worktree != nil {
-		wt := d.Worktree.Path
-		if d.Worktree.Branch != "" {
-			if wt != "" {
-				wt = fmt.Sprintf("%s (%s)", wt, d.Worktree.Branch)
-			} else {
-				wt = d.Worktree.Branch
-			}
-		}
-		if d.Worktree.Name != "" && wt != "" {
-			wt = fmt.Sprintf("%s [%s]", wt, d.Worktree.Name)
-		} else if d.Worktree.Name != "" {
-			wt = d.Worktree.Name
-		}
-		if wt != "" {
-			fmt.Fprintf(&b, "Worktree     %s\n", wt)
-		}
+	if line := formatWorktreeLine(d.Worktree); line != "" {
+		fmt.Fprintf(&b, "Worktree     %s\n", line)
 	}
-	if d.Git != nil {
-		parts := make([]string, 0, 3)
-		if d.Git.Commit != "" {
-			parts = append(parts, shortSHA(d.Git.Commit))
-		}
-		if d.Git.Branch != "" {
-			parts = append(parts, "on "+d.Git.Branch)
-		}
-		if d.Git.Repo != "" && len(parts) == 0 {
-			parts = append(parts, d.Git.Repo)
-		}
-		line := strings.Join(parts, " ")
-		if d.Git.Dirty {
-			if line != "" {
-				line += " (dirty)"
-			} else {
-				line = "dirty"
-			}
-		}
-		if line != "" {
-			fmt.Fprintf(&b, "Git          %s\n", line)
-		}
+	if line := formatGitLine(d.Git); line != "" {
+		fmt.Fprintf(&b, "Git          %s\n", line)
 	}
 	if d.Source != "" {
 		fmt.Fprintf(&b, "Source       %s\n", d.Source)
 	}
 	return b.String()
+}
+
+func formatWorktreeLine(wt *Worktree) string {
+	if wt == nil {
+		return ""
+	}
+	line := wt.Path
+	if wt.Branch != "" {
+		if line != "" {
+			line = fmt.Sprintf("%s (%s)", line, wt.Branch)
+		} else {
+			line = wt.Branch
+		}
+	}
+	if wt.Name == "" {
+		return line
+	}
+	if line != "" {
+		return fmt.Sprintf("%s [%s]", line, wt.Name)
+	}
+	return wt.Name
+}
+
+func formatGitLine(g *Git) string {
+	if g == nil {
+		return ""
+	}
+	parts := make([]string, 0, 3)
+	if g.Commit != "" {
+		parts = append(parts, shortSHA(g.Commit))
+	}
+	if g.Branch != "" {
+		parts = append(parts, "on "+g.Branch)
+	}
+	if g.Repo != "" && len(parts) == 0 {
+		parts = append(parts, g.Repo)
+	}
+	line := strings.Join(parts, " ")
+	if !g.Dirty {
+		return line
+	}
+	if line != "" {
+		return line + " (dirty)"
+	}
+	return "dirty"
 }
 
 func shortSHA(sha string) string {
