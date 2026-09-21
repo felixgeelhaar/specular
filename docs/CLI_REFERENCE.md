@@ -2141,6 +2141,7 @@ specular session <subcommand>
 | `session merge <id>` | Merge worktree branch into primary checkout (local land) |
 | `session cherry-pick <id> --from <src>` | Apply source session tip into this worktree |
 | `session attest <id>` | Write signed attestation with harness/worktree provenance |
+| `session integrate <harness>` | Install native agent Stop hooks (attest + gate) into the repo |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop [id…]` / `stop --all` | Stop one, many, or all non-terminal sessions |
 | `session harnesses` | List harnesses with PATH availability |
@@ -2250,9 +2251,20 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `cherry-pick --force` | Cherry-pick even if the target session is still running |
 | `attest --output <path>` | Override attestation path (default `.specular/sessions/<id>.attestation.json`) |
 | `attest --force` | Attest even if the session is still running |
+| `integrate <harness>` | Install native Stop hooks for `claude-code` (alias `claude`) |
+| `integrate --dry-run` | Print planned `.claude/` writes without changing the repo |
+| `integrate --force` | Overwrite an existing Specular Stop hook script |
+
+**Native agent hooks** (PRODUCT_INTENT P1 #4): `session integrate claude-code`
+writes `.claude/hooks/specular-session-stop.sh` and merges `hooks.Stop` into
+`.claude/settings.json`. On Stop, the hook calls `session attest` + `gate`
+using `SPECULAR_SESSION_ID` exported by `session start`. See
+[`examples/agents/`](../examples/agents/).
 
 **Example:**
 ```bash
+$ specular session integrate claude-code --dry-run
+$ specular session integrate claude-code
 $ specular session harnesses
 $ specular session start --harness claude-code --governed --name auth "Harden JWT validation"
 $ specular session start --harness codex --governed --name ratelimit "Add rate limiting"

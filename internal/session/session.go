@@ -296,6 +296,7 @@ func (m *Manager) startForeground(ctx context.Context, rec *Record, plan LaunchP
 		return m.failRecord(rec, cmdErr)
 	}
 	cmd.Dir = plan.WorkDir
+	cmd.Env = append(os.Environ(), sessionProvenanceEnv(rec)...)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	configureProcessGroup(cmd)
@@ -342,6 +343,7 @@ func (m *Manager) startDetached(rec *Record, plan LaunchPlan) (*Record, error) {
 		"SPECULAR_SESSION_LOG="+rec.LogPath,
 		"SPECULAR_SESSION_EXIT="+exitPath,
 	)
+	cmd.Env = append(cmd.Env, sessionProvenanceEnv(rec)...)
 	configureProcessGroup(cmd)
 
 	if startErr := cmd.Start(); startErr != nil {
@@ -494,6 +496,18 @@ func resolveBinary(override string) (string, error) {
 		return "", fmt.Errorf("session: resolve executable: %w", exeErr)
 	}
 	return exe, nil
+}
+
+// sessionProvenanceEnv exports identity for native agent hooks installed via
+// `specular session integrate` (Stop hooks call session attest + gate).
+func sessionProvenanceEnv(rec *Record) []string {
+	if rec == nil {
+		return nil
+	}
+	return []string{
+		"SPECULAR_SESSION_ID=" + rec.ID,
+		"SPECULAR_SESSION_HARNESS=" + rec.Harness,
+	}
 }
 
 func (m *Manager) failRecord(rec *Record, cause error) (*Record, error) {
