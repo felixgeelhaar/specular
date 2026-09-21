@@ -155,11 +155,11 @@ func buildDockerArgs(step Step) []string {
 		"--rm", // Remove container after exit
 	}
 
-	// Network is always set; empty step.Network defaults to none (fail-closed).
-	args = append(args, "--network", effectiveNetwork(step))
-
-	// Non-root user is always set; empty step.User defaults to nobody.
-	args = append(args, "--user", effectiveUser(step))
+	// Network and user are always set; empty values fail closed to none / nobody.
+	args = append(args,
+		"--network", effectiveNetwork(step),
+		"--user", effectiveUser(step),
+	)
 
 	// Resource limits
 	if step.CPU != "" {
