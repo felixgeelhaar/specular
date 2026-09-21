@@ -16,6 +16,7 @@ Complete reference for Specular CLI commands and flags.
 - [Approval Commands](#approval-commands)
   - [approve](#approve)
   - [approvals list](#approvals-list)
+  - [approvals show](#approvals-show)
   - [approvals pending](#approvals-pending)
 - [Environment & Configuration Commands](#environment--configuration-commands)
   - [context](#context)
@@ -648,8 +649,11 @@ Creates an approval record for:
 - `drift-<id>`
 - `policy-<id>`
 - `plan-<id>`
+- `exception` / `exception-<id>` (controlled exception trail)
 
-`--message` is required for audit context. See `docs/APPROVAL_BEST_PRACTICES.md`.
+`--message` is required for non-exception approvals. Exceptions require `--reason`
+(and should set `--scope`). Exception records are advisory audit trail only —
+they do not flip gate DENY→ALLOW. See `docs/APPROVAL_BEST_PRACTICES.md`.
 
 **Example:**
 ```bash
@@ -663,11 +667,27 @@ $ specular approve plan-abc123 --message "Reviewed and validated implementation 
 Approval recorded in .specular/approvals/plan-20251117-103000.yaml
 ```
 
+```bash
+$ specular approve exception-EX-192 \
+    --reason "Emergency auth hotfix" \
+    --scope "internal/auth/**" \
+    --policy SEC-17 \
+    --expires 7d
+⚠ Exception recorded: exception-EX-192
+```
+
 **Flags:**
 
 | Flag | Type | Description |
 |------|------|-------------|
 | `--message <text>` | string | Approval message or comment |
+| `--reason <text>` | string | Exception reason (required for `exception-*`) |
+| `--scope <text>` | string | Exception scope (paths / services) |
+| `--policy <text>` | string | Policy/control id (e.g. SEC-17) |
+| `--expires <when>` | string | Expiration (RFC3339 or `7d` / `24h`) |
+| `--requester <id>` | string | Who requested the exception |
+| `--artifact <ref>` | string | Affected artifact digest/reference |
+| `--evidence <id>` | string | Related evidence id |
 
 ---
 
@@ -676,25 +696,35 @@ Approval recorded in .specular/approvals/plan-20251117-103000.yaml
 List all approval records with filtering.
 
 ```bash
-specular approvals list
+specular approvals list [--json]
 ```
 
 **Description:**
 
 Displays approval records grouped by type and sorted by timestamp.
+`--json` emits the raw record array.
 
 **Example:**
 ```bash
 $ specular approvals list
 
-=== Approval Records ===
-Plan Approvals: 1
-  • plan-abc123
-    Approved by: user@example.com
-    Approved at: 2025-11-17 10:30:00
-    Message: Reviewed and validated implementation plan
+APPROVAL / EXCEPTION TRAIL
+──────────────────────────────────────
+Exception records: 1
+  • exception-EX-192
+    Approved by: alice
+    Reason: Emergency auth hotfix
+    Scope: internal/auth/**
 
-Total approvals: 1
+Total: 1
+```
+
+### approvals show
+
+Show one approval/exception in AI CHANGE RECORD style.
+
+```bash
+specular approvals show [resource-id] [--json]
 ```
 
 ### approvals pending

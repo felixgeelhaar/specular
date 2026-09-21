@@ -69,7 +69,15 @@ func writeMarkdownTable(b *strings.Builder, res *Result) {
 	if riskLevel == "" {
 		riskLevel = "NONE"
 	}
-	fmt.Fprintf(b, "| Risk | `%s` (advisory) |\n\n", riskLevel)
+	fmt.Fprintf(b, "| Risk | `%s` (advisory) |\n", riskLevel)
+	approvalStatus := "none"
+	if res.Approvals.Count > 0 {
+		approvalStatus = fmt.Sprintf("%d recorded", res.Approvals.Count)
+		if n := len(res.Approvals.Exceptions); n > 0 {
+			approvalStatus += fmt.Sprintf(", %d open exception(s)", n)
+		}
+	}
+	fmt.Fprintf(b, "| Approvals | `%s` (advisory) |\n\n", approvalStatus)
 }
 
 func writeMarkdownNotes(b *strings.Builder, res *Result) {
@@ -101,6 +109,29 @@ func writeMarkdownNotes(b *strings.Builder, res *Result) {
 		b.WriteString("\n")
 	} else if res.Risk.Note != "" {
 		fmt.Fprintf(b, "_Risk:_ %s\n\n", res.Risk.Note)
+	}
+	writeMarkdownApprovals(b, res)
+}
+
+func writeMarkdownApprovals(b *strings.Builder, res *Result) {
+	if len(res.Approvals.Exceptions) > 0 {
+		b.WriteString("_Open exceptions (advisory):_\n")
+		for _, ex := range res.Approvals.Exceptions {
+			line := "- ⚠ `" + ex.ResourceID + "`"
+			if ex.Reason != "" {
+				line += " — " + ex.Reason
+			}
+			b.WriteString(line + "\n")
+		}
+		b.WriteString("\n")
+		return
+	}
+	if res.Verdict == Deny {
+		b.WriteString("_Approvals:_ none open — record with `specular approve exception-<id> --reason \"...\" --scope \"...\"`\n\n")
+		return
+	}
+	if res.Approvals.Note != "" && res.Approvals.Count == 0 {
+		fmt.Fprintf(b, "_Approvals:_ %s\n\n", res.Approvals.Note)
 	}
 }
 

@@ -72,6 +72,17 @@ func TestFormatExplainDenyWithFindings(t *testing.T) {
 			},
 			Policy:     gate.PolicySection{Status: gate.StatusSkipped},
 			Provenance: gate.ProvenanceSection{Status: gate.StatusSkipped},
+			Approvals: gate.ApprovalsSection{
+				Count: 1,
+				Exceptions: []gate.ApprovalSummary{{
+					Type:       "exception",
+					ResourceID: "exception-EX-192",
+					Reason:     "emergency auth hotfix",
+					Scope:      "internal/auth/**",
+					ApprovedBy: "alice",
+				}},
+				Note: "1 open exception(s)",
+			},
 		},
 	}
 	text := FormatExplain(rec)
@@ -88,6 +99,11 @@ func TestFormatExplainDenyWithFindings(t *testing.T) {
 		"✗ FAIL",
 		"HASH_MISMATCH",
 		"at src/a.go",
+		"Approvals",
+		"exception-EX-192",
+		"emergency auth hotfix",
+		"scope=internal/auth/**",
+		"open exception(s) on local trail",
 		"Why",
 		"Drift failed",
 		"→ DENY",
@@ -96,6 +112,9 @@ func TestFormatExplainDenyWithFindings(t *testing.T) {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)
 		}
+	}
+	if !strings.Contains(text, "⚠") || !strings.Contains(text, "exception") {
+		t.Fatalf("missing exception mark:\n%s", text)
 	}
 	if strings.Contains(text, "SPECULAR EXPLAIN") {
 		t.Fatalf("legacy title still present:\n%s", text)
@@ -148,6 +167,32 @@ func TestFormatExplainAllowAttested(t *testing.T) {
 		"Files        clean working tree",
 		"• Worktree /tmp/wt/auth · branch=specular/auth",
 		"• Governed true",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
+	}
+}
+
+func TestFormatExplainDenyWithoutApprovalsHint(t *testing.T) {
+	t.Parallel()
+	rec := &Record{
+		ID: "ev_deny",
+		Gate: &gate.Result{
+			Verdict:    gate.Deny,
+			Reason:     "policy failed",
+			Drift:      gate.DriftSection{Status: gate.StatusSkipped},
+			Policy:     gate.PolicySection{Status: gate.StatusFail, Note: "policy failed"},
+			Provenance: gate.ProvenanceSection{Status: gate.StatusSkipped},
+			Approvals:  gate.ApprovalsSection{},
+		},
+	}
+	text := FormatExplain(rec)
+	for _, want := range []string{
+		"Approvals",
+		"none recorded",
+		"specular approve exception-",
+		"No local exception/approval trail for this DENY",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)

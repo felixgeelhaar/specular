@@ -1,15 +1,18 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/felixgeelhaar/specular/internal/approval"
 )
 
 // TestApprovalRecord tests the ApprovalRecord struct definition
 func TestApprovalRecord(t *testing.T) {
 	// Create a sample approval to verify struct works
 	now := time.Now()
-	approval := ApprovalRecord{
+	rec := ApprovalRecord{
 		Version:      "1.0",
 		Type:         "bundle",
 		ResourceID:   "bundle-abc123",
@@ -24,31 +27,64 @@ func TestApprovalRecord(t *testing.T) {
 	}
 
 	// Verify fields are accessible
-	if approval.Version != "1.0" {
-		t.Errorf("Version = %q, want %q", approval.Version, "1.0")
+	if rec.Version != "1.0" {
+		t.Errorf("Version = %q, want %q", rec.Version, "1.0")
 	}
-	if approval.Type != "bundle" {
-		t.Errorf("Type = %q, want %q", approval.Type, "bundle")
+	if rec.Type != "bundle" {
+		t.Errorf("Type = %q, want %q", rec.Type, "bundle")
 	}
-	if approval.ResourceID != "bundle-abc123" {
-		t.Errorf("ResourceID = %q, want %q", approval.ResourceID, "bundle-abc123")
+	if rec.ResourceID != "bundle-abc123" {
+		t.Errorf("ResourceID = %q, want %q", rec.ResourceID, "bundle-abc123")
 	}
-	if approval.ResourceHash != "sha256:def456" {
-		t.Errorf("ResourceHash = %q, want %q", approval.ResourceHash, "sha256:def456")
+	if rec.ResourceHash != "sha256:def456" {
+		t.Errorf("ResourceHash = %q, want %q", rec.ResourceHash, "sha256:def456")
 	}
-	if approval.ApprovedBy != "alice@example.com" {
-		t.Errorf("ApprovedBy = %q, want %q", approval.ApprovedBy, "alice@example.com")
+	if rec.ApprovedBy != "alice@example.com" {
+		t.Errorf("ApprovedBy = %q, want %q", rec.ApprovedBy, "alice@example.com")
 	}
-	if !approval.ApprovedAt.Equal(now) {
-		t.Errorf("ApprovedAt = %v, want %v", approval.ApprovedAt, now)
+	if !rec.ApprovedAt.Equal(now) {
+		t.Errorf("ApprovedAt = %v, want %v", rec.ApprovedAt, now)
 	}
-	if approval.Message != "Approved for production" {
-		t.Errorf("Message = %q, want %q", approval.Message, "Approved for production")
+	if rec.Message != "Approved for production" {
+		t.Errorf("Message = %q, want %q", rec.Message, "Approved for production")
 	}
-	if len(approval.Metadata) != 2 {
-		t.Errorf("Metadata length = %d, want %d", len(approval.Metadata), 2)
+	if len(rec.Metadata) != 2 {
+		t.Errorf("Metadata length = %d, want %d", len(rec.Metadata), 2)
 	}
-	if approval.Metadata["environment"] != "prod" {
-		t.Errorf("Metadata[environment] = %q, want %q", approval.Metadata["environment"], "prod")
+	if rec.Metadata["environment"] != "prod" {
+		t.Errorf("Metadata[environment] = %q, want %q", rec.Metadata["environment"], "prod")
+	}
+}
+
+func TestFormatApprovalExplainException(t *testing.T) {
+	t.Parallel()
+	exp := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
+	text := formatApprovalExplain(approval.Record{
+		Type:       approval.TypeException,
+		ResourceID: "exception-EX-192",
+		ApprovedBy: "alice",
+		ApprovedAt: time.Date(2026, 9, 21, 10, 0, 0, 0, time.UTC),
+		Message:    "temporary",
+		Reason:     "emergency hotfix",
+		Scope:      "internal/auth/**",
+		Policy:     "SEC-17",
+		Requester:  "bob",
+		ExpiresAt:  &exp,
+		Path:       ".specular/approvals/exception-20260921-100000.yaml",
+	})
+	for _, want := range []string{
+		"APPROVAL / EXCEPTION RECORD",
+		"Type         exception",
+		"Resource     exception-EX-192",
+		"Reason       emergency hotfix",
+		"Scope        internal/auth/**",
+		"Policy       SEC-17",
+		"Status       OPEN",
+		"specular approvals list",
+		"specular gate",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
 	}
 }
