@@ -120,6 +120,17 @@ func validateDockerStep(step Step) error {
 	return nil
 }
 
+// DefaultNetworkMode is the fail-closed Docker network when a step omits one.
+const DefaultNetworkMode = "none"
+
+// effectiveNetwork returns the network mode for a step. Empty is fail-closed to none.
+func effectiveNetwork(step Step) string {
+	if step.Network == "" {
+		return DefaultNetworkMode
+	}
+	return step.Network
+}
+
 // buildDockerArgs constructs the Docker command arguments with security constraints
 func buildDockerArgs(step Step) []string {
 	args := []string{
@@ -127,10 +138,8 @@ func buildDockerArgs(step Step) []string {
 		"--rm", // Remove container after exit
 	}
 
-	// Network configuration
-	if step.Network != "" {
-		args = append(args, "--network", step.Network)
-	}
+	// Network is always set; empty step.Network defaults to none (fail-closed).
+	args = append(args, "--network", effectiveNetwork(step))
 
 	// Resource limits
 	if step.CPU != "" {
@@ -145,6 +154,8 @@ func buildDockerArgs(step Step) []string {
 		"--read-only",         // Read-only root filesystem
 		"--pids-limit", "256", // Limit number of processes
 		"--cap-drop", "ALL", // Drop all capabilities
+		"--security-opt", "no-new-privileges", // Prevent privilege escalation
+		"--tmpfs", "/tmp:rw,noexec,nosuid,size=64m", // Writable scratch under read-only root
 	)
 
 	// Working directory mount

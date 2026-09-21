@@ -47,11 +47,12 @@ func enforceDockerPolicy(step Step, pol *policy.Policy) error {
 		}
 	}
 
-	// Validate network mode
-	if step.Network != "" && dockerPolicy.Network != "" {
-		if step.Network != dockerPolicy.Network {
+	// Validate network mode (empty step network is treated as DefaultNetworkMode).
+	if dockerPolicy.Network != "" {
+		network := effectiveNetwork(step)
+		if network != dockerPolicy.Network {
 			return fmt.Errorf("policy violation: network mode '%s' not allowed (required: '%s')",
-				step.Network, dockerPolicy.Network)
+				network, dockerPolicy.Network)
 		}
 	}
 
