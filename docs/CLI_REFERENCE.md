@@ -72,10 +72,10 @@ Evaluate a proposed software change and print an explainable ALLOW / DENY verdic
 
 **Usage:**
 ```bash
-specular gate [--json] [--strict-spec] [--policy <file>] [--report <sarif>]
+specular gate [--format text|json|markdown] [--github-annotations] [--json] [--strict-spec] [--policy <file>] [--report <sarif>]
 ```
 
-**Pipeline:** change discovery → provenance summary → drift (when specs exist) → policy verification (when policy exists) → verdict.
+**Pipeline:** change discovery → provenance summary → drift (when specs exist) → policy verification (when policy exists) → verdict → evidence record.
 
 Brownfield repositories without `.specular/spec`+plan+lock skip drift unless `--strict-spec`. Missing policy skips verification. Missing session attestations are reported as unattested (never silently verified).
 
@@ -85,8 +85,11 @@ Brownfield repositories without `.specular/spec`+plan+lock skip drift unless `--
 | `--policy` | Policy file (default: `.specular/policy.yaml` if present) |
 | `--report` | Drift SARIF path when drift runs (default: `drift.sarif`) |
 | `--strict-spec` | Fail when Specular spec/plan/lock are missing |
-| `--json` | Emit machine-readable JSON |
+| `--format` | Output: `text` (default), `json`, or `markdown` (PR / step summary) |
+| `--json` | Alias for `--format json` |
+| `--github-annotations` | Emit `::error`/`::warning`/`::notice` to stderr for Checks |
 | `-q` / `--quiet` | Suppress human board |
+| `--no-evidence` | Skip writing `.specular/evidence/` record |
 
 Exit codes: `0` ALLOW, `3` policy DENY, `4` drift DENY.
 
