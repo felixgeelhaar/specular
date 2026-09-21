@@ -6,7 +6,7 @@ import (
 )
 
 func TestChangeExplainCommandRegistered(t *testing.T) {
-	t.Parallel()
+	// Not parallel: rootCmd.Find mutates shared cobra command state.
 	cmd, _, err := rootCmd.Find([]string{"explain"})
 	if err != nil {
 		t.Fatal(err)
@@ -20,7 +20,7 @@ func TestChangeExplainCommandRegistered(t *testing.T) {
 }
 
 func TestEvidenceCommandsRegistered(t *testing.T) {
-	t.Parallel()
+	// Not parallel: rootCmd.Find mutates shared cobra command state.
 	for _, path := range [][]string{{"evidence"}, {"evidence", "list"}, {"evidence", "show"}} {
 		cmd, _, err := rootCmd.Find(path)
 		if err != nil {
@@ -33,7 +33,7 @@ func TestEvidenceCommandsRegistered(t *testing.T) {
 }
 
 func TestEvidenceListFilterFlags(t *testing.T) {
-	t.Parallel()
+	// Not parallel: rootCmd.Find mutates shared cobra command state.
 	cmd, _, err := rootCmd.Find([]string{"evidence", "list"})
 	if err != nil {
 		t.Fatal(err)

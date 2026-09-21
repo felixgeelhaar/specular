@@ -75,6 +75,105 @@ func TestEvaluateProvenanceFromAttestation(t *testing.T) {
 	if len(res.Provenance.Harnesses) != 1 || res.Provenance.Harnesses[0] != "claude-code" {
 		t.Fatalf("harnesses=%v", res.Provenance.Harnesses)
 	}
+	if res.Provenance.Governed {
+		t.Fatal("expected governed=false when attestation omits governed")
+	}
+	if len(res.Provenance.WorktreePaths) != 0 {
+		t.Fatalf("unexpected worktrees=%v", res.Provenance.WorktreePaths)
+	}
+}
+
+func TestEvaluateProvenanceWorktreeAndGoverned(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{
+		"provenance":{
+			"harness":"claude-code",
+			"worktreePath":"/tmp/wt/auth",
+			"worktreeBranch":"specular/auth",
+			"worktreeName":"auth",
+			"governed":true
+		}
+	}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := res.Provenance
+	if !p.Attested || !p.Governed {
+		t.Fatalf("attested=%v governed=%v", p.Attested, p.Governed)
+	}
+	if len(p.WorktreePaths) != 1 || p.WorktreePaths[0] != "/tmp/wt/auth" {
+		t.Fatalf("paths=%v", p.WorktreePaths)
+	}
+	if len(p.WorktreeBranches) != 1 || p.WorktreeBranches[0] != "specular/auth" {
+		t.Fatalf("branches=%v", p.WorktreeBranches)
+	}
+	if len(p.WorktreeNames) != 1 || p.WorktreeNames[0] != "auth" {
+		t.Fatalf("names=%v", p.WorktreeNames)
+	}
+	if !strings.Contains(p.Note, "worktree isolated") || !strings.Contains(p.Note, "governed") {
+		t.Fatalf("note=%q", p.Note)
+	}
+	text := FormatText(res)
+	for _, want := range []string{
+		"Worktree       /tmp/wt/auth",
+		"WorktreeBranch specular/auth",
+		"WorktreeName   auth",
+		"Governed       true",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
+	}
+	md := FormatMarkdown(res)
+	for _, want := range []string{
+		"worktree=`/tmp/wt/auth`",
+		"branch=`specular/auth`",
+		"governed=`true`",
+	} {
+		if !strings.Contains(md, want) {
+			t.Fatalf("markdown missing %q:\n%s", want, md)
+		}
+	}
+}
+
+func TestEvaluateProvenanceGovernedAnySession(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	plain := `{"provenance":{"harness":"codex","worktreePath":"/tmp/wt/a","worktreeBranch":"specular/a"}}`
+	gov := `{"provenance":{"harness":"claude-code","worktreePath":"/tmp/wt/b","worktreeBranch":"specular/b","governed":true}}`
+	if err := os.WriteFile(filepath.Join(dir, "a.attestation.json"), []byte(plain), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "b.attestation.json"), []byte(gov), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Provenance.Governed {
+		t.Fatal("expected governed=true when any attestation is governed")
+	}
+	if len(res.Provenance.WorktreePaths) != 2 {
+		t.Fatalf("paths=%v", res.Provenance.WorktreePaths)
+	}
+	// unique + sorted
+	if res.Provenance.WorktreePaths[0] != "/tmp/wt/a" || res.Provenance.WorktreePaths[1] != "/tmp/wt/b" {
+		t.Fatalf("paths=%v", res.Provenance.WorktreePaths)
+	}
 }
 
 func TestSortFindingsStableOrder(t *testing.T) {

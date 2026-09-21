@@ -78,9 +78,17 @@ type ProvenanceSection struct {
 	Attested  bool          `json:"attested"`
 	Sessions  []string      `json:"sessions,omitempty"`
 	Harnesses []string      `json:"harnesses,omitempty"`
-	GitBranch string        `json:"gitBranch,omitempty"`
-	GitDirty  bool          `json:"gitDirty"`
-	Note      string        `json:"note,omitempty"`
+	// WorktreePaths / WorktreeBranches / WorktreeNames are collected from
+	// session attestations (additive; empty when unattested or not isolated).
+	WorktreePaths    []string `json:"worktreePaths,omitempty"`
+	WorktreeBranches []string `json:"worktreeBranches,omitempty"`
+	WorktreeNames    []string `json:"worktreeNames,omitempty"`
+	// Governed is true when at least one session attestation recorded
+	// provenance.governed=true (safer native launch). Meaningful when Attested.
+	Governed  bool   `json:"governed,omitempty"`
+	GitBranch string `json:"gitBranch,omitempty"`
+	GitDirty  bool   `json:"gitDirty"`
+	Note      string `json:"note,omitempty"`
 }
 
 // DriftSection summarizes drift evaluation.
@@ -191,22 +199,58 @@ func discoverProvenance(root string) ProvenanceSection {
 		}
 		var payload struct {
 			Provenance struct {
-				Harness string `json:"harness"`
+				Harness        string `json:"harness"`
+				WorktreePath   string `json:"worktreePath"`
+				WorktreeBranch string `json:"worktreeBranch"`
+				WorktreeName   string `json:"worktreeName"`
+				Governed       bool   `json:"governed"`
 			} `json:"provenance"`
 		}
-		if json.Unmarshal(data, &payload) == nil && payload.Provenance.Harness != "" {
+		if json.Unmarshal(data, &payload) != nil {
+			continue
+		}
+		if payload.Provenance.Harness != "" {
 			sec.Harnesses = append(sec.Harnesses, payload.Provenance.Harness)
+		}
+		if payload.Provenance.WorktreePath != "" {
+			sec.WorktreePaths = append(sec.WorktreePaths, payload.Provenance.WorktreePath)
+		}
+		if payload.Provenance.WorktreeBranch != "" {
+			sec.WorktreeBranches = append(sec.WorktreeBranches, payload.Provenance.WorktreeBranch)
+		}
+		if payload.Provenance.WorktreeName != "" {
+			sec.WorktreeNames = append(sec.WorktreeNames, payload.Provenance.WorktreeName)
+		}
+		if payload.Provenance.Governed {
+			sec.Governed = true
 		}
 	}
 	sort.Strings(sec.Sessions)
 	sec.Harnesses = unique(sec.Harnesses)
 	sort.Strings(sec.Harnesses)
+	sec.WorktreePaths = unique(sec.WorktreePaths)
+	sort.Strings(sec.WorktreePaths)
+	sec.WorktreeBranches = unique(sec.WorktreeBranches)
+	sort.Strings(sec.WorktreeBranches)
+	sec.WorktreeNames = unique(sec.WorktreeNames)
+	sort.Strings(sec.WorktreeNames)
 	if len(sec.Sessions) > 0 {
 		sec.Attested = true
 		sec.Status = StatusPass
-		sec.Note = "session attestation(s) present"
+		sec.Note = attestedProvenanceNote(sec)
 	}
 	return sec
+}
+
+func attestedProvenanceNote(sec ProvenanceSection) string {
+	parts := []string{"session attestation(s) present"}
+	if len(sec.WorktreePaths) > 0 || len(sec.WorktreeBranches) > 0 {
+		parts = append(parts, "worktree isolated")
+	}
+	if sec.Governed {
+		parts = append(parts, "governed")
+	}
+	return strings.Join(parts, "; ")
 }
 
 func runGit(dir string, args ...string) (string, error) {
@@ -498,6 +542,10 @@ func FormatText(res *Result) string {
 	if len(res.Provenance.Sessions) > 0 {
 		fmt.Fprintf(&b, "  Sessions       %s\n", strings.Join(res.Provenance.Sessions, ", "))
 	}
+	writeProvenanceWorktree(&b, res.Provenance)
+	if res.Provenance.Attested {
+		fmt.Fprintf(&b, "  Governed       %v\n", res.Provenance.Governed)
+	}
 	if res.Provenance.Note != "" {
 		fmt.Fprintf(&b, "  Note           %s\n", res.Provenance.Note)
 	}
@@ -528,6 +576,18 @@ func FormatText(res *Result) string {
 	fmt.Fprintf(&b, "VERDICT: %s\n", res.Verdict)
 	fmt.Fprintf(&b, "REASON:  %s\n", res.Reason)
 	return b.String()
+}
+
+func writeProvenanceWorktree(b *strings.Builder, p ProvenanceSection) {
+	if len(p.WorktreePaths) > 0 {
+		fmt.Fprintf(b, "  Worktree       %s\n", strings.Join(p.WorktreePaths, ", "))
+	}
+	if len(p.WorktreeBranches) > 0 {
+		fmt.Fprintf(b, "  WorktreeBranch %s\n", strings.Join(p.WorktreeBranches, ", "))
+	}
+	if len(p.WorktreeNames) > 0 {
+		fmt.Fprintf(b, "  WorktreeName   %s\n", strings.Join(p.WorktreeNames, ", "))
+	}
 }
 
 func writeRiskSection(b *strings.Builder, risk RiskSection) {

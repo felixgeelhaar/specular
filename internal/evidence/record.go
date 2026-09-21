@@ -255,6 +255,18 @@ func writeProvenanceBlock(b *strings.Builder, g *gate.Result) {
 	if len(g.Provenance.Sessions) > 0 {
 		fmt.Fprintf(b, "Session      %s\n", strings.Join(g.Provenance.Sessions, ", "))
 	}
+	if len(g.Provenance.WorktreePaths) > 0 {
+		fmt.Fprintf(b, "Worktree     %s\n", strings.Join(g.Provenance.WorktreePaths, ", "))
+	}
+	if len(g.Provenance.WorktreeBranches) > 0 {
+		fmt.Fprintf(b, "WtBranch     %s\n", strings.Join(g.Provenance.WorktreeBranches, ", "))
+	}
+	if len(g.Provenance.WorktreeNames) > 0 {
+		fmt.Fprintf(b, "WtName       %s\n", strings.Join(g.Provenance.WorktreeNames, ", "))
+	}
+	if g.Provenance.Attested {
+		fmt.Fprintf(b, "Governed     %v\n", g.Provenance.Governed)
+	}
 	if !g.Provenance.Attested {
 		note := g.Provenance.Note
 		if note == "" {
@@ -370,6 +382,19 @@ func writeWhy(b *strings.Builder, g *gate.Result) {
 			fmt.Fprintf(b, " (%s)", strings.Join(g.Provenance.Harnesses, ", "))
 		}
 		b.WriteString("\n")
+		if len(g.Provenance.WorktreePaths) > 0 || len(g.Provenance.WorktreeBranches) > 0 {
+			b.WriteString("  • Worktree ")
+			parts := make([]string, 0, 2)
+			if len(g.Provenance.WorktreePaths) > 0 {
+				parts = append(parts, strings.Join(g.Provenance.WorktreePaths, ", "))
+			}
+			if len(g.Provenance.WorktreeBranches) > 0 {
+				parts = append(parts, "branch="+strings.Join(g.Provenance.WorktreeBranches, ", "))
+			}
+			b.WriteString(strings.Join(parts, " · "))
+			b.WriteString("\n")
+		}
+		fmt.Fprintf(b, "  • Governed %v\n", g.Provenance.Governed)
 	} else {
 		b.WriteString("  • Provenance unattested — not treated as verified\n")
 	}

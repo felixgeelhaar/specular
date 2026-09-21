@@ -118,10 +118,15 @@ func TestFormatExplainAllowAttested(t *testing.T) {
 				Skipped: 1,
 			},
 			Provenance: gate.ProvenanceSection{
-				Status:    gate.StatusPass,
-				Attested:  true,
-				Harnesses: []string{"Claude Code"},
-				Sessions:  []string{"sp_92d1"},
+				Status:           gate.StatusPass,
+				Attested:         true,
+				Harnesses:        []string{"Claude Code"},
+				Sessions:         []string{"sp_92d1"},
+				WorktreePaths:    []string{"/tmp/wt/auth"},
+				WorktreeBranches: []string{"specular/auth"},
+				WorktreeNames:    []string{"auth"},
+				Governed:         true,
+				Note:             "session attestation(s) present; worktree isolated; governed",
 			},
 		},
 	}
@@ -132,11 +137,17 @@ func TestFormatExplainAllowAttested(t *testing.T) {
 		"Status       ATTESTED",
 		"Harness      Claude Code",
 		"Session      sp_92d1",
+		"Worktree     /tmp/wt/auth",
+		"WtBranch     specular/auth",
+		"WtName       auth",
+		"Governed     true",
 		"✓ PASS",
 		"Summary      None detected",
 		"Checks       passed=3 failed=0 skipped=1",
 		"→ ALLOW",
 		"Files        clean working tree",
+		"• Worktree /tmp/wt/auth · branch=specular/auth",
+		"• Governed true",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)
