@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -144,41 +143,15 @@ func LoadLatest(root string) (*Record, error) {
 	return Load(root, strings.TrimSpace(string(raw)))
 }
 
-// ListIDs returns evidence IDs newest-first by mtime.
+// ListIDs returns evidence IDs newest-first by CreatedAt (ID tiebreak).
 func ListIDs(root string) ([]string, error) {
-	dir := Dir(root)
-	entries, err := os.ReadDir(dir)
+	recs, err := List(root, ListFilter{})
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
 		return nil, err
 	}
-	type item struct {
-		id  string
-		mod time.Time
-	}
-	var items []item
-	for _, e := range entries {
-		name := e.Name()
-		if e.IsDir() || !strings.HasSuffix(name, ".json") {
-			continue
-		}
-		info, infoErr := e.Info()
-		if infoErr != nil {
-			continue
-		}
-		items = append(items, item{
-			id:  strings.TrimSuffix(name, ".json"),
-			mod: info.ModTime(),
-		})
-	}
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].mod.After(items[j].mod)
-	})
-	out := make([]string, len(items))
-	for i, it := range items {
-		out[i] = it.id
+	out := make([]string, len(recs))
+	for i, rec := range recs {
+		out[i] = rec.ID
 	}
 	return out, nil
 }

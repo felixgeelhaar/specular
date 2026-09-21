@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/evidence"
+	"github.com/felixgeelhaar/specular/internal/gate"
 )
 
 var evidenceCmd = &cobra.Command{
@@ -24,6 +27,8 @@ Human show output is an auditor-facing AI CHANGE RECORD (PRODUCT_INTENT §19).
 
 Examples:
   specular evidence list
+  specular evidence list --verdict DENY --since 24h --limit 20
+  specular evidence list --path internal/auth --json
   specular evidence show
   specular evidence show ev_abc123
   specular evidence show --json
@@ -32,9 +37,19 @@ Examples:
 
 var evidenceListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List evidence record IDs (newest first)",
-	Args:  cobra.NoArgs,
-	RunE:  runEvidenceList,
+	Short: "List evidence records (newest first)",
+	Long: `List local Change Evidence Graph record IDs under .specular/evidence/.
+
+Filters (combinable):
+  --verdict ALLOW|DENY   Gate decision
+  --since <dur|RFC3339>  CreatedAt at or after (e.g. 24h, 2026-09-01T00:00:00Z)
+  --path <substr>        Root or drift finding path contains substring
+  --limit N              Cap results after sorting (newest first)
+
+--json emits a JSON array of matching IDs.
+`,
+	Args: cobra.NoArgs,
+	RunE: runEvidenceList,
 }
 
 var evidenceShowCmd = &cobra.Command{
@@ -49,9 +64,17 @@ func runEvidenceList(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	ids, err := evidence.ListIDs(root)
+	filter, err := evidenceListFilter(cmd)
 	if err != nil {
 		return err
+	}
+	recs, err := evidence.List(root, filter)
+	if err != nil {
+		return err
+	}
+	ids := make([]string, len(recs))
+	for i, rec := range recs {
+		ids[i] = rec.ID
 	}
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	if jsonOut {
@@ -60,6 +83,10 @@ func runEvidenceList(cmd *cobra.Command, _ []string) error {
 		return enc.Encode(ids)
 	}
 	if len(ids) == 0 {
+		if filter.Verdict != "" || !filter.Since.IsZero() || filter.PathContains != "" {
+			fmt.Println("No evidence records match filters.")
+			return nil
+		}
 		fmt.Println("No evidence records. Run: specular gate")
 		return nil
 	}
@@ -67,6 +94,27 @@ func runEvidenceList(cmd *cobra.Command, _ []string) error {
 		fmt.Println(id)
 	}
 	return nil
+}
+
+func evidenceListFilter(cmd *cobra.Command) (evidence.ListFilter, error) {
+	var f evidence.ListFilter
+	verdict, _ := cmd.Flags().GetString("verdict")
+	if verdict != "" {
+		f.Verdict = gate.Verdict(strings.ToUpper(strings.TrimSpace(verdict)))
+	}
+	sinceStr, _ := cmd.Flags().GetString("since")
+	if sinceStr != "" {
+		since, err := evidence.ParseSince(sinceStr, time.Now().UTC())
+		if err != nil {
+			return f, err
+		}
+		f.Since = since
+	}
+	pathSub, _ := cmd.Flags().GetString("path")
+	f.PathContains = strings.TrimSpace(pathSub)
+	limit, _ := cmd.Flags().GetInt("limit")
+	f.Limit = limit
+	return f, nil
 }
 
 func runEvidenceShow(cmd *cobra.Command, args []string) error {
@@ -104,6 +152,10 @@ func evidenceProjectRoot(cmd *cobra.Command) (string, error) {
 func init() {
 	evidenceCmd.PersistentFlags().String("project-root", "", "Repository root (default: cwd)")
 	evidenceListCmd.Flags().Bool("json", false, "Emit JSON array of IDs")
+	evidenceListCmd.Flags().String("verdict", "", "Filter by gate verdict (ALLOW or DENY)")
+	evidenceListCmd.Flags().String("since", "", "Only records at or after time (duration like 24h, or RFC3339)")
+	evidenceListCmd.Flags().String("path", "", "Only records whose root or finding paths contain substring")
+	evidenceListCmd.Flags().Int("limit", 0, "Maximum number of records to return (0 = all)")
 	evidenceShowCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	evidenceCmd.AddCommand(evidenceListCmd)
 	evidenceCmd.AddCommand(evidenceShowCmd)

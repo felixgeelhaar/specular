@@ -31,3 +31,16 @@ func TestEvidenceCommandsRegistered(t *testing.T) {
 		}
 	}
 }
+
+func TestEvidenceListFilterFlags(t *testing.T) {
+	t.Parallel()
+	cmd, _, err := rootCmd.Find([]string{"evidence", "list"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"verdict", "since", "path", "limit", "json"} {
+		if cmd.Flags().Lookup(name) == nil {
+			t.Fatalf("missing --%s", name)
+		}
+	}
+}
