@@ -40,7 +40,7 @@ Most teams are adopting AI for ideation, planning, code generation, and automati
 > Same harnesses as desktop session managers (Claude / Codex / Gemini), plus
 > drift, policy, and signed evidence that those tools do not ship.
 
-### Quick proof (fleet → evidence)
+### Quick proof (fleet → evidence → land)
 
 ```bash
 # Install a framework control mapping (open policy library)
@@ -59,11 +59,16 @@ cat > fleet.yaml <<'EOF'
   governed: true
 EOF
 specular session batch --governed fleet.yaml
-specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml
+specular session wait --timeout 45m --stop --bundle \
+  --policy .specular/policies/soc2-cc8.1.yaml
+specular session commit auth --all
+specular session sync auth --fetch
+# Then land: specular session push auth --pr   OR   specular session merge auth
 
 # Artifacts: session-evidence.sbundle.tgz, drift.sarif, .specular/sessions/*.attestation.json
 ```
 
+One-shot script: [`examples/cicd-github-actions/proof.sh`](examples/cicd-github-actions/proof.sh).
 Copy-paste GitHub Actions: [`examples/cicd-github-actions/session-fleet-bundle.yml`](examples/cicd-github-actions/session-fleet-bundle.yml).
 Competitive brief: [`docs/gtm/competitive/xirp.md`](docs/gtm/competitive/xirp.md).
 

@@ -15,26 +15,33 @@ These examples demonstrate how to automate bundle creation, approval, verificati
 
 ## Examples
 
-### 1. Session fleet → evidence bundle (vs Xirp Mac grid)
+### 1. Session fleet → evidence → land (vs Xirp Mac grid)
 
-**Files**: `session-fleet-bundle.yml`, `fleet.yaml`
+**Files**: `session-fleet-bundle.yml`, `fleet.yaml`, `proof.sh`
 
-CI-native parallel sessions with Specular's outer-loop gate:
+CI-native parallel sessions with Specular's outer-loop gate **and** land path:
 
 1. `policy library install soc2-cc8.1`
 2. `session batch --governed fleet.yaml` (manifest `dependsOn` for review after implement)
-3. `session wait --bundle --policy …` → `session-evidence.sbundle.tgz` + drift SARIF + attestations
-4. Upload artifacts for auditors
+3. `session wait --timeout … --stop --bundle` → evidence packet (abort stuck fleets)
+4. `session commit` + `session sync --fetch` on the authoring session
+5. Upload artifacts for auditors
 
 ```bash
+# Copy into a consumer repo:
 cp examples/cicd-github-actions/session-fleet-bundle.yml .github/workflows/
 cp examples/cicd-github-actions/fleet.yaml .
 # Optional: set FLEET_PATH or edit harnesses to claude-code/codex/gemini
+
+# Or run the local one-shot proof from this repo:
+./examples/cicd-github-actions/proof.sh
 ```
 
-This is the control-plane answer to desktop-only session managers: same
-harnesses (when installed), plus a fail-on-drift evidence packet in CI.
+Optional after proof: `session push implement --pr` or `session merge implement`.
 
+This is the control-plane answer to desktop-only session managers: same
+harnesses (when installed), plus a fail-on-drift evidence packet and a
+scriptable land path in CI.
 ### 2. Complete Bundle Workflow
 
 **File**: `bundle-workflow.yml`

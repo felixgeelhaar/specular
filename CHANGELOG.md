@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Fleet proof (evidence → land)**: extend `session-fleet-bundle.yml` with
+  `--stop` + commit/`sync --fetch` land steps; add
+  `examples/cicd-github-actions/proof.sh` one-shot local proof; README
+  quick proof now covers fleet → bundle → land
+
 - **Session sync --fetch**: `session sync --fetch [--remote]` refreshes
   remotes first and defaults onto `origin/<base>` so fleets rebase onto
   the remote tip instead of a stale local main

@@ -62,9 +62,26 @@ jobs:
 
       - name: Wait + gate + evidence bundle
         run: |
-          specular session wait --timeout 45m --bundle \
+          # --stop aborts stuck harnesses when the deadline fires (fleet abort).
+          specular session wait --timeout 45m --stop --bundle \
             --policy .specular/policies/soc2-cc8.1.yaml \
             --bundle-out session-evidence.sbundle.tgz
+
+      - name: Land path (commit + sync --fetch)
+        run: |
+          # Authoring session from fleet.yaml — review may be read-only.
+          if ! specular session show implement >/dev/null 2>&1; then
+            echo "No implement session; skipping land"
+            exit 0
+          fi
+          specular session diff implement --stat || true
+          if [[ -n "$(specular session diff implement --name-only 2>/dev/null || true)" ]]; then
+            specular session commit implement --all -m "ci: land implement session"
+          fi
+          # Prefer remote tip; fall back to local base when origin is unavailable.
+          if ! specular session sync implement --fetch; then
+            specular session sync implement
+          fi
 
       - name: Upload evidence bundle
         uses: actions/upload-artifact@v4
