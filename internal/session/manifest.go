@@ -16,6 +16,11 @@ type ManifestEntry struct {
 	Profile    string   `json:"profile,omitempty" yaml:"profile,omitempty"`
 	NoWorktree bool     `json:"noWorktree,omitempty" yaml:"noWorktree,omitempty"`
 	DependsOn  []string `json:"dependsOn,omitempty" yaml:"dependsOn,omitempty"`
+	// Governed forces safer native launch when true. When false/omitted,
+	// Start may still auto-govern if a policy file exists (unless NoGoverned).
+	Governed bool `json:"governed,omitempty" yaml:"governed,omitempty"`
+	// NoGoverned disables auto-governed even when a policy file is present.
+	NoGoverned bool `json:"noGoverned,omitempty" yaml:"noGoverned,omitempty"`
 }
 
 // ParseManifest decodes a JSON or YAML fleet manifest.

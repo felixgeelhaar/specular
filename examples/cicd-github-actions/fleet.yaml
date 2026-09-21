@@ -1,0 +1,12 @@
+# Sample fleet for session-fleet-bundle.yml
+# Uses specular-auto so CI can run without Claude/Codex/Gemini CLIs.
+# Swap harness to claude-code|codex|gemini when those binaries are available.
+- name: implement
+  harness: specular-auto
+  goal: Add a /healthz endpoint that returns 200 OK
+  governed: true
+- name: review
+  harness: specular-auto
+  goal: Review the /healthz change for tests and docs
+  dependsOn: [implement]
+  governed: true

@@ -41,6 +41,8 @@ Examples:
   specular session exec auth -- go test ./...
   specular session commit auth
   specular session sync auth
+  specular session push auth --pr
+  specular session merge auth
   specular session attest auth
   specular session batch fleet.yaml
 `,
@@ -63,6 +65,10 @@ launches the selected harness:
   gemini         Google Gemini CLI (--prompt)
 
 Harness + worktree identity are recorded for the outer-loop drift gate.
+
+Native harnesses auto-enable --governed when .specular/policy.yaml (or
+policies.yaml) is present. Pass --no-governed to keep skip-permissions /
+full-auto even with a policy file.
 
 Fleet launch (CI-native vs Xirp's Mac grid):
 
@@ -97,7 +103,12 @@ Fleet launch (CI-native vs Xirp's Mac grid):
 		profile, _ := cmd.Flags().GetString("profile")
 		noWorktree, _ := cmd.Flags().GetBool("no-worktree")
 		foreground, _ := cmd.Flags().GetBool("foreground")
+		governed, _ := cmd.Flags().GetBool("governed")
+		noGoverned, _ := cmd.Flags().GetBool("no-governed")
 		jsonOut, _ := cmd.Flags().GetBool("json")
+		if governed && noGoverned {
+			return fmt.Errorf("session: --governed and --no-governed are mutually exclusive")
+		}
 
 		rec, err := mgr.Start(cmd.Context(), session.StartOptions{
 			Goal:         goal,
@@ -107,6 +118,8 @@ Fleet launch (CI-native vs Xirp's Mac grid):
 			NoApproval:   true,
 			Detach:       !foreground,
 			SkipWorktree: noWorktree,
+			Governed:     governed,
+			NoGoverned:   noGoverned,
 		})
 		if err != nil && rec == nil {
 			return err
@@ -122,6 +135,9 @@ Fleet launch (CI-native vs Xirp's Mac grid):
 		fmt.Printf("Started session %s\n", rec.ID)
 		fmt.Printf("  Status:   %s\n", rec.Status)
 		fmt.Printf("  Harness:  %s\n", rec.Harness)
+		if rec.Governed {
+			fmt.Printf("  Governed: true\n")
+		}
 		if rec.WorktreePath != "" {
 			fmt.Printf("  Worktree: %s (%s)\n", rec.WorktreePath, rec.WorktreeBranch)
 		}
@@ -190,12 +206,19 @@ func runSessionManifest(cmd *cobra.Command, manifestPath string) error {
 	harness, _ := cmd.Flags().GetString("harness")
 	profile, _ := cmd.Flags().GetString("profile")
 	noWorktree, _ := cmd.Flags().GetBool("no-worktree")
+	governed, _ := cmd.Flags().GetBool("governed")
+	noGoverned, _ := cmd.Flags().GetBool("no-governed")
 	jsonOut, _ := cmd.Flags().GetBool("json")
+	if governed && noGoverned {
+		return fmt.Errorf("session: --governed and --no-governed are mutually exclusive")
+	}
 
 	started, startErr := mgr.StartMany(cmd.Context(), entries, session.StartOptions{
 		Harness:      harness,
 		Profile:      profile,
 		SkipWorktree: noWorktree,
+		Governed:     governed,
+		NoGoverned:   noGoverned,
 	})
 	if jsonOut {
 		enc := json.NewEncoder(os.Stdout)
@@ -205,7 +228,11 @@ func runSessionManifest(cmd *cobra.Command, manifestPath string) error {
 	}
 	ids := make([]string, 0, len(started))
 	for _, rec := range started {
-		fmt.Printf("Started session %s (%s) harness=%s\n", rec.ID, rec.Status, rec.Harness)
+		gov := ""
+		if rec.Governed {
+			gov = " governed=true"
+		}
+		fmt.Printf("Started session %s (%s) harness=%s%s\n", rec.ID, rec.Status, rec.Harness, gov)
 		ids = append(ids, rec.ID)
 	}
 	if len(ids) > 0 {
@@ -256,7 +283,7 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 
 		if len(list) > 0 {
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tWORKTREE\tPID\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tWORKTREE\tPID\tGOAL")
 			for _, s := range list {
 				goal := s.Goal
 				if len(goal) > 48 {
@@ -270,7 +297,11 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 				if wt == "" {
 					wt = "-"
 				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, wt, pid, goal)
+				gov := "-"
+				if s.Governed {
+					gov = "yes"
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, gov, wt, pid, goal)
 			}
 			_ = w.Flush()
 		}
@@ -309,6 +340,9 @@ var sessionShowCmd = &cobra.Command{
 				fmt.Printf("Status:     %s\n", rec.Status)
 				fmt.Printf("Goal:       %s\n", rec.Goal)
 				fmt.Printf("Harness:    %s\n", rec.Harness)
+				if rec.Governed {
+					fmt.Printf("Governed:   true\n")
+				}
 				fmt.Printf("Profile:    %s\n", rec.Profile)
 				if rec.WorktreePath != "" {
 					fmt.Printf("Worktree:   %s\n", rec.WorktreePath)
@@ -341,9 +375,15 @@ var sessionShowCmd = &cobra.Command{
 }
 
 var sessionStopCmd = &cobra.Command{
-	Use:   "stop <session-id>",
-	Short: "Stop a running agent session",
-	Args:  cobra.ExactArgs(1),
+	Use:   "stop [session-id...]",
+	Short: "Stop running agent session(s)",
+	Long: `Stop one or more managed sessions (Xirp grid kill analogue).
+
+  specular session stop auth
+  specular session stop auth ratelimit
+  specular session stop --all
+`,
+	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -353,18 +393,36 @@ var sessionStopCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		rec, err := mgr.Stop(args[0])
-		if err != nil {
-			return err
-		}
+		all, _ := cmd.Flags().GetBool("all")
 		jsonOut, _ := cmd.Flags().GetBool("json")
+		if all && len(args) > 0 {
+			return fmt.Errorf("session: pass session IDs or --all, not both")
+		}
+		if !all && len(args) == 0 {
+			return fmt.Errorf("session: session ID required (or pass --all)")
+		}
+
+		var stopped []session.Record
+		var stopErr error
+		if all {
+			stopped, stopErr = mgr.StopAll()
+		} else {
+			stopped, stopErr = mgr.StopMany(args)
+		}
 		if jsonOut {
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
-			return enc.Encode(rec)
+			_ = enc.Encode(stopped)
+			return stopErr
 		}
-		fmt.Printf("Stopped session %s\n", rec.ID)
-		return nil
+		if len(stopped) == 0 {
+			fmt.Println("No sessions to stop.")
+			return stopErr
+		}
+		for _, rec := range stopped {
+			fmt.Printf("Stopped session %s\n", rec.ID)
+		}
+		return stopErr
 	},
 }
 
@@ -518,7 +576,7 @@ Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 			}
 			working, queued, done, failed, stopped := 0, 0, 0, 0, 0
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tPID\tBRANCH\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tPID\tBRANCH\tGOAL")
 			for _, s := range list {
 				switch s.Status {
 				case session.StatusWorking, session.StatusIdle, session.StatusWaiting:
@@ -544,7 +602,11 @@ Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 				if branch == "" {
 					branch = "-"
 				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, pid, branch, goal)
+				gov := "-"
+				if s.Governed {
+					gov = "yes"
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, gov, pid, branch, goal)
 			}
 			_ = w.Flush()
 			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
@@ -640,6 +702,7 @@ Examples:
   specular session wait auth ratelimit
   specular session wait --any auth ratelimit
   specular session wait --timeout 10m && specular eval drift --fail-on-drift
+  specular session wait --timeout 45m --stop
   specular session wait --attest auth ratelimit
   specular session wait --attest --gate
   specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml
@@ -656,17 +719,22 @@ Examples:
 		timeout, _ := cmd.Flags().GetDuration("timeout")
 		interval, _ := cmd.Flags().GetDuration("interval")
 		anyDone, _ := cmd.Flags().GetBool("any")
+		stopOnTimeout, _ := cmd.Flags().GetBool("stop")
 		jsonOut, _ := cmd.Flags().GetBool("json")
 		doAttest, _ := cmd.Flags().GetBool("attest")
 		doGate, _ := cmd.Flags().GetBool("gate")
 		doBundle, _ := cmd.Flags().GetBool("bundle")
 		bundleOut, _ := cmd.Flags().GetString("bundle-out")
 		policies, _ := cmd.Flags().GetStringSlice("policy")
+		if stopOnTimeout && timeout <= 0 {
+			return fmt.Errorf("session: --stop requires --timeout")
+		}
 
 		recs, waitErr := mgr.Wait(cmd.Context(), args, session.WaitOptions{
-			Timeout:  timeout,
-			Interval: interval,
-			Any:      anyDone,
+			Timeout:       timeout,
+			Interval:      interval,
+			Any:           anyDone,
+			StopOnTimeout: stopOnTimeout,
 		})
 		if jsonOut {
 			enc := json.NewEncoder(os.Stdout)
@@ -725,6 +793,7 @@ Examples:
   specular session restart demo
   specular session restart demo --harness gemini
   specular session restart demo --force --goal "Retry with tests"
+  specular session restart demo --no-governed --force
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -742,14 +811,25 @@ Examples:
 		force, _ := cmd.Flags().GetBool("force")
 		foreground, _ := cmd.Flags().GetBool("foreground")
 		jsonOut, _ := cmd.Flags().GetBool("json")
+		governedChanged := cmd.Flags().Changed("governed")
+		governed, _ := cmd.Flags().GetBool("governed")
+		noGovernedChanged := cmd.Flags().Changed("no-governed")
+		noGoverned, _ := cmd.Flags().GetBool("no-governed")
+		if governedChanged && noGovernedChanged {
+			return fmt.Errorf("session: --governed and --no-governed are mutually exclusive")
+		}
 
 		rec, err := mgr.Restart(cmd.Context(), args[0], session.RestartOptions{
-			Harness:    harness,
-			Goal:       goal,
-			Profile:    profile,
-			Force:      force,
-			Detach:     !foreground,
-			NoApproval: true,
+			Harness:       harness,
+			Goal:          goal,
+			Profile:       profile,
+			Force:         force,
+			Detach:        !foreground,
+			NoApproval:    true,
+			Governed:      governed,
+			UseGoverned:   governedChanged,
+			NoGoverned:    noGoverned,
+			UseNoGoverned: noGovernedChanged,
 		})
 		if err != nil && rec == nil {
 			return err
@@ -1115,6 +1195,127 @@ refused unless --autostash. Conflicts abort the operation and report paths
 	},
 }
 
+var sessionPushCmd = &cobra.Command{
+	Use:   "push <session-id>",
+	Short: "Push a session worktree branch (optional --pr)",
+	Long: `Publish the session branch to the remote and optionally open a pull request.
+
+Uses git push -u to the session worktree branch. With --pr, runs gh pr create
+with harness/goal provenance in the body (requires gh on PATH).
+
+  specular session push auth
+  specular session push auth --pr
+  specular session push auth --pr --base main --title "Harden JWT"
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		remote, _ := cmd.Flags().GetString("remote")
+		force, _ := cmd.Flags().GetBool("force")
+		createPR, _ := cmd.Flags().GetBool("pr")
+		title, _ := cmd.Flags().GetString("title")
+		body, _ := cmd.Flags().GetString("body")
+		base, _ := cmd.Flags().GetString("base")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+
+		res, pushErr := mgr.Push(cmd.Context(), args[0], session.PushOptions{
+			Remote:   remote,
+			Force:    force,
+			CreatePR: createPR,
+			PRTitle:  title,
+			PRBody:   body,
+			Base:     base,
+		})
+		if jsonOut && res != nil {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(res)
+		}
+		if pushErr != nil {
+			return pushErr
+		}
+		if jsonOut {
+			return nil
+		}
+		fmt.Printf("Pushed session %s\n", res.SessionID)
+		fmt.Printf("  Remote: %s\n", res.Remote)
+		fmt.Printf("  Branch: %s\n", res.Branch)
+		fmt.Printf("  SHA:    %s\n", res.SHA)
+		if res.PRURL != "" {
+			fmt.Printf("  PR:     %s\n", res.PRURL)
+		}
+		return nil
+	},
+}
+
+var sessionMergeCmd = &cobra.Command{
+	Use:   "merge <session-id>",
+	Short: "Merge a session worktree branch into a base branch",
+	Long: `Land a session branch into the primary checkout (local merge, no gh).
+
+Checks out --into (default main/master) at the repo root and merges the
+session worktree branch with a provenance-aware message. Requires a clean
+primary working tree. On conflict, aborts and reports conflicted paths.
+
+  specular session merge auth
+  specular session merge auth --into main --no-ff
+  specular session merge auth --ff-only
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		into, _ := cmd.Flags().GetString("into")
+		message, _ := cmd.Flags().GetString("message")
+		ffOnly, _ := cmd.Flags().GetBool("ff-only")
+		noFF, _ := cmd.Flags().GetBool("no-ff")
+		force, _ := cmd.Flags().GetBool("force")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+		if ffOnly && noFF {
+			return fmt.Errorf("session: --ff-only and --no-ff are mutually exclusive")
+		}
+
+		res, mergeErr := mgr.Merge(cmd.Context(), args[0], session.MergeOptions{
+			Into:    into,
+			Message: message,
+			FFOnly:  ffOnly,
+			NoFF:    noFF,
+			Force:   force,
+		})
+		if jsonOut && res != nil {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(res)
+		}
+		if mergeErr != nil {
+			return mergeErr
+		}
+		if jsonOut {
+			return nil
+		}
+		fmt.Printf("Merged session %s\n", res.SessionID)
+		fmt.Printf("  Branch:   %s\n", res.Branch)
+		fmt.Printf("  Into:     %s\n", res.Into)
+		fmt.Printf("  Strategy: %s\n", res.Strategy)
+		fmt.Printf("  Before:   %s\n", res.BeforeSHA)
+		fmt.Printf("  After:    %s\n", res.AfterSHA)
+		return nil
+	},
+}
+
 var sessionAttestCmd = &cobra.Command{
 	Use:   "attest <session-id>",
 	Short: "Write a signed attestation with harness/worktree provenance",
@@ -1324,12 +1525,16 @@ func init() {
 	sessionStartCmd.Flags().String("profile", "ci", "Auto profile (specular-auto only)")
 	sessionStartCmd.Flags().Bool("no-worktree", false, "Run in the current checkout (not isolated)")
 	sessionStartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
+	sessionStartCmd.Flags().Bool("governed", false, "Safer native launch (no skip-permissions/full-auto) + governance preamble")
+	sessionStartCmd.Flags().Bool("no-governed", false, "Disable auto-governed even when .specular/policy.yaml is present")
 	sessionStartCmd.Flags().Bool("json", false, "Emit JSON")
 	sessionStartCmd.Flags().String("manifest", "", "Start a fleet from a YAML/JSON manifest file")
 
 	sessionBatchCmd.Flags().String("harness", "", "Default harness when an entry omits harness")
 	sessionBatchCmd.Flags().String("profile", "", "Default profile when an entry omits profile")
 	sessionBatchCmd.Flags().Bool("no-worktree", false, "Run all entries in the current checkout")
+	sessionBatchCmd.Flags().Bool("governed", false, "Default governed=true for native harness entries")
+	sessionBatchCmd.Flags().Bool("no-governed", false, "Disable auto-governed even when a policy file is present")
 	sessionBatchCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionListCmd.Flags().Bool("checkpoints", false, "Also list legacy auto checkpoints")
@@ -1338,6 +1543,7 @@ func init() {
 	sessionShowCmd.Flags().BoolP("verbose", "v", false, "Show log tail / task details")
 	sessionShowCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionStopCmd.Flags().Bool("all", false, "Stop every non-terminal session")
 	sessionStopCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionLogsCmd.Flags().Bool("follow", false, "Follow log output")
@@ -1355,6 +1561,7 @@ func init() {
 	sessionWaitCmd.Flags().Duration("timeout", 0, "Maximum time to wait (0 = no limit)")
 	sessionWaitCmd.Flags().Duration("interval", 500*time.Millisecond, "Poll interval")
 	sessionWaitCmd.Flags().Bool("any", false, "Return when any named session finishes")
+	sessionWaitCmd.Flags().Bool("stop", false, "Stop still-running sessions when --timeout fires")
 	sessionWaitCmd.Flags().Bool("attest", false, "Write session attestations after wait succeeds")
 	sessionWaitCmd.Flags().Bool("gate", false, "Run outer-loop drift gate after wait succeeds (fail-on-drift)")
 	sessionWaitCmd.Flags().Bool("bundle", false, "Package attestations + drift (+ policies) into an evidence bundle (implies --gate)")
@@ -1367,6 +1574,8 @@ func init() {
 	sessionRestartCmd.Flags().String("profile", "", "Override auto profile on restart")
 	sessionRestartCmd.Flags().Bool("force", false, "Stop a still-running session before restart")
 	sessionRestartCmd.Flags().Bool("foreground", false, "Run in the foreground instead of detaching")
+	sessionRestartCmd.Flags().Bool("governed", false, "Safer native launch on restart (omit to keep prior setting)")
+	sessionRestartCmd.Flags().Bool("no-governed", false, "Disable auto-governed on restart even when a policy file is present")
 	sessionRestartCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionRmCmd.Flags().Bool("force", false, "Stop a still-running session before removal")
@@ -1402,6 +1611,21 @@ func init() {
 	sessionSyncCmd.Flags().Bool("force", false, "Sync even if the session is still running")
 	sessionSyncCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionPushCmd.Flags().String("remote", "origin", "Git remote to push to")
+	sessionPushCmd.Flags().Bool("pr", false, "Open a pull request with gh after push")
+	sessionPushCmd.Flags().String("title", "", "PR title (default: session id + goal)")
+	sessionPushCmd.Flags().String("body", "", "PR body (default: harness/goal provenance)")
+	sessionPushCmd.Flags().String("base", "", "PR base branch for gh --base")
+	sessionPushCmd.Flags().Bool("force", false, "Push even if the session is still running")
+	sessionPushCmd.Flags().Bool("json", false, "Emit JSON")
+
+	sessionMergeCmd.Flags().String("into", "", "Target branch (default: main/master/HEAD)")
+	sessionMergeCmd.Flags().StringP("message", "m", "", "Merge commit message (default: provenance-aware)")
+	sessionMergeCmd.Flags().Bool("ff-only", false, "Require a fast-forward merge")
+	sessionMergeCmd.Flags().Bool("no-ff", false, "Always create a merge commit")
+	sessionMergeCmd.Flags().Bool("force", false, "Merge even if the session is still running")
+	sessionMergeCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionAttestCmd.Flags().String("output", "", "Attestation output path (default: .specular/sessions/<id>.attestation.json)")
 	sessionAttestCmd.Flags().Bool("force", false, "Attest even if the session is still running")
 	sessionAttestCmd.Flags().Bool("json", false, "Emit JSON")
@@ -1424,6 +1648,8 @@ func init() {
 	sessionCmd.AddCommand(sessionExecCmd)
 	sessionCmd.AddCommand(sessionCommitCmd)
 	sessionCmd.AddCommand(sessionSyncCmd)
+	sessionCmd.AddCommand(sessionPushCmd)
+	sessionCmd.AddCommand(sessionMergeCmd)
 	sessionCmd.AddCommand(sessionAttestCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

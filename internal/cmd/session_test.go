@@ -26,6 +26,7 @@ func TestSessionSubcommands(t *testing.T) {
 		"exec":      false,
 		"commit":    false,
 		"sync":      false,
+		"push":      false,
 		"attest":    false,
 	}
 
@@ -65,7 +66,7 @@ func TestSessionLifecycleFlags(t *testing.T) {
 	for _, cmd := range sessionCmd.Commands() {
 		found[cmd.Name()] = cmd
 	}
-	for _, name := range []string{"status", "open", "wait", "restart", "rm", "prune", "diff", "batch", "exec", "commit", "sync", "attest"} {
+	for _, name := range []string{"status", "open", "wait", "restart", "rm", "prune", "diff", "batch", "exec", "commit", "sync", "push", "attest"} {
 		if found[name] == nil {
 			t.Fatalf("%s subcommand not found", name)
 		}
@@ -101,6 +102,15 @@ func TestSessionLifecycleFlags(t *testing.T) {
 			t.Errorf("flag %q not found on session restart", name)
 		}
 	}
+	if found["restart"].Flags().Lookup("governed") == nil {
+		t.Errorf("flag %q not found on session restart", "governed")
+	}
+	if found["start"].Flags().Lookup("governed") == nil {
+		t.Errorf("flag %q not found on session start", "governed")
+	}
+	if found["batch"].Flags().Lookup("governed") == nil {
+		t.Errorf("flag %q not found on session batch", "governed")
+	}
 	for _, name := range []string{"force", "keep-worktree", "delete-branch", "json"} {
 		if found["rm"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session rm", name)
@@ -134,6 +144,11 @@ func TestSessionLifecycleFlags(t *testing.T) {
 	for _, name := range []string{"onto", "merge", "autostash", "force", "json"} {
 		if found["sync"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session sync", name)
+		}
+	}
+	for _, name := range []string{"remote", "pr", "title", "body", "base", "force", "json"} {
+		if found["push"].Flags().Lookup(name) == nil {
+			t.Errorf("flag %q not found on session push", name)
 		}
 	}
 	for _, name := range []string{"output", "force", "json"} {

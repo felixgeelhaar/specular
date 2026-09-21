@@ -1,0 +1,78 @@
+# Example: parallel session fleet → auditor evidence bundle
+#
+# Competitive path vs desktop-only session managers (e.g. Xirp):
+# CI-native fleet launch + drift gate + policy-mapped evidence packet.
+#
+# Prerequisites:
+# - Specular CLI on PATH (install step below)
+# - For native harnesses (claude-code/codex/gemini): install those CLIs
+#   and provide auth secrets. This sample defaults to specular-auto so the
+#   workflow is runnable without third-party agent CLIs.
+#
+# Copy to .github/workflows/session-fleet-bundle.yml and adjust fleet.yaml.
+
+name: Session fleet → evidence bundle
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'fleet.yaml'
+      - '.specular/**'
+      - '.github/workflows/session-fleet-bundle.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  fleet-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Install Specular CLI
+        run: |
+          go install github.com/felixgeelhaar/specular/cmd/specular@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          specular version
+
+      - name: Install policy library seed
+        run: specular policy library install soc2-cc8.1
+
+      - name: Launch governed session fleet
+        run: |
+          # Sample fleet lives next to this workflow in the examples tree;
+          # when copied to .github/workflows, also copy fleet.yaml to repo root
+          # or set FLEET_PATH.
+          FLEET="${FLEET_PATH:-fleet.yaml}"
+          if [[ ! -f "$FLEET" ]]; then
+            FLEET="examples/cicd-github-actions/fleet.yaml"
+          fi
+          specular session batch --governed "$FLEET"
+          specular session status
+
+      - name: Wait + gate + evidence bundle
+        run: |
+          specular session wait --timeout 45m --bundle \
+            --policy .specular/policies/soc2-cc8.1.yaml \
+            --bundle-out session-evidence.sbundle.tgz
+
+      - name: Upload evidence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-evidence-${{ github.sha }}
+          path: |
+            session-evidence.sbundle.tgz
+            drift.sarif
+            .specular/sessions/*.attestation.json
+            .specular/policies/soc2-cc8.1.yaml
+          if-no-files-found: warn

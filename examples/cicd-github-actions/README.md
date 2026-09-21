@@ -15,7 +15,27 @@ These examples demonstrate how to automate bundle creation, approval, verificati
 
 ## Examples
 
-### 1. Complete Bundle Workflow
+### 1. Session fleet → evidence bundle (vs Xirp Mac grid)
+
+**Files**: `session-fleet-bundle.yml`, `fleet.yaml`
+
+CI-native parallel sessions with Specular's outer-loop gate:
+
+1. `policy library install soc2-cc8.1`
+2. `session batch --governed fleet.yaml` (manifest `dependsOn` for review after implement)
+3. `session wait --bundle --policy …` → `session-evidence.sbundle.tgz` + drift SARIF + attestations
+4. Upload artifacts for auditors
+
+```bash
+cp examples/cicd-github-actions/session-fleet-bundle.yml .github/workflows/
+cp examples/cicd-github-actions/fleet.yaml .
+# Optional: set FLEET_PATH or edit harnesses to claude-code/codex/gemini
+```
+
+This is the control-plane answer to desktop-only session managers: same
+harnesses (when installed), plus a fail-on-drift evidence packet in CI.
+
+### 2. Complete Bundle Workflow
 
 **File**: `bundle-workflow.yml`
 

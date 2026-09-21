@@ -55,9 +55,15 @@ everywhere compliance matters — Specular is the stronger product.
 - `session exec` worktree command runner (CI substitute for Xirp's per-session PTY)
 - `session commit` lands worktree changes with provenance-aware messages
 - `session sync` rebases/merges worktrees onto base when main moves
+- `session push [--pr]` lands the branch (and optional GitHub PR)
+- `session merge [--into]` lands the branch into the primary checkout (no gh)
+- `session stop [ids…] [--all]` / `wait --timeout --stop` fleet abort
 - `session attest` / `wait --attest` signed provenance for native harnesses
 - `session wait --gate` fleet→evidence drift proof (fail-on-drift, exit 4)
 - `session wait --bundle` one-command attest/gate/evidence packet
+- `session start --governed` safer native launch + preamble + attest provenance
+- Auto-governed when `.specular/policy.yaml` exists (`--no-governed` to opt out)
+- CI example: `examples/cicd-github-actions/session-fleet-bundle.yml` (fleet→bundle)
 - `policy library` open SOC 2 / ISO 42001 / EU AI Act / NIST AI RMF seeds
 - `session harnesses` with PATH availability probe
 - `session logs --follow`, `session fork`
@@ -104,14 +110,19 @@ cat > fleet.yaml <<'EOF'
   goal: Review both changes
   dependsOn: [demo, demo-2]
 EOF
-specular session batch fleet.yaml
+specular session batch --governed fleet.yaml
 specular session status --watch
 specular policy library install soc2-cc8.1
 specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml demo demo-2 review
+# Or abort a stuck fleet:
+# specular session wait --timeout 45m --stop
+# specular session stop --all
 specular session exec demo -- go test ./...
 specular session diff demo --stat
 specular session commit demo --all
 specular session sync demo
+specular session push demo --pr
+specular session merge demo
 specular auto verify .specular/sessions/demo.attestation.json
 specular session diff demo --against demo-2
 cd "$(specular session open demo)"

@@ -2041,9 +2041,10 @@ specular session <subcommand>
 | `session exec <id> -- <cmd>…` | Run a command in the session worktree (exit code passthrough) |
 | `session commit <id>` | Commit worktree changes (provenance-aware message) |
 | `session sync <id>` | Rebase/merge worktree onto base (main/master/HEAD) |
+| `session push <id>` | Push worktree branch (`--pr` opens a GitHub PR via gh) |
 | `session attest <id>` | Write signed attestation with harness/worktree provenance |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
-| `session stop <id>` | Stop a running session process |
+| `session stop [id…]` / `stop --all` | Stop one, many, or all non-terminal sessions |
 | `session harnesses` | List harnesses with PATH availability |
 
 **Start flags:**
@@ -2056,7 +2057,12 @@ specular session <subcommand>
 | `--manifest <file>` | Fleet launch from YAML/JSON (skips positional goal) |
 | `--no-worktree` | Run in the current checkout |
 | `--foreground` | Do not detach |
+| `--governed` | Safer native launch (no skip-permissions/full-auto) + governance preamble |
+| `--no-governed` | Disable auto-governed even when `.specular/policy.yaml` is present |
 | `--json` | Emit JSON |
+
+Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
+`.specular/policies.yaml` exists (unless `--no-governed` / `noGoverned`).
 
 **Batch / manifest flags** (also on `session start --manifest`):
 
@@ -2065,6 +2071,8 @@ specular session <subcommand>
 | `--harness <name>` | Default harness when a manifest entry omits `harness` |
 | `--profile <name>` | Default profile when a manifest entry omits `profile` |
 | `--no-worktree` | Run all entries in the current checkout |
+| `--governed` | Default `governed=true` for entries |
+| `--no-governed` | Disable auto-governed even when a policy file is present |
 | `--json` | Emit JSON array of started sessions |
 
 **Manifest shape** (YAML or JSON array, or `{ "sessions": [...] }`):
@@ -2077,6 +2085,8 @@ specular session <subcommand>
 | `profile` | Optional per-entry auto profile |
 | `noWorktree` | Optional; skip worktree for that entry |
 | `dependsOn` | Optional list of parent session names; stays `queued` until all parents `completed` |
+| `governed` | Optional; safer native launch for that entry |
+| `noGoverned` | Optional; disable auto-governed when a policy file is present |
 
 **Status / wait / open / restart / rm / prune / diff flags:**
 
@@ -2085,6 +2095,7 @@ specular session <subcommand>
 | `status --watch` | Refresh the board until interrupted |
 | `status --interval <dur>` | Refresh interval (default `2s`) |
 | `wait --timeout <dur>` | Fail if sessions are still running after duration |
+| `wait --stop` | With `--timeout`, stop still-running sessions when the deadline fires |
 | `wait --any` | Return when the first named session finishes |
 | `wait --attest` | Write `.attestation.json` for each waited session after success |
 | `wait --gate` | After wait (and optional `--attest`) succeeds, run outer-loop drift with fail-on-drift (exit 4) |
@@ -2094,8 +2105,11 @@ specular session <subcommand>
 | `open --shell` | Print `cd "<worktree>"` instead of the bare path |
 | `open --editor` | Open the worktree in `$EDITOR` / `$VISUAL` |
 | `restart --harness <name>` | Switch harness on restart |
+| `restart --governed` | Safer native launch on restart (omit flag to keep prior setting) |
+| `restart --no-governed` | Disable auto-governed on restart even when a policy file is present |
 | `restart --goal <text>` | Override goal on restart |
 | `restart --force` | Stop a still-running session before restart |
+| `stop --all` | Stop every non-terminal session |
 | `rm --force` | Stop a still-running session before removal |
 | `rm --keep-worktree` | Leave the Git worktree in place |
 | `rm --delete-branch` | Also delete the managed worktree branch |
@@ -2117,26 +2131,40 @@ specular session <subcommand>
 | `sync --merge` | Merge instead of rebase |
 | `sync --autostash` | Stash dirty changes before sync and pop after |
 | `sync --force` | Sync even if the session is still running |
+| `push --remote <name>` | Git remote (default `origin`) |
+| `push --pr` | Open a pull request with `gh` after push |
+| `push --title <text>` | PR title override |
+| `push --body <text>` | PR body override |
+| `push --base <branch>` | PR base branch for `gh --base` |
+| `push --force` | Push even if the session is still running |
+| `merge --into <branch>` | Target branch (default main/master/HEAD) |
+| `merge --ff-only` | Require a fast-forward merge |
+| `merge --no-ff` | Always create a merge commit |
+| `merge -m <msg>` | Override provenance-aware merge message |
+| `merge --force` | Merge even if the session is still running |
 | `attest --output <path>` | Override attestation path (default `.specular/sessions/<id>.attestation.json`) |
 | `attest --force` | Attest even if the session is still running |
 
 **Example:**
 ```bash
 $ specular session harnesses
-$ specular session start --harness claude-code --name auth "Harden JWT validation"
-$ specular session start --harness codex --name ratelimit "Add rate limiting"
+$ specular session start --harness claude-code --governed --name auth "Harden JWT validation"
+$ specular session start --harness codex --governed --name ratelimit "Add rate limiting"
 # Or launch a fleet from a manifest:
 $ cat > fleet.yaml <<'EOF'
 - name: auth
   harness: claude-code
   goal: Harden JWT validation
+  governed: true
 - name: ratelimit
   harness: codex
   goal: Add rate limiting
+  governed: true
 - name: review
   harness: gemini
   goal: Review auth + ratelimit
   dependsOn: [auth, ratelimit]
+  governed: true
 EOF
 $ specular session batch fleet.yaml
 $ specular session status
@@ -2145,6 +2173,8 @@ $ specular session exec auth -- go test ./...
 $ specular session diff auth --stat
 $ specular session commit auth --all
 $ specular session sync auth
+$ specular session push auth --pr
+$ specular session merge auth
 $ specular session attest auth
 $ specular auto verify .specular/sessions/auth.attestation.json
 $ specular session diff auth --against ratelimit

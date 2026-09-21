@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/attestation"
+	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/version"
 	"github.com/felixgeelhaar/specular/internal/worktree"
@@ -63,6 +64,9 @@ type Record struct {
 	LogPath        string    `json:"logPath,omitempty"`
 	Error          string    `json:"error,omitempty"`
 	ExitCode       *int      `json:"exitCode,omitempty"`
+	// Governed is true when the session was started with safer native flags
+	// (no skip-permissions / full-auto) and a Specular governance preamble.
+	Governed bool `json:"governed,omitempty"`
 }
 
 // StartOptions configures a new parallel session.
@@ -86,6 +90,13 @@ type StartOptions struct {
 	ExtraArgs []string
 	// SkipWorktree runs in the current checkout (not recommended for parallel).
 	SkipWorktree bool
+	// Governed launches native harnesses without skip-permissions / full-auto
+	// and prepends a Specular governance preamble (deny-tools from policy.yaml).
+	Governed bool
+	// NoGoverned disables auto-governed when a policy file is present.
+	NoGoverned bool
+	// DenyTools are tool names injected into the governed preamble (optional).
+	DenyTools []string
 }
 
 // Store persists session records as JSON files.
@@ -222,6 +233,10 @@ func (m *Manager) Store() *Store { return m.store }
 // Start creates an isolated worktree (unless skipped) and launches the
 // selected harness (specular-auto, claude-code, codex, or gemini).
 func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error) {
+	opts = resolveGovernedMode(m.repoRoot, opts)
+	if opts.Governed {
+		opts = enrichGovernedOptions(m.repoRoot, opts)
+	}
 	rec, prepErr := m.prepareRecord(ctx, opts)
 	if prepErr != nil {
 		return nil, prepErr
@@ -239,6 +254,34 @@ func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error)
 		return m.startDetached(rec, plan)
 	}
 	return m.startForeground(ctx, rec, plan)
+}
+
+// resolveGovernedMode applies explicit flags, then auto-enables governed
+// for native harnesses when a Specular policy file is present.
+func resolveGovernedMode(repoRoot string, opts StartOptions) StartOptions {
+	if opts.NoGoverned {
+		opts.Governed = false
+		return opts
+	}
+	if opts.Governed {
+		return opts
+	}
+	if IsNativeHarness(opts.Harness) && policyFilePresent(repoRoot) {
+		opts.Governed = true
+	}
+	return opts
+}
+
+func policyFilePresent(repoRoot string) bool {
+	for _, path := range []string{
+		filepath.Join(repoRoot, ".specular", "policy.yaml"),
+		filepath.Join(repoRoot, ".specular", "policies.yaml"),
+	} {
+		if st, err := os.Stat(path); err == nil && !st.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Manager) startForeground(ctx context.Context, rec *Record, plan LaunchPlan) (*Record, error) {
@@ -379,6 +422,7 @@ func (m *Manager) prepareRecord(ctx context.Context, opts StartOptions) (*Record
 		Goal:      goal,
 		Harness:   harness,
 		Profile:   profile,
+		Governed:  opts.Governed,
 		Status:    StatusWorking,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -414,6 +458,28 @@ func buildAutoArgs(opts StartOptions, rec *Record) []string {
 	args = append(args, opts.ExtraArgs...)
 	args = append(args, rec.Goal)
 	return args
+}
+
+// enrichGovernedOptions loads deny-tools from .specular/policy.yaml when present.
+func enrichGovernedOptions(repoRoot string, opts StartOptions) StartOptions {
+	if len(opts.DenyTools) > 0 {
+		return opts
+	}
+	candidates := []string{
+		filepath.Join(repoRoot, ".specular", "policy.yaml"),
+		filepath.Join(repoRoot, ".specular", "policies.yaml"),
+	}
+	for _, path := range candidates {
+		pol, err := policy.LoadPolicy(path)
+		if err != nil {
+			continue
+		}
+		if len(pol.Routing.DenyTools) > 0 {
+			opts.DenyTools = append([]string{}, pol.Routing.DenyTools...)
+			return opts
+		}
+	}
+	return opts
 }
 
 func resolveBinary(override string) (string, error) {
@@ -713,6 +779,186 @@ func (m *Manager) Sync(ctx context.Context, id string, opts SyncOptions) (*SyncR
 	return res, nil
 }
 
+// PushOptions configures Manager.Push.
+type PushOptions struct {
+	// Remote defaults to origin.
+	Remote string
+	// Force allows pushing while the session process is still running.
+	Force bool
+	// CreatePR runs `gh pr create` after a successful push.
+	CreatePR bool
+	// PRTitle overrides the default PR title (session id + goal).
+	PRTitle string
+	// PRBody overrides the default PR body (harness/goal provenance).
+	PRBody string
+	// Base is the PR base branch (passed to gh --base when set).
+	Base string
+}
+
+// PushResult is the outcome of pushing a session branch (and optional PR).
+type PushResult struct {
+	SessionID    string `json:"sessionId"`
+	WorktreePath string `json:"worktreePath"`
+	Remote       string `json:"remote"`
+	Branch       string `json:"branch"`
+	SHA          string `json:"sha"`
+	PRURL        string `json:"prUrl,omitempty"`
+}
+
+// Push publishes the session worktree branch and optionally opens a PR via gh.
+func (m *Manager) Push(ctx context.Context, id string, opts PushOptions) (*PushResult, error) {
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	if rec.WorktreePath == "" {
+		return nil, fmt.Errorf("session: %s has no worktree (started with --no-worktree?)", rec.ID)
+	}
+	if !opts.Force && sessionStillRunning(rec) {
+		return nil, fmt.Errorf("session: %s is still %s (stop it first, or pass --force)", rec.ID, rec.Status)
+	}
+	wtRes, wtErr := m.worktrees.Push(ctx, worktree.PushOptions{
+		WorkDir:     rec.WorktreePath,
+		Remote:      opts.Remote,
+		Branch:      rec.WorktreeBranch,
+		SetUpstream: true,
+	})
+	if wtErr != nil {
+		return nil, wtErr
+	}
+	res := &PushResult{
+		SessionID:    rec.ID,
+		WorktreePath: rec.WorktreePath,
+		Remote:       wtRes.Remote,
+		Branch:       wtRes.Branch,
+		SHA:          wtRes.SHA,
+	}
+	if opts.CreatePR {
+		url, prErr := createSessionPullRequest(ctx, rec, opts)
+		if prErr != nil {
+			return res, prErr
+		}
+		res.PRURL = url
+	}
+	return res, nil
+}
+
+func createSessionPullRequest(ctx context.Context, rec *Record, opts PushOptions) (string, error) {
+	title := strings.TrimSpace(opts.PRTitle)
+	if title == "" {
+		goal := strings.TrimSpace(rec.Goal)
+		if len(goal) > 72 {
+			goal = goal[:69] + "..."
+		}
+		if goal == "" {
+			goal = rec.ID
+		}
+		title = fmt.Sprintf("session %s: %s", rec.ID, goal)
+	}
+	body := strings.TrimSpace(opts.PRBody)
+	if body == "" {
+		body = fmt.Sprintf("## Specular session\n\n- **ID:** `%s`\n- **Harness:** `%s`\n- **Governed:** %v\n- **Goal:** %s\n\nLanded via `specular session push --pr`.\n",
+			rec.ID, rec.Harness, rec.Governed, rec.Goal)
+	}
+	args := []string{"pr", "create", "--title", title, "--body", body}
+	if base := strings.TrimSpace(opts.Base); base != "" {
+		args = append(args, "--base", base)
+	}
+	if branch := strings.TrimSpace(rec.WorktreeBranch); branch != "" {
+		args = append(args, "--head", branch)
+	}
+	cmd, cmdErr := safeutil.SafeCommand(ctx, "gh", args...)
+	if cmdErr != nil {
+		return "", fmt.Errorf("session: gh not available for --pr: %w", cmdErr)
+	}
+	cmd.Dir = rec.WorktreePath
+	out, runErr := cmd.CombinedOutput()
+	text := strings.TrimSpace(string(out))
+	if runErr != nil {
+		if text == "" {
+			text = runErr.Error()
+		}
+		return "", fmt.Errorf("session: gh pr create: %s", text)
+	}
+	lines := strings.Split(text, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
+			return line, nil
+		}
+	}
+	return text, nil
+}
+
+// MergeOptions configures Manager.Merge — land a session branch into a base.
+type MergeOptions struct {
+	// Into is the target branch at the primary checkout (default: main/master/HEAD).
+	Into string
+	// Message overrides the provenance-aware merge commit message.
+	Message string
+	// FFOnly requires a fast-forward merge.
+	FFOnly bool
+	// NoFF always creates a merge commit.
+	NoFF bool
+	// Force allows merging while the session is still running.
+	Force bool
+}
+
+// MergeResult is the outcome of landing a session branch into the primary checkout.
+type MergeResult struct {
+	SessionID    string   `json:"sessionId"`
+	WorktreePath string   `json:"worktreePath"`
+	Branch       string   `json:"branch"`
+	Into         string   `json:"into"`
+	Strategy     string   `json:"strategy"`
+	BeforeSHA    string   `json:"beforeSha"`
+	AfterSHA     string   `json:"afterSha"`
+	Conflicts    []string `json:"conflicts,omitempty"`
+}
+
+// Merge lands the session worktree branch into a target branch at the repo root.
+// This is the local land path (no gh required) after commit/sync/push --pr.
+func (m *Manager) Merge(ctx context.Context, id string, opts MergeOptions) (*MergeResult, error) {
+	rec, getErr := m.Get(id)
+	if getErr != nil {
+		return nil, getErr
+	}
+	if rec.WorktreePath == "" || rec.WorktreeBranch == "" {
+		return nil, fmt.Errorf("session: %s has no worktree branch (started with --no-worktree?)", rec.ID)
+	}
+	if !opts.Force && sessionStillRunning(rec) {
+		return nil, fmt.Errorf("session: %s is still %s (stop it first, or pass --force)", rec.ID, rec.Status)
+	}
+	msg := strings.TrimSpace(opts.Message)
+	if msg == "" {
+		msg = fmt.Sprintf("Merge session %s (%s)\n\nHarness: %s\nGoverned: %v\nGoal: %s\n",
+			rec.ID, rec.WorktreeBranch, rec.Harness, rec.Governed, rec.Goal)
+	}
+	wtRes, wtErr := m.worktrees.Merge(ctx, worktree.MergeOptions{
+		SourceBranch: rec.WorktreeBranch,
+		Into:         opts.Into,
+		Message:      msg,
+		FFOnly:       opts.FFOnly,
+		NoFF:         opts.NoFF,
+	})
+	res := &MergeResult{
+		SessionID:    rec.ID,
+		WorktreePath: rec.WorktreePath,
+		Branch:       rec.WorktreeBranch,
+	}
+	if wtRes != nil {
+		res.Into = wtRes.Into
+		res.Strategy = wtRes.Strategy
+		res.BeforeSHA = wtRes.BeforeSHA
+		res.AfterSHA = wtRes.AfterSHA
+		res.Conflicts = wtRes.Conflicts
+	}
+	if wtErr != nil {
+		return res, wtErr
+	}
+	return res, nil
+}
+
 // AttestOptions configures Manager.Attest.
 type AttestOptions struct {
 	// OutputPath overrides the default .specular/sessions/<id>.attestation.json.
@@ -766,6 +1012,7 @@ func (m *Manager) Attest(ctx context.Context, id string, opts AttestOptions) (*A
 		WorktreePath:   rec.WorktreePath,
 		WorktreeBranch: rec.WorktreeBranch,
 		WorktreeName:   rec.WorktreeName,
+		Governed:       rec.Governed,
 	})
 	if genErr != nil {
 		return nil, fmt.Errorf("session: generate attestation: %w", genErr)
@@ -889,6 +1136,40 @@ func (m *Manager) Stop(id string) (*Record, error) {
 	return rec, nil
 }
 
+// StopMany stops each session ID. Returns stopped records; on the first hard
+// error, returns what was stopped so far plus the error.
+func (m *Manager) StopMany(ids []string) ([]Record, error) {
+	var stopped []Record
+	for _, id := range ids {
+		rec, err := m.Stop(id)
+		if rec != nil {
+			stopped = append(stopped, *rec)
+		}
+		if err != nil {
+			return stopped, err
+		}
+	}
+	return stopped, nil
+}
+
+// StopAll stops every non-terminal session (Xirp grid kill-all analogue).
+func (m *Manager) StopAll() ([]Record, error) {
+	list, listErr := m.List()
+	if listErr != nil {
+		return nil, listErr
+	}
+	var ids []string
+	for _, rec := range list {
+		if !IsTerminal(rec.Status) || (rec.PID > 0 && processAlive(rec.PID)) {
+			ids = append(ids, rec.ID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return m.StopMany(ids)
+}
+
 // RemoveOptions configures Manager.Remove.
 type RemoveOptions struct {
 	// Force stops a still-running session before removal.
@@ -984,6 +1265,8 @@ type WaitOptions struct {
 	Interval time.Duration
 	// Any returns as soon as one target reaches a terminal status.
 	Any bool
+	// StopOnTimeout stops still-running targets when the wait times out.
+	StopOnTimeout bool
 }
 
 // IsTerminal reports whether status is a finished session state.
@@ -1033,6 +1316,11 @@ func (m *Manager) Wait(ctx context.Context, ids []string, opts WaitOptions) ([]R
 		}
 		select {
 		case <-ctx.Done():
+			if opts.StopOnTimeout && len(pending) > 0 {
+				_, _ = m.StopMany(pending)
+				final, _, _ := m.pollWait(targets, false)
+				return final, fmt.Errorf("session: wait timed out; stopped: %s", strings.Join(pending, ", "))
+			}
 			return done, fmt.Errorf("session: wait timed out; still running: %s", strings.Join(pending, ", "))
 		case <-ticker.C:
 		}
@@ -1103,6 +1391,14 @@ type RestartOptions struct {
 	NoApproval bool
 	Binary     string
 	ExtraArgs  []string
+	// Governed overrides the prior session's governed flag when set via CLI.
+	// UseGoverned distinguishes "flag absent" from "flag false" — when false,
+	// Restart inherits rec.Governed.
+	Governed    bool
+	UseGoverned bool
+	// NoGoverned / UseNoGoverned opt out of auto-governed on restart.
+	NoGoverned    bool
+	UseNoGoverned bool
 }
 
 // Restart stops (optional) and re-launches a session in its existing worktree,
@@ -1133,6 +1429,7 @@ func (m *Manager) Restart(ctx context.Context, id string, opts RestartOptions) (
 	if profile == "" {
 		profile = rec.Profile
 	}
+	governed, noGoverned := resolveRestartGoverned(rec.Governed, opts)
 
 	return m.Start(ctx, StartOptions{
 		Goal:         goal,
@@ -1144,7 +1441,21 @@ func (m *Manager) Restart(ctx context.Context, id string, opts RestartOptions) (
 		Binary:       opts.Binary,
 		ExtraArgs:    opts.ExtraArgs,
 		SkipWorktree: rec.WorktreePath == "",
+		Governed:     governed,
+		NoGoverned:   noGoverned,
 	})
+}
+
+func resolveRestartGoverned(priorGoverned bool, opts RestartOptions) (governed, noGoverned bool) {
+	governed = priorGoverned
+	noGoverned = !priorGoverned // keep prior ungoverned despite policy.yaml
+	if opts.UseNoGoverned {
+		return false, true
+	}
+	if opts.UseGoverned {
+		return opts.Governed, !opts.Governed
+	}
+	return governed, noGoverned
 }
 
 // DiffOptions configures Manager.Diff.
@@ -1376,6 +1687,9 @@ func manifestStartOptions(entry ManifestEntry, defaults StartOptions) StartOptio
 		Binary:       defaults.Binary,
 		ExtraArgs:    defaults.ExtraArgs,
 		SkipWorktree: entry.NoWorktree || defaults.SkipWorktree,
+		Governed:     entry.Governed || defaults.Governed,
+		NoGoverned:   entry.NoGoverned || defaults.NoGoverned,
+		DenyTools:    defaults.DenyTools,
 	}
 }
 

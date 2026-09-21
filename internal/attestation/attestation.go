@@ -57,6 +57,10 @@ type Provenance struct {
 	WorktreeBranch string `json:"worktreeBranch,omitempty"`
 	WorktreeName   string `json:"worktreeName,omitempty"`
 
+	// Governed is true when the session used safer native launch flags and a
+	// Specular governance preamble (vs default skip-permissions / full-auto).
+	Governed bool `json:"governed,omitempty"`
+
 	// Specular version
 	SpecularVersion string `json:"specularVersion"`
 

@@ -241,6 +241,83 @@ func TestWaitTimeout(t *testing.T) {
 	}
 }
 
+func TestWaitTimeoutStop(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeSleepStub(t)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "slow", Name: "wait-stop", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	done, err := mgr.Wait(context.Background(), []string{rec.ID}, WaitOptions{
+		Timeout:       200 * time.Millisecond,
+		Interval:      50 * time.Millisecond,
+		StopOnTimeout: true,
+	})
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if !strings.Contains(err.Error(), "stopped:") {
+		t.Fatalf("error=%v", err)
+	}
+	if len(done) != 1 || done[0].Status != StatusStopped {
+		t.Fatalf("done=%+v", done)
+	}
+	got, getErr := mgr.Get(rec.ID)
+	if getErr != nil {
+		t.Fatal(getErr)
+	}
+	if got.Status != StatusStopped || (got.PID > 0 && processAlive(got.PID)) {
+		t.Fatalf("expected stopped process: %+v", got)
+	}
+}
+
+func TestStopAll(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeSleepStub(t)
+	a, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "a", Name: "stop-all-a", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "b", Name: "stop-all-b", Harness: "specular-auto",
+		Detach: true, NoApproval: true, SkipWorktree: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stopped, err := mgr.StopAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stopped) < 2 {
+		t.Fatalf("stopped=%+v", stopped)
+	}
+	for _, id := range []string{a.ID, b.ID} {
+		got, getErr := mgr.Get(id)
+		if getErr != nil {
+			t.Fatal(getErr)
+		}
+		if got.Status != StatusStopped {
+			t.Fatalf("%s status=%s", id, got.Status)
+		}
+	}
+}
+
 func TestWaitAny(t *testing.T) {
 	repo := initTempRepo(t)
 	mgr, err := NewManager(repo)
@@ -319,6 +396,62 @@ func TestRestartSwitchesHarness(t *testing.T) {
 	}
 	if restarted.Status != StatusCompleted {
 		t.Fatalf("status=%s", restarted.Status)
+	}
+}
+
+func TestRestartPreservesNoGovernedWithPolicy(t *testing.T) {
+	repo := initTempRepo(t)
+	if err := os.MkdirAll(filepath.Join(repo, ".specular"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".specular", "policy.yaml"), []byte("routing:\n  deny_tools: [web_search]\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "ungoverned", Name: "restart-nogov", Harness: "claude-code",
+		Detach: false, NoApproval: true, Binary: stub, NoGoverned: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Governed {
+		t.Fatal("expected start with NoGoverned to stay ungoverned")
+	}
+	// Inherit: restart must not re-enable auto-govern from policy.yaml.
+	restarted, err := mgr.Restart(context.Background(), rec.ID, RestartOptions{
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.Governed {
+		t.Fatal("inherit restart should keep ungoverned despite policy.yaml")
+	}
+	// Explicit --no-governed after a governed start.
+	gov, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "gov", Name: "restart-gov", Harness: "codex",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !gov.Governed {
+		t.Fatal("expected auto-governed from policy")
+	}
+	optOut, err := mgr.Restart(context.Background(), gov.ID, RestartOptions{
+		Detach: false, NoApproval: true, Binary: stub,
+		UseNoGoverned: true, NoGoverned: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if optOut.Governed {
+		t.Fatal("--no-governed should win on restart")
 	}
 }
 
@@ -619,6 +752,60 @@ func TestSessionCommit(t *testing.T) {
 	}
 }
 
+func TestSessionPush(t *testing.T) {
+	repo := initTempRepo(t)
+	bare := t.TempDir()
+	run(t, bare, "git", "init", "--bare")
+	run(t, repo, "git", "remote", "add", "origin", bare)
+
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "push me", Name: "push-a", Harness: "claude-code",
+		Detach: false, NoApproval: true, Binary: stub, Governed: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rec.WorktreePath, "README.md"), []byte("pushed\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), rec.ID, CommitOptions{Message: "ready to push"}); err != nil {
+		t.Fatal(err)
+	}
+	res, err := mgr.Push(context.Background(), rec.ID, PushOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Remote != "origin" || res.Branch == "" || res.SHA == "" {
+		t.Fatalf("%+v", res)
+	}
+	// Verify bare remote received the branch.
+	cmd := exec.Command("git", "branch", "--list", rec.WorktreeBranch)
+	cmd.Dir = bare
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("list remote branches: %v\n%s", err, out)
+	}
+	if !strings.Contains(string(out), rec.WorktreeBranch) {
+		t.Fatalf("branch missing on remote: %q", out)
+	}
+
+	noWT, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "no wt", Name: "push-nowt", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub, SkipWorktree: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Push(context.Background(), noWT.ID, PushOptions{}); err == nil {
+		t.Fatal("expected no-worktree error")
+	}
+}
+
 func TestSessionSync(t *testing.T) {
 	repo := initTempRepo(t)
 	mgr, err := NewManager(repo)
@@ -736,6 +923,86 @@ func TestSessionSyncConflict(t *testing.T) {
 		if st, stErr := os.Stat(rebasePath); stErr == nil && st.IsDir() {
 			t.Fatal("rebase should have been aborted")
 		}
+	}
+}
+
+func TestSessionMerge(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+
+	// Fast-forward: session tip is a linear descendant of main.
+	ffRec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "ff land", Name: "merge-ff", Harness: "claude-code",
+		Detach: false, NoApproval: true, Binary: stub, Governed: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ffRec.WorktreePath, "ff.txt"), []byte("ff\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), ffRec.ID, CommitOptions{All: true, Message: "ff tip"}); err != nil {
+		t.Fatal(err)
+	}
+	ff, err := mgr.Merge(context.Background(), ffRec.ID, MergeOptions{FFOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ff.Strategy != "ff-only" || ff.AfterSHA == ff.BeforeSHA {
+		t.Fatalf("%+v", ff)
+	}
+	if _, err := os.Stat(filepath.Join(repo, "ff.txt")); err != nil {
+		t.Fatalf("ff.txt missing after ff-only: %v", err)
+	}
+
+	// No-ff: force a merge commit even when FF would work.
+	nfRec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "noff land", Name: "merge-noff", Harness: "codex",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nfRec.WorktreePath, "noff.txt"), []byte("noff\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), nfRec.ID, CommitOptions{All: true, Message: "noff tip"}); err != nil {
+		t.Fatal(err)
+	}
+	nf, err := mgr.Merge(context.Background(), nfRec.ID, MergeOptions{NoFF: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nf.Strategy != "no-ff" || nf.AfterSHA == nf.BeforeSHA {
+		t.Fatalf("%+v", nf)
+	}
+	if _, err := os.Stat(filepath.Join(repo, "noff.txt")); err != nil {
+		t.Fatalf("noff.txt missing after no-ff: %v", err)
+	}
+	// Merge commit has two parents.
+	cmd := exec.Command("git", "rev-list", "--parents", "-n", "1", "HEAD")
+	cmd.Dir = repo
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("rev-list: %v\n%s", err, out)
+	}
+	if len(strings.Fields(strings.TrimSpace(string(out)))) < 3 {
+		t.Fatalf("expected merge commit with 2 parents, got %q", out)
+	}
+
+	noWT, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "no wt", Name: "merge-nowt", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub, SkipWorktree: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Merge(context.Background(), noWT.ID, MergeOptions{}); err == nil {
+		t.Fatal("expected no-worktree error")
 	}
 }
 

@@ -423,6 +423,185 @@ func (m *Manager) Commit(ctx context.Context, opts CommitOptions) (*CommitResult
 	return &CommitResult{SHA: sha, Message: msg}, nil
 }
 
+// PushOptions configures Manager.Push.
+type PushOptions struct {
+	WorkDir string
+	// Remote defaults to "origin".
+	Remote string
+	// Branch is the local branch to push. Empty uses the current branch.
+	Branch string
+	// SetUpstream passes --set-upstream.
+	SetUpstream bool
+}
+
+// PushResult is the outcome of pushing a worktree branch.
+type PushResult struct {
+	Remote string
+	Branch string
+	SHA    string
+}
+
+// Push publishes the worktree branch to the remote.
+func (m *Manager) Push(ctx context.Context, opts PushOptions) (*PushResult, error) {
+	dir := opts.WorkDir
+	if dir == "" {
+		dir = m.repoRoot
+	}
+	remote := strings.TrimSpace(opts.Remote)
+	if remote == "" {
+		remote = "origin"
+	}
+	branch := strings.TrimSpace(opts.Branch)
+	if branch == "" {
+		cur, err := revParse(ctx, dir, "--abbrev-ref", "HEAD")
+		if err != nil {
+			return nil, fmt.Errorf("worktree: resolve branch: %w", err)
+		}
+		if cur == "" || cur == "HEAD" {
+			return nil, fmt.Errorf("worktree: detached HEAD; cannot push without --branch")
+		}
+		branch = cur
+	}
+	args := []string{"push"}
+	if opts.SetUpstream {
+		args = append(args, "-u")
+	}
+	args = append(args, remote, branch)
+	if err := runGit(ctx, dir, args...); err != nil {
+		return nil, fmt.Errorf("worktree: git push: %w", err)
+	}
+	sha, shaErr := m.HeadSHA(ctx, dir)
+	if shaErr != nil {
+		return nil, shaErr
+	}
+	return &PushResult{Remote: remote, Branch: branch, SHA: sha}, nil
+}
+
+// MergeOptions configures Manager.Merge — land a source branch into a target
+// branch at the repository primary checkout (not a session worktree).
+type MergeOptions struct {
+	// SourceBranch is the branch to merge in (typically a session worktree branch).
+	SourceBranch string
+	// Into is the target branch. Empty uses DefaultBase (main/master/HEAD).
+	Into string
+	// Message overrides the merge commit message (ignored for pure fast-forwards).
+	Message string
+	// FFOnly requires a fast-forward merge.
+	FFOnly bool
+	// NoFF always creates a merge commit.
+	NoFF bool
+}
+
+// MergeResult is the outcome of landing a branch into the primary checkout.
+type MergeResult struct {
+	Into      string   `json:"into"`
+	Source    string   `json:"source"`
+	Strategy  string   `json:"strategy"`
+	BeforeSHA string   `json:"beforeSha"`
+	AfterSHA  string   `json:"afterSha"`
+	Conflicts []string `json:"conflicts,omitempty"`
+}
+
+// Merge lands SourceBranch into Into at the repository root.
+// Requires a clean primary working tree. On conflict, aborts and returns Conflicts.
+func (m *Manager) Merge(ctx context.Context, opts MergeOptions) (*MergeResult, error) {
+	source := strings.TrimSpace(opts.SourceBranch)
+	if source == "" {
+		return nil, fmt.Errorf("worktree: merge source branch is required")
+	}
+	if opts.FFOnly && opts.NoFF {
+		return nil, fmt.Errorf("worktree: --ff-only and --no-ff are mutually exclusive")
+	}
+	into, intoErr := m.resolveMergeInto(ctx, opts.Into)
+	if intoErr != nil {
+		return nil, intoErr
+	}
+	if checkoutErr := m.ensureOnBranch(ctx, into); checkoutErr != nil {
+		return nil, checkoutErr
+	}
+	before, beforeErr := m.HeadSHA(ctx, m.repoRoot)
+	if beforeErr != nil {
+		return nil, beforeErr
+	}
+	strategy := mergeStrategy(opts.FFOnly, opts.NoFF)
+	res := &MergeResult{Into: into, Source: source, Strategy: strategy, BeforeSHA: before}
+	if mergeErr := runMergeOp(ctx, m.repoRoot, source, opts); mergeErr != nil {
+		res.Conflicts = conflictedPaths(ctx, m.repoRoot)
+		_ = runGit(ctx, m.repoRoot, "merge", "--abort")
+		res.AfterSHA, _ = m.HeadSHA(ctx, m.repoRoot)
+		return res, fmt.Errorf("worktree: merge %s into %s failed: %w", source, into, mergeErr)
+	}
+	after, afterErr := m.HeadSHA(ctx, m.repoRoot)
+	if afterErr != nil {
+		return res, afterErr
+	}
+	res.AfterSHA = after
+	return res, nil
+}
+
+func (m *Manager) resolveMergeInto(ctx context.Context, into string) (string, error) {
+	into = strings.TrimSpace(into)
+	if into != "" {
+		if _, err := revParse(ctx, m.repoRoot, "--verify", into); err != nil {
+			return "", fmt.Errorf("worktree: unknown into ref %q: %w", into, err)
+		}
+		return into, nil
+	}
+	return m.DefaultBase(ctx)
+}
+
+func (m *Manager) ensureOnBranch(ctx context.Context, branch string) error {
+	cur, err := revParse(ctx, m.repoRoot, "--abbrev-ref", "HEAD")
+	if err != nil {
+		return fmt.Errorf("worktree: resolve HEAD: %w", err)
+	}
+	dirty, dirtyErr := isDirty(ctx, m.repoRoot, false) // tracked only; ignore .specular/ etc.
+	if dirtyErr != nil {
+		return dirtyErr
+	}
+	if dirty {
+		if cur == branch {
+			return fmt.Errorf("worktree: primary checkout is dirty; commit or stash before merge")
+		}
+		return fmt.Errorf("worktree: primary checkout is dirty; commit or stash before checking out %s", branch)
+	}
+	if cur == branch {
+		return nil
+	}
+	if checkoutErr := runGit(ctx, m.repoRoot, "checkout", branch); checkoutErr != nil {
+		return fmt.Errorf("worktree: checkout %s: %w", branch, checkoutErr)
+	}
+	return nil
+}
+
+func mergeStrategy(ffOnly, noFF bool) string {
+	switch {
+	case ffOnly:
+		return "ff-only"
+	case noFF:
+		return "no-ff"
+	default:
+		return "merge"
+	}
+}
+
+func runMergeOp(ctx context.Context, dir, source string, opts MergeOptions) error {
+	args := []string{"merge"}
+	if opts.FFOnly {
+		args = append(args, "--ff-only")
+	}
+	if opts.NoFF {
+		args = append(args, "--no-ff")
+	}
+	if msg := strings.TrimSpace(opts.Message); msg != "" {
+		args = append(args, "-m", msg)
+	} else {
+		args = append(args, "--no-edit")
+	}
+	args = append(args, source)
+	return runGit(ctx, dir, args...)
+}
+
 // SyncOptions configures Manager.Sync in a worktree.
 type SyncOptions struct {
 	// WorkDir is the git working directory (session worktree).
