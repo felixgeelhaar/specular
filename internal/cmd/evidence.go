@@ -19,6 +19,9 @@ Records live under .specular/evidence/ (schema specular.evidence/v1).
 This is the first Change Evidence Graph surface — later versions add
 intent/session/approval edges. See docs/PRODUCT_INTENT.md §7.
 
+Human show output is an auditor-facing AI CHANGE RECORD (PRODUCT_INTENT §19).
+--json emits the unchanged machine-readable record.
+
 Examples:
   specular evidence list
   specular evidence show

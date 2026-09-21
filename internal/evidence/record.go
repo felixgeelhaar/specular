@@ -183,53 +183,207 @@ func ListIDs(root string) ([]string, error) {
 	return out, nil
 }
 
-// FormatExplain renders a human explanation of why the gate decided.
+const changeRecordRule = "──────────────────────────────────────"
+
+// FormatExplain renders an auditor-facing AI CHANGE RECORD (PRODUCT_INTENT §19).
+// Machine --json output is unchanged; this is the human text layout only.
 func FormatExplain(rec *Record) string {
 	if rec == nil || rec.Gate == nil {
 		return "No evidence record.\n"
 	}
 	g := rec.Gate
 	var b strings.Builder
-	b.WriteString("SPECULAR EXPLAIN\n")
-	b.WriteString(strings.Repeat("─", 46) + "\n")
-	fmt.Fprintf(&b, "Evidence       %s\n", rec.ID)
-	fmt.Fprintf(&b, "Recorded       %s\n", rec.CreatedAt.Format(time.RFC3339))
-	if rec.Branch != "" {
-		fmt.Fprintf(&b, "Branch         %s\n", rec.Branch)
+
+	b.WriteString("AI CHANGE RECORD\n")
+	b.WriteString(changeRecordRule + "\n")
+
+	fmt.Fprintf(&b, "Decision     %s\n", g.Verdict)
+	if g.Reason != "" {
+		fmt.Fprintf(&b, "Reason       %s\n", g.Reason)
+	}
+	if !rec.CreatedAt.IsZero() {
+		fmt.Fprintf(&b, "Timestamp    %s\n", rec.CreatedAt.UTC().Format(time.RFC3339))
+	}
+	if rec.ID != "" {
+		fmt.Fprintf(&b, "Evidence     %s\n", rec.ID)
+	}
+
+	writeChangeSummary(&b, rec)
+	writeProvenanceBlock(&b, g)
+	writePolicyBlock(&b, g)
+	writeDriftBlock(&b, g)
+
+	b.WriteString("Why\n")
+	writeWhy(&b, g)
+
+	b.WriteString(changeRecordRule + "\n")
+	b.WriteString("Refs\n")
+	fmt.Fprintf(&b, "Evidence     %s\n", evidenceRef(rec))
+	if g.Drift.SARIF != "" {
+		fmt.Fprintf(&b, "SARIF        %s\n", g.Drift.SARIF)
+	}
+	b.WriteString("Store        .specular/evidence/\n")
+	b.WriteString("Re-run       specular gate\n")
+	return b.String()
+}
+
+func writeChangeSummary(b *strings.Builder, rec *Record) {
+	g := rec.Gate
+	b.WriteString("Change\n")
+	branch := rec.Branch
+	if branch == "" {
+		branch = g.Change.Branch
+	}
+	if branch != "" {
+		fmt.Fprintf(b, "Branch       %s\n", branch)
 	}
 	if rec.Commit != "" {
-		fmt.Fprintf(&b, "Commit         %s\n", rec.Commit)
+		fmt.Fprintf(b, "Commit       %s\n", rec.Commit)
 	}
-	b.WriteString(strings.Repeat("─", 46) + "\n")
-	fmt.Fprintf(&b, "VERDICT: %s\n", g.Verdict)
-	fmt.Fprintf(&b, "REASON:  %s\n", g.Reason)
-	b.WriteString("\nWhy this decision?\n")
-	writeWhy(&b, g)
-	if len(g.Drift.Findings) > 0 {
-		b.WriteString("\nDrift findings\n")
-		limit := len(g.Drift.Findings)
-		if limit > 8 {
-			limit = 8
+	repo := repositoryLabel(rec)
+	if repo != "" {
+		fmt.Fprintf(b, "Repository   %s\n", repo)
+	}
+	switch {
+	case g.Change.Dirty:
+		fmt.Fprintf(b, "Files        %d uncommitted\n", g.Change.Files)
+	case g.Change.Files > 0:
+		fmt.Fprintf(b, "Files        %d\n", g.Change.Files)
+	default:
+		b.WriteString("Files        clean working tree\n")
+	}
+}
+
+func repositoryLabel(rec *Record) string {
+	root := rec.Root
+	if root == "" && rec.Gate != nil {
+		root = rec.Gate.Change.Root
+	}
+	if root == "" {
+		return ""
+	}
+	base := filepath.Base(root)
+	if base == "." || base == string(filepath.Separator) || base == "" {
+		return root
+	}
+	return base
+}
+
+func writeProvenanceBlock(b *strings.Builder, g *gate.Result) {
+	b.WriteString("Provenance\n")
+	if g.Provenance.Attested {
+		b.WriteString("Status       ATTESTED\n")
+	} else {
+		b.WriteString("Status       UNATTESTED\n")
+	}
+	if len(g.Provenance.Harnesses) > 0 {
+		fmt.Fprintf(b, "Harness      %s\n", strings.Join(g.Provenance.Harnesses, ", "))
+	}
+	if len(g.Provenance.Sessions) > 0 {
+		fmt.Fprintf(b, "Session      %s\n", strings.Join(g.Provenance.Sessions, ", "))
+	}
+	if !g.Provenance.Attested {
+		note := g.Provenance.Note
+		if note == "" {
+			note = "not treated as verified"
 		}
-		for i := 0; i < limit; i++ {
-			f := g.Drift.Findings[i]
-			fmt.Fprintf(&b, "  [%s] %s", f.Severity, f.Code)
-			if f.Category != "" {
-				fmt.Fprintf(&b, " (%s)", f.Category)
-			}
-			b.WriteString("\n")
-			if f.Message != "" {
-				fmt.Fprintf(&b, "    %s\n", f.Message)
-			}
-			if f.Location != "" {
-				fmt.Fprintf(&b, "    at %s\n", f.Location)
-			}
+		fmt.Fprintf(b, "Note         %s\n", note)
+	} else if g.Provenance.Note != "" {
+		fmt.Fprintf(b, "Note         %s\n", g.Provenance.Note)
+	}
+}
+
+func writePolicyBlock(b *strings.Builder, g *gate.Result) {
+	b.WriteString("Policy\n")
+	fmt.Fprintf(b, "Status       %s\n", sectionMark(g.Policy.Status))
+	if g.Policy.Status != gate.StatusSkipped {
+		fmt.Fprintf(b, "Checks       passed=%d failed=%d skipped=%d\n",
+			g.Policy.Passed, g.Policy.Failed, g.Policy.Skipped)
+	}
+	if g.Policy.Note != "" {
+		fmt.Fprintf(b, "Note         %s\n", g.Policy.Note)
+	}
+}
+
+func writeDriftBlock(b *strings.Builder, g *gate.Result) {
+	b.WriteString("Drift\n")
+	fmt.Fprintf(b, "Status       %s\n", sectionMark(g.Drift.Status))
+	switch {
+	case g.Drift.Status == gate.StatusPass && len(g.Drift.Findings) == 0:
+		b.WriteString("Summary      None detected\n")
+	case g.Drift.Status == gate.StatusSkipped:
+		if g.Drift.Note != "" {
+			fmt.Fprintf(b, "Summary      %s\n", g.Drift.Note)
+		} else {
+			b.WriteString("Summary      Skipped (brownfield / missing spec)\n")
+		}
+	default:
+		fmt.Fprintf(b, "Summary      errors=%d warnings=%d info=%d\n",
+			g.Drift.Errors, g.Drift.Warnings, g.Drift.Info)
+		if g.Drift.Note != "" {
+			fmt.Fprintf(b, "Note         %s\n", g.Drift.Note)
 		}
 	}
-	b.WriteString(strings.Repeat("─", 46) + "\n")
-	b.WriteString("Re-run: specular gate\n")
-	b.WriteString("Store:  .specular/evidence/\n")
-	return b.String()
+	writeDriftFindings(b, g.Drift.Findings)
+}
+
+func writeDriftFindings(b *strings.Builder, findings []gate.FindingDetail) {
+	if len(findings) == 0 {
+		return
+	}
+	limit := len(findings)
+	if limit > 8 {
+		limit = 8
+	}
+	for i := 0; i < limit; i++ {
+		f := findings[i]
+		mark := findingMark(f.Severity)
+		fmt.Fprintf(b, "%s %-12s %s", mark, f.Code, f.Severity)
+		if f.Category != "" {
+			fmt.Fprintf(b, " (%s)", f.Category)
+		}
+		b.WriteString("\n")
+		if f.Message != "" {
+			fmt.Fprintf(b, "  %s\n", f.Message)
+		}
+		if f.Location != "" {
+			fmt.Fprintf(b, "  at %s\n", f.Location)
+		}
+	}
+	if len(findings) > 8 {
+		fmt.Fprintf(b, "  … and %d more (see SARIF / --json)\n", len(findings)-8)
+	}
+}
+
+func sectionMark(status gate.SectionStatus) string {
+	switch status {
+	case gate.StatusPass:
+		return "✓ PASS"
+	case gate.StatusFail:
+		return "✗ FAIL"
+	case gate.StatusSkipped:
+		return "· SKIPPED"
+	default:
+		return string(status)
+	}
+}
+
+func findingMark(severity string) string {
+	switch strings.ToLower(severity) {
+	case "error":
+		return "✗"
+	case "warning":
+		return "⚠"
+	default:
+		return "·"
+	}
+}
+
+func evidenceRef(rec *Record) string {
+	if rec.ID == "" {
+		return ".specular/evidence/"
+	}
+	return ".specular/evidence/" + rec.ID + ".json"
 }
 
 func writeWhy(b *strings.Builder, g *gate.Result) {
