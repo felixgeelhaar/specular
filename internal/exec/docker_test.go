@@ -19,7 +19,10 @@ func TestBuildDockerArgs(t *testing.T) {
 			},
 			want: []string{
 				"run", "--rm",
+				"--network", "none",
 				"--read-only", "--pids-limit", "256", "--cap-drop", "ALL",
+				"--security-opt", "no-new-privileges",
+				"--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
 				"alpine:latest", "echo", "hello",
 			},
 		},
@@ -34,6 +37,8 @@ func TestBuildDockerArgs(t *testing.T) {
 				"run", "--rm",
 				"--network", "none",
 				"--read-only", "--pids-limit", "256", "--cap-drop", "ALL",
+				"--security-opt", "no-new-privileges",
+				"--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
 				"alpine:latest", "echo", "hello",
 			},
 		},
@@ -47,8 +52,11 @@ func TestBuildDockerArgs(t *testing.T) {
 			},
 			want: []string{
 				"run", "--rm",
+				"--network", "none",
 				"--cpus", "2", "--memory", "1g",
 				"--read-only", "--pids-limit", "256", "--cap-drop", "ALL",
+				"--security-opt", "no-new-privileges",
+				"--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
 				"alpine:latest", "echo", "hello",
 			},
 		},
@@ -61,7 +69,10 @@ func TestBuildDockerArgs(t *testing.T) {
 			},
 			want: []string{
 				"run", "--rm",
+				"--network", "none",
 				"--read-only", "--pids-limit", "256", "--cap-drop", "ALL",
+				"--security-opt", "no-new-privileges",
+				"--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
 				"-v", "/project:/workspace", "-w", "/workspace",
 				"alpine:latest", "ls", "-la",
 			},
@@ -78,7 +89,10 @@ func TestBuildDockerArgs(t *testing.T) {
 			},
 			want: []string{
 				"run", "--rm",
+				"--network", "none",
 				"--read-only", "--pids-limit", "256", "--cap-drop", "ALL",
+				"--security-opt", "no-new-privileges",
+				"--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
 			},
 		},
 		{
@@ -100,6 +114,8 @@ func TestBuildDockerArgs(t *testing.T) {
 				"--network", "none",
 				"--cpus", "4", "--memory", "2g",
 				"--read-only", "--pids-limit", "256", "--cap-drop", "ALL",
+				"--security-opt", "no-new-privileges",
+				"--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
 				"-v", "/go/src/app:/workspace", "-w", "/workspace",
 			},
 		},
@@ -110,7 +126,7 @@ func TestBuildDockerArgs(t *testing.T) {
 			got := buildDockerArgs(tt.step)
 
 			// Verify required args are present
-			if !containsAllStrings(got, []string{"run", "--rm", "--read-only", "--pids-limit", "--cap-drop"}) {
+			if !containsAllStrings(got, []string{"run", "--rm", "--read-only", "--pids-limit", "--cap-drop", "--security-opt", "no-new-privileges", "--tmpfs"}) {
 				t.Errorf("buildDockerArgs() missing required security args")
 			}
 
@@ -126,11 +142,13 @@ func TestBuildDockerArgs(t *testing.T) {
 				}
 			}
 
-			// Verify network if specified
-			if tt.step.Network != "" {
-				if !containsStrings(got, []string{"--network", tt.step.Network}) {
-					t.Errorf("buildDockerArgs() missing network config")
-				}
+			// Network is always set; empty step defaults to none.
+			wantNetwork := tt.step.Network
+			if wantNetwork == "" {
+				wantNetwork = DefaultNetworkMode
+			}
+			if !containsStrings(got, []string{"--network", wantNetwork}) {
+				t.Errorf("buildDockerArgs() missing network config %q", wantNetwork)
 			}
 
 			// Verify resource limits if specified
@@ -167,6 +185,15 @@ func TestBuildDockerArgs(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEffectiveNetwork(t *testing.T) {
+	if got := effectiveNetwork(Step{}); got != DefaultNetworkMode {
+		t.Errorf("effectiveNetwork(empty) = %q, want %q", got, DefaultNetworkMode)
+	}
+	if got := effectiveNetwork(Step{Network: "bridge"}); got != "bridge" {
+		t.Errorf("effectiveNetwork(bridge) = %q, want bridge", got)
 	}
 }
 

@@ -99,6 +99,45 @@ func TestEnforcePolicy(t *testing.T) {
 			wantErr: true,
 			errMsg:  "network mode 'bridge' not allowed",
 		},
+		{
+			name: "docker empty network treated as none matches policy",
+			step: Step{
+				ID:     "test-1",
+				Runner: "docker",
+				Image:  "alpine:latest",
+			},
+			policy: &policy.Policy{
+				Execution: policy.ExecutionPolicy{
+					AllowLocal: false,
+					Docker: policy.DockerPolicy{
+						Required:       true,
+						ImageAllowlist: []string{"alpine:*"},
+						Network:        "none",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "docker empty network fails when policy requires host",
+			step: Step{
+				ID:     "test-1",
+				Runner: "docker",
+				Image:  "alpine:latest",
+			},
+			policy: &policy.Policy{
+				Execution: policy.ExecutionPolicy{
+					AllowLocal: false,
+					Docker: policy.DockerPolicy{
+						Required:       true,
+						ImageAllowlist: []string{"alpine:*"},
+						Network:        "host",
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "network mode 'none' not allowed",
+		},
 	}
 
 	for _, tt := range tests {
