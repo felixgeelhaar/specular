@@ -2030,7 +2030,7 @@ specular session <subcommand>
 | `session batch <manifest>` | Alias for fleet launch from a manifest |
 | `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
 | `session show <id>` | Show session details, worktree, harness, log path |
-| `session status [--watch]` | Live multi-session board (counts + PID/branch/goal) |
+| `session status [--watch]` | Live multi-session board (counts + PID/branch/goal; `--json` → `{summary,sessions}`) |
 | `session wait [id…]` | Block until sessions finish; `--attest` / `--gate` / `--bundle` close the fleet→evidence loop |
 | `session logs <id> [--follow]` | Print or follow the session log |
 | `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
@@ -2096,6 +2096,7 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 |------|-------------|
 | `status --watch` | Refresh the board until interrupted |
 | `status --interval <dur>` | Refresh interval (default `2s`) |
+| `status --json` | Emit `{summary, sessions}` board (use `list --json` for a bare array) |
 | `wait --timeout <dur>` | Fail if sessions are still running after duration |
 | `wait --stop` | With `--timeout`, stop still-running sessions when the deadline fires |
 | `wait --any` | Return when the first named session finishes |
