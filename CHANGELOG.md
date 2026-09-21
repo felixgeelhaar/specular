@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`session status --json`**: emits `{summary, sessions}` board (counts +
+  records) instead of a bare session array — dashboard-friendly; use
+  `session list --json` for the raw array
+
 ### Added
 
 - **Session cherry-pick**: `session cherry-pick <into> --from <src>` applies

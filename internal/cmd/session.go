@@ -544,7 +544,8 @@ var sessionStatusCmd = &cobra.Command{
 	Short: "Live multi-session overview (Xirp-style control surface)",
 	Long: `Show a compact status board for all managed sessions.
 
-Use --watch to refresh periodically — the CLI equivalent of a session minimap.`,
+Use --watch to refresh periodically — the CLI equivalent of a session minimap.
+With --json, emit {summary, sessions} for dashboards (not a bare array).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -566,31 +567,19 @@ Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 			if listErr != nil {
 				return listErr
 			}
+			board := session.BuildStatusBoard(list)
 			if jsonOut {
 				enc := json.NewEncoder(os.Stdout)
 				enc.SetIndent("", "  ")
-				return enc.Encode(list)
+				return enc.Encode(board)
 			}
-			if len(list) == 0 {
+			if len(board.Sessions) == 0 {
 				fmt.Println("No managed sessions.")
 				return nil
 			}
-			working, queued, done, failed, stopped := 0, 0, 0, 0, 0
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tPID\tBRANCH\tGOAL")
-			for _, s := range list {
-				switch s.Status {
-				case session.StatusWorking, session.StatusIdle, session.StatusWaiting:
-					working++
-				case session.StatusQueued:
-					queued++
-				case session.StatusCompleted:
-					done++
-				case session.StatusFailed:
-					failed++
-				case session.StatusStopped:
-					stopped++
-				}
+			for _, s := range board.Sessions {
 				goal := s.Goal
 				if len(goal) > 40 {
 					goal = goal[:37] + "..."
@@ -611,7 +600,8 @@ Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 			}
 			_ = w.Flush()
 			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
-				working, queued, done, failed, stopped, len(list))
+				board.Summary.Working, board.Summary.Queued, board.Summary.Completed,
+				board.Summary.Failed, board.Summary.Stopped, board.Summary.Total)
 			return nil
 		}
 

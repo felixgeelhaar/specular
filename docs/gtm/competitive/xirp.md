@@ -46,7 +46,7 @@ everywhere compliance matters — Specular is the stronger product.
 
 - Native harness launch: `claude-code`, `codex`, `gemini`, `specular-auto`
 - Worktree isolation per session
-- `session status [--watch]` live board + `session open` worktree helper
+- `session status [--watch]` live board + `session open` worktree helper (`status --json` → `{summary,sessions}`)
 - `session wait` scriptable parallel gate + `session restart` harness swap
 - `session rm` / `session prune` lifecycle cleanup after fleets finish
 - `session diff` worktree changes vs base or another session
