@@ -1140,7 +1140,12 @@ Default strategy is rebase. Use --merge for a merge commit. Dirty trees are
 refused unless --autostash. Conflicts abort the operation and report paths
 (CI-scriptable non-zero exit).
 
+With --fetch, runs git fetch first and defaults --onto to origin/<base>
+so fleets sync onto the remote tip rather than a stale local main.
+
   specular session sync auth
+  specular session sync auth --fetch
+  specular session sync auth --fetch --remote upstream
   specular session sync auth --onto origin/main
   specular session sync auth --merge
   specular session sync auth --autostash --json
@@ -1159,6 +1164,8 @@ refused unless --autostash. Conflicts abort the operation and report paths
 		merge, _ := cmd.Flags().GetBool("merge")
 		autostash, _ := cmd.Flags().GetBool("autostash")
 		force, _ := cmd.Flags().GetBool("force")
+		fetch, _ := cmd.Flags().GetBool("fetch")
+		remote, _ := cmd.Flags().GetString("remote")
 		jsonOut, _ := cmd.Flags().GetBool("json")
 
 		res, syncErr := mgr.Sync(cmd.Context(), args[0], session.SyncOptions{
@@ -1166,6 +1173,8 @@ refused unless --autostash. Conflicts abort the operation and report paths
 			Merge:     merge,
 			Autostash: autostash,
 			Force:     force,
+			Fetch:     fetch,
+			Remote:    remote,
 		})
 		if jsonOut && res != nil {
 			enc := json.NewEncoder(os.Stdout)
@@ -1186,6 +1195,9 @@ refused unless --autostash. Conflicts abort the operation and report paths
 		}
 		fmt.Printf("Synced session %s\n", res.SessionID)
 		fmt.Printf("  Strategy: %s onto %s\n", res.Strategy, res.Onto)
+		if res.Fetched {
+			fmt.Printf("  Fetched:  %s\n", res.Remote)
+		}
 		fmt.Printf("  Before:   %s\n", res.BeforeSHA)
 		fmt.Printf("  After:    %s\n", res.AfterSHA)
 		if res.Stashed {
@@ -1605,9 +1617,11 @@ func init() {
 	sessionCommitCmd.Flags().Bool("force", false, "Commit even if the session is still running")
 	sessionCommitCmd.Flags().Bool("json", false, "Emit JSON")
 
-	sessionSyncCmd.Flags().String("onto", "", "Base ref to sync onto (default: main/master/HEAD)")
+	sessionSyncCmd.Flags().String("onto", "", "Base ref to sync onto (default: main/master/HEAD, or origin/<base> with --fetch)")
 	sessionSyncCmd.Flags().Bool("merge", false, "Merge instead of rebase")
 	sessionSyncCmd.Flags().Bool("autostash", false, "Stash dirty changes before sync and pop after")
+	sessionSyncCmd.Flags().Bool("fetch", false, "git fetch before sync; default onto becomes origin/<base>")
+	sessionSyncCmd.Flags().String("remote", "origin", "Remote to fetch when using --fetch")
 	sessionSyncCmd.Flags().Bool("force", false, "Sync even if the session is still running")
 	sessionSyncCmd.Flags().Bool("json", false, "Emit JSON")
 

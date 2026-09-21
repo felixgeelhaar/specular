@@ -606,12 +606,17 @@ func runMergeOp(ctx context.Context, dir, source string, opts MergeOptions) erro
 type SyncOptions struct {
 	// WorkDir is the git working directory (session worktree).
 	WorkDir string
-	// Onto is the ref to rebase/merge onto. Empty uses DefaultBase.
+	// Onto is the ref to rebase/merge onto. Empty uses DefaultBase
+	// (or remote/<DefaultBase> when Fetch is set).
 	Onto string
 	// Merge uses merge instead of rebase.
 	Merge bool
 	// Autostash stashes dirty changes before sync and pops afterward.
 	Autostash bool
+	// Fetch runs `git fetch` before resolving Onto.
+	Fetch bool
+	// Remote is the fetch remote (default origin). Used when Fetch is true.
+	Remote string
 }
 
 // SyncResult is the outcome of syncing a worktree onto a base ref.
@@ -622,12 +627,25 @@ type SyncResult struct {
 	AfterSHA  string   `json:"afterSha"`
 	Conflicts []string `json:"conflicts,omitempty"`
 	Stashed   bool     `json:"stashed,omitempty"`
+	Fetched   bool     `json:"fetched,omitempty"`
+	Remote    string   `json:"remote,omitempty"`
 }
 
 // Sync rebases (default) or merges WorkDir onto Onto.
 // On conflict, aborts the in-progress operation and returns Conflicts.
 func (m *Manager) Sync(ctx context.Context, opts SyncOptions) (*SyncResult, error) {
-	dir, onto, strategy, err := m.resolveSyncTarget(ctx, opts)
+	remote := strings.TrimSpace(opts.Remote)
+	if remote == "" {
+		remote = "origin"
+	}
+	fetched := false
+	if opts.Fetch {
+		if fetchErr := runGit(ctx, m.repoRoot, "fetch", remote); fetchErr != nil {
+			return nil, fmt.Errorf("worktree: git fetch %s: %w", remote, fetchErr)
+		}
+		fetched = true
+	}
+	dir, onto, strategy, err := m.resolveSyncTarget(ctx, opts, remote)
 	if err != nil {
 		return nil, err
 	}
@@ -635,7 +653,13 @@ func (m *Manager) Sync(ctx context.Context, opts SyncOptions) (*SyncResult, erro
 	if beforeErr != nil {
 		return nil, beforeErr
 	}
-	res := &SyncResult{Onto: onto, Strategy: strategy, BeforeSHA: before}
+	res := &SyncResult{
+		Onto: onto, Strategy: strategy, BeforeSHA: before,
+		Fetched: fetched,
+	}
+	if fetched {
+		res.Remote = remote
+	}
 
 	stashed, stashErr := prepareSyncStash(ctx, dir, opts.Autostash)
 	if stashErr != nil {
@@ -661,14 +685,18 @@ func (m *Manager) Sync(ctx context.Context, opts SyncOptions) (*SyncResult, erro
 	return res, nil
 }
 
-func (m *Manager) resolveSyncTarget(ctx context.Context, opts SyncOptions) (dir, onto, strategy string, err error) {
+func (m *Manager) resolveSyncTarget(ctx context.Context, opts SyncOptions, remote string) (dir, onto, strategy string, err error) {
 	dir = opts.WorkDir
 	if dir == "" {
 		dir = m.repoRoot
 	}
 	onto = strings.TrimSpace(opts.Onto)
 	if onto == "" {
-		onto, err = m.DefaultBase(ctx)
+		if opts.Fetch {
+			onto, err = m.defaultRemoteBase(ctx, remote)
+		} else {
+			onto, err = m.DefaultBase(ctx)
+		}
 		if err != nil {
 			return "", "", "", err
 		}
@@ -678,6 +706,23 @@ func (m *Manager) resolveSyncTarget(ctx context.Context, opts SyncOptions) (dir,
 		strategy = "merge"
 	}
 	return dir, onto, strategy, nil
+}
+
+// defaultRemoteBase prefers <remote>/<DefaultBase> after a fetch so fleets
+// sync onto the remote tip rather than a stale local main/master.
+func (m *Manager) defaultRemoteBase(ctx context.Context, remote string) (string, error) {
+	local, err := m.DefaultBase(ctx)
+	if err != nil {
+		return "", err
+	}
+	if local == "" || local == "HEAD" {
+		return local, nil
+	}
+	cand := remote + "/" + local
+	if _, verifyErr := revParse(ctx, m.repoRoot, "--verify", cand); verifyErr == nil {
+		return cand, nil
+	}
+	return local, nil
 }
 
 func prepareSyncStash(ctx context.Context, dir string, autostash bool) (bool, error) {

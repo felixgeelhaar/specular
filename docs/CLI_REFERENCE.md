@@ -2040,7 +2040,7 @@ specular session <subcommand>
 | `session diff <id>` | Show Git changes for a session worktree |
 | `session exec <id> -- <cmd>…` | Run a command in the session worktree (exit code passthrough) |
 | `session commit <id>` | Commit worktree changes (provenance-aware message) |
-| `session sync <id>` | Rebase/merge worktree onto base (main/master/HEAD) |
+| `session sync <id>` | Rebase/merge worktree onto base (optional `--fetch`) |
 | `session push <id>` | Push worktree branch (`--pr` opens a GitHub PR via gh) |
 | `session attest <id>` | Write signed attestation with harness/worktree provenance |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
@@ -2127,7 +2127,10 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `commit --all` | Stage untracked files too (`git add -A`) |
 | `commit --allow-empty` | Allow an empty commit |
 | `commit --force` | Commit even if the session is still running |
-| `sync --onto <ref>` | Base ref to sync onto (default main/master/HEAD) |
+| `sync --onto <ref>` | Base ref to sync onto (default main/master/HEAD, or origin/<base> with `--fetch`) |
+| `sync --fetch` | `git fetch` before sync; prefer remote tip for default onto |
+| `sync --remote <name>` | Remote for `--fetch` (default `origin`) |
+| `sync --merge` | Merge instead of rebase |
 | `sync --merge` | Merge instead of rebase |
 | `sync --autostash` | Stash dirty changes before sync and pop after |
 | `sync --force` | Sync even if the session is still running |
@@ -2173,6 +2176,7 @@ $ specular session exec auth -- go test ./...
 $ specular session diff auth --stat
 $ specular session commit auth --all
 $ specular session sync auth
+$ specular session sync auth --fetch
 $ specular session push auth --pr
 $ specular session merge auth
 $ specular session attest auth
