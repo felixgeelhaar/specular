@@ -42,6 +42,7 @@ Supporting surfaces:
   specular init     Brownfield repository setup
   specular explain  Why was this ALLOW / DENY?
   specular evidence Show Change Evidence Graph records
+  specular baseline Acknowledge current state (progressive trust)
   specular session  Strong provenance / governed agent sessions
 
 Product intent: docs/PRODUCT_INTENT.md
@@ -92,6 +93,7 @@ func isFastCommand() bool {
 		"gate":       true, // thin change-control evaluation
 		"explain":    true, // gate decision explainability
 		"evidence":   true, // evidence record inspect
+		"baseline":   true, // acknowledged current state
 		"__complete": true, // Cobra completion helper
 	}
 
