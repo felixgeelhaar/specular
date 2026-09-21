@@ -1,5 +1,7 @@
-// Jenkins Pipeline for Specular AI Governance
-// This pipeline validates specs, generates plans, and detects drift
+// Jenkins Pipeline for Specular AI Change Control
+// Change-control entrypoint: specular gate (PRODUCT_INTENT gate-first)
+// Exit codes: 0=ALLOW, 3=policy DENY, 4=drift DENY
+// Prefer this over calling specular eval drift directly in CI.
 
 pipeline {
     agent any
@@ -120,67 +122,61 @@ pipeline {
             }
         }
 
-        stage('Drift Detection') {
+        stage('Change Control Gate') {
             when {
-                anyOf {
-                    changeRequest()
-                    branch 'main'
-                    branch 'develop'
+                allOf {
+                    expression { return !params.SKIP_GATE }
+                    anyOf {
+                        changeRequest()
+                        branch 'main'
+                        branch 'develop'
+                    }
                 }
             }
             steps {
                 script {
-                    echo "Running drift detection..."
+                    echo "Running specular gate (change-control entrypoint)..."
 
                     unstash 'spec-lock'
 
-                    // Run drift detection
+                    // Non-interactive; markdown for review UX. Add --strict-spec when specs are required.
+                    // --github-annotations is GitHub-only — omit here.
                     def exitCode = sh(
                         script: '''
                             set +e
-                            specular eval drift --spec "$SPEC_FILE" --plan "$PLAN_FILE" --lock "$LOCK_FILE" --policy "$POLICY_FILE" --report .specular/drift.sarif
-                            echo $?
+                            specular gate --format markdown --policy "$POLICY_FILE" --report .specular/drift.sarif > gate.md
+                            code=$?
+                            cat gate.md
+                            echo "$code"
+                            exit 0
                         ''',
                         returnStdout: true
-                    ).trim().toInteger()
+                    ).trim().readLines().last().toInteger()
 
-                    // Parse SARIF report
+                    archiveArtifacts artifacts: 'gate.md,.specular/drift.sarif,.specular/evidence/**', allowEmptyArchive: true, fingerprint: true
+
                     if (fileExists('.specular/drift.sarif')) {
-                        def driftCount = sh(
-                            script: 'jq ".runs[0].results | length" .specular/drift.sarif',
-                            returnStdout: true
-                        ).trim().toInteger()
+                        recordIssues(
+                            tool: sarif(pattern: '.specular/drift.sarif'),
+                            name: 'Specular Gate',
+                            qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]]
+                        )
+                    }
 
-                        if (driftCount > 0) {
-                            echo "⚠️ Drift detected: ${driftCount} issue(s) found"
-
-                            // Generate drift summary
-                            sh '''
-                                echo "## 🔍 Specular Drift Detection Results" > drift-summary.md
-                                echo "" >> drift-summary.md
-                                echo "Found $(jq '.runs[0].results | length' .specular/drift.sarif) drift issue(s):" >> drift-summary.md
-                                echo "" >> drift-summary.md
-
-                                jq -r '.runs[0].results[] | "- **\\(.ruleId)**: \\(.message.text)\\n  - File: `\\(.locations[0].physicalLocation.artifactLocation.uri)`\\n  - Line: \\(.locations[0].physicalLocation.region.startLine)"' .specular/drift.sarif >> drift-summary.md
-                            '''
-
-                            // Archive results
-                            archiveArtifacts artifacts: '.specular/drift.sarif,drift-summary.md', fingerprint: true
-
-                            // Publish SARIF
-                            recordIssues(
-                                tool: sarif(pattern: '.specular/drift.sarif'),
-                                name: 'Specular Drift Detection',
-                                qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]]
-                            )
-
-                            // Fail if drift detected
-                            if (exitCode != 0) {
-                                error("Drift detected - build failed")
-                            }
-                        } else {
-                            echo "✅ No drift detected! Code matches specification."
+                    if (exitCode == 0) {
+                        echo '✅ Gate ALLOW'
+                    } else if (exitCode == 3) {
+                        echo '❌ Gate DENY (policy)'
+                        if (params.FAIL_ON_DENY) {
+                            error('Gate DENY (policy) — build failed')
                         }
+                    } else if (exitCode == 4) {
+                        echo '❌ Gate DENY (drift)'
+                        if (params.FAIL_ON_DENY) {
+                            error('Gate DENY (drift) — build failed')
+                        }
+                    } else {
+                        error("Gate failed with unexpected exit code ${exitCode}")
                     }
                 }
             }
@@ -263,8 +259,10 @@ EOF
                 deleteDirs: true,
                 patterns: [
                     [pattern: '.specular/runs/**', type: 'EXCLUDE'],
+                    [pattern: '.specular/evidence/**', type: 'EXCLUDE'],
                     [pattern: '*.sarif', type: 'EXCLUDE'],
-                    [pattern: '*.json', type: 'EXCLUDE']
+                    [pattern: '*.json', type: 'EXCLUDE'],
+                    [pattern: 'gate.md', type: 'EXCLUDE']
                 ]
             )
         }
@@ -302,14 +300,14 @@ properties([
             description: 'Specular version to use'
         ),
         booleanParam(
-            name: 'SKIP_DRIFT_DETECTION',
+            name: 'SKIP_GATE',
             defaultValue: false,
-            description: 'Skip drift detection (not recommended)'
+            description: 'Skip specular gate (not recommended)'
         ),
         booleanParam(
-            name: 'FAIL_ON_DRIFT',
+            name: 'FAIL_ON_DENY',
             defaultValue: true,
-            description: 'Fail build if drift is detected'
+            description: 'Fail build on gate DENY (exit 3/4)'
         )
     ])
 ])

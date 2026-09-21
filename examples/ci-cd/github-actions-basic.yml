@@ -1,5 +1,10 @@
 # Basic GitHub Actions workflow for Specular AI Governance
 # This workflow validates specs, generates plans, and detects drift on every pull request
+#
+# Prefer the gate-first PR check:
+#   .github/workflows/examples/specular-gate.yml
+# (`specular gate --format markdown --github-annotations`)
+# Use this file only when you still need the composite action command: drift flow.
 
 name: Specular AI Governance
 

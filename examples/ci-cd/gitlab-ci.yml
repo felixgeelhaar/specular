@@ -1,12 +1,15 @@
-# GitLab CI/CD Pipeline for Specular AI Governance
-# This pipeline validates specs, generates plans, and detects drift on every merge request
+# GitLab CI/CD Pipeline for Specular AI Change Control
+# Change-control entrypoint: specular gate (PRODUCT_INTENT gate-first)
+# Exit codes: 0=ALLOW, 3=policy DENY, 4=drift DENY
+#
+# Prefer this over calling specular eval drift directly in CI.
 
 # Define stages
 stages:
   - validate
   - plan
   - build
-  - evaluate
+  - gate
   - report
 
 # Global variables
@@ -93,9 +96,9 @@ generate_plan:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# Detect drift (only on MRs)
-detect_drift:
-  stage: evaluate
+# Change-control gate (MRs) — ALLOW/DENY with markdown for MR comments
+change_control_gate:
+  stage: gate
   image: alpine:latest
   needs:
     - validate_spec
@@ -103,39 +106,31 @@ detect_drift:
     - apk add --no-cache curl tar bash jq
     - *install_specular
   script:
-    - echo "Running drift detection..."
+    - echo "Running specular gate (change-control entrypoint)..."
     - |
       set +e
-      specular eval drift --spec "$SPEC_FILE" --plan "$PLAN_FILE" --lock "$LOCK_FILE" --policy "$POLICY_FILE" --report .specular/drift.sarif
+      # Non-interactive; markdown for MR notes. Add --strict-spec when specs are required.
+      # --github-annotations is GitHub-only — omit here.
+      specular gate --format markdown --policy "$POLICY_FILE" --report .specular/drift.sarif > gate.md
       EXIT_CODE=$?
       set -e
 
-      # Parse SARIF report
-      if [ -f ".specular/drift.sarif" ]; then
-        DRIFT_COUNT=$(jq '.runs[0].results | length' .specular/drift.sarif)
+      cat gate.md
 
-        if [ "$DRIFT_COUNT" -gt 0 ]; then
-          echo "⚠️ Drift detected: $DRIFT_COUNT issue(s) found"
+      case "$EXIT_CODE" in
+        0) echo "✅ Gate ALLOW" ;;
+        3) echo "❌ Gate DENY (policy)" ;;
+        4) echo "❌ Gate DENY (drift)" ;;
+        *) echo "❌ Gate failed (exit $EXIT_CODE)" ;;
+      esac
 
-          # Output drift summary
-          echo "## Drift Detection Results" > drift-summary.md
-          echo "" >> drift-summary.md
-          echo "Found $DRIFT_COUNT drift issue(s):" >> drift-summary.md
-          echo "" >> drift-summary.md
-
-          jq -r '.runs[0].results[] | "- **\(.ruleId)**: \(.message.text)\n  - File: `\(.locations[0].physicalLocation.artifactLocation.uri)`"' .specular/drift.sarif >> drift-summary.md
-
-          cat drift-summary.md
-
-          exit $EXIT_CODE
-        else
-          echo "✅ No drift detected! Code matches specification."
-        fi
-      fi
+      exit $EXIT_CODE
   artifacts:
+    when: always
     paths:
+      - gate.md
       - .specular/drift.sarif
-      - drift-summary.md
+      - .specular/evidence/
     reports:
       sast: .specular/drift.sarif
     expire_in: 30 days
@@ -164,12 +159,13 @@ execute_build:
   services:
     - docker:dind
 
-# Generate compliance report
+# Generate compliance report from gate SARIF (when present)
 compliance_report:
   stage: report
   image: alpine:latest
   needs:
-    - detect_drift
+    - job: change_control_gate
+      optional: true
   before_script:
     - apk add --no-cache jq
   script:
@@ -194,6 +190,8 @@ compliance_report:
       EOF
 
         cat compliance-report.json
+      else
+        echo "No drift SARIF from gate; skipping SARIF rollup."
       fi
   artifacts:
     paths:
@@ -204,18 +202,19 @@ compliance_report:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   allow_failure: true
 
-# Post MR comment with results (requires GitLab API token)
+# Post MR comment with gate markdown (requires GitLab API token)
 post_mr_comment:
   stage: report
   image: alpine:latest
   needs:
-    - detect_drift
+    - job: change_control_gate
+      optional: true
   before_script:
     - apk add --no-cache curl jq
   script:
     - |
-      if [ -f "drift-summary.md" ] && [ -n "$CI_MERGE_REQUEST_IID" ]; then
-        COMMENT_BODY=$(cat drift-summary.md | jq -Rs .)
+      if [ -f "gate.md" ] && [ -n "$CI_MERGE_REQUEST_IID" ]; then
+        COMMENT_BODY=$(cat gate.md | jq -Rs .)
 
         curl --request POST \
           --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
