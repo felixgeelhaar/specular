@@ -12,6 +12,10 @@ If none of the above fit, the framing material below is for **internal
 champions and design partners** preparing to introduce Specular into a
 larger engineering org.
 
+**Canonical product intent:** [`../PRODUCT_INTENT.md`](../PRODUCT_INTENT.md)
+— Specular is the trust boundary for AI-authored software changes; the
+primary primitive is `specular gate`.
+
 ## The wedge in one sentence
 
 > **Specular is the auditable drift gate for AI-authored code in CI/CD —
