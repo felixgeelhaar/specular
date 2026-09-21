@@ -23,6 +23,9 @@ Default: load the latest Change Evidence Graph record written by
 specular gate. Pass an evidence id (ev_…) to explain a specific record.
 With --fresh, re-run the gate (and persist evidence) before explaining.
 
+Human text is an auditor-facing AI CHANGE RECORD (PRODUCT_INTENT §19).
+--json emits the unchanged machine-readable evidence record.
+
 Routing / model-selection explainability remains at:
   specular debug explain <checkpoint-id>
 
