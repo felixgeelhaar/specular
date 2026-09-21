@@ -1,0 +1,33 @@
+# Specular Policy Library — PCI DSS Requirement 6.4.5
+# Open seed: control → Specular evidence mapping (not a QSA assessment).
+id: pci-dss-6.4.5
+framework: PCI DSS
+control: 6.4.5
+title: Significant change approval
+summary: >
+  PCI DSS 6.4.5 requires that significant changes to applications and systems
+  in the cardholder data environment follow a documented approval process.
+  Specular maps this to signed session attestations, drift gates, and the
+  human approval chain before release — the AI-authored change control path
+  security personas already cite for payments buyers.
+version: "1.0"
+
+artifacts:
+  - kind: session_attestation
+    path: .specular/sessions/*.attestation.json
+    why: Signed harness + worktree provenance for AI-authored significant changes
+  - kind: drift_sarif
+    path: drift.sarif
+    why: Spec/plan/code drift gate output before approval (fail-on-drift)
+  - kind: approvals
+    path: .specular/approvals/
+    why: Documented human approval of significant changes under SCM
+
+evidence_commands:
+  - specular session wait --attest --gate
+  - specular bundle create --policy .specular/policies/pci-dss-6.4.5.yaml --include .specular/sessions/*.attestation.json evidence.sbundle.tgz
+
+compliance:
+  pci_dss_enabled: true
+  control_ids:
+    - "6.4.5"

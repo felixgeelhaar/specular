@@ -38,6 +38,9 @@ func TestListAndGet(t *testing.T) {
 	if !seen["soc2-cc8.1"] {
 		t.Fatal("missing soc2-cc8.1 seed")
 	}
+	if !seen["pci-dss-6.4.5"] {
+		t.Fatal("missing pci-dss-6.4.5 seed")
+	}
 }
 
 func TestGetUnknown(t *testing.T) {
