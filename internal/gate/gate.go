@@ -61,6 +61,7 @@ type Result struct {
 	Provenance ProvenanceSection `json:"provenance"`
 	Drift      DriftSection      `json:"drift"`
 	Policy     PolicySection     `json:"policy"`
+	Risk       RiskSection       `json:"risk"`
 }
 
 // ChangeSection summarizes the proposed git change.
@@ -141,6 +142,7 @@ func Evaluate(opts Options) (*Result, error) {
 	res.Provenance = discoverProvenance(root)
 	res.Drift = evaluateDrift(root, reportFile, opts.StrictSpec)
 	res.Policy = evaluatePolicy(root, opts.PolicyPath)
+	res.Risk = assessRisk(res.Provenance, root)
 	res.Verdict, res.Reason = decide(res)
 	return res, nil
 }
@@ -442,6 +444,7 @@ func evaluatePolicy(root, policyPath string) PolicySection {
 }
 
 func decide(res *Result) (Verdict, string) {
+	// Risk is advisory only and must not flip ALLOW→DENY.
 	if res.Drift.Status == StatusFail {
 		return Deny, firstNonEmpty(res.Drift.Note, "drift evaluation failed")
 	}
@@ -520,10 +523,29 @@ func FormatText(res *Result) string {
 	if res.Policy.Note != "" {
 		fmt.Fprintf(&b, "  Note           %s\n", res.Policy.Note)
 	}
+	writeRiskSection(&b, res.Risk)
 	b.WriteString(strings.Repeat("─", 46) + "\n")
 	fmt.Fprintf(&b, "VERDICT: %s\n", res.Verdict)
 	fmt.Fprintf(&b, "REASON:  %s\n", res.Reason)
 	return b.String()
+}
+
+func writeRiskSection(b *strings.Builder, risk RiskSection) {
+	b.WriteString("Risk\n")
+	level := risk.Level
+	if level == "" {
+		level = "NONE"
+	}
+	fmt.Fprintf(b, "  Level          %s\n", level)
+	if len(risk.Factors) > 0 {
+		b.WriteString("  Factors\n")
+		for _, f := range risk.Factors {
+			fmt.Fprintf(b, "    + %s\n", f)
+		}
+	}
+	if risk.Note != "" {
+		fmt.Fprintf(b, "  Note           %s\n", risk.Note)
+	}
 }
 
 const maxPrintedFindings = 8

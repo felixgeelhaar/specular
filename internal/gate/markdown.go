@@ -64,7 +64,12 @@ func writeMarkdownTable(b *strings.Builder, res *Result) {
 		res.Change.Dirty, res.Change.Files, res.Change.Branch)
 	fmt.Fprintf(b, "| Provenance | `%s` |\n", res.Provenance.Status)
 	fmt.Fprintf(b, "| Drift | `%s` |\n", res.Drift.Status)
-	fmt.Fprintf(b, "| Policy | `%s` |\n\n", res.Policy.Status)
+	fmt.Fprintf(b, "| Policy | `%s` |\n", res.Policy.Status)
+	riskLevel := res.Risk.Level
+	if riskLevel == "" {
+		riskLevel = "NONE"
+	}
+	fmt.Fprintf(b, "| Risk | `%s` (advisory) |\n\n", riskLevel)
 }
 
 func writeMarkdownNotes(b *strings.Builder, res *Result) {
@@ -76,6 +81,15 @@ func writeMarkdownNotes(b *strings.Builder, res *Result) {
 	}
 	if res.Policy.Note != "" {
 		fmt.Fprintf(b, "_Policy:_ %s\n\n", res.Policy.Note)
+	}
+	if len(res.Risk.Factors) > 0 {
+		b.WriteString("_Risk factors (advisory):_\n")
+		for _, f := range res.Risk.Factors {
+			fmt.Fprintf(b, "- %s\n", f)
+		}
+		b.WriteString("\n")
+	} else if res.Risk.Note != "" {
+		fmt.Fprintf(b, "_Risk:_ %s\n\n", res.Risk.Note)
 	}
 }
 
