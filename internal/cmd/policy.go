@@ -29,6 +29,7 @@ Available commands:
   approve  - Approve policies with signature (Pro)
   list     - List all policies (Pro)
   diff     - Show policy changes (Pro)
+  pack     - List/show/apply executable control packs (free)
   library  - Browse/install open control-mapping seeds (free)`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()

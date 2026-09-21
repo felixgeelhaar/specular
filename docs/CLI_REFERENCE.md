@@ -349,9 +349,41 @@ Policy commands help you define, validate, and enforce governance policies for y
 
 **Subcommands:**
 
+#### policy pack
+
+List, show, and apply executable control packs (PRODUCT_INTENT §15; free; no Pro license).
+
+```bash
+specular policy pack list [--json]
+specular policy pack show <id> [--json]
+specular policy pack apply <id> [--path <file>] [--force] [--dry-run] [--json]
+```
+
+**Description:**
+
+Same embedded seeds as `policy library`, exposed as the control-pack CLI:
+list id/title/summary, show a pack (human or JSON), and apply a fragment into
+`.specular/policies/` for `bundle create --policy` / `gate --policy`.
+`--dry-run` previews the write without creating files. Applying a pack does
+not certify organizational compliance.
+
+**Example:**
+```bash
+$ specular policy pack list
+ID                    TITLE               SUMMARY
+soc2-cc8.1            Change Management   The entity authorizes, designs, ...
+
+$ specular policy pack apply soc2-cc8.1 --dry-run
+✓ Dry-run: would create soc2-cc8.1 → .specular/policies/soc2-cc8.1.yaml (...)
+
+$ specular policy pack apply soc2-cc8.1
+✓ Applied soc2-cc8.1 → .specular/policies/soc2-cc8.1.yaml
+```
+
 #### policy library
 
 Browse and install open framework→evidence control mappings (free; no Pro license).
+Alias-compatible with seeds used by `policy pack`.
 
 ```bash
 specular policy library list
@@ -362,9 +394,10 @@ specular policy library install <id> [--path <file>] [--force]
 **Description:**
 
 Ships seed mappings for SOC 2 CC8.1, ISO/IEC 42001 Clause 8, EU AI Act
-Article 17, and NIST AI RMF GOVERN 4. Each fragment lists Specular artifacts
-(session attestations, drift SARIF, approvals) and evidence commands.
-`install` writes `.specular/policies/<id>.yaml` for `bundle create --policy`.
+Article 17, NIST AI RMF GOVERN 4, and PCI DSS 6.4.5. Each fragment lists
+Specular artifacts (session attestations, drift SARIF, approvals) and
+evidence commands. `install` writes `.specular/policies/<id>.yaml` for
+`bundle create --policy`. Prefer `policy pack apply` for dry-run support.
 
 **Example:**
 ```bash

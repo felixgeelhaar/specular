@@ -14,8 +14,12 @@ Open framework → Specular evidence control mappings.
 | `nist-ai-rmf-govern4` | NIST AI RMF | GOVERN 4 |
 
 ```bash
-specular policy library list
-specular policy library install soc2-cc8.1
+specular policy pack list
+specular policy pack show soc2-cc8.1
+specular policy pack apply soc2-cc8.1 --dry-run
+specular policy pack apply soc2-cc8.1
+# equivalent legacy surface:
+# specular policy library list|show|install …
 specular session wait --attest --gate
 specular bundle create --policy .specular/policies/soc2-cc8.1.yaml \
   --include .specular/sessions/*.attestation.json evidence.sbundle.tgz

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Executable control packs CLI**: `specular policy pack list|show|apply`
+  over embedded `internal/policylibrary` seeds (id/title/summary list,
+  human + `--json` show, apply with `--dry-run` / `--force`) —
+  PRODUCT_INTENT §15 / P1 #5; does not claim compliance certification
+
 - **Product intent + `specular gate`**: canonical
   [`docs/PRODUCT_INTENT.md`](docs/PRODUCT_INTENT.md) defines Specular as the
   trust boundary for AI-authored changes; `specular gate` is the thin

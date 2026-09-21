@@ -74,6 +74,41 @@ func TestInstallRefuseAndForce(t *testing.T) {
 	}
 }
 
+func TestApplyDryRun(t *testing.T) {
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "policies", "soc2-cc8.1.yaml")
+	res, err := Apply("soc2-cc8.1", dest, ApplyOptions{DryRun: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Wrote {
+		t.Fatal("dry-run must not write")
+	}
+	if !res.DryRun {
+		t.Fatal("expected DryRun true")
+	}
+	if res.Bytes == 0 {
+		t.Fatal("expected non-zero Bytes")
+	}
+	if res.Path != dest {
+		t.Fatalf("path: got %q want %q", res.Path, dest)
+	}
+	if _, statErr := os.Stat(dest); !os.IsNotExist(statErr) {
+		t.Fatalf("dry-run created file: %v", statErr)
+	}
+	// Real apply after dry-run
+	res, err = Apply("soc2-cc8.1", dest, ApplyOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Wrote {
+		t.Fatal("expected Wrote")
+	}
+	if _, err := os.Stat(dest); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDefaultInstallPath(t *testing.T) {
 	got := DefaultInstallPath("/proj", "soc2-cc8.1")
 	want := filepath.Join("/proj", ".specular", "policies", "soc2-cc8.1.yaml")

@@ -83,30 +83,65 @@ func DefaultInstallPath(root, id string) string {
 	return filepath.Join(root, ".specular", "policies", id+".yaml")
 }
 
-// Install writes the seed YAML to dest. Refuses overwrite unless force.
-func Install(id, dest string, force bool) error {
+// ApplyOptions controls how a control pack seed is written into a repo.
+type ApplyOptions struct {
+	Force  bool
+	DryRun bool
+}
+
+// ApplyResult describes what Apply did or would do.
+type ApplyResult struct {
+	ID     string `json:"id"`
+	Path   string `json:"path"`
+	Bytes  int    `json:"bytes"`
+	Exists bool   `json:"exists"`
+	Wrote  bool   `json:"wrote"`
+	DryRun bool   `json:"dry_run"`
+}
+
+// Apply writes (or dry-runs writing) a control-pack seed to dest.
+// Dest defaults to DefaultInstallPath(".", id). Refuses overwrite unless Force.
+func Apply(id, dest string, opts ApplyOptions) (ApplyResult, error) {
 	e, err := Get(id)
 	if err != nil {
-		return err
+		return ApplyResult{}, err
 	}
 	if valErr := Validate(e); valErr != nil {
-		return valErr
+		return ApplyResult{}, valErr
 	}
 	if dest == "" {
 		dest = DefaultInstallPath(".", id)
 	}
-	if !force {
-		if _, statErr := os.Stat(dest); statErr == nil {
-			return fmt.Errorf("policylibrary: %s already exists (use --force to overwrite)", dest)
+	res := ApplyResult{
+		ID:     e.ID,
+		Path:   dest,
+		Bytes:  len(e.Raw),
+		DryRun: opts.DryRun,
+	}
+	if _, statErr := os.Stat(dest); statErr == nil {
+		res.Exists = true
+		if !opts.Force {
+			return res, fmt.Errorf("policylibrary: %s already exists (use --force to overwrite)", dest)
 		}
 	}
+	if opts.DryRun {
+		return res, nil
+	}
 	if mkErr := os.MkdirAll(filepath.Dir(dest), 0o750); mkErr != nil {
-		return fmt.Errorf("policylibrary: mkdir: %w", mkErr)
+		return res, fmt.Errorf("policylibrary: mkdir: %w", mkErr)
 	}
 	if writeErr := os.WriteFile(dest, e.Raw, 0o600); writeErr != nil {
-		return fmt.Errorf("policylibrary: write %s: %w", dest, writeErr)
+		return res, fmt.Errorf("policylibrary: write %s: %w", dest, writeErr)
 	}
-	return nil
+	res.Wrote = true
+	return res, nil
+}
+
+// Install writes the seed YAML to dest. Refuses overwrite unless force.
+// Prefer Apply when dry-run or structured results are needed.
+func Install(id, dest string, force bool) error {
+	_, err := Apply(id, dest, ApplyOptions{Force: force})
+	return err
 }
 
 // Validate checks required fields on a library entry.
