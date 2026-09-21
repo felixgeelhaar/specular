@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `specular.evidence/v1` records under `.specular/evidence/`;
   `specular explain` / `specular evidence show|list` answer why ALLOW/DENY
 
+- **`specular baseline`**: capture/show/status for an explicit acknowledged
+  current state (`.specular/baseline.yaml`) — PRODUCT_INTENT §25 progressive
+  trust without claiming the state is good
+
 - **Brownfield `specular init`**: Detected / Existing controls / Recommended
   baseline board (PRODUCT_INTENT §24), gate-first next steps, and
   `.github/workflows/examples/specular-gate.yml` PR-check example
