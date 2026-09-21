@@ -2,6 +2,7 @@ package drift
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/spec"
@@ -46,16 +47,24 @@ func DetectPlanDrift(lock *spec.SpecLock, p *plan.Plan) []Finding {
 		taskFeatures[task.FeatureID.String()] = true
 	}
 
+	// Sort feature IDs so MISSING_TASK order is deterministic (PRODUCT_INTENT §6.7).
+	featureIDs := make([]string, 0, len(lock.Features))
 	for featureID := range lock.Features {
-		if !taskFeatures[featureID.String()] {
-			findings = append(findings, Finding{
-				Code:      "MISSING_TASK",
-				FeatureID: featureID,
-				Message:   fmt.Sprintf("Feature %s in SpecLock has no corresponding task in plan", featureID),
-				Severity:  "warning",
-				Location:  fmt.Sprintf("feature:%s", featureID),
-			})
+		featureIDs = append(featureIDs, featureID.String())
+	}
+	sort.Strings(featureIDs)
+	for _, id := range featureIDs {
+		if taskFeatures[id] {
+			continue
 		}
+		fid := types.FeatureID(id)
+		findings = append(findings, Finding{
+			Code:      "MISSING_TASK",
+			FeatureID: fid,
+			Message:   fmt.Sprintf("Feature %s in SpecLock has no corresponding task in plan", fid),
+			Severity:  "warning",
+			Location:  fmt.Sprintf("feature:%s", fid),
+		})
 	}
 
 	return findings

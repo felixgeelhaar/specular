@@ -71,6 +71,52 @@ func TestEvaluateProvenanceFromAttestation(t *testing.T) {
 	}
 }
 
+func TestSortFindingsStableOrder(t *testing.T) {
+	t.Parallel()
+	in := []FindingDetail{
+		{Severity: "warning", Category: "plan", Code: "B", FeatureID: "z"},
+		{Severity: "error", Category: "code", Code: "A", FeatureID: "a", Location: "b"},
+		{Severity: "error", Category: "code", Code: "A", FeatureID: "a", Location: "a"},
+		{Severity: "info", Category: "infra", Code: "C"},
+	}
+	sortFindings(in)
+	want := []string{"error|code|A|a|a", "error|code|A|a|b", "warning|plan|B|z|", "info|infra|C||"}
+	for i, f := range in {
+		got := strings.Join([]string{f.Severity, f.Category, f.Code, f.FeatureID, f.Location}, "|")
+		if got != want[i] {
+			t.Fatalf("i=%d got %s want %s", i, got, want[i])
+		}
+	}
+}
+
+func TestProvenanceSessionsSorted(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"zeta", "alpha", "mid"} {
+		att := `{"provenance":{"harness":"claude-code"}}`
+		if err := os.WriteFile(filepath.Join(dir, id+".attestation.json"), []byte(att), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"alpha", "mid", "zeta"}
+	if len(res.Provenance.Sessions) != 3 {
+		t.Fatalf("sessions=%v", res.Provenance.Sessions)
+	}
+	for i := range want {
+		if res.Provenance.Sessions[i] != want[i] {
+			t.Fatalf("sessions=%v want %v", res.Provenance.Sessions, want)
+		}
+	}
+}
+
 func TestDecidePolicyFail(t *testing.T) {
 	t.Parallel()
 	res := &Result{

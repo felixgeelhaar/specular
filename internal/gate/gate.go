@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/felixgeelhaar/specular/internal/drift"
@@ -195,6 +196,9 @@ func discoverProvenance(root string) ProvenanceSection {
 			sec.Harnesses = append(sec.Harnesses, payload.Provenance.Harness)
 		}
 	}
+	sort.Strings(sec.Sessions)
+	sec.Harnesses = unique(sec.Harnesses)
+	sort.Strings(sec.Harnesses)
 	if len(sec.Sessions) > 0 {
 		sec.Attested = true
 		sec.Status = StatusPass
@@ -305,7 +309,42 @@ func collectFindings(report *drift.Report) []FindingDetail {
 	out = append(out, mapFindings("plan", report.PlanDrift)...)
 	out = append(out, mapFindings("code", report.CodeDrift)...)
 	out = append(out, mapFindings("infra", report.InfraDrift)...)
+	sortFindings(out)
 	return out
+}
+
+func sortFindings(findings []FindingDetail) {
+	severityRank := func(s string) int {
+		switch strings.ToLower(s) {
+		case "error":
+			return 0
+		case "warning":
+			return 1
+		case "info":
+			return 2
+		default:
+			return 3
+		}
+	}
+	sort.SliceStable(findings, func(i, j int) bool {
+		a, b := findings[i], findings[j]
+		if ra, rb := severityRank(a.Severity), severityRank(b.Severity); ra != rb {
+			return ra < rb
+		}
+		if a.Category != b.Category {
+			return a.Category < b.Category
+		}
+		if a.Code != b.Code {
+			return a.Code < b.Code
+		}
+		if a.FeatureID != b.FeatureID {
+			return a.FeatureID < b.FeatureID
+		}
+		if a.Location != b.Location {
+			return a.Location < b.Location
+		}
+		return a.Message < b.Message
+	})
 }
 
 func mapFindings(category string, in []drift.Finding) []FindingDetail {
