@@ -27,6 +27,9 @@ func TestEvaluateBrownfieldAllow(t *testing.T) {
 	if res.Provenance.Attested {
 		t.Fatal("expected unattested")
 	}
+	if res.ProvenanceProtocol != nil {
+		t.Fatalf("expected no provenanceProtocol when unattested, got %+v", res.ProvenanceProtocol)
+	}
 	if !containsFactor(res.Risk.Factors, FactorUnattested) {
 		t.Fatalf("expected unattested risk factor, got %v", res.Risk.Factors)
 	}
@@ -71,6 +74,12 @@ func TestEvaluateProvenanceFromAttestation(t *testing.T) {
 	}
 	if !res.Provenance.Attested || res.Provenance.Status != StatusPass {
 		t.Fatalf("%+v", res.Provenance)
+	}
+	if res.ProvenanceProtocol == nil || res.ProvenanceProtocol.Schema != "specular.provenance/v1" {
+		t.Fatalf("provenanceProtocol=%+v", res.ProvenanceProtocol)
+	}
+	if res.ProvenanceProtocol.Version != "1" || len(res.ProvenanceProtocol.Sessions) != 1 || res.ProvenanceProtocol.Sessions[0] != "auth" {
+		t.Fatalf("provenanceProtocol=%+v", res.ProvenanceProtocol)
 	}
 	if len(res.Provenance.Harnesses) != 1 || res.Provenance.Harnesses[0] != "claude-code" {
 		t.Fatalf("harnesses=%v", res.Provenance.Harnesses)

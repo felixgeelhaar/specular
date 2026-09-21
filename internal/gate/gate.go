@@ -18,6 +18,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/eval"
 	"github.com/felixgeelhaar/specular/internal/plan"
 	"github.com/felixgeelhaar/specular/internal/policy"
+	"github.com/felixgeelhaar/specular/internal/provenance"
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/spec"
 	"github.com/felixgeelhaar/specular/internal/ux"
@@ -59,10 +60,13 @@ type Result struct {
 	Reason     string            `json:"reason"`
 	Change     ChangeSection     `json:"change"`
 	Provenance ProvenanceSection `json:"provenance"`
-	Drift      DriftSection      `json:"drift"`
-	Policy     PolicySection     `json:"policy"`
-	Risk       RiskSection       `json:"risk"`
-	Approvals  ApprovalsSection  `json:"approvals"`
+	// ProvenanceProtocol references specular.provenance/v1 when session
+	// attestation(s) are present (PRODUCT_INTENT §9 / P1 #3). Additive.
+	ProvenanceProtocol *provenance.ProtocolRef `json:"provenanceProtocol,omitempty"`
+	Drift              DriftSection            `json:"drift"`
+	Policy             PolicySection           `json:"policy"`
+	Risk               RiskSection             `json:"risk"`
+	Approvals          ApprovalsSection        `json:"approvals"`
 }
 
 // ChangeSection summarizes the proposed git change.
@@ -149,6 +153,9 @@ func Evaluate(opts Options) (*Result, error) {
 	res := &Result{}
 	res.Change = discoverChange(root)
 	res.Provenance = discoverProvenance(root)
+	if res.Provenance.Attested {
+		res.ProvenanceProtocol = provenance.NewProtocolRef(res.Provenance.Sessions)
+	}
 	res.Drift = evaluateDrift(root, reportFile, opts.StrictSpec)
 	res.Policy = evaluatePolicy(root, opts.PolicyPath)
 	res.Risk = assessRisk(res.Provenance, root)
