@@ -905,14 +905,10 @@ Specular must integrate into the place developers already work.
 
 The primary developer interfaces are:
 
-
-## 1. Pull request
-
-## 2. CLI
-
-## 3. IDE/agent integration
-
-## 4. CI logs
+1. Pull request
+2. CLI
+3. IDE/agent integration
+4. CI logs
 
 The PR experience should summarize:
 
@@ -1261,7 +1257,7 @@ Specification, planning, generation, model routing, and autonomous building are 
 
 ## 35. Features to Demote
 
-Generic Generation
+### Generic Generation
 
 Generic:
 
@@ -1274,7 +1270,7 @@ Agent vendors already provide excellent generation interfaces.
 Keep only where it strengthens governance or workflow integration.
 
 
-Model Routing
+### Model Routing
 
 Routing may remain useful for:
 
@@ -1286,7 +1282,7 @@ Routing may remain useful for:
 It should not define the product.
 
 
-Spec Authoring
+### Spec Authoring
 
 Specular-native specifications are valuable because they provide strong intent.
 
@@ -1480,72 +1476,43 @@ An auditor should be able to verify exported evidence independently where feasib
 
 P0 — Establish the Product
 
-
-## 1. Unified specular gate
-
-## 2. Change Evidence Graph
-
-## 3. High-quality drift explanations
-
-## 4. Brownfield specular init
-
-## 5. Baseline support
-
-## 6. Excellent GitHub PR/check UX
-
-## 7. Security hardening of the execution boundary
-
-## 8. Secret-safe manifests and evidence
-
-## 9. Deterministic policy decisions
-
-## 10. specular explain
+1. Unified specular gate
+2. Change Evidence Graph
+3. High-quality drift explanations
+4. Brownfield specular init
+5. Baseline support
+6. Excellent GitHub PR/check UX
+7. Security hardening of the execution boundary
+8. Secret-safe manifests and evidence
+9. Deterministic policy decisions
+10. specular explain
 
 P1 — Establish the Trust Platform
 
-
-## 1. Risk-adaptive governance
-
-## 2. Human-readable evidence records
-
-## 3. Agent Provenance Protocol
-
-## 4. Native agent integrations
-
-## 5. Executable control packs
-
-## 6. Better approval/exception workflows
-
-## 7. GitLab support
-
-## 8. Jenkins/generic CI support
-
-## 9. Evidence querying
-
-## 10. Stronger session provenance
+1. Risk-adaptive governance
+2. Human-readable evidence records
+3. Agent Provenance Protocol
+4. Native agent integrations
+5. Executable control packs
+6. Better approval/exception workflows
+7. GitLab support
+8. Jenkins/generic CI support
+9. Evidence querying
+10. Stronger session provenance
 
 P2 — Organizational Scale
 
+1. Specular control plane
+2. Organization policy management
+3. Cross-repository evidence
+4. Enterprise identity/RBAC
+5. Key management
+6. Fleet visibility
+7. Audit search
+8. SIEM integrations
+9. Central exception management
+10. Organization-wide provenance analytics
 
-## 1. Specular control plane
-
-## 2. Organization policy management
-
-## 3. Cross-repository evidence
-
-## 4. Enterprise identity/RBAC
-
-## 5. Key management
-
-## 6. Fleet visibility
-
-## 7. Audit search
-
-## 8. SIEM integrations
-
-## 9. Central exception management
-
-## 10. Organization-wide provenance analytics
 
 ## 44. Ideal Adoption Journey
 
