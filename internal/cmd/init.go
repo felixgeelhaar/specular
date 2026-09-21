@@ -36,11 +36,14 @@ var (
 var initCmd = &cobra.Command{
 	Use:     "init [directory]",
 	Aliases: []string{"i", "new"},
-	Short:   "Initialize a new specular project with smart context detection",
-	Long: `Initialize a new specular project with smart context detection and configuration.
+	Short:   "Brownfield repository setup for specular gate",
+	Long: `Initialize Specular in an existing repository (brownfield-first).
 
-Automatically detects your environment (Docker, AI providers, languages, frameworks, Git, CI)
-and generates optimized configuration files based on your project context.
+Detects Git, CI, languages, providers, and existing controls (CODEOWNERS,
+workflows, linters), then writes a minimal .specular/ configuration and
+prints a recommended advisory baseline. After init, run specular gate.
+
+See docs/PRODUCT_INTENT.md §24 (Brownfield Initialization).
 
 Examples:
   # Initialize with automatic detection
@@ -113,12 +116,16 @@ func setupTargetDirectory(args []string) (string, string, error) {
 
 // detectProjectContext performs context detection or returns empty context
 func detectProjectContext() *detect.Context {
+	return detectProjectContextAt(".")
+}
+
+func detectProjectContextAt(root string) *detect.Context {
 	if initNoDetect {
 		fmt.Println("ℹ  Skipping context detection (--no-detect)")
 		return &detect.Context{}
 	}
 
-	fmt.Println("🔍 Detecting project context...")
+	fmt.Println("Analyzing repository...")
 	ctx, err := detect.DetectAll()
 	if err != nil {
 		fmt.Printf("⚠  Context detection failed: %v\n", err)
@@ -127,7 +134,7 @@ func detectProjectContext() *detect.Context {
 	}
 
 	recordDetectionEvents(ctx)
-	printDetectionSummary(ctx)
+	printDetectionSummaryAt(root, ctx)
 	return ctx
 }
 
@@ -205,12 +212,12 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Display header
 	fmt.Println()
 	fmt.Println("╔══════════════════════════════════════════════════════════════╗")
-	fmt.Println("║           Specular Project Initialization                    ║")
+	fmt.Println("║     Specular Brownfield Init — trust boundary setup          ║")
 	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
 	fmt.Println()
 
 	// Detect project context
-	ctx := detectProjectContext()
+	ctx := detectProjectContextAt(absDir)
 	detectStatus := telemetry.ActivationStatusOK
 	if initNoDetect {
 		detectStatus = telemetry.ActivationStatusSkipped
@@ -291,21 +298,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 }
 
 // printActivationNextSteps emits a numbered, copy-pasteable scaffolding
-// block bridging the gap between successful init and the first green CI
-// gate. This is the single highest-friction moment in the activation
-// journey; the user knows init worked but does not know what to type
-// next. The list below maps to the GTM Platform Engineering persona's
-// 30-minute walkthrough.
+// block bridging successful init and the first useful gate result
+// (PRODUCT_INTENT Minute 5: specular gate).
 func printActivationNextSteps() {
 	fmt.Println()
-	fmt.Println("Next steps to first green CI gate:")
-	fmt.Println("  1. specular spec add \"<one-line description of your change>\"")
-	fmt.Println("  2. specular plan generate")
-	fmt.Println("  3. specular build run --dry-run     # preview before producing artifacts")
-	fmt.Println("  4. specular eval drift              # produces the bundle hash for CI")
+	fmt.Println("Next steps (gate-first):")
+	fmt.Println("  1. specular gate                 # ALLOW/DENY for the working tree")
+	fmt.Println("  2. Copy .github/workflows/examples/specular-gate.yml into CI")
+	fmt.Println("  3. (optional) specular spec add  # strengthen drift when ready")
 	fmt.Println()
-	fmt.Println("Wire the gate into CI: see docs/gtm/personas/platform-engineering.md")
-	fmt.Println("for the GitHub Actions / GitLab CI snippets.")
+	fmt.Println("Brownfield tip: gate soft-skips drift without specs; use --strict-spec later.")
+	fmt.Println("See docs/PRODUCT_INTENT.md and docs/gtm/personas/platform-engineering.md.")
 	fmt.Println()
 }
 
@@ -322,39 +325,14 @@ type InitConfig struct {
 }
 
 func printDetectionSummary(ctx *detect.Context) {
+	printDetectionSummaryAt(".", ctx)
+}
+
+func printDetectionSummaryAt(root string, ctx *detect.Context) {
 	fmt.Println()
-	fmt.Println("Detected Environment:")
-
-	// Container runtime
-	if ctx.Docker.Available {
-		fmt.Printf("  ✓ Docker: %s\n", ctx.Docker.Version)
-	} else if ctx.Podman.Available {
-		fmt.Printf("  ✓ Podman: %s\n", ctx.Podman.Version)
-	} else {
-		fmt.Println("  ○ No container runtime detected")
-	}
-
-	// AI Providers
+	fmt.Print(formatBrownfieldBoard(root, ctx))
+	fmt.Println()
 	printProviderSummary(ctx)
-
-	// Languages/Frameworks
-	if len(ctx.Languages) > 0 {
-		fmt.Printf("  ✓ Languages: %s\n", strings.Join(ctx.Languages, ", "))
-	}
-	if len(ctx.Frameworks) > 0 {
-		fmt.Printf("  ✓ Frameworks: %s\n", strings.Join(ctx.Frameworks, ", "))
-	}
-
-	// Git
-	if ctx.Git.Initialized {
-		fmt.Printf("  ✓ Git: branch %s\n", ctx.Git.Branch)
-	}
-
-	// CI
-	if ctx.CI.Detected {
-		fmt.Printf("  ✓ CI: %s\n", ctx.CI.Name)
-	}
-
 	fmt.Println()
 }
 
@@ -557,7 +535,7 @@ func confirmInitialization(config *InitConfig) bool {
 	fmt.Printf("  Governance: %s (%s)\n", config.Governance, describeGovernance(config.Governance))
 	fmt.Printf("  MCP:        %v\n", config.MCPEnabled)
 	fmt.Println()
-	fmt.Print("Proceed with initialization? [Y/n]: ")
+	fmt.Print("Install configuration? [Y/n]: ")
 
 	reader := bufio.NewReader(os.Stdin)
 	response, _ := reader.ReadString('\n') //nolint:errcheck // Interactive prompt, empty response on error is acceptable
@@ -1524,24 +1502,15 @@ func printSmartSuccessMessage(config *InitConfig) {
 
 	fmt.Println("Next steps:")
 	fmt.Println()
-	fmt.Println("  1. Check your system health:")
+	fmt.Println("  1. Evaluate the change:")
+	fmt.Println("     $ specular gate")
+	fmt.Println()
+	fmt.Println("  2. Check system health (optional):")
 	fmt.Println("     $ specular doctor")
 	fmt.Println()
-	fmt.Println("  2. Review your configuration:")
-	fmt.Println("     $ cat .specular/routing.yaml")
-	fmt.Println("     $ specular route show")
-	fmt.Println()
-	fmt.Println("  3. Create your spec (interactive):")
+	fmt.Println("  3. When ready to strengthen drift:")
 	fmt.Println("     $ specular spec new --tui")
-	fmt.Println()
-	fmt.Println("  4. Or edit the spec template:")
-	fmt.Println("     $ vim .specular/spec.yaml")
-	fmt.Println()
-	fmt.Println("  5. Generate a plan:")
 	fmt.Println("     $ specular plan create")
-	fmt.Println()
-	fmt.Println("  6. Execute your plan:")
-	fmt.Println("     $ specular build run")
 	fmt.Println()
 
 	fmt.Printf("Project: %s\n", projectName)
