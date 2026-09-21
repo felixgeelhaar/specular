@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ALLOW/DENY change-control primitive (change + provenance + soft-skip
   drift/policy on brownfield; `--strict-spec` to require specs)
 
+- **Brownfield `specular init`**: Detected / Existing controls / Recommended
+  baseline board (PRODUCT_INTENT §24), gate-first next steps, and
+  `.github/workflows/examples/specular-gate.yml` PR-check example
+
 - **PCI DSS 6.4.5 policy library seed**: open control→evidence mapping for
   significant-change approval (`specular policy library install pci-dss-6.4.5`)
   — closes the payments/fintech gap already cited in GTM security personas
