@@ -12,8 +12,11 @@ type Attestation struct {
 	Version string `json:"version"`
 
 	// Workflow information
-	WorkflowID string    `json:"workflowId"`
-	Goal       string    `json:"goal"`
+	WorkflowID string `json:"workflowId"`
+	Goal       string `json:"goal"`
+	// GoalDigest is sha256 of the original goal before secret redaction.
+	// Secrets must never become ordinary evidence (PRODUCT_INTENT §8/§29).
+	GoalDigest string    `json:"goalDigest,omitempty"`
 	StartTime  time.Time `json:"startTime"`
 	EndTime    time.Time `json:"endTime"`
 	Duration   string    `json:"duration"`
