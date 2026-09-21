@@ -40,9 +40,9 @@ Primary command:
 
 Supporting surfaces:
   specular init     Brownfield repository setup
-  specular explain  Explain decisions (expanding)
+  specular explain  Why was this ALLOW / DENY?
+  specular evidence Show Change Evidence Graph records
   specular session  Strong provenance / governed agent sessions
-  specular evidence Show evidence records (expanding)
 
 Product intent: docs/PRODUCT_INTENT.md
 `,
@@ -90,6 +90,8 @@ func isFastCommand() bool {
 		"completion": true,
 		"help":       true,
 		"gate":       true, // thin change-control evaluation
+		"explain":    true, // gate decision explainability
+		"evidence":   true, // evidence record inspect
 		"__complete": true, // Cobra completion helper
 	}
 

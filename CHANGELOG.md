@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ALLOW/DENY change-control primitive (change + provenance + soft-skip
   drift/policy on brownfield; `--strict-spec` to require specs)
 
+- **Change Evidence Graph (v1) + `specular explain`**: gate persists
+  `specular.evidence/v1` records under `.specular/evidence/`;
+  `specular explain` / `specular evidence show|list` answer why ALLOW/DENY
+
 - **Brownfield `specular init`**: Detected / Existing controls / Recommended
   baseline board (PRODUCT_INTENT §24), gate-first next steps, and
   `.github/workflows/examples/specular-gate.yml` PR-check example
