@@ -1,5 +1,8 @@
-# CircleCI Configuration for Specular AI Governance
-# This workflow validates specs, generates plans, and detects drift
+# CircleCI Configuration for Specular AI Change Control
+# Change-control entrypoint: specular gate (PRODUCT_INTENT gate-first)
+# Exit codes: 0=ALLOW, 3=policy DENY, 4=drift DENY
+# Prefer this over calling specular eval drift directly in CI.
+# Suitable as a generic third-party CI pattern (also see generic-ci.sh).
 
 version: 2.1
 
@@ -114,7 +117,7 @@ jobs:
           path: plan.json
           destination: plan.json
 
-  detect_drift:
+  change_control_gate:
     docker:
       - image: cimg/base:stable
     resource_class: medium
@@ -125,47 +128,40 @@ jobs:
           at: .
       - install_specular
       - run:
-          name: Install jq
-          command: sudo apt-get update && sudo apt-get install -y jq
-      - run:
-          name: Run drift detection
+          name: Run specular gate
           command: |
             set +e
-            specular eval drift --spec "$SPEC_FILE" --plan "$PLAN_FILE" --lock "$LOCK_FILE" --policy "$POLICY_FILE" --report .specular/drift.sarif
+            # Non-interactive; markdown for review UX. Add --strict-spec when specs are required.
+            # --github-annotations is GitHub-only — omit here.
+            specular gate --format markdown --policy "$POLICY_FILE" --report .specular/drift.sarif > gate.md
             EXIT_CODE=$?
             set -e
 
-            # Parse SARIF report
-            if [ -f ".specular/drift.sarif" ]; then
-              DRIFT_COUNT=$(jq '.runs[0].results | length' .specular/drift.sarif)
+            cat gate.md
 
-              if [ "$DRIFT_COUNT" -gt 0 ]; then
-                echo "⚠️ Drift detected: $DRIFT_COUNT issue(s) found"
+            case "$EXIT_CODE" in
+              0) echo "✅ Gate ALLOW" ;;
+              3) echo "❌ Gate DENY (policy)" ;;
+              4) echo "❌ Gate DENY (drift)" ;;
+              *) echo "❌ Gate failed (exit $EXIT_CODE)" ;;
+            esac
 
-                # Create drift summary
-                echo "## 🔍 Specular Drift Detection Results" > drift-summary.md
-                echo "" >> drift-summary.md
-                echo "Found $DRIFT_COUNT drift issue(s):" >> drift-summary.md
-                echo "" >> drift-summary.md
-
-                jq -r '.runs[0].results[] | "- **\(.ruleId)**: \(.message.text)\n  - File: `\(.locations[0].physicalLocation.artifactLocation.uri)`\n  - Line: \(.locations[0].physicalLocation.region.startLine)"' .specular/drift.sarif >> drift-summary.md
-
-                cat drift-summary.md
-
-                # Fail if drift detected
-                exit $EXIT_CODE
-              else
-                echo "✅ No drift detected! Code matches specification."
-              fi
-            fi
+            exit $EXIT_CODE
+      - persist_to_workspace:
+          root: .
+          paths:
+            - gate.md
+            - .specular/drift.sarif
+            - .specular/evidence/
+      - store_artifacts:
+          path: gate.md
+          destination: gate.md
       - store_artifacts:
           path: .specular/drift.sarif
           destination: drift.sarif
       - store_artifacts:
-          path: drift-summary.md
-          destination: drift-summary.md
-      - store_test_results:
-          path: .specular/drift.sarif
+          path: .specular/evidence/
+          destination: evidence/
 
   execute_build:
     docker:
@@ -225,6 +221,8 @@ jobs:
             EOF
 
               cat compliance-report.json
+            else
+              echo "No drift SARIF from gate; skipping SARIF rollup."
             fi
       - store_artifacts:
           path: compliance-report.json
@@ -256,8 +254,8 @@ workflows:
             branches:
               only: /.*/
 
-      # Drift detection (all branches)
-      - detect_drift:
+      # Change-control gate (all branches)
+      - change_control_gate:
           requires:
             - validate_spec
           filters:
@@ -277,7 +275,7 @@ workflows:
       # Reporting stage
       - compliance_report:
           requires:
-            - detect_drift
+            - change_control_gate
           filters:
             branches:
               only: /.*/
@@ -296,9 +294,9 @@ workflows:
       - generate_plan:
           requires:
             - validate_spec
-      - detect_drift:
+      - change_control_gate:
           requires:
             - validate_spec
       - compliance_report:
           requires:
-            - detect_drift
+            - change_control_gate
