@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/felixgeelhaar/specular/internal/evidence"
 	"github.com/felixgeelhaar/specular/internal/gate"
 )
 
@@ -17,7 +18,9 @@ var gateCmd = &cobra.Command{
 
 Discovers the working-tree change, summarizes provenance, evaluates drift
 when Specular specs exist, and runs policy verification when a policy file
-is present. Prints an explainable ALLOW / DENY verdict.
+is present. Prints an explainable ALLOW / DENY verdict and persists a
+Change Evidence Graph record under .specular/evidence/ (unless
+--no-evidence). Inspect with specular explain / specular evidence show.
 
 Brownfield: repositories without .specular/spec skip drift (unless
 --strict-spec). Missing policy skips verification. Unattested provenance
@@ -36,6 +39,7 @@ Examples:
   specular gate --json
   specular gate --strict-spec
   specular gate --policy .specular/policy.yaml
+  specular gate --no-evidence
 `,
 	Args: cobra.NoArgs,
 	RunE: runGate,
@@ -48,6 +52,7 @@ func runGate(cmd *cobra.Command, _ []string) error {
 	strictSpec, _ := cmd.Flags().GetBool("strict-spec")
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	quiet, _ := cmd.Flags().GetBool("quiet")
+	noEvidence, _ := cmd.Flags().GetBool("no-evidence")
 
 	if projectRoot == "" {
 		cwd, err := os.Getwd()
@@ -65,6 +70,16 @@ func runGate(cmd *cobra.Command, _ []string) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	if !noEvidence {
+		if rec, recErr := evidence.NewFromGate(projectRoot, res); recErr == nil {
+			if writeErr := evidence.Write(projectRoot, rec); writeErr != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not persist evidence: %v\n", writeErr)
+			} else if !quiet && !jsonOut {
+				fmt.Fprintf(os.Stderr, "Evidence: %s (.specular/evidence/)\n", rec.ID)
+			}
+		}
 	}
 
 	if jsonOut {
@@ -94,5 +109,6 @@ func init() {
 	gateCmd.Flags().Bool("strict-spec", false, "Fail when Specular spec/plan/lock are missing")
 	gateCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 	gateCmd.Flags().BoolP("quiet", "q", false, "Suppress human board (exit code still set)")
+	gateCmd.Flags().Bool("no-evidence", false, "Skip writing .specular/evidence/ record")
 	rootCmd.AddCommand(gateCmd)
 }
