@@ -126,8 +126,8 @@ func TestBuildDockerArgs(t *testing.T) {
 			got := buildDockerArgs(tt.step)
 
 			// Verify required args are present
-			if !containsAllStrings(got, []string{"run", "--rm", "--read-only", "--pids-limit", "--cap-drop", "--security-opt", "no-new-privileges", "--tmpfs"}) {
-				t.Errorf("buildDockerArgs() missing required security args")
+			if !containsAllStrings(got, []string{"run", "--rm", "--read-only", "--pids-limit", "--cap-drop", "--security-opt", "no-new-privileges", "seccomp=default", "--tmpfs", "--user"}) {
+				t.Errorf("buildDockerArgs() missing required security args: %v", got)
 			}
 
 			// Verify image is present
@@ -149,6 +149,15 @@ func TestBuildDockerArgs(t *testing.T) {
 			}
 			if !containsStrings(got, []string{"--network", wantNetwork}) {
 				t.Errorf("buildDockerArgs() missing network config %q", wantNetwork)
+			}
+
+			// User is always set; empty step defaults to nobody.
+			wantUser := tt.step.User
+			if wantUser == "" {
+				wantUser = DefaultContainerUser
+			}
+			if !containsStrings(got, []string{"--user", wantUser}) {
+				t.Errorf("buildDockerArgs() missing user %q", wantUser)
 			}
 
 			// Verify resource limits if specified
@@ -194,6 +203,15 @@ func TestEffectiveNetwork(t *testing.T) {
 	}
 	if got := effectiveNetwork(Step{Network: "bridge"}); got != "bridge" {
 		t.Errorf("effectiveNetwork(bridge) = %q, want bridge", got)
+	}
+}
+
+func TestEffectiveUser(t *testing.T) {
+	if got := effectiveUser(Step{}); got != DefaultContainerUser {
+		t.Errorf("effectiveUser(empty) = %q, want %q", got, DefaultContainerUser)
+	}
+	if got := effectiveUser(Step{User: "1000:1000"}); got != "1000:1000" {
+		t.Errorf("effectiveUser(1000:1000) = %q, want 1000:1000", got)
 	}
 }
 
@@ -257,6 +275,20 @@ func TestValidateDockerStep(t *testing.T) {
 			name:    "invalid network",
 			step:    Step{Image: "alpine:latest", Cmd: []string{"echo"}, Network: "none;host"},
 			wantErr: true,
+		},
+		{
+			name:    "invalid user",
+			step:    Step{Image: "alpine:latest", Cmd: []string{"echo"}, User: "root;id"},
+			wantErr: true,
+		},
+		{
+			name: "valid numeric user",
+			step: Step{
+				Image: "alpine:latest",
+				Cmd:   []string{"echo"},
+				User:  "65534:65534",
+			},
+			wantErr: false,
 		},
 	}
 

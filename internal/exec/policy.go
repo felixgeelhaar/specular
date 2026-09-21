@@ -56,6 +56,15 @@ func enforceDockerPolicy(step Step, pol *policy.Policy) error {
 		}
 	}
 
+	// Validate container user (empty step user is treated as DefaultContainerUser).
+	if dockerPolicy.User != "" {
+		user := effectiveUser(step)
+		if user != dockerPolicy.User {
+			return fmt.Errorf("policy violation: container user '%s' not allowed (required: '%s')",
+				user, dockerPolicy.User)
+		}
+	}
+
 	return nil
 }
 

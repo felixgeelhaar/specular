@@ -23,6 +23,7 @@ type DockerPolicy struct {
 	CPULimit       string   `yaml:"cpu_limit"`
 	MemLimit       string   `yaml:"mem_limit"`
 	Network        string   `yaml:"network"` // none, allowlist profile, etc.
+	User           string   `yaml:"user"`    // non-root container user; empty defaults to nobody
 }
 
 // ToolConfig defines configuration for a tool (linter, formatter, etc.)

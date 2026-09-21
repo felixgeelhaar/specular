@@ -11,6 +11,7 @@ type Step struct {
 	Workdir string   // Working directory path
 	Env     map[string]string
 	Network string // Network mode
+	User    string // Container user (name or uid[:gid]); empty defaults to nobody
 	CPU     string // CPU limit
 	Mem     string // Memory limit
 }
