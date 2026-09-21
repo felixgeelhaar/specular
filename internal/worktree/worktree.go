@@ -602,6 +602,63 @@ func runMergeOp(ctx context.Context, dir, source string, opts MergeOptions) erro
 	return runGit(ctx, dir, args...)
 }
 
+// CherryPickOptions configures Manager.CherryPick into a worktree.
+type CherryPickOptions struct {
+	// WorkDir is the target worktree directory.
+	WorkDir string
+	// Commit is the SHA (or ref) to cherry-pick.
+	Commit string
+	// NoCommit applies the change without creating a commit.
+	NoCommit bool
+}
+
+// CherryPickResult is the outcome of cherry-picking into a worktree.
+type CherryPickResult struct {
+	Commit    string   `json:"commit"`
+	BeforeSHA string   `json:"beforeSha"`
+	AfterSHA  string   `json:"afterSha"`
+	Conflicts []string `json:"conflicts,omitempty"`
+	NoCommit  bool     `json:"noCommit,omitempty"`
+}
+
+// CherryPick applies Commit into WorkDir. On conflict, aborts and returns Conflicts.
+func (m *Manager) CherryPick(ctx context.Context, opts CherryPickOptions) (*CherryPickResult, error) {
+	dir := opts.WorkDir
+	if dir == "" {
+		dir = m.repoRoot
+	}
+	commit := strings.TrimSpace(opts.Commit)
+	if commit == "" {
+		return nil, fmt.Errorf("worktree: cherry-pick commit is required")
+	}
+	sha, err := revParse(ctx, dir, "--verify", commit)
+	if err != nil {
+		return nil, fmt.Errorf("worktree: unknown commit %q: %w", commit, err)
+	}
+	before, beforeErr := m.HeadSHA(ctx, dir)
+	if beforeErr != nil {
+		return nil, beforeErr
+	}
+	res := &CherryPickResult{Commit: sha, BeforeSHA: before, NoCommit: opts.NoCommit}
+	args := []string{"cherry-pick"}
+	if opts.NoCommit {
+		args = append(args, "--no-commit")
+	}
+	args = append(args, sha)
+	if pickErr := runGit(ctx, dir, args...); pickErr != nil {
+		res.Conflicts = conflictedPaths(ctx, dir)
+		_ = runGit(ctx, dir, "cherry-pick", "--abort")
+		res.AfterSHA, _ = m.HeadSHA(ctx, dir)
+		return res, fmt.Errorf("worktree: cherry-pick %s failed: %w", sha, pickErr)
+	}
+	after, afterErr := m.HeadSHA(ctx, dir)
+	if afterErr != nil {
+		return res, afterErr
+	}
+	res.AfterSHA = after
+	return res, nil
+}
+
 // SyncOptions configures Manager.Sync in a worktree.
 type SyncOptions struct {
 	// WorkDir is the git working directory (session worktree).
