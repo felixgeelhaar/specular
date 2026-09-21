@@ -27,9 +27,15 @@ func TestEvaluateBrownfieldAllow(t *testing.T) {
 	if res.Provenance.Attested {
 		t.Fatal("expected unattested")
 	}
+	if !containsFactor(res.Risk.Factors, FactorUnattested) {
+		t.Fatalf("expected unattested risk factor, got %v", res.Risk.Factors)
+	}
 	text := FormatText(res)
 	if !strings.Contains(text, "VERDICT: ALLOW") {
 		t.Fatalf("board missing ALLOW:\n%s", text)
+	}
+	if !strings.Contains(text, "Risk") {
+		t.Fatalf("board missing Risk:\n%s", text)
 	}
 }
 
