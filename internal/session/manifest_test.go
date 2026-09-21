@@ -146,15 +146,12 @@ func TestStartManyDependencyChain(t *testing.T) {
 	if len(started) != 2 {
 		t.Fatalf("started=%d", len(started))
 	}
-	impl, _ := mgr.Get("impl")
+	impl := requireSessionStatus(t, mgr, "impl", StatusCompleted, 5*time.Second)
 	if impl.Status != StatusCompleted {
 		t.Fatalf("impl status=%s", impl.Status)
 	}
 	_, _ = mgr.Wait(context.Background(), []string{"review"}, WaitOptions{Timeout: 5 * time.Second})
-	review, _ := mgr.Get("review")
-	if review.Status != StatusCompleted {
-		t.Fatalf("review status=%s", review.Status)
-	}
+	requireSessionStatus(t, mgr, "review", StatusCompleted, 5*time.Second)
 }
 
 func TestStartManyMultiParentJoin(t *testing.T) {
@@ -179,9 +176,32 @@ func TestStartManyMultiParentJoin(t *testing.T) {
 		t.Fatalf("started=%d", len(started))
 	}
 	_, _ = mgr.Wait(context.Background(), []string{"join"}, WaitOptions{Timeout: 5 * time.Second})
-	join, _ := mgr.Get("join")
-	if join.Status != StatusCompleted {
-		t.Fatalf("join=%s", join.Status)
+	requireSessionStatus(t, mgr, "join", StatusCompleted, 5*time.Second)
+}
+
+func requireSessionStatus(t *testing.T, mgr *Manager, id, want string, timeout time.Duration) *Record {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+	var rec *Record
+	for {
+		rec, lastErr = mgr.Get(id)
+		if lastErr == nil && rec != nil {
+			_ = mgr.Refresh(rec)
+			if rec.Status == want {
+				return rec
+			}
+		}
+		if time.Now().After(deadline) {
+			if lastErr != nil {
+				t.Fatalf("session %s: %v", id, lastErr)
+			}
+			if rec == nil {
+				t.Fatalf("session %s: nil record", id)
+			}
+			t.Fatalf("session %s status=%s want %s", id, rec.Status, want)
+		}
+		time.Sleep(25 * time.Millisecond)
 	}
 }
 
