@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session sync --fetch**: `session sync --fetch [--remote]` refreshes
+  remotes first and defaults onto `origin/<base>` so fleets rebase onto
+  the remote tip instead of a stale local main
+
 - **Fleet abort**: `session stop [ids...] [--all]` and `wait --timeout … --stop`
   kill still-running sessions on timeout (Xirp grid kill-all analogue);
   `restart --no-governed` keeps opt-out across restarts when policy.yaml exists

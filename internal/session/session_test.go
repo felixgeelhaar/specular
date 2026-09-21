@@ -878,6 +878,76 @@ func TestSessionSync(t *testing.T) {
 	}
 }
 
+func TestSessionSyncFetch(t *testing.T) {
+	repo := initTempRepo(t)
+	bare := t.TempDir()
+	run(t, bare, "git", "init", "--bare")
+	run(t, repo, "git", "remote", "add", "origin", bare)
+	run(t, repo, "git", "push", "-u", "origin", "HEAD")
+
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	rec, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "fetch sync", Name: "sync-fetch", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rec.WorktreePath, "sess.txt"), []byte("s\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), rec.ID, CommitOptions{All: true, Message: "session"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Advance only on the remote (local main stays stale).
+	parent := t.TempDir()
+	clone := filepath.Join(parent, "c")
+	run(t, parent, "git", "clone", bare, "c")
+	run(t, clone, "git", "config", "user.email", "test@example.com")
+	run(t, clone, "git", "config", "user.name", "Test")
+	if err := os.WriteFile(filepath.Join(clone, "remote-only.txt"), []byte("from remote\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run(t, clone, "git", "add", "remote-only.txt")
+	run(t, clone, "git", "commit", "-m", "remote advance")
+	run(t, clone, "git", "push", "origin", "HEAD")
+
+	// Without --fetch, sync onto local base misses the remote commit.
+	if _, err := os.Stat(filepath.Join(repo, "remote-only.txt")); err == nil {
+		t.Fatal("remote-only should not exist locally yet")
+	}
+	plain, err := mgr.Sync(context.Background(), rec.ID, SyncOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(rec.WorktreePath, "remote-only.txt")); err == nil {
+		t.Fatal("plain sync should not pick up remote-only tip")
+	}
+	_ = plain
+
+	res, err := mgr.Sync(context.Background(), rec.ID, SyncOptions{Fetch: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Fetched || res.Remote != "origin" {
+		t.Fatalf("%+v", res)
+	}
+	if !strings.Contains(res.Onto, "origin/") {
+		t.Fatalf("expected remote onto, got %q", res.Onto)
+	}
+	if _, err := os.Stat(filepath.Join(rec.WorktreePath, "remote-only.txt")); err != nil {
+		t.Fatalf("remote-only missing after --fetch sync: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(rec.WorktreePath, "sess.txt")); err != nil {
+		t.Fatalf("sess.txt missing after --fetch sync: %v", err)
+	}
+}
+
 func TestSessionSyncConflict(t *testing.T) {
 	repo := initTempRepo(t)
 	mgr, err := NewManager(repo)

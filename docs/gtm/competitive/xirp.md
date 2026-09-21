@@ -54,7 +54,7 @@ everywhere compliance matters — Specular is the stronger product.
 - Manifest `dependsOn` for sequential pipelines (implement → review) without a second CI job
 - `session exec` worktree command runner (CI substitute for Xirp's per-session PTY)
 - `session commit` lands worktree changes with provenance-aware messages
-- `session sync` rebases/merges worktrees onto base when main moves
+- `session sync [--fetch]` rebases/merges worktrees onto base (fetch remote tip)
 - `session push [--pr]` lands the branch (and optional GitHub PR)
 - `session merge [--into]` lands the branch into the primary checkout (no gh)
 - `session stop [ids…] [--all]` / `wait --timeout --stop` fleet abort
@@ -120,7 +120,7 @@ specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml demo 
 specular session exec demo -- go test ./...
 specular session diff demo --stat
 specular session commit demo --all
-specular session sync demo
+specular session sync demo --fetch
 specular session push demo --pr
 specular session merge demo
 specular auto verify .specular/sessions/demo.attestation.json

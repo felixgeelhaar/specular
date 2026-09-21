@@ -723,7 +723,8 @@ func defaultCommitMessage(rec *Record) string {
 
 // SyncOptions configures Manager.Sync.
 type SyncOptions struct {
-	// Onto is the ref to rebase/merge onto. Empty uses the repo default base.
+	// Onto is the ref to rebase/merge onto. Empty uses the repo default base
+	// (or remote/<base> when Fetch is set).
 	Onto string
 	// Merge uses merge instead of rebase.
 	Merge bool
@@ -731,6 +732,10 @@ type SyncOptions struct {
 	Autostash bool
 	// Force allows syncing while the session process is still running.
 	Force bool
+	// Fetch runs git fetch before resolving Onto.
+	Fetch bool
+	// Remote is the fetch remote (default origin).
+	Remote string
 }
 
 // SyncResult is the outcome of syncing a session worktree onto a base ref.
@@ -744,6 +749,8 @@ type SyncResult struct {
 	AfterSHA     string   `json:"afterSha"`
 	Conflicts    []string `json:"conflicts,omitempty"`
 	Stashed      bool     `json:"stashed,omitempty"`
+	Fetched      bool     `json:"fetched,omitempty"`
+	Remote       string   `json:"remote,omitempty"`
 }
 
 // Sync rebases (default) or merges the session worktree onto a base ref.
@@ -763,6 +770,8 @@ func (m *Manager) Sync(ctx context.Context, id string, opts SyncOptions) (*SyncR
 		Onto:      opts.Onto,
 		Merge:     opts.Merge,
 		Autostash: opts.Autostash,
+		Fetch:     opts.Fetch,
+		Remote:    opts.Remote,
 	})
 	res := &SyncResult{SessionID: rec.ID, WorktreePath: rec.WorktreePath, Branch: rec.WorktreeBranch}
 	if wtRes != nil {
@@ -772,6 +781,8 @@ func (m *Manager) Sync(ctx context.Context, id string, opts SyncOptions) (*SyncR
 		res.AfterSHA = wtRes.AfterSHA
 		res.Conflicts = wtRes.Conflicts
 		res.Stashed = wtRes.Stashed
+		res.Fetched = wtRes.Fetched
+		res.Remote = wtRes.Remote
 	}
 	if wtErr != nil {
 		return res, wtErr
