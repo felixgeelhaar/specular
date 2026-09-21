@@ -352,29 +352,38 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
 		return
 	}
 	fmt.Fprintf(b, "Records      %d\n", sec.Count)
-	if len(sec.Exceptions) > 0 {
-		for _, ex := range sec.Exceptions {
-			fmt.Fprintf(b, "⚠ %-12s %s", "exception", ex.ResourceID)
-			if ex.Reason != "" {
-				fmt.Fprintf(b, " — %s", ex.Reason)
-			}
-			b.WriteString("\n")
-			if ex.Scope != "" {
-				fmt.Fprintf(b, "  scope=%s\n", ex.Scope)
-			}
-			if ex.Policy != "" {
-				fmt.Fprintf(b, "  policy=%s\n", ex.Policy)
-			}
-			if ex.ApprovedBy != "" {
-				fmt.Fprintf(b, "  by %s\n", ex.ApprovedBy)
-			}
-			if ex.ExpiresAt != "" {
-				fmt.Fprintf(b, "  expires %s\n", ex.ExpiresAt)
-			}
+	writeApprovalExceptions(b, sec.Exceptions)
+	writeApprovalRecent(b, sec.Recent)
+	if g.Verdict == gate.Deny && len(sec.Exceptions) == 0 {
+		b.WriteString("Hint         record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\"\n")
+	}
+}
+
+func writeApprovalExceptions(b *strings.Builder, exceptions []gate.ApprovalSummary) {
+	for _, ex := range exceptions {
+		fmt.Fprintf(b, "⚠ %-12s %s", "exception", ex.ResourceID)
+		if ex.Reason != "" {
+			fmt.Fprintf(b, " — %s", ex.Reason)
+		}
+		b.WriteString("\n")
+		if ex.Scope != "" {
+			fmt.Fprintf(b, "  scope=%s\n", ex.Scope)
+		}
+		if ex.Policy != "" {
+			fmt.Fprintf(b, "  policy=%s\n", ex.Policy)
+		}
+		if ex.ApprovedBy != "" {
+			fmt.Fprintf(b, "  by %s\n", ex.ApprovedBy)
+		}
+		if ex.ExpiresAt != "" {
+			fmt.Fprintf(b, "  expires %s\n", ex.ExpiresAt)
 		}
 	}
+}
+
+func writeApprovalRecent(b *strings.Builder, recent []gate.ApprovalSummary) {
 	shown := 0
-	for _, r := range sec.Recent {
+	for _, r := range recent {
 		if r.Type == "exception" && !r.Expired {
 			continue // already listed above
 		}
@@ -391,9 +400,6 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
 		if shown >= 5 {
 			break
 		}
-	}
-	if g.Verdict == gate.Deny && len(sec.Exceptions) == 0 {
-		b.WriteString("Hint         record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\"\n")
 	}
 }
 

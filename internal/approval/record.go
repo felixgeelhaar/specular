@@ -127,8 +127,8 @@ func Write(root string, rec *Record) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("approval: marshal: %w", err)
 	}
-	if err := os.WriteFile(path, data, 0o600); err != nil {
-		return "", fmt.Errorf("approval: write: %w", err)
+	if writeErr := os.WriteFile(path, data, 0o600); writeErr != nil {
+		return "", fmt.Errorf("approval: write: %w", writeErr)
 	}
 	rec.Path = filepath.ToSlash(filepath.Join(".specular", DirName, filename))
 	return path, nil

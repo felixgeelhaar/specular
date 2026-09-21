@@ -105,42 +105,53 @@ func writeApprovalsSection(b *strings.Builder, sec ApprovalsSection, verdict Ver
 		return
 	}
 	fmt.Fprintf(b, "  Records        %d\n", sec.Count)
-	if len(sec.Exceptions) > 0 {
-		b.WriteString("  OpenExceptions\n")
-		for _, ex := range sec.Exceptions {
-			fmt.Fprintf(b, "    ⚠ %s", ex.ResourceID)
-			if ex.Reason != "" {
-				fmt.Fprintf(b, " — %s", ex.Reason)
-			}
-			b.WriteString("\n")
-			writeApprovalDetail(b, ex, "      ")
-		}
-	}
-	if len(sec.Recent) > 0 {
-		b.WriteString("  Recent\n")
-		for _, r := range sec.Recent {
-			mark := "•"
-			if r.Type == approval.TypeException {
-				if r.Expired {
-					mark = "·"
-				} else {
-					mark = "⚠"
-				}
-			} else {
-				mark = "✓"
-			}
-			fmt.Fprintf(b, "    %s %s (%s)", mark, r.ResourceID, r.Type)
-			if r.ApprovedBy != "" {
-				fmt.Fprintf(b, " by %s", r.ApprovedBy)
-			}
-			b.WriteString("\n")
-		}
-	}
+	writeOpenExceptions(b, sec.Exceptions)
+	writeRecentApprovals(b, sec.Recent)
 	if verdict == Deny && len(sec.Exceptions) == 0 {
 		b.WriteString("  Hint           record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\"\n")
 	}
 	if sec.Note != "" {
 		fmt.Fprintf(b, "  Note           %s\n", sec.Note)
+	}
+}
+
+func writeOpenExceptions(b *strings.Builder, exceptions []ApprovalSummary) {
+	if len(exceptions) == 0 {
+		return
+	}
+	b.WriteString("  OpenExceptions\n")
+	for _, ex := range exceptions {
+		fmt.Fprintf(b, "    ⚠ %s", ex.ResourceID)
+		if ex.Reason != "" {
+			fmt.Fprintf(b, " — %s", ex.Reason)
+		}
+		b.WriteString("\n")
+		writeApprovalDetail(b, ex, "      ")
+	}
+}
+
+func writeRecentApprovals(b *strings.Builder, recent []ApprovalSummary) {
+	if len(recent) == 0 {
+		return
+	}
+	b.WriteString("  Recent\n")
+	for _, r := range recent {
+		fmt.Fprintf(b, "    %s %s (%s)", approvalMark(r), r.ResourceID, r.Type)
+		if r.ApprovedBy != "" {
+			fmt.Fprintf(b, " by %s", r.ApprovedBy)
+		}
+		b.WriteString("\n")
+	}
+}
+
+func approvalMark(r ApprovalSummary) string {
+	switch {
+	case r.Type == approval.TypeException && r.Expired:
+		return "·"
+	case r.Type == approval.TypeException:
+		return "⚠"
+	default:
+		return "✓"
 	}
 }
 
