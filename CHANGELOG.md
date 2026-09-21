@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **PCI DSS 6.4.5 policy library seed**: open control→evidence mapping for
+  significant-change approval (`specular policy library install pci-dss-6.4.5`)
+  — closes the payments/fintech gap already cited in GTM security personas
+
 ### Changed
 
 - **`session status --json`**: emits `{summary, sessions}` board (counts +

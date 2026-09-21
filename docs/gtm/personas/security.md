@@ -68,7 +68,7 @@ The artifacts above map cleanly onto the controls auditors actually ask for.
 | ISO/IEC 42001        | AI management system: change control           | Bundle chain of custody + routing decisions     |
 | EU AI Act (Art. 17)  | Quality management for high-risk systems       | Replayable plans + signed approvals             |
 | NIST AI RMF (Govern 4) | AI risk monitoring                           | Routing + intervention metrics                  |
-| PCI DSS (6.4.5)      | Approval of significant changes                | `specular approve` records under SCM            |
+| PCI DSS (6.4.5)      | Approval of significant changes                | Session attestations + approval records under SCM |
 
 We do not claim Specular makes you compliant on its own. We claim it produces
 the **evidence** the framework asks for, in a form you can copy into the
