@@ -156,34 +156,6 @@
       "created_at": "2026-07-11T11:18:49.231827Z"
     },
     {
-      "fingerprint": "eb4f0ce9c6059e0ea4fcac169f9a8539f81e25f186f9de0af7df5820de513d6e",
-      "rule_id": "AI-022",
-      "file_path": "internal/profiles/profile_test.go",
-      "severity": "medium",
-      "created_at": "2026-07-11T11:18:49.231827Z"
-    },
-    {
-      "fingerprint": "534c2c9c9606a360252a44175bca5efbae3f9299b435922db157d6476892456f",
-      "rule_id": "AI-022",
-      "file_path": "providers/gemini-cli/main_test.go",
-      "severity": "high",
-      "created_at": "2026-07-11T11:18:49.231827Z"
-    },
-    {
-      "fingerprint": "008b6ea16e8bd070a171beee0a85fdd95b6aac16e7310bb3bb88389f52408533",
-      "rule_id": "AI-022",
-      "file_path": "providers/gemini/main_test.go",
-      "severity": "high",
-      "created_at": "2026-07-11T11:18:49.231827Z"
-    },
-    {
-      "fingerprint": "39625d906397e9196ec56fa6e63fc97ebea608260ec15773da3c057d661efd2a",
-      "rule_id": "AI-022",
-      "file_path": "providers/ollama/main_test.go",
-      "severity": "high",
-      "created_at": "2026-07-11T11:18:49.231827Z"
-    },
-    {
       "fingerprint": "ab0ecb3ada37a6be4b8c99a0cd43f9fd5e55aed64552bacd784fbcc045febf35",
       "rule_id": "AI-036",
       "file_path": ".specular/router.example.yaml",
@@ -215,20 +187,6 @@
       "fingerprint": "56e59c5b4461813ff376f9f56ab5d83fcc2304f930c45a7b9c71ef87ef4a7a9e",
       "rule_id": "AI-036",
       "file_path": "providers/codex/main.go",
-      "severity": "medium",
-      "created_at": "2026-07-11T11:18:49.231827Z"
-    },
-    {
-      "fingerprint": "f45ffe690511fe04fa9d4aa64b47dbed91b7bffcc4ac6db8b6d949653abf0493",
-      "rule_id": "AI-041",
-      "file_path": "providers/gemini-cli/main_test.go",
-      "severity": "low",
-      "created_at": "2026-07-11T11:18:49.231827Z"
-    },
-    {
-      "fingerprint": "4d10078546b1a3b86ba0533a4f35333914aba80194438836f204028788c15f73",
-      "rule_id": "AI-041",
-      "file_path": "providers/gemini/main_test.go",
       "severity": "medium",
       "created_at": "2026-07-11T11:18:49.231827Z"
     },
@@ -993,20 +951,6 @@
       "rule_id": "IAC-195",
       "file_path": "examples/ci-cd/circleci-config.yml",
       "severity": "info",
-      "created_at": "2026-07-11T11:18:49.231827Z"
-    },
-    {
-      "fingerprint": "6d03fb7458fe0c1cfc4b480b60b51a4e8e45f9e6e6bb85bae2a377edd1c8391c",
-      "rule_id": "IAC-225",
-      "file_path": "examples/projects/mobile-backend/spec.yaml",
-      "severity": "high",
-      "created_at": "2026-07-11T11:18:49.231827Z"
-    },
-    {
-      "fingerprint": "4fcceec04dae533b2746f46ee46ccff0ef718f2aa0642858758f0691afdb5f58",
-      "rule_id": "IAC-225",
-      "file_path": "examples/projects/web-app-store/spec.yaml",
-      "severity": "critical",
       "created_at": "2026-07-11T11:18:49.231827Z"
     },
     {
@@ -2275,6 +2219,69 @@
       "file_path": "go.mod",
       "severity": "info",
       "created_at": "2026-08-03T20:12:38.228633Z"
+    },
+    {
+      "fingerprint": "1b13882e1c4b5c420848ca03dc7f84227b5919f42f262bda8e73ea8c3dce1102",
+      "rule_id": "IAC-225",
+      "file_path": "examples/projects/mobile-backend/spec.yaml",
+      "severity": "high",
+      "created_at": "2026-09-20T16:25:41.737337Z"
+    },
+    {
+      "fingerprint": "1b13882e1c4b5c420848ca03dc7f84227b5919f42f262bda8e73ea8c3dce1102",
+      "rule_id": "IAC-225",
+      "file_path": "examples/projects/mobile-backend/spec.yaml",
+      "severity": "high",
+      "created_at": "2026-09-20T16:25:41.737337Z"
+    },
+    {
+      "fingerprint": "c612571e2af3c7d7535d8b04d5d0d3777611f82d1dd33443477b82fc168aaee2",
+      "rule_id": "IAC-225",
+      "file_path": "examples/projects/web-app-store/spec.yaml",
+      "severity": "high",
+      "created_at": "2026-09-20T16:25:41.737337Z"
+    },
+    {
+      "fingerprint": "c612571e2af3c7d7535d8b04d5d0d3777611f82d1dd33443477b82fc168aaee2",
+      "rule_id": "IAC-225",
+      "file_path": "examples/projects/web-app-store/spec.yaml",
+      "severity": "high",
+      "created_at": "2026-09-20T16:25:41.737337Z"
+    },
+    {
+      "fingerprint": "2d1636ed72f104be2696c36d4273803bcb4404db55bedd22990c9baf7046e1e9",
+      "rule_id": "SEC-001",
+      "file_path": "internal/security/secrets_test.go",
+      "severity": "high",
+      "created_at": "2026-09-20T16:25:41.737337Z"
+    },
+    {
+      "fingerprint": "7a609737b8eeacb70d961399ca141a9006bd8f7ae09897349fc940e440a8a845",
+      "rule_id": "SEC-003",
+      "file_path": "internal/security/secrets_test.go",
+      "severity": "high",
+      "created_at": "2026-09-20T16:25:41.737337Z"
+    },
+    {
+      "fingerprint": "7a609737b8eeacb70d961399ca141a9006bd8f7ae09897349fc940e440a8a845",
+      "rule_id": "SEC-003",
+      "file_path": "internal/security/secrets_test.go",
+      "severity": "high",
+      "created_at": "2026-09-20T16:25:41.737337Z"
+    },
+    {
+      "fingerprint": "dc6afd1ce195ee7035b909ac995c9e6bc730a1df06980819098cd03e1fc4701b",
+      "rule_id": "SEC-508",
+      "file_path": "internal/security/secrets_test.go",
+      "severity": "high",
+      "created_at": "2026-09-20T16:25:41.737337Z"
+    },
+    {
+      "fingerprint": "8fdcef39e1a4de476aee3b46cda4aa78015358543979bb492e81c03afbf5d8e0",
+      "rule_id": "TAINT-006",
+      "file_path": "scripts/verify-release.sh",
+      "severity": "high",
+      "created_at": "2026-09-20T16:25:41.737337Z"
     }
   ]
 }

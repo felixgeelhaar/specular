@@ -26,6 +26,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/tui"
 	"github.com/felixgeelhaar/specular/internal/validate"
 	"github.com/felixgeelhaar/specular/internal/version"
+	"github.com/felixgeelhaar/specular/internal/worktree"
 )
 
 var autoCmd = &cobra.Command{
@@ -92,6 +93,7 @@ Examples:
   specular auto --scope "feature:User*" --scope "/api/auth/*" "Execute user features"
   specular auto --list-profiles
   specular auto --resume auto-1762811730
+  specular auto --worktree parallel-1 "Add health check in isolated checkout"
 `,
 	Args: func(cmd *cobra.Command, args []string) error {
 		listProfiles, _ := cmd.Flags().GetBool("list-profiles")
@@ -133,6 +135,8 @@ Examples:
 		savePatches, _ := cmd.Flags().GetBool("save-patches")
 		enableAttest, _ := cmd.Flags().GetBool("attest")
 		estimateCost, _ := cmd.Flags().GetBool("estimate-cost")
+		worktreeName, _ := cmd.Flags().GetString("worktree")
+		harnessFlag, _ := cmd.Flags().GetString("harness")
 
 		// Handle --list-profiles
 		if listProfiles {
@@ -315,6 +319,57 @@ Examples:
 				effectiveProfile.Safety.MaxCostUSD)
 		}
 
+		harness := harnessFlag
+		if harness == "" {
+			harness = "specular-auto"
+		}
+
+		var wtPath, wtBranch, wtName string
+		if worktreeName != "" {
+			cwd, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("resolve working directory: %w", err)
+			}
+			mgr, err := worktree.NewManager(cwd)
+			if err != nil {
+				return fmt.Errorf("worktree isolation requires a git repository: %w", err)
+			}
+
+			// Reuse an existing managed worktree with this name if present.
+			var info *worktree.Info
+			if list, listErr := mgr.List(cmd.Context()); listErr == nil {
+				for i := range list {
+					if list[i].Managed && (list[i].Name == worktreeName || list[i].Branch == worktree.BranchPrefix+worktreeName) {
+						info = &list[i]
+						break
+					}
+				}
+			}
+			if info == nil {
+				created, createErr := mgr.Create(cmd.Context(), worktree.Options{Name: worktreeName})
+				if createErr != nil {
+					return fmt.Errorf("create worktree %q: %w", worktreeName, createErr)
+				}
+				info = created
+				if verbose || !jsonOutput {
+					fmt.Fprintf(os.Stderr, "🌿 Created isolated worktree %s (%s)\n", info.Name, info.Branch)
+				}
+			}
+
+			if err := os.Chdir(info.Path); err != nil {
+				return fmt.Errorf("enter worktree %s: %w", info.Path, err)
+			}
+			wtPath, wtBranch, wtName = info.Path, info.Branch, info.Name
+			if verbose || !jsonOutput {
+				fmt.Fprintf(os.Stderr, "🌿 Running in worktree %s at %s\n", info.Name, info.Path)
+			}
+			span.SetAttributes(
+				attribute.String("worktree.name", info.Name),
+				attribute.String("worktree.branch", info.Branch),
+				attribute.String("worktree.path", info.Path),
+			)
+		}
+
 		// Build auto config from effective profile
 		config := auto.Config{
 			Goal:                goal,
@@ -330,6 +385,11 @@ Examples:
 			JSONOutput:          jsonOutput,
 			ScopePatterns:       scopePatterns,
 			IncludeDependencies: includeDependencies,
+			Profile:             profileName,
+			Harness:             harness,
+			WorktreeName:        wtName,
+			WorktreePath:        wtPath,
+			WorktreeBranch:      wtBranch,
 		}
 
 		// Create orchestrator
@@ -826,6 +886,10 @@ func init() {
 	// Scope filtering flags
 	autoCmd.Flags().StringSliceP("scope", "s", []string{}, "Filter execution scope (can be used multiple times)")
 	autoCmd.Flags().Bool("include-dependencies", true, "Include dependencies of scoped tasks (default: true)")
+
+	// Parallel-session isolation and harness provenance
+	autoCmd.Flags().String("worktree", "", "Run inside an isolated Git worktree (.specular/worktrees/<name>)")
+	autoCmd.Flags().String("harness", "specular-auto", "Coding-agent harness label recorded in attestation provenance")
 
 	rootCmd.AddCommand(autoCmd)
 }

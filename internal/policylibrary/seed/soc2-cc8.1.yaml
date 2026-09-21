@@ -1,0 +1,31 @@
+# Specular Policy Library — SOC 2 Trust Services Criterion CC8.1
+# Open seed: control → Specular evidence mapping (not a full SOC 2 report).
+id: soc2-cc8.1
+framework: SOC 2
+control: CC8.1
+title: Change Management
+summary: >
+  The entity authorizes, designs, develops or acquires, configures, documents,
+  tests, approves, and implements changes to infrastructure, data, software,
+  and procedures to meet its objectives.
+version: "1.0"
+
+artifacts:
+  - kind: session_attestation
+    path: .specular/sessions/*.attestation.json
+    why: Signed harness + worktree provenance for AI-authored changes
+  - kind: drift_sarif
+    path: drift.sarif
+    why: Spec/plan/code drift gate output (fail-on-drift)
+  - kind: approvals
+    path: .specular/approvals/
+    why: Human approval chain of custody for governed gates
+
+evidence_commands:
+  - specular session wait --attest --gate
+  - specular bundle create --policy .specular/policies/soc2-cc8.1.yaml --include .specular/sessions/*.attestation.json evidence.sbundle.tgz
+
+compliance:
+  soc2_enabled: true
+  control_ids:
+    - CC8.1

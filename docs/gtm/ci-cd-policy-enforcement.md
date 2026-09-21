@@ -119,10 +119,12 @@ plainly is part of the wedge.
 | Adjacent category            | Why we are not it                                  |
 |------------------------------|----------------------------------------------------|
 | AI IDE assistant             | We do not author code; we govern it.               |
+| Agentic desktop session manager (Xirp) | We run parallel sessions in the CLI (`session start`) and gate what they ship; we do not ship a macOS grid GUI. See [`competitive/xirp.md`](./competitive/xirp.md). |
 | Generic policy-as-code (OPA) | We are AI-development-aware; OPA is not.           |
 | LLM observability platform   | We instrument the dev workflow, not the model API. |
 | Code-review SaaS             | Humans still review; we add the gate.              |
 | MLOps platform               | Specular governs the dev → production path of code, not model training. |
+| Software catalog / IDP (Portal, Backstage) | Catalog context helps agents start; it is not change-control evidence. |
 
 ## What compounds (the moat thesis)
 
@@ -141,6 +143,11 @@ quality of the asset, which increases the rate of new adoption. The
 tax to fork the library is the same research cost the first
 contributor paid; the tax to switch *away* once you've adopted it is
 proportional to the number of controls you've mapped against it.
+
+**Seed shipped:** `specular policy library list|install` embeds the first
+four mappings (`soc2-cc8.1`, `iso42001-clause8`, `eu-ai-act-art17`,
+`nist-ai-rmf-govern4`). Contribution path: [`policies/library/`](../../policies/library/).
+
 
 **Secondary tailwinds (real but not load-bearing):**
 

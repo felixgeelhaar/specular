@@ -18,7 +18,7 @@
 | GitHub Actions / GitLab CI / Jenkins      | A drop-in CI step that gates AI-authored changes. |
 | OPA, Conftest, Sentinel, custom policies  | AI-development-aware policies via `policies.yaml`.|
 | Snyk / Sonar / Semgrep                    | Coexists; we govern, they scan.                   |
-| Cursor / Continue / Cline / pure Claude   | Coexists; we govern at the gate, not the editor.  |
+| Cursor / Continue / Cline / Claude Code / Xirp | Specular launches the same harnesses in worktrees; Xirp is optional Mac UI. |
 | Internal docs telling people "use approved models" | Enforcement plus a metric that proves it.   |
 
 ## The 30-minute walkthrough
@@ -56,22 +56,27 @@ After step 4 you have:
 Engineer
   │
   ▼
-[ IDE / Cursor / Claude Code ]   ← we do nothing here, by design
-  │
+[ specular session start  (worktree-isolated agents) ]  ← inner loop
+  │   or IDE / Cursor / Claude Code / Xirp if preferred
   ▼
 [ Pull Request ]
   │
   ▼
-[ CI: lint • test • SAST • specular drift+bundle+approve ]   ← the wedge
+[ CI: lint • test • SAST • specular drift+bundle+approve ]  ← outer loop
   │
   ▼
 [ CD: deploy on green + signed bundle ]
 ```
 
-The shape we keep seeing: **add Specular as a single CI job, then gradually
-push policies and approvals upstream into pre-commit hooks** as developer
-trust builds. Trying to do it in the opposite direction (start in the IDE,
-then expand) tends to stall.
+Specular owns **both loops**: parallel agent sessions in the CLI, and the
+auditable drift gate in CI. Xirp remains an optional desktop session grid;
+it is not required for Specular's inner loop. See
+[`../competitive/xirp.md`](../competitive/xirp.md).
+
+The shape we keep seeing: **start with `session start` + one CI gate job,
+then tighten policies upstream** as trust builds. Trying to govern without
+owning (or observing) the authoring sessions leaves attribution holes.
+
 
 ## Metrics you should expect to move
 

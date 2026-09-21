@@ -63,6 +63,7 @@ fragments back to the open repository. After ten orgs, the library is
 the canonical reference; after fifty, no platform team will start from
 scratch. This is a data network effect anchored in regulated content,
 not a feature; it compounds with adoption, not with engineering effort.
+Start here: `specular policy library list` ([`policies/library/`](../../policies/library/)).
 
 Adjacent moats we are explicitly *not* counting on as primary: bundle
 schema lock-in (low — schema is open), execution-engine performance
@@ -98,8 +99,8 @@ is the qualifying event:
   "MLSecOps," or "responsible AI lead"** in the last 90 days
   (LinkedIn search; the AppSec specialisation is the strongest signal).
 - **Public adoption of Cursor Enterprise, GitHub Copilot Enterprise,
-  Claude Code, or Devin** at organization scale (press releases,
-  earnings calls, conference talks).
+  Claude Code, Devin, or Spotify Xirp** at organization scale (press
+  releases, earnings calls, conference talks, beta waitlists).
 - **CISO or CTO mentioning AI change-control, AI auditability, or
   EU AI Act readiness** on a podcast, panel, or blog post.
 
@@ -139,6 +140,8 @@ build, not buy).
 - [`distribution.md`](./distribution.md) — three asymmetric distribution
   channels (auditor enablement, compliance-influencer co-marketing, and
   the public bundle gallery).
+- [`competitive/xirp.md`](./competitive/xirp.md) — competitive brief vs
+  Spotify Xirp (both-loops thesis: CLI sessions + gate vs desktop grid).
 
 ## Maintained metrics for GTM health
 

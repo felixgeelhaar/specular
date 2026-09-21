@@ -32,8 +32,12 @@ Complete reference for Specular CLI commands and flags.
 - [Drift Detection](#drift-detection)
 - [Autonomous Mode Commands](#autonomous-mode-commands)
   - [auto](#auto)
+- [Session Commands](#session-commands)
+  - [session](#session)
 - [Checkpoint Commands](#checkpoint-commands)
   - [checkpoint](#checkpoint)
+- [Worktree Commands](#worktree-commands)
+  - [worktree](#worktree)
 - [Provider Commands](#provider-commands)
   - [provider](#provider)
 - [Utility Commands](#utility-commands)
@@ -311,6 +315,36 @@ specular policy <subcommand> [flags]
 Policy commands help you define, validate, and enforce governance policies for your AI-powered development workflows.
 
 **Subcommands:**
+
+#### policy library
+
+Browse and install open framework→evidence control mappings (free; no Pro license).
+
+```bash
+specular policy library list
+specular policy library show <id>
+specular policy library install <id> [--path <file>] [--force]
+```
+
+**Description:**
+
+Ships seed mappings for SOC 2 CC8.1, ISO/IEC 42001 Clause 8, EU AI Act
+Article 17, and NIST AI RMF GOVERN 4. Each fragment lists Specular artifacts
+(session attestations, drift SARIF, approvals) and evidence commands.
+`install` writes `.specular/policies/<id>.yaml` for `bundle create --policy`.
+
+**Example:**
+```bash
+$ specular policy library list
+ID                    FRAMEWORK      CONTROL     TITLE
+soc2-cc8.1            SOC 2          CC8.1       Change Management
+iso42001-clause8      ISO/IEC 42001  Clause 8    Operation
+eu-ai-act-art17       EU AI Act      Article 17  Quality management system
+nist-ai-rmf-govern4   NIST AI RMF    GOVERN 4    Risk management and oversight
+
+$ specular policy library install soc2-cc8.1
+✓ Installed soc2-cc8.1 → .specular/policies/soc2-cc8.1.yaml
+```
 
 #### policy init
 
@@ -1953,9 +1987,12 @@ specular auto "<description>" [flags]
 |------|------|-------------|
 | `--max-steps <n>` | int | Maximum steps to execute |
 | `--scope <scope>` | string | Limit scope (module, file, function) |
-| `--interactive` | bool | Enable interactive TUI mode |
+| `--interactive` / `--tui` | bool | Enable interactive TUI mode |
 | `--resume <checkpoint>` | string | Resume from checkpoint |
 | `--output <dir>` | string | Directory to save spec/plan files |
+| `--worktree <name>` | string | Run inside an isolated Git worktree under `.specular/worktrees/<name>` |
+| `--harness <label>` | string | Coding-agent harness label recorded in attestation provenance (default: `specular-auto`) |
+| `--attest` | bool | Generate cryptographic attestation of the workflow |
 
 **Example:**
 ```bash
@@ -1963,7 +2000,160 @@ $ specular auto "Add user authentication with JWT"
 
 $ specular auto "Refactor payment processing" --scope module:payment
 
-$ specular auto "Fix bug in login" --interactive
+$ specular auto "Fix bug in login" --tui
+
+$ specular auto --worktree parallel-1 --attest "Add /healthz endpoint"
+```
+
+---
+
+## Session Commands
+
+### session
+
+Manage parallel agent sessions across Specular's **inner loop** (authoring)
+and **outer loop** (governance). Each managed session typically runs in an
+isolated Git worktree; harness and worktree identity flow into attestation
+provenance.
+
+**Usage:**
+```bash
+specular session <subcommand>
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `session start <goal>` | Start a detached harness run in an isolated worktree |
+| `session start --manifest <file>` | Start a fleet from a YAML/JSON manifest |
+| `session batch <manifest>` | Alias for fleet launch from a manifest |
+| `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
+| `session show <id>` | Show session details, worktree, harness, log path |
+| `session status [--watch]` | Live multi-session board (counts + PID/branch/goal) |
+| `session wait [id…]` | Block until sessions finish; `--attest` / `--gate` / `--bundle` close the fleet→evidence loop |
+| `session logs <id> [--follow]` | Print or follow the session log |
+| `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
+| `session restart <id>` | Re-launch in the same worktree (optional harness swap) |
+| `session rm <id…>` | Remove session records (and worktrees by default) |
+| `session prune` | Remove finished sessions (optional age filter) |
+| `session diff <id>` | Show Git changes for a session worktree |
+| `session exec <id> -- <cmd>…` | Run a command in the session worktree (exit code passthrough) |
+| `session commit <id>` | Commit worktree changes (provenance-aware message) |
+| `session sync <id>` | Rebase/merge worktree onto base (main/master/HEAD) |
+| `session attest <id>` | Write signed attestation with harness/worktree provenance |
+| `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
+| `session stop <id>` | Stop a running session process |
+| `session harnesses` | List harnesses with PATH availability |
+
+**Start flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--name <slug>` | Session / worktree name (default `sess-<timestamp>`) |
+| `--harness <name>` | `specular-auto` (default), `claude-code`, `codex`, or `gemini` |
+| `--profile <name>` | Auto profile for `specular-auto` (default `ci`) |
+| `--manifest <file>` | Fleet launch from YAML/JSON (skips positional goal) |
+| `--no-worktree` | Run in the current checkout |
+| `--foreground` | Do not detach |
+| `--json` | Emit JSON |
+
+**Batch / manifest flags** (also on `session start --manifest`):
+
+| Flag | Description |
+|------|-------------|
+| `--harness <name>` | Default harness when a manifest entry omits `harness` |
+| `--profile <name>` | Default profile when a manifest entry omits `profile` |
+| `--no-worktree` | Run all entries in the current checkout |
+| `--json` | Emit JSON array of started sessions |
+
+**Manifest shape** (YAML or JSON array, or `{ "sessions": [...] }`):
+
+| Field | Description |
+|-------|-------------|
+| `goal` | Required prompt for the harness |
+| `name` | Optional session / worktree slug (must be unique; required if others `dependsOn` it) |
+| `harness` | Optional per-entry harness override |
+| `profile` | Optional per-entry auto profile |
+| `noWorktree` | Optional; skip worktree for that entry |
+| `dependsOn` | Optional list of parent session names; stays `queued` until all parents `completed` |
+
+**Status / wait / open / restart / rm / prune / diff flags:**
+
+| Flag | Description |
+|------|-------------|
+| `status --watch` | Refresh the board until interrupted |
+| `status --interval <dur>` | Refresh interval (default `2s`) |
+| `wait --timeout <dur>` | Fail if sessions are still running after duration |
+| `wait --any` | Return when the first named session finishes |
+| `wait --attest` | Write `.attestation.json` for each waited session after success |
+| `wait --gate` | After wait (and optional `--attest`) succeeds, run outer-loop drift with fail-on-drift (exit 4) |
+| `wait --bundle` | After wait, run gate (+ attest when sessions exist) and package attestations/drift/policies into an evidence bundle |
+| `wait --bundle-out <path>` | Bundle output path (default `session-evidence.sbundle.tgz`) |
+| `wait --policy <path>` | Policy/library files to include in `--bundle` (repeatable) |
+| `open --shell` | Print `cd "<worktree>"` instead of the bare path |
+| `open --editor` | Open the worktree in `$EDITOR` / `$VISUAL` |
+| `restart --harness <name>` | Switch harness on restart |
+| `restart --goal <text>` | Override goal on restart |
+| `restart --force` | Stop a still-running session before restart |
+| `rm --force` | Stop a still-running session before removal |
+| `rm --keep-worktree` | Leave the Git worktree in place |
+| `rm --delete-branch` | Also delete the managed worktree branch |
+| `prune --older-than <dur>` | Only prune sessions older than duration |
+| `prune --keep-worktree` | Leave Git worktrees in place |
+| `prune --delete-branch` | Also delete managed worktree branches |
+| `diff --base <ref>` | Compare against ref (default main/master/HEAD) |
+| `diff --against <id>` | Compare against another session's HEAD |
+| `diff --stat` | Show diffstat summary (default) |
+| `diff --name-only` | List changed paths only |
+| `diff --patch` | Show full unified diff |
+| `exec --log` | Append command stdout/stderr to the session log |
+| `exec --json` | Emit JSON `{sessionId, worktreePath, argv, exitCode}` after the command |
+| `commit -m <msg>` | Override provenance-aware default message |
+| `commit --all` | Stage untracked files too (`git add -A`) |
+| `commit --allow-empty` | Allow an empty commit |
+| `commit --force` | Commit even if the session is still running |
+| `sync --onto <ref>` | Base ref to sync onto (default main/master/HEAD) |
+| `sync --merge` | Merge instead of rebase |
+| `sync --autostash` | Stash dirty changes before sync and pop after |
+| `sync --force` | Sync even if the session is still running |
+| `attest --output <path>` | Override attestation path (default `.specular/sessions/<id>.attestation.json`) |
+| `attest --force` | Attest even if the session is still running |
+
+**Example:**
+```bash
+$ specular session harnesses
+$ specular session start --harness claude-code --name auth "Harden JWT validation"
+$ specular session start --harness codex --name ratelimit "Add rate limiting"
+# Or launch a fleet from a manifest:
+$ cat > fleet.yaml <<'EOF'
+- name: auth
+  harness: claude-code
+  goal: Harden JWT validation
+- name: ratelimit
+  harness: codex
+  goal: Add rate limiting
+- name: review
+  harness: gemini
+  goal: Review auth + ratelimit
+  dependsOn: [auth, ratelimit]
+EOF
+$ specular session batch fleet.yaml
+$ specular session status
+$ specular session wait --attest --gate --bundle --policy .specular/policies/soc2-cc8.1.yaml auth ratelimit review
+$ specular session exec auth -- go test ./...
+$ specular session diff auth --stat
+$ specular session commit auth --all
+$ specular session sync auth
+$ specular session attest auth
+$ specular auto verify .specular/sessions/auth.attestation.json
+$ specular session diff auth --against ratelimit
+$ specular session restart auth --harness gemini --force
+$ cd "$(specular session open auth)"
+$ specular session logs auth --follow
+$ specular session fork auth --name auth-alt --start
+$ specular session stop auth
+$ specular session prune --delete-branch
 ```
 
 ---
@@ -1983,6 +2173,38 @@ specular checkpoint <subcommand>
 
 - `checkpoint list` - List available checkpoints
 - `checkpoint show <id>` - Show checkpoint details
+
+---
+
+## Worktree Commands
+
+### worktree
+
+Manage Git worktrees for parallel Specular (or external coding-agent) sessions.
+Each managed worktree lives under `.specular/worktrees/<name>` on branch
+`specular/<name>`. Path and branch are recorded in attestation provenance when
+used with `specular auto --worktree`.
+
+**Usage:**
+```bash
+specular worktree <subcommand>
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `worktree create [name]` | Create an isolated worktree and branch |
+| `worktree list [--managed]` | List worktrees (optionally only Specular-managed) |
+| `worktree remove <name-or-path> [--delete-branch]` | Remove a worktree |
+
+**Example:**
+```bash
+$ specular worktree create fix-auth
+$ specular auto --worktree fix-auth "Harden auth middleware"
+$ specular worktree list --managed
+$ specular worktree remove fix-auth --delete-branch
+```
 
 ---
 

@@ -9,6 +9,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session evidence bundle**: `session wait --bundle` packages
+  attestations + drift SARIF (+ `--policy` library fragments) into
+  `session-evidence.sbundle.tgz` after wait (implies `--gate`; attests
+  waited sessions when present) — one-command fleet→auditor packet
+
+- **Open policy library seed (governance moat)**
+  - Embedded control mappings: SOC 2 CC8.1, ISO/IEC 42001 Clause 8,
+    EU AI Act Art. 17, NIST AI RMF GOVERN 4 (`internal/policylibrary/seed/`)
+  - `specular policy library list|show|install` (free — not Pro-gated)
+  - Installs to `.specular/policies/<id>.yaml` for `bundle create --policy`
+  - Closes the GTM "policy library" claim that previously had no repo files
+
+- **Both-loops session management (response to Xirp)**
+  - Specular now owns the **inner loop** as well as the outer gate:
+    `specular session start|batch|list|show|status|wait|open|restart|rm|prune|diff|exec|commit|sync|attest|stop|logs|fork|harnesses`
+  - **Native harness launch**: Claude Code, Codex, and Gemini run in
+    isolated worktrees (not just provenance labels on `specular-auto`)
+  - **Live session board**: `session status [--watch]` plus harness PATH
+    probe via `session harnesses`; `session open` for worktree `cd`/`$EDITOR`
+  - **Scriptable parallel gate**: `session wait [--any] [--timeout]` then drift
+  - **Harness swap**: `session restart --harness …` reuses the worktree
+  - **Lifecycle cleanup**: `session rm` / `session prune` tear down records,
+    logs, exit sidecars, and worktrees after parallel fleets finish
+  - **Session Git diff**: `session diff` shows worktree changes vs base or
+    another session (Xirp changes-panel analogue)
+  - **Fleet manifest launch**: `session batch` / `session start --manifest`
+    starts many harness sessions from YAML/JSON (CI-native vs Xirp Mac grid)
+  - **Fleet dependsOn**: manifest entries can wait on parent sessions
+    (`queued` until parents `completed`; failed parents abort the chain)
+  - **Session exec**: `session exec <id> -- <cmd>…` runs commands in the
+    worktree with exit-code passthrough (CI substitute for Xirp's PTY)
+  - **Session commit**: `session commit` lands worktree changes with a
+    provenance-aware message (id/harness/goal)
+  - **Session sync**: `session sync` rebases/merges the worktree onto base
+    when main moves (conflicts abort + report paths)
+  - **Session attest**: `session attest` / `wait --attest` writes signed
+    attestations with harness + worktree provenance for native harnesses
+  - **Session gate**: `session wait --gate` runs outer-loop drift after wait
+    (and optional `--attest`) with fail-on-drift (exit 4) — fleet→evidence
+    proof in one command
+  - Session fork + log follow for multi-agent operations
+  - GTM repositioned to **compete** with Xirp on sessions and win on
+    governance (`docs/gtm/competitive/xirp.md`)
+  - New `internal/session` registry under `.specular/sessions/`
+
+- **Competitive response to Spotify Xirp (worktree + provenance)**
+  - GTM brief at `docs/gtm/competitive/xirp.md` (threat model, talking points)
+  - Anti-positioning rows for agentic session managers and software catalogs
+  - Objection #10 for Xirp / Portal adoption in `docs/gtm/playbooks/objection-handling.md`
+  - `specular worktree` CLI for Git worktree isolation (`.specular/worktrees/<name>`)
+  - `specular auto --worktree <name>` runs autonomous mode in an isolated checkout
+  - `specular auto --harness <label>` plus attestation `provenance.harness` /
+    `worktreePath` / `worktreeBranch` / `worktreeName` for auditor-ready attribution
+
 - **Release Automation (M8.1)**
   - Relicta integration for release orchestration
   - New Makefile targets: release-plan, release-bump, release-notes, release-evaluate

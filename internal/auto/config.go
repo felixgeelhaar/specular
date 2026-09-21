@@ -50,6 +50,16 @@ type Config struct {
 
 	// Profile name for execution settings
 	Profile string `yaml:"profile"`
+
+	// Worktree isolation: when set, auto mode runs inside a managed Git
+	// worktree so parallel sessions do not collide on the same checkout.
+	WorktreeName   string `yaml:"worktree_name,omitempty"`
+	WorktreePath   string `yaml:"worktree_path,omitempty"`
+	WorktreeBranch string `yaml:"worktree_branch,omitempty"`
+
+	// Harness identifies the coding-agent surface that authored changes.
+	// Defaults to "specular-auto" when Specular orchestrates the workflow.
+	Harness string `yaml:"harness,omitempty"`
 }
 
 // Result contains the outcome of auto mode execution

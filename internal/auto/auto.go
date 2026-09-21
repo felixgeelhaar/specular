@@ -146,6 +146,14 @@ func (o *Orchestrator) Execute(ctx context.Context) (*Result, error) {
 	var autoOutput *AutoOutput
 	if o.config.JSONOutput {
 		autoOutput = NewAutoOutput(o.config.Goal, o.config.Profile)
+		harness := o.config.Harness
+		if harness == "" {
+			harness = "specular-auto"
+		}
+		autoOutput.SetHarness(harness)
+		if o.config.WorktreePath != "" {
+			autoOutput.SetWorktree(o.config.WorktreeName, o.config.WorktreePath, o.config.WorktreeBranch)
+		}
 		result.AutoOutput = autoOutput
 	}
 
