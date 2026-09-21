@@ -27,6 +27,7 @@ var sessionCmd = &cobra.Command{
   Outer loop — harness + worktree provenance flows into attestations and the drift gate
 
 Examples:
+  specular session integrate claude-code
   specular session start --harness claude-code "Add /healthz endpoint"
   specular session start --name auth --harness codex "Harden JWT validation"
   specular session status --watch
@@ -1432,6 +1433,75 @@ worktree fields, verifiable via specular auto verify.
 	},
 }
 
+var sessionIntegrateCmd = &cobra.Command{
+	Use:   "integrate <harness>",
+	Short: "Install native agent hooks for session attest + gate",
+	Long: `Write a minimal native coding-agent hook into the repo so Stop/completion
+calls existing Specular surfaces — session attest (harness provenance) and gate.
+
+This is the PRODUCT_INTENT P1 #4 starter: Level-2 integrated provenance without
+inventing a new protocol. Prefer managed sessions:
+
+  specular session integrate claude-code
+  specular session integrate claude-code --dry-run
+  specular session start --harness claude-code --governed "Harden JWT validation"
+
+Supported harnesses: claude-code (alias: claude).
+
+Installs:
+  .claude/hooks/specular-session-stop.sh
+  .claude/settings.json  (merges hooks.Stop; preserves other settings)
+
+session start exports SPECULAR_SESSION_ID and SPECULAR_SESSION_HARNESS so the
+Stop hook can attest the right record.
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		force, _ := cmd.Flags().GetBool("force")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+		res, integrateErr := session.Integrate(session.IntegrateOptions{
+			Harness: args[0],
+			Root:    cwd,
+			DryRun:  dryRun,
+			Force:   force,
+		})
+		if integrateErr != nil {
+			return integrateErr
+		}
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(res)
+		}
+		mode := "Installed"
+		if res.DryRun {
+			mode = "Dry-run"
+		}
+		fmt.Printf("%s native hooks for harness %s\n", mode, res.Harness)
+		for _, f := range res.Files {
+			fmt.Printf("  [%s] %s\n", f.Action, f.Path)
+			if res.DryRun && f.Content != "" {
+				fmt.Printf("---- %s ----\n%s", f.Path, f.Content)
+				if !strings.HasSuffix(f.Content, "\n") {
+					fmt.Println()
+				}
+			}
+		}
+		if len(res.NextSteps) > 0 && !res.DryRun {
+			fmt.Println("\nNext:")
+			for _, step := range res.NextSteps {
+				fmt.Printf("  • %s\n", step)
+			}
+		}
+		return nil
+	},
+}
+
 func attestSessionRecords(ctx context.Context, mgr *session.Manager, recs []session.Record, print bool) error {
 	var first error
 	for _, rec := range recs {
@@ -1707,6 +1777,10 @@ func init() {
 	sessionAttestCmd.Flags().Bool("force", false, "Attest even if the session is still running")
 	sessionAttestCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionIntegrateCmd.Flags().Bool("dry-run", false, "Print planned hook/config writes without changing the repo")
+	sessionIntegrateCmd.Flags().Bool("force", false, "Overwrite an existing Specular Stop hook script")
+	sessionIntegrateCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionBatchCmd)
 	sessionCmd.AddCommand(sessionListCmd)
@@ -1729,5 +1803,6 @@ func init() {
 	sessionCmd.AddCommand(sessionMergeCmd)
 	sessionCmd.AddCommand(sessionCherryPickCmd)
 	sessionCmd.AddCommand(sessionAttestCmd)
+	sessionCmd.AddCommand(sessionIntegrateCmd)
 	rootCmd.AddCommand(sessionCmd)
 }
