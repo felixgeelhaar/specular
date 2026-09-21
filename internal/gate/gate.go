@@ -26,16 +26,21 @@ import (
 type Verdict string
 
 const (
+	// Allow means the change may proceed under current evidence.
 	Allow Verdict = "ALLOW"
-	Deny  Verdict = "DENY"
+	// Deny means drift or policy blocked the change.
+	Deny Verdict = "DENY"
 )
 
 // SectionStatus is PASS, FAIL, or SKIPPED.
 type SectionStatus string
 
 const (
-	StatusPass    SectionStatus = "PASS"
-	StatusFail    SectionStatus = "FAIL"
+	// StatusPass means the section evaluated successfully.
+	StatusPass SectionStatus = "PASS"
+	// StatusFail means the section blocked the gate.
+	StatusFail SectionStatus = "FAIL"
+	// StatusSkipped means the section was not applicable (brownfield / missing inputs).
 	StatusSkipped SectionStatus = "SKIPPED"
 )
 
@@ -78,12 +83,24 @@ type ProvenanceSection struct {
 
 // DriftSection summarizes drift evaluation.
 type DriftSection struct {
-	Status   SectionStatus `json:"status"`
-	Errors   int           `json:"errors,omitempty"`
-	Warnings int           `json:"warnings,omitempty"`
-	Info     int           `json:"info,omitempty"`
-	SARIF    string        `json:"sarif,omitempty"`
-	Note     string        `json:"note,omitempty"`
+	Status   SectionStatus   `json:"status"`
+	Errors   int             `json:"errors,omitempty"`
+	Warnings int             `json:"warnings,omitempty"`
+	Info     int             `json:"info,omitempty"`
+	SARIF    string          `json:"sarif,omitempty"`
+	Note     string          `json:"note,omitempty"`
+	Findings []FindingDetail `json:"findings,omitempty"`
+}
+
+// FindingDetail is an explainable drift finding for the gate board and JSON.
+// Every reported drift should answer: what changed, why it is drift, and where.
+type FindingDetail struct {
+	Category  string `json:"category"` // plan, code, infra
+	Code      string `json:"code"`
+	FeatureID string `json:"featureId,omitempty"`
+	Message   string `json:"message"`
+	Severity  string `json:"severity"` // error, warning, info
+	Location  string `json:"location,omitempty"`
 }
 
 // PolicySection summarizes policy / verification evaluation.
@@ -259,22 +276,68 @@ func evaluateDrift(root, reportFile string, strict bool) DriftSection {
 	report := drift.GenerateReport(planDrift, codeDrift, infraDrift)
 	_ = drift.SaveSARIF(report.ToSARIF(), sarifPath)
 
+	findings := collectFindings(report)
 	sec := DriftSection{
 		Errors:   report.Summary.Errors,
 		Warnings: report.Summary.Warnings,
 		Info:     report.Summary.Info,
 		SARIF:    reportFile,
+		Findings: findings,
 	}
 	if report.HasErrors() {
 		sec.Status = StatusFail
-		sec.Note = fmt.Sprintf("drift detection failed with %d errors", report.Summary.Errors)
+		sec.Note = explainDriftFailure(findings, report.Summary.Errors)
 		return sec
 	}
 	sec.Status = StatusPass
 	if report.IsClean() {
 		sec.Note = "no drift detected"
+	} else {
+		sec.Note = fmt.Sprintf("drift warnings/info present (%d findings)", len(findings))
 	}
 	return sec
+}
+
+func collectFindings(report *drift.Report) []FindingDetail {
+	var out []FindingDetail
+	out = append(out, mapFindings("plan", report.PlanDrift)...)
+	out = append(out, mapFindings("code", report.CodeDrift)...)
+	out = append(out, mapFindings("infra", report.InfraDrift)...)
+	return out
+}
+
+func mapFindings(category string, in []drift.Finding) []FindingDetail {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]FindingDetail, 0, len(in))
+	for _, f := range in {
+		out = append(out, FindingDetail{
+			Category:  category,
+			Code:      f.Code,
+			FeatureID: string(f.FeatureID),
+			Message:   f.Message,
+			Severity:  f.Severity,
+			Location:  f.Location,
+		})
+	}
+	return out
+}
+
+func explainDriftFailure(findings []FindingDetail, errorCount int) string {
+	for _, f := range findings {
+		if strings.EqualFold(f.Severity, "error") {
+			msg := f.Message
+			if msg == "" {
+				msg = f.Code
+			}
+			if f.Location != "" {
+				return fmt.Sprintf("%s (%s)", msg, f.Location)
+			}
+			return msg
+		}
+	}
+	return fmt.Sprintf("drift detection failed with %d errors", errorCount)
 }
 
 func missingRequired(paths ...string) string {
@@ -395,6 +458,7 @@ func FormatText(res *Result) string {
 		fmt.Fprintf(&b, "  Findings       errors=%d warnings=%d info=%d\n",
 			res.Drift.Errors, res.Drift.Warnings, res.Drift.Info)
 	}
+	writeFindingDetails(&b, res.Drift.Findings)
 	if res.Drift.SARIF != "" {
 		fmt.Fprintf(&b, "  SARIF          %s\n", res.Drift.SARIF)
 	}
@@ -414,6 +478,43 @@ func FormatText(res *Result) string {
 	fmt.Fprintf(&b, "VERDICT: %s\n", res.Verdict)
 	fmt.Fprintf(&b, "REASON:  %s\n", res.Reason)
 	return b.String()
+}
+
+const maxPrintedFindings = 8
+
+func writeFindingDetails(b *strings.Builder, findings []FindingDetail) {
+	if len(findings) == 0 {
+		return
+	}
+	b.WriteString("  Detail\n")
+	limit := len(findings)
+	if limit > maxPrintedFindings {
+		limit = maxPrintedFindings
+	}
+	for i := 0; i < limit; i++ {
+		f := findings[i]
+		sev := f.Severity
+		if sev == "" {
+			sev = "info"
+		}
+		line := fmt.Sprintf("    [%s] %s", sev, f.Code)
+		if f.Category != "" {
+			line += " (" + f.Category + ")"
+		}
+		if f.FeatureID != "" {
+			line += " feature=" + f.FeatureID
+		}
+		b.WriteString(line + "\n")
+		if f.Message != "" {
+			fmt.Fprintf(b, "      %s\n", f.Message)
+		}
+		if f.Location != "" {
+			fmt.Fprintf(b, "      at %s\n", f.Location)
+		}
+	}
+	if len(findings) > maxPrintedFindings {
+		fmt.Fprintf(b, "    … and %d more (see SARIF / --json)\n", len(findings)-maxPrintedFindings)
+	}
 }
 
 func unique(in []string) []string {

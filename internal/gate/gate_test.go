@@ -83,6 +83,56 @@ func TestDecidePolicyFail(t *testing.T) {
 	}
 }
 
+func TestFormatTextIncludesDriftFindings(t *testing.T) {
+	t.Parallel()
+	res := &Result{
+		Verdict: Deny,
+		Reason:  "file hash mismatch (src/auth.go)",
+		Change:  ChangeSection{Dirty: true, Files: 2, Branch: "feat/x"},
+		Provenance: ProvenanceSection{
+			Status: StatusSkipped,
+			Note:   "unattested",
+		},
+		Drift: DriftSection{
+			Status: StatusFail,
+			Errors: 1,
+			Findings: []FindingDetail{{
+				Category:  "code",
+				Code:      "HASH_MISMATCH",
+				FeatureID: "AUTH-1",
+				Message:   "file hash mismatch for src/auth.go",
+				Severity:  "error",
+				Location:  "src/auth.go",
+			}},
+			Note: "file hash mismatch for src/auth.go (src/auth.go)",
+		},
+		Policy: PolicySection{Status: StatusSkipped, Note: "no policy"},
+	}
+	text := FormatText(res)
+	for _, want := range []string{
+		"HASH_MISMATCH",
+		"feature=AUTH-1",
+		"file hash mismatch for src/auth.go",
+		"at src/auth.go",
+		"VERDICT: DENY",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("board missing %q:\n%s", want, text)
+		}
+	}
+}
+
+func TestExplainDriftFailurePrefersFirstError(t *testing.T) {
+	t.Parallel()
+	got := explainDriftFailure([]FindingDetail{
+		{Severity: "warning", Message: "warn", Code: "W"},
+		{Severity: "error", Message: "plan feature missing", Code: "UNKNOWN_FEATURE", Location: "plan.yaml"},
+	}, 1)
+	if !strings.Contains(got, "plan feature missing") || !strings.Contains(got, "plan.yaml") {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func initTempRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
