@@ -18,14 +18,17 @@ This guide defines the preferred approval workflow for Specular CLI usage. The g
      - `drift-<id>`
      - `policy-<id>`
      - `plan-<id>`
+     - `exception-<id>` (controlled exception trail)
 
 4. Keep approvals scoped and explicit
    - Approve only the resource that was reviewed.
    - Avoid broad or implicit approvals.
+   - For exceptions, always set `--reason` and prefer `--scope`, `--policy`, and `--expires`.
 
 5. Prefer read-only checks before approval
    - Use `specular approvals pending` to see what requires action.
    - Use `specular eval drift` to inspect drift before approving.
+   - Use `specular approvals show` / `specular explain` to inspect the trail after DENY.
 
 ## Canonical Commands
 
@@ -39,6 +42,25 @@ List approvals:
 
 ```bash
 specular approvals list
+specular approvals list --json
+```
+
+Show one record (AI CHANGE RECORD style):
+
+```bash
+specular approvals show
+specular approvals show exception-EX-192
+```
+
+Record a controlled exception (auditable trail; does not flip gate DENY→ALLOW):
+
+```bash
+specular approve exception-EX-192 \
+  --reason "Emergency auth hotfix" \
+  --scope "internal/auth/**" \
+  --policy SEC-17 \
+  --expires 7d \
+  --message "Security on-call approved"
 ```
 
 Show pending approvals:

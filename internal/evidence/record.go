@@ -185,6 +185,7 @@ func FormatExplain(rec *Record) string {
 	writeProvenanceBlock(&b, g)
 	writePolicyBlock(&b, g)
 	writeDriftBlock(&b, g)
+	writeApprovalsBlock(&b, g)
 
 	b.WriteString("Why\n")
 	writeWhy(&b, g)
@@ -340,6 +341,68 @@ func writeDriftFindings(b *strings.Builder, findings []gate.FindingDetail) {
 	}
 }
 
+func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
+	b.WriteString("Approvals\n")
+	sec := g.Approvals
+	if sec.Count == 0 {
+		b.WriteString("Status       none recorded\n")
+		if g.Verdict == gate.Deny {
+			b.WriteString("Hint         specular approve exception-<id> --reason \"...\" --scope \"...\"\n")
+		}
+		return
+	}
+	fmt.Fprintf(b, "Records      %d\n", sec.Count)
+	writeApprovalExceptions(b, sec.Exceptions)
+	writeApprovalRecent(b, sec.Recent)
+	if g.Verdict == gate.Deny && len(sec.Exceptions) == 0 {
+		b.WriteString("Hint         record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\"\n")
+	}
+}
+
+func writeApprovalExceptions(b *strings.Builder, exceptions []gate.ApprovalSummary) {
+	for _, ex := range exceptions {
+		fmt.Fprintf(b, "⚠ %-12s %s", "exception", ex.ResourceID)
+		if ex.Reason != "" {
+			fmt.Fprintf(b, " — %s", ex.Reason)
+		}
+		b.WriteString("\n")
+		if ex.Scope != "" {
+			fmt.Fprintf(b, "  scope=%s\n", ex.Scope)
+		}
+		if ex.Policy != "" {
+			fmt.Fprintf(b, "  policy=%s\n", ex.Policy)
+		}
+		if ex.ApprovedBy != "" {
+			fmt.Fprintf(b, "  by %s\n", ex.ApprovedBy)
+		}
+		if ex.ExpiresAt != "" {
+			fmt.Fprintf(b, "  expires %s\n", ex.ExpiresAt)
+		}
+	}
+}
+
+func writeApprovalRecent(b *strings.Builder, recent []gate.ApprovalSummary) {
+	shown := 0
+	for _, r := range recent {
+		if r.Type == "exception" && !r.Expired {
+			continue // already listed above
+		}
+		mark := "✓"
+		if r.Type == "exception" {
+			mark = "·"
+		}
+		fmt.Fprintf(b, "%s %-12s %s", mark, r.Type, r.ResourceID)
+		if r.ApprovedBy != "" {
+			fmt.Fprintf(b, " by %s", r.ApprovedBy)
+		}
+		b.WriteString("\n")
+		shown++
+		if shown >= 5 {
+			break
+		}
+	}
+}
+
 func sectionMark(status gate.SectionStatus) string {
 	switch status {
 	case gate.StatusPass:
@@ -397,6 +460,13 @@ func writeWhy(b *strings.Builder, g *gate.Result) {
 		fmt.Fprintf(b, "  • Governed %v\n", g.Provenance.Governed)
 	} else {
 		b.WriteString("  • Provenance unattested — not treated as verified\n")
+	}
+	if n := len(g.Approvals.Exceptions); n > 0 {
+		fmt.Fprintf(b, "  • %d open exception(s) on local trail (advisory)\n", n)
+	} else if g.Approvals.Count > 0 {
+		fmt.Fprintf(b, "  • %d approval record(s) on local trail\n", g.Approvals.Count)
+	} else if g.Verdict == gate.Deny {
+		b.WriteString("  • No local exception/approval trail for this DENY\n")
 	}
 	if g.Verdict == gate.Allow {
 		b.WriteString("  → ALLOW because no blocking drift or policy failure was present.\n")

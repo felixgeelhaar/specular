@@ -62,6 +62,7 @@ type Result struct {
 	Drift      DriftSection      `json:"drift"`
 	Policy     PolicySection     `json:"policy"`
 	Risk       RiskSection       `json:"risk"`
+	Approvals  ApprovalsSection  `json:"approvals"`
 }
 
 // ChangeSection summarizes the proposed git change.
@@ -151,6 +152,7 @@ func Evaluate(opts Options) (*Result, error) {
 	res.Drift = evaluateDrift(root, reportFile, opts.StrictSpec)
 	res.Policy = evaluatePolicy(root, opts.PolicyPath)
 	res.Risk = assessRisk(res.Provenance, root)
+	res.Approvals = discoverApprovals(root)
 	res.Verdict, res.Reason = decide(res)
 	return res, nil
 }
@@ -572,6 +574,7 @@ func FormatText(res *Result) string {
 		fmt.Fprintf(&b, "  Note           %s\n", res.Policy.Note)
 	}
 	writeRiskSection(&b, res.Risk)
+	writeApprovalsSection(&b, res.Approvals, res.Verdict)
 	b.WriteString(strings.Repeat("─", 46) + "\n")
 	fmt.Fprintf(&b, "VERDICT: %s\n", res.Verdict)
 	fmt.Fprintf(&b, "REASON:  %s\n", res.Reason)

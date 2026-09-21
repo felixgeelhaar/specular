@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
+	"github.com/felixgeelhaar/specular/internal/approval"
 	"github.com/felixgeelhaar/specular/internal/exec"
 	"github.com/felixgeelhaar/specular/internal/license"
 	"github.com/felixgeelhaar/specular/internal/telemetry"
@@ -17,20 +19,29 @@ import (
 
 var approveCmd = &cobra.Command{
 	Use:   "approve <resource>",
-	Short: "Approve bundle, drift, or other governance resource",
-	Long: `Create an approval record for a governance resource.
+	Short: "Approve bundle, drift, policy, plan, or record an exception",
+	Long: `Create an approval or controlled exception record under .specular/approvals/.
 
 Resources can be:
-  • Bundle ID (from bundle create)
-  • Drift hash (from eval drift)
-  • Policy change (from policy diff)
+  • Bundle ID (from bundle create)     bundle-<id>
+  • Drift hash (from eval drift)       drift-<id>
+  • Policy change (from policy diff)   policy-<id>
+  • Plan ID                            plan-<id>
+  • Exception                          exception / exception-<id>
 
-Approvals are stored in .specular/approvals/ with timestamps and approver info.
+Exceptions (PRODUCT_INTENT §18) require --reason and should include --scope.
+They are an explicit auditable trail — they do not silently bypass the gate.
 
 Examples:
-  specular approve bundle-abc123
-  specular approve drift-def456
-  specular approve policy-change --message "Approved security update"`,
+  specular approve bundle-abc123 --message "Reviewed for prod"
+  specular approve drift-def456 --message "Accepted known drift"
+  specular approve exception-EX-192 \
+    --reason "Emergency auth hotfix" \
+    --scope "internal/auth/**" \
+    --policy SEC-17 \
+    --expires 7d \
+    --message "Approved by security on-call"
+  specular approve exception --reason "Hotfix" --scope "payments" --expires 24h`,
 	Args: cobra.ExactArgs(1),
 	RunE: runApprove,
 }
@@ -38,7 +49,7 @@ Examples:
 var approvalsCmd = &cobra.Command{
 	Use:   "approvals",
 	Short: "Manage approval records",
-	Long:  `List and manage approval records for bundles, drift, and policies.`,
+	Long:  `List and manage approval records for bundles, drift, policies, and exceptions.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},
@@ -50,12 +61,25 @@ var approvalsListCmd = &cobra.Command{
 	Long: `Display all approval records with details.
 
 Shows:
-  • Approval type (bundle, drift, policy)
-  • Resource ID
-  • Approver name and timestamp
-  • Approval message/comment
-  • Approval status`,
+  • Approval type (bundle, drift, policy, plan, exception)
+  • Resource ID, approver, timestamp
+  • Exception reason/scope/policy/expiration when present
+
+--json emits a machine-readable array of records.`,
 	RunE: runApprovalsList,
+}
+
+var approvalsShowCmd = &cobra.Command{
+	Use:   "show [resource-id]",
+	Short: "Show one approval/exception in AI CHANGE RECORD style",
+	Long: `Show the newest matching approval or exception record.
+
+Without an argument, shows the most recent record.
+With a resource id (e.g. exception-EX-192), shows the newest match.
+
+--json emits the raw record.`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runApprovalsShow,
 }
 
 var approvalsPendingCmd = &cobra.Command{
@@ -74,10 +98,11 @@ Exit codes:
 	RunE: runApprovalsPending,
 }
 
-// ApprovalRecord represents a governance approval record
+// ApprovalRecord is retained for compatibility with existing tests.
+// Prefer approval.Record for new code.
 type ApprovalRecord struct {
 	Version      string            `yaml:"version"`
-	Type         string            `yaml:"type"` // "bundle", "drift", "policy", "plan"
+	Type         string            `yaml:"type"`
 	ResourceID   string            `yaml:"resource_id"`
 	ResourceHash string            `yaml:"resource_hash,omitempty"`
 	ApprovedBy   string            `yaml:"approved_by"`
@@ -87,158 +112,289 @@ type ApprovalRecord struct {
 }
 
 func runApprove(cmd *cobra.Command, args []string) error {
-	// Check license
 	if err := license.RequireFeature("approvals.create", license.TierPro); err != nil {
 		license.DisplayUpgradeMessage(err, "approve")
 		return err
 	}
 
 	resourceID := args[0]
-	message := cmd.Flags().Lookup("message").Value.String()
-	if strings.TrimSpace(message) == "" {
+	message, _ := cmd.Flags().GetString("message")
+	reason, _ := cmd.Flags().GetString("reason")
+	scope, _ := cmd.Flags().GetString("scope")
+	policyRef, _ := cmd.Flags().GetString("policy")
+	expiresRaw, _ := cmd.Flags().GetString("expires")
+	requester, _ := cmd.Flags().GetString("requester")
+	artifact, _ := cmd.Flags().GetString("artifact")
+	evidenceID, _ := cmd.Flags().GetString("evidence")
+
+	resourceType, err := approval.TypeFromResourceID(resourceID)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().UTC()
+	if resourceType == approval.TypeException {
+		resourceID = approval.NormalizeExceptionID(resourceID, now)
+		if strings.TrimSpace(reason) == "" {
+			return fmt.Errorf("exception --reason is required (PRODUCT_INTENT §18)")
+		}
+		if strings.TrimSpace(message) == "" {
+			message = reason
+		}
+	} else if strings.TrimSpace(message) == "" {
 		return fmt.Errorf("approval message is required (use --message \"...\")")
 	}
 
-	// Determine resource type from ID prefix
-	var resourceType string
-	switch {
-	case strings.HasPrefix(resourceID, "bundle-"):
-		resourceType = "bundle"
-	case strings.HasPrefix(resourceID, "drift-"):
-		resourceType = "drift"
-	case strings.HasPrefix(resourceID, "policy-"):
-		resourceType = "policy"
-	case strings.HasPrefix(resourceID, "plan-"):
-		resourceType = "plan"
-	default:
-		return fmt.Errorf("unknown resource type: %s (expected bundle-*, drift-*, policy-*, or plan-*)", resourceID)
+	expiresAt, err := approval.ParseExpires(expiresRaw, now)
+	if err != nil {
+		return err
 	}
 
-	// Get approver name from environment or system
 	approver := os.Getenv("USER")
 	if approver == "" {
 		approver = "unknown"
 	}
 
-	// Create approval record
-	approval := ApprovalRecord{
-		Version:    "1.0",
+	rec := &approval.Record{
+		Version:    approval.SchemaVersion,
 		Type:       resourceType,
 		ResourceID: resourceID,
 		ApprovedBy: approver,
-		ApprovedAt: time.Now(),
+		ApprovedAt: now,
 		Message:    message,
+		Reason:     strings.TrimSpace(reason),
+		Scope:      strings.TrimSpace(scope),
+		Policy:     strings.TrimSpace(policyRef),
+		Requester:  strings.TrimSpace(requester),
+		ExpiresAt:  expiresAt,
+		Artifact:   strings.TrimSpace(artifact),
+		EvidenceID: strings.TrimSpace(evidenceID),
 	}
 
-	// Save approval record
-	approvalsDir := filepath.Join(".specular", "approvals")
-	if err := os.MkdirAll(approvalsDir, 0755); err != nil {
-		return fmt.Errorf("creating approvals directory: %w", err)
-	}
-
-	timestamp := time.Now().Format("20060102-150405")
-	filename := fmt.Sprintf("%s-%s.yaml", resourceType, timestamp)
-	approvalPath := filepath.Join(approvalsDir, filename)
-
-	data, err := yaml.Marshal(&approval)
+	approvalPath, err := approval.Write(".", rec)
 	if err != nil {
-		return fmt.Errorf("marshaling approval: %w", err)
-	}
-
-	if err := os.WriteFile(approvalPath, data, 0600); err != nil {
-		return fmt.Errorf("writing approval: %w", err)
+		return err
 	}
 
 	telemetry.RecordIntervention(cmd.Context(), interventionGateForResource(resourceType), telemetry.InterventionDecisionApproved)
+
+	if resourceType == approval.TypeException {
+		fmt.Printf("⚠ Exception recorded: %s\n\n", resourceID)
+		fmt.Printf("Reason:      %s\n", rec.Reason)
+		if rec.Scope != "" {
+			fmt.Printf("Scope:       %s\n", rec.Scope)
+		}
+		if rec.Policy != "" {
+			fmt.Printf("Policy:      %s\n", rec.Policy)
+		}
+		if rec.Requester != "" {
+			fmt.Printf("Requester:   %s\n", rec.Requester)
+		}
+		fmt.Printf("Approved by: %s\n", approver)
+		if rec.ExpiresAt != nil {
+			fmt.Printf("Expires:     %s\n", rec.ExpiresAt.Format(time.RFC3339))
+		}
+		fmt.Printf("Saved:       %s\n", approvalPath)
+		fmt.Println("\nNote: exceptions are an auditable trail; they do not flip gate DENY→ALLOW.")
+		return nil
+	}
 
 	fmt.Printf("✅ Approved %s: %s\n\n", resourceType, resourceID)
 	fmt.Printf("Approved by: %s\n", approver)
 	fmt.Printf("Approval saved: %s\n", approvalPath)
 	fmt.Printf("Message: %s\n", message)
-
 	return nil
 }
 
 func runApprovalsList(cmd *cobra.Command, args []string) error {
-	// Check license
 	if err := license.RequireFeature("approvals.list", license.TierPro); err != nil {
 		license.DisplayUpgradeMessage(err, "approvals list")
 		return err
 	}
 
-	approvalsDir := filepath.Join(".specular", "approvals")
+	jsonOut, _ := cmd.Flags().GetBool("json")
+	recs, err := approval.List(".")
+	if err != nil {
+		return err
+	}
 
-	// Check if approvals directory exists
-	if _, err := os.Stat(approvalsDir); os.IsNotExist(err) {
+	if jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if recs == nil {
+			recs = []approval.Record{}
+		}
+		return enc.Encode(recs)
+	}
+
+	if len(recs) == 0 {
 		fmt.Println("No approval records found.")
 		fmt.Println("\nRun 'specular governance init' to create the governance workspace.")
+		fmt.Println("Record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\"")
 		return nil
 	}
 
-	// Read all approval files
-	entries, err := os.ReadDir(approvalsDir)
-	if err != nil {
-		return fmt.Errorf("reading approvals directory: %w", err)
+	fmt.Println("APPROVAL / EXCEPTION TRAIL")
+	fmt.Println("──────────────────────────────────────")
+
+	approvalsByType := make(map[string][]approval.Record)
+	for _, rec := range recs {
+		approvalsByType[rec.Type] = append(approvalsByType[rec.Type], rec)
 	}
 
-	if len(entries) == 0 {
-		fmt.Println("No approval records found.")
-		return nil
+	order := []string{
+		approval.TypeException,
+		approval.TypePolicy,
+		approval.TypeBundle,
+		approval.TypeDrift,
+		approval.TypePlan,
 	}
-
-	fmt.Println("=== Approval Records ===")
-
-	approvalsByType := make(map[string][]ApprovalRecord)
-
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
+	now := time.Now().UTC()
+	for _, approvalType := range order {
+		group := approvalsByType[approvalType]
+		if len(group) == 0 {
 			continue
 		}
-
-		approvalPath := filepath.Join(approvalsDir, entry.Name())
-		data, err := os.ReadFile(approvalPath)
-		if err != nil {
-			continue
+		title := strings.ToUpper(approvalType[:1]) + approvalType[1:]
+		if approvalType == approval.TypeException {
+			title = "Exception"
 		}
-
-		var approval ApprovalRecord
-		if err := yaml.Unmarshal(data, &approval); err != nil {
-			continue
-		}
-
-		approvalsByType[approval.Type] = append(approvalsByType[approval.Type], approval)
-	}
-
-	// Display approvals grouped by type
-	for _, approvalType := range []string{"policy", "bundle", "drift", "plan"} {
-		approvals := approvalsByType[approvalType]
-		if len(approvals) == 0 {
-			continue
-		}
-
-		fmt.Printf("%s Approvals: %d\n", strings.Title(approvalType), len(approvals))
-		for _, approval := range approvals {
-			fmt.Printf("  • %s\n", approval.ResourceID)
-			fmt.Printf("    Approved by: %s\n", approval.ApprovedBy)
-			fmt.Printf("    Approved at: %s\n", approval.ApprovedAt.Format("2006-01-02 15:04:05"))
-			if approval.Message != "" {
-				fmt.Printf("    Message: %s\n", approval.Message)
-			}
+		fmt.Printf("%s records: %d\n", title, len(group))
+		for _, rec := range group {
+			printApprovalHuman(rec, now)
 			fmt.Println()
 		}
 	}
 
-	totalApprovals := 0
-	for _, approvals := range approvalsByType {
-		totalApprovals += len(approvals)
-	}
-	fmt.Printf("Total approvals: %d\n", totalApprovals)
-
+	fmt.Printf("Total: %d\n", len(recs))
 	return nil
 }
 
+func runApprovalsShow(cmd *cobra.Command, args []string) error {
+	if err := license.RequireFeature("approvals.list", license.TierPro); err != nil {
+		license.DisplayUpgradeMessage(err, "approvals show")
+		return err
+	}
+
+	jsonOut, _ := cmd.Flags().GetBool("json")
+	recs, err := approval.List(".")
+	if err != nil {
+		return err
+	}
+	if len(recs) == 0 {
+		return fmt.Errorf("no approval records found under .specular/approvals/")
+	}
+
+	var rec approval.Record
+	if len(args) == 1 {
+		id := strings.TrimSpace(args[0])
+		matches, findErr := approval.FindByResourceID(".", id)
+		if findErr != nil {
+			return findErr
+		}
+		if len(matches) == 0 {
+			return fmt.Errorf("no approval record for %q", id)
+		}
+		rec = matches[0]
+	} else {
+		rec = recs[0]
+	}
+
+	if jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(rec)
+	}
+
+	fmt.Print(formatApprovalExplain(rec))
+	return nil
+}
+
+func formatApprovalExplain(rec approval.Record) string {
+	var b strings.Builder
+	b.WriteString("APPROVAL / EXCEPTION RECORD\n")
+	b.WriteString("──────────────────────────────────────\n")
+	fmt.Fprintf(&b, "Type         %s\n", rec.Type)
+	fmt.Fprintf(&b, "Resource     %s\n", rec.ResourceID)
+	fmt.Fprintf(&b, "ApprovedBy   %s\n", rec.ApprovedBy)
+	if !rec.ApprovedAt.IsZero() {
+		fmt.Fprintf(&b, "ApprovedAt   %s\n", rec.ApprovedAt.UTC().Format(time.RFC3339))
+	}
+	if rec.Message != "" {
+		fmt.Fprintf(&b, "Message      %s\n", rec.Message)
+	}
+	if rec.Type == approval.TypeException || rec.Reason != "" {
+		b.WriteString("Exception\n")
+		if rec.Reason != "" {
+			fmt.Fprintf(&b, "Reason       %s\n", rec.Reason)
+		}
+		if rec.Scope != "" {
+			fmt.Fprintf(&b, "Scope        %s\n", rec.Scope)
+		}
+		if rec.Policy != "" {
+			fmt.Fprintf(&b, "Policy       %s\n", rec.Policy)
+		}
+		if rec.Requester != "" {
+			fmt.Fprintf(&b, "Requester    %s\n", rec.Requester)
+		}
+		if rec.ExpiresAt != nil {
+			fmt.Fprintf(&b, "Expires      %s\n", rec.ExpiresAt.UTC().Format(time.RFC3339))
+			if rec.IsExpired(time.Now().UTC()) {
+				b.WriteString("Status       EXPIRED\n")
+			} else {
+				b.WriteString("Status       OPEN\n")
+			}
+		} else if rec.Type == approval.TypeException {
+			b.WriteString("Status       OPEN (no expiration)\n")
+		}
+	}
+	if rec.Artifact != "" {
+		fmt.Fprintf(&b, "Artifact     %s\n", rec.Artifact)
+	}
+	if rec.EvidenceID != "" {
+		fmt.Fprintf(&b, "Evidence     %s\n", rec.EvidenceID)
+	}
+	b.WriteString("──────────────────────────────────────\n")
+	b.WriteString("Refs\n")
+	if rec.Path != "" {
+		fmt.Fprintf(&b, "File         %s\n", rec.Path)
+	} else {
+		b.WriteString("Store        .specular/approvals/\n")
+	}
+	b.WriteString("List         specular approvals list\n")
+	b.WriteString("Gate trail   specular gate / specular explain\n")
+	return b.String()
+}
+
+func printApprovalHuman(rec approval.Record, now time.Time) {
+	fmt.Printf("  • %s\n", rec.ResourceID)
+	fmt.Printf("    Approved by: %s\n", rec.ApprovedBy)
+	fmt.Printf("    Approved at: %s\n", rec.ApprovedAt.Format("2006-01-02 15:04:05"))
+	if rec.Message != "" {
+		fmt.Printf("    Message: %s\n", rec.Message)
+	}
+	if rec.Reason != "" {
+		fmt.Printf("    Reason: %s\n", rec.Reason)
+	}
+	if rec.Scope != "" {
+		fmt.Printf("    Scope: %s\n", rec.Scope)
+	}
+	if rec.Policy != "" {
+		fmt.Printf("    Policy: %s\n", rec.Policy)
+	}
+	if rec.ExpiresAt != nil {
+		status := "open"
+		if rec.IsExpired(now) {
+			status = "expired"
+		}
+		fmt.Printf("    Expires: %s (%s)\n", rec.ExpiresAt.Format(time.RFC3339), status)
+	}
+	if rec.Path != "" {
+		fmt.Printf("    File: %s\n", rec.Path)
+	}
+}
+
 func runApprovalsPending(cmd *cobra.Command, args []string) error {
-	// Check license
 	if err := license.RequireFeature("approvals.list", license.TierPro); err != nil {
 		license.DisplayUpgradeMessage(err, "approvals pending")
 		return err
@@ -248,7 +404,6 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 
 	hasPending := false
 
-	// Check for unapproved policy changes
 	if hasPolicyChanges, err := checkPolicyChanges(); err == nil && hasPolicyChanges {
 		fmt.Println("📋 Policy Changes:")
 		fmt.Println("  • Policies have changed since last approval")
@@ -258,7 +413,6 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 		hasPending = true
 	}
 
-	// Check for unapproved bundles
 	if pendingBundles, err := checkPendingBundles(); err == nil && len(pendingBundles) > 0 {
 		fmt.Printf("📦 Bundles: %d pending\n", len(pendingBundles))
 		for _, bundleID := range pendingBundles {
@@ -269,7 +423,6 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 		hasPending = true
 	}
 
-	// Check for unapproved drift
 	if hasDrift, err := checkDrift(); err == nil && hasDrift {
 		fmt.Println("🔀 Drift Detected:")
 		fmt.Println("  • Drift detected but not approved")
@@ -285,19 +438,16 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Exit code 1 indicates pending approvals (for CI/CD integration)
 	os.Exit(1)
 	return nil
 }
 
-// checkPolicyChanges checks if there are unapproved policy changes
 func checkPolicyChanges() (bool, error) {
 	policiesPath := filepath.Join(".specular", "policies.yaml")
 	if _, err := os.Stat(policiesPath); os.IsNotExist(err) {
 		return false, nil
 	}
 
-	// Check if there are any policy approval records
 	approvalsDir := filepath.Join(".specular", "approvals")
 	entries, err := os.ReadDir(approvalsDir)
 	if err != nil {
@@ -312,18 +462,15 @@ func checkPolicyChanges() (bool, error) {
 		}
 	}
 
-	// If no approval exists, policies are pending
 	if !hasPolicyApproval {
 		return true, nil
 	}
 
-	// Check if policy hash has changed since last approval
 	currentHash, err := exec.HashFile(policiesPath)
 	if err != nil {
 		return false, fmt.Errorf("hash policies file: %w", err)
 	}
 
-	// Find the most recent policy approval
 	var latestApproval *ApprovalRecord
 	var latestTime time.Time
 	for _, entry := range entries {
@@ -337,41 +484,35 @@ func checkPolicyChanges() (bool, error) {
 			continue
 		}
 
-		var approval ApprovalRecord
-		if err := yaml.Unmarshal(data, &approval); err != nil {
+		var rec ApprovalRecord
+		if err := yaml.Unmarshal(data, &rec); err != nil {
 			continue
 		}
 
-		if approval.ApprovedAt.After(latestTime) {
-			latestTime = approval.ApprovedAt
-			latestApproval = &approval
+		if rec.ApprovedAt.After(latestTime) {
+			latestTime = rec.ApprovedAt
+			latestApproval = &rec
 		}
 	}
 
-	// If we found an approval, compare hashes
 	if latestApproval != nil {
-		// Policies have changed if hashes don't match
 		return latestApproval.ResourceHash != currentHash, nil
 	}
 
-	// No valid approval found, policies are pending
 	return true, nil
 }
 
-// checkPendingBundles checks for bundles that haven't been approved
 func checkPendingBundles() ([]string, error) {
 	bundlesDir := filepath.Join(".specular", "bundles")
 	if _, err := os.Stat(bundlesDir); os.IsNotExist(err) {
 		return nil, nil
 	}
 
-	// Get all bundle files
 	entries, err := os.ReadDir(bundlesDir)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get all approved bundle IDs
 	approvalsDir := filepath.Join(".specular", "approvals")
 	approvedBundles := make(map[string]bool)
 
@@ -387,23 +528,21 @@ func checkPendingBundles() ([]string, error) {
 				continue
 			}
 
-			var approval ApprovalRecord
-			if err := yaml.Unmarshal(data, &approval); err != nil {
+			var rec ApprovalRecord
+			if err := yaml.Unmarshal(data, &rec); err != nil {
 				continue
 			}
 
-			approvedBundles[approval.ResourceID] = true
+			approvedBundles[rec.ResourceID] = true
 		}
 	}
 
-	// Find bundles without approvals
 	var pending []string
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".tar") {
 			continue
 		}
 
-		// Extract bundle ID from filename
 		bundleID := strings.TrimSuffix(entry.Name(), ".tar")
 		if !approvedBundles[bundleID] {
 			pending = append(pending, bundleID)
@@ -413,15 +552,12 @@ func checkPendingBundles() ([]string, error) {
 	return pending, nil
 }
 
-// checkDrift checks if there is unapproved drift
 func checkDrift() (bool, error) {
-	// Check for drift baseline file
 	driftPath := filepath.Join(".specular", "drift-baseline.json")
 	if _, err := os.Stat(driftPath); os.IsNotExist(err) {
 		return false, nil
 	}
 
-	// Check if there are any drift approval records
 	approvalsDir := filepath.Join(".specular", "approvals")
 	entries, err := os.ReadDir(approvalsDir)
 	if err != nil {
@@ -430,27 +566,25 @@ func checkDrift() (bool, error) {
 
 	for _, entry := range entries {
 		if strings.HasPrefix(entry.Name(), "drift-") {
-			// Has drift approval, no pending drift
 			return false, nil
 		}
 	}
 
-	// Drift baseline exists but no approval - pending
 	return true, nil
 }
 
-// interventionGateForResource maps the approve subcommand's resource type
-// onto the telemetry intervention gate label.
 func interventionGateForResource(resourceType string) string {
 	switch resourceType {
-	case "bundle":
+	case approval.TypeBundle:
 		return telemetry.InterventionGateBundleApproval
-	case "drift":
+	case approval.TypeDrift:
 		return telemetry.InterventionGateDriftApproval
-	case "policy":
+	case approval.TypePolicy:
 		return telemetry.InterventionGatePolicyApproval
-	case "plan":
+	case approval.TypePlan:
 		return telemetry.InterventionGatePlanApproval
+	case approval.TypeException:
+		return telemetry.InterventionGateOther
 	default:
 		return telemetry.InterventionGateOther
 	}
@@ -460,8 +594,18 @@ func init() {
 	rootCmd.AddCommand(approveCmd)
 	rootCmd.AddCommand(approvalsCmd)
 	approvalsCmd.AddCommand(approvalsListCmd)
+	approvalsCmd.AddCommand(approvalsShowCmd)
 	approvalsCmd.AddCommand(approvalsPendingCmd)
 
-	// Flags for approve command
 	approveCmd.Flags().String("message", "", "Approval message or comment")
+	approveCmd.Flags().String("reason", "", "Exception reason (required for exception-*)")
+	approveCmd.Flags().String("scope", "", "Exception scope (paths, services, or change set)")
+	approveCmd.Flags().String("policy", "", "Policy or control requiring the exception (e.g. SEC-17)")
+	approveCmd.Flags().String("expires", "", "Exception expiration (RFC3339 or duration like 7d, 24h)")
+	approveCmd.Flags().String("requester", "", "Who requested the exception")
+	approveCmd.Flags().String("artifact", "", "Affected artifact digest or reference")
+	approveCmd.Flags().String("evidence", "", "Related evidence id (ev_…)")
+
+	approvalsListCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
+	approvalsShowCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 }
