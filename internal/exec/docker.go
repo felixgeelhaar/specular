@@ -19,6 +19,8 @@ var (
 	cpuLimitPattern    = regexp.MustCompile(`^\d+(\.\d+)?$`)
 	memoryLimitPattern = regexp.MustCompile(`^\d+[bkmgBKMG]?$`)
 	networkModePattern = regexp.MustCompile(`^[a-zA-Z0-9_.:-]+$`)
+	// userPattern allows names (nobody), uid, or uid:gid / name:gid forms.
+	userPattern = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9_-]*(:[a-zA-Z0-9_][a-zA-Z0-9_-]*)?$`)
 )
 
 // RunDocker executes a step in a Docker container with security constraints.
@@ -100,6 +102,10 @@ func validateDockerStep(step Step) error {
 		return fmt.Errorf("network contains invalid characters")
 	}
 
+	if step.User != "" && !userPattern.MatchString(step.User) {
+		return fmt.Errorf("user contains invalid characters")
+	}
+
 	if step.CPU != "" && !cpuLimitPattern.MatchString(step.CPU) {
 		return fmt.Errorf("cpu limit has invalid format")
 	}
@@ -123,12 +129,23 @@ func validateDockerStep(step Step) error {
 // DefaultNetworkMode is the fail-closed Docker network when a step omits one.
 const DefaultNetworkMode = "none"
 
+// DefaultContainerUser is the fail-closed non-root user when a step omits one.
+const DefaultContainerUser = "nobody"
+
 // effectiveNetwork returns the network mode for a step. Empty is fail-closed to none.
 func effectiveNetwork(step Step) string {
 	if step.Network == "" {
 		return DefaultNetworkMode
 	}
 	return step.Network
+}
+
+// effectiveUser returns the container user for a step. Empty is fail-closed to nobody.
+func effectiveUser(step Step) string {
+	if step.User == "" {
+		return DefaultContainerUser
+	}
+	return step.User
 }
 
 // buildDockerArgs constructs the Docker command arguments with security constraints
@@ -138,8 +155,11 @@ func buildDockerArgs(step Step) []string {
 		"--rm", // Remove container after exit
 	}
 
-	// Network is always set; empty step.Network defaults to none (fail-closed).
-	args = append(args, "--network", effectiveNetwork(step))
+	// Network and user are always set; empty values fail closed to none / nobody.
+	args = append(args,
+		"--network", effectiveNetwork(step),
+		"--user", effectiveUser(step),
+	)
 
 	// Resource limits
 	if step.CPU != "" {
@@ -149,7 +169,9 @@ func buildDockerArgs(step Step) []string {
 		args = append(args, "--memory", step.Mem)
 	}
 
-	// Security constraints
+	// Security constraints. Docker's default seccomp profile remains in effect
+	// because we never set seccomp=unconfined (seccomp=default is not a valid
+	// Docker CLI profile name and fails container create with exit 125).
 	args = append(args,
 		"--read-only",         // Read-only root filesystem
 		"--pids-limit", "256", // Limit number of processes

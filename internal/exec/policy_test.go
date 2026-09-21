@@ -138,6 +138,46 @@ func TestEnforcePolicy(t *testing.T) {
 			wantErr: true,
 			errMsg:  "network mode 'none' not allowed",
 		},
+		{
+			name: "docker empty user treated as nobody matches policy",
+			step: Step{
+				ID:     "test-1",
+				Runner: "docker",
+				Image:  "alpine:latest",
+			},
+			policy: &policy.Policy{
+				Execution: policy.ExecutionPolicy{
+					AllowLocal: false,
+					Docker: policy.DockerPolicy{
+						Required:       true,
+						ImageAllowlist: []string{"alpine:*"},
+						User:           "nobody",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "docker user policy violation",
+			step: Step{
+				ID:     "test-1",
+				Runner: "docker",
+				Image:  "alpine:latest",
+				User:   "root",
+			},
+			policy: &policy.Policy{
+				Execution: policy.ExecutionPolicy{
+					AllowLocal: false,
+					Docker: policy.DockerPolicy{
+						Required:       true,
+						ImageAllowlist: []string{"alpine:*"},
+						User:           "nobody",
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "container user 'root' not allowed",
+		},
 	}
 
 	for _, tt := range tests {

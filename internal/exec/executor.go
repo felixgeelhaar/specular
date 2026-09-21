@@ -255,6 +255,7 @@ func (e *Executor) createStep(task plan.Task, hasGeneratedCode bool) Step {
 		step.CPU = e.Policy.Execution.Docker.CPULimit
 		step.Mem = e.Policy.Execution.Docker.MemLimit
 		step.Network = e.Policy.Execution.Docker.Network
+		step.User = e.Policy.Execution.Docker.User
 	}
 
 	return step

@@ -33,6 +33,7 @@ func DefaultPolicy() *Policy {
 				CPULimit:       "2",
 				MemLimit:       "2g",
 				Network:        "none",
+				User:           "nobody",
 			},
 		},
 		Linters:    make(map[string]ToolConfig),

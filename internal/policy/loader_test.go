@@ -290,6 +290,9 @@ func TestDefaultPolicy_AllFields(t *testing.T) {
 	if pol.Execution.Docker.Network != "none" {
 		t.Errorf("DefaultPolicy() Network = %s, want none", pol.Execution.Docker.Network)
 	}
+	if pol.Execution.Docker.User != "nobody" {
+		t.Errorf("DefaultPolicy() User = %s, want nobody", pol.Execution.Docker.User)
+	}
 	if pol.Execution.Docker.ImageAllowlist == nil {
 		t.Error("DefaultPolicy() ImageAllowlist should not be nil")
 	}
