@@ -76,6 +76,17 @@ func writeMarkdownNotes(b *strings.Builder, res *Result) {
 	if res.Provenance.Note != "" {
 		fmt.Fprintf(b, "_Provenance:_ %s\n\n", res.Provenance.Note)
 	}
+	if res.Provenance.Attested {
+		var bits []string
+		if len(res.Provenance.WorktreePaths) > 0 {
+			bits = append(bits, "worktree=`"+strings.Join(res.Provenance.WorktreePaths, ", ")+"`")
+		}
+		if len(res.Provenance.WorktreeBranches) > 0 {
+			bits = append(bits, "branch=`"+strings.Join(res.Provenance.WorktreeBranches, ", ")+"`")
+		}
+		bits = append(bits, fmt.Sprintf("governed=`%v`", res.Provenance.Governed))
+		fmt.Fprintf(b, "_Session provenance:_ %s\n\n", strings.Join(bits, " · "))
+	}
 	if res.Drift.Note != "" {
 		fmt.Fprintf(b, "_Drift:_ %s\n\n", res.Drift.Note)
 	}
