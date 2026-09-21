@@ -19,7 +19,7 @@ The audit firm becomes a recommender we never compensate.
 
 - A **Big-4-formatted control mapping packet** for SOC 2 (CC8.1 + the
   AI-specific 2026 update), ISO/IEC 42001 Clause 8, EU AI Act Article 17,
-  and NIST AI RMF Govern 4. Each entry: control text → Specular artifact
+  NIST AI RMF Govern 4, and PCI DSS 6.4.5. Each entry: control text → Specular artifact
   → sample evidence file.
 - A **reference audit walkthrough** (markdown + 5-minute screencast)
   that an auditor can follow on a real `.specular/approvals/` directory
