@@ -1,6 +1,8 @@
 package attestation
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
@@ -46,6 +48,9 @@ func TestGenerateFromSession(t *testing.T) {
 	if att.Provenance.SpecularVersion != "9.9.9" {
 		t.Fatalf("version=%s", att.Provenance.SpecularVersion)
 	}
+	if att.GoalDigest == "" || !strings.HasPrefix(att.GoalDigest, "sha256:") {
+		t.Fatalf("goalDigest=%q", att.GoalDigest)
+	}
 	if err := NewStandardVerifier().Verify(att); err != nil {
 		t.Fatalf("verify: %v", err)
 	}
@@ -59,5 +64,40 @@ func TestGenerateFromSession(t *testing.T) {
 	}
 	if !gov.Provenance.Governed {
 		t.Fatal("expected governed=true in provenance")
+	}
+}
+
+func TestGenerateFromSessionRedactsSecrets(t *testing.T) {
+	t.Parallel()
+	signer, err := NewEphemeralSigner("auditor@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gen := NewGenerator(signer, "1.0.0")
+	// Built at runtime so static scanners do not flag the fixture as a live token.
+	secret := "ghp_" + "abcdefghijklmnopqrstuvwxyz0123456789AB"
+	goal := "ship fix using " + secret
+	att, err := gen.GenerateFromSession(SessionInput{
+		ID: "sec", Goal: goal, Harness: "claude-code", Status: "completed",
+		CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(att.Goal, "ghp_") {
+		t.Fatalf("secret leaked in goal: %q", att.Goal)
+	}
+	if !strings.Contains(att.Goal, "[REDACTED]") {
+		t.Fatalf("expected redaction: %q", att.Goal)
+	}
+	raw, err := json.Marshal(att)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), secret) {
+		t.Fatalf("secret leaked in attestation JSON")
+	}
+	if att.GoalDigest == "" {
+		t.Fatal("missing goalDigest")
 	}
 }

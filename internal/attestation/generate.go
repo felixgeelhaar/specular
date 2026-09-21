@@ -12,6 +12,7 @@ import (
 
 	"github.com/felixgeelhaar/specular/internal/auto"
 	"github.com/felixgeelhaar/specular/internal/safeutil"
+	"github.com/felixgeelhaar/specular/internal/security"
 )
 
 // Generator creates attestations for workflow executions
@@ -54,11 +55,14 @@ func (g *Generator) Generate(result *auto.Result, config *auto.Config, planJSON 
 		status = result.AutoOutput.Status
 	}
 
+	safeGoal, goalDigest := security.SafeGoal(goal)
+
 	// Create base attestation
 	attestation := &Attestation{
 		Version:    "1.0",
 		WorkflowID: workflowID,
-		Goal:       goal,
+		Goal:       safeGoal,
+		GoalDigest: goalDigest,
 		StartTime:  startTime,
 		EndTime:    endTime,
 		Duration:   result.Duration.String(),
@@ -179,10 +183,12 @@ func (g *Generator) GenerateFromSession(in SessionInput) (*Attestation, error) {
 	if start.IsZero() {
 		start = end
 	}
+	safeGoal, goalDigest := security.SafeGoal(in.Goal)
 	attestation := &Attestation{
 		Version:    "1.0",
 		WorkflowID: "session-" + in.ID,
-		Goal:       in.Goal,
+		Goal:       safeGoal,
+		GoalDigest: goalDigest,
 		StartTime:  start,
 		EndTime:    end,
 		Duration:   end.Sub(start).String(),

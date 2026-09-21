@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `## Specular Change Control` marker) and `--github-annotations` for Checks
   file annotations; example workflow uses step summary + upsert comment + SARIF
 
+- **Secret-safe attestations**: session/auto attestation goals are redacted
+  before signing (`[REDACTED]` + `goalDigest`); secrets never enter
+  `session wait --bundle` evidence packs (PRODUCT_INTENT §8/§29)
+
 - **Brownfield `specular init`**: Detected / Existing controls / Recommended
   baseline board (PRODUCT_INTENT §24), gate-first next steps, and
   `.github/workflows/examples/specular-gate.yml` PR-check example
