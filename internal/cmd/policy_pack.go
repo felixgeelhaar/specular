@@ -65,12 +65,12 @@ func runPolicyPackList(cmd *cobra.Command, args []string) error {
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	if jsonOut {
 		type row struct {
-			ID       string `json:"id"`
-			Title    string `json:"title"`
-			Summary  string `json:"summary"`
+			ID        string `json:"id"`
+			Title     string `json:"title"`
+			Summary   string `json:"summary"`
 			Framework string `json:"framework"`
-			Control  string `json:"control"`
-			Version  string `json:"version"`
+			Control   string `json:"control"`
+			Version   string `json:"version"`
 		}
 		rows := make([]row, 0, len(entries))
 		for _, e := range entries {
