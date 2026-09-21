@@ -52,6 +52,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session diff` worktree changes vs base or another session
 - `session batch` / `session start --manifest` fleet launch (CI-native vs Mac grid)
 - Manifest `dependsOn` for sequential pipelines (implement → review) without a second CI job
+- `session cherry-pick --from` applies a peer session tip into another worktree (dependsOn handoff)
 - `session exec` worktree command runner (CI substitute for Xirp's per-session PTY)
 - `session commit` lands worktree changes with provenance-aware messages
 - `session sync [--fetch]` rebases/merges worktrees onto base (fetch remote tip)
@@ -117,6 +118,7 @@ specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml demo 
 # Or abort a stuck fleet:
 # specular session wait --timeout 45m --stop
 # specular session stop --all
+specular session cherry-pick review --from demo
 specular session exec demo -- go test ./...
 specular session diff demo --stat
 specular session commit demo --all

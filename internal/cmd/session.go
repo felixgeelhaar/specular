@@ -43,6 +43,7 @@ Examples:
   specular session sync auth
   specular session push auth --pr
   specular session merge auth
+  specular session cherry-pick review --from auth
   specular session attest auth
   specular session batch fleet.yaml
 `,
@@ -1328,6 +1329,72 @@ primary working tree. On conflict, aborts and reports conflicted paths.
 	},
 }
 
+var sessionCherryPickCmd = &cobra.Command{
+	Use:   "cherry-pick <session-id>",
+	Short: "Apply a commit from another session into this worktree",
+	Long: `Cherry-pick a source session's HEAD (or --sha) into the target worktree.
+
+Useful for dependsOn handoff: review session pulls the implement tip without
+a full merge. On conflict, aborts and reports paths.
+
+  specular session cherry-pick review --from auth
+  specular session cherry-pick review --from auth --sha abc1234
+  specular session cherry-pick review --from auth --no-commit
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mgr, err := session.NewManager(cwd)
+		if err != nil {
+			return err
+		}
+		from, _ := cmd.Flags().GetString("from")
+		sha, _ := cmd.Flags().GetString("sha")
+		noCommit, _ := cmd.Flags().GetBool("no-commit")
+		force, _ := cmd.Flags().GetBool("force")
+		jsonOut, _ := cmd.Flags().GetBool("json")
+		if strings.TrimSpace(from) == "" {
+			return fmt.Errorf("session: --from <session-id> is required")
+		}
+
+		res, pickErr := mgr.CherryPick(cmd.Context(), args[0], session.CherryPickOptions{
+			From:     from,
+			SHA:      sha,
+			NoCommit: noCommit,
+			Force:    force,
+		})
+		if jsonOut && res != nil {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(res)
+		}
+		if pickErr != nil {
+			if !jsonOut && res != nil && len(res.Conflicts) > 0 {
+				fmt.Fprintf(os.Stderr, "Conflicts:\n")
+				for _, p := range res.Conflicts {
+					fmt.Fprintf(os.Stderr, "  %s\n", p)
+				}
+			}
+			return pickErr
+		}
+		if jsonOut {
+			return nil
+		}
+		fmt.Printf("Cherry-picked into session %s\n", res.SessionID)
+		fmt.Printf("  From:   %s\n", res.FromSessionID)
+		fmt.Printf("  Commit: %s\n", res.Commit)
+		fmt.Printf("  Before: %s\n", res.BeforeSHA)
+		fmt.Printf("  After:  %s\n", res.AfterSHA)
+		if res.NoCommit {
+			fmt.Printf("  Note:   --no-commit (changes staged/applied only)\n")
+		}
+		return nil
+	},
+}
+
 var sessionAttestCmd = &cobra.Command{
 	Use:   "attest <session-id>",
 	Short: "Write a signed attestation with harness/worktree provenance",
@@ -1640,6 +1707,12 @@ func init() {
 	sessionMergeCmd.Flags().Bool("force", false, "Merge even if the session is still running")
 	sessionMergeCmd.Flags().Bool("json", false, "Emit JSON")
 
+	sessionCherryPickCmd.Flags().String("from", "", "Source session ID to cherry-pick from (required)")
+	sessionCherryPickCmd.Flags().String("sha", "", "Commit SHA to pick (default: source session HEAD)")
+	sessionCherryPickCmd.Flags().Bool("no-commit", false, "Apply without creating a commit")
+	sessionCherryPickCmd.Flags().Bool("force", false, "Cherry-pick even if the target session is still running")
+	sessionCherryPickCmd.Flags().Bool("json", false, "Emit JSON")
+
 	sessionAttestCmd.Flags().String("output", "", "Attestation output path (default: .specular/sessions/<id>.attestation.json)")
 	sessionAttestCmd.Flags().Bool("force", false, "Attest even if the session is still running")
 	sessionAttestCmd.Flags().Bool("json", false, "Emit JSON")
@@ -1664,6 +1737,7 @@ func init() {
 	sessionCmd.AddCommand(sessionSyncCmd)
 	sessionCmd.AddCommand(sessionPushCmd)
 	sessionCmd.AddCommand(sessionMergeCmd)
+	sessionCmd.AddCommand(sessionCherryPickCmd)
 	sessionCmd.AddCommand(sessionAttestCmd)
 	rootCmd.AddCommand(sessionCmd)
 }

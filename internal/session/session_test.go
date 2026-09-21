@@ -1076,6 +1076,56 @@ func TestSessionMerge(t *testing.T) {
 	}
 }
 
+func TestSessionCherryPick(t *testing.T) {
+	repo := initTempRepo(t)
+	mgr, err := NewManager(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stub := writeExitStub(t, 0)
+	src, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "source", Name: "cp-src", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dst, err := mgr.Start(context.Background(), StartOptions{
+		Goal: "dest", Name: "cp-dst", Harness: "specular-auto",
+		Detach: false, NoApproval: true, Binary: stub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src.WorktreePath, "handoff.txt"), []byte("from src\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Commit(context.Background(), src.ID, CommitOptions{All: true, Message: "src handoff"}); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := mgr.CherryPick(context.Background(), dst.ID, CherryPickOptions{From: src.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.FromSessionID != src.ID || res.SessionID != dst.ID || res.Commit == "" {
+		t.Fatalf("%+v", res)
+	}
+	if res.AfterSHA == res.BeforeSHA {
+		t.Fatal("expected dest HEAD to move")
+	}
+	if _, err := os.Stat(filepath.Join(dst.WorktreePath, "handoff.txt")); err != nil {
+		t.Fatalf("handoff.txt missing in dest: %v", err)
+	}
+
+	if _, err := mgr.CherryPick(context.Background(), dst.ID, CherryPickOptions{}); err == nil {
+		t.Fatal("expected missing --from error")
+	}
+	if _, err := mgr.CherryPick(context.Background(), dst.ID, CherryPickOptions{From: dst.ID}); err == nil {
+		t.Fatal("expected self cherry-pick error")
+	}
+}
+
 func TestSessionAttest(t *testing.T) {
 	repo := initTempRepo(t)
 	mgr, err := NewManager(repo)

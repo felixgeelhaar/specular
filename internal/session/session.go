@@ -970,6 +970,88 @@ func (m *Manager) Merge(ctx context.Context, id string, opts MergeOptions) (*Mer
 	return res, nil
 }
 
+// CherryPickOptions configures Manager.CherryPick — apply a source session
+// commit into another session worktree (dependsOn handoff).
+type CherryPickOptions struct {
+	// From is the source session ID whose commit is applied.
+	From string
+	// SHA overrides the source HEAD (must be reachable in the repo).
+	SHA string
+	// NoCommit applies without creating a commit.
+	NoCommit bool
+	// Force allows cherry-picking while the target session is still running.
+	Force bool
+}
+
+// CherryPickResult is the outcome of applying a commit into a session worktree.
+type CherryPickResult struct {
+	SessionID     string   `json:"sessionId"`
+	FromSessionID string   `json:"fromSessionId"`
+	WorktreePath  string   `json:"worktreePath"`
+	Commit        string   `json:"commit"`
+	BeforeSHA     string   `json:"beforeSha"`
+	AfterSHA      string   `json:"afterSha"`
+	Conflicts     []string `json:"conflicts,omitempty"`
+	NoCommit      bool     `json:"noCommit,omitempty"`
+}
+
+// CherryPick applies a commit from one session into another's worktree.
+func (m *Manager) CherryPick(ctx context.Context, intoID string, opts CherryPickOptions) (*CherryPickResult, error) {
+	fromID := strings.TrimSpace(opts.From)
+	if fromID == "" {
+		return nil, fmt.Errorf("session: cherry-pick requires --from <session-id>")
+	}
+	into, intoErr := m.Get(intoID)
+	if intoErr != nil {
+		return nil, intoErr
+	}
+	from, fromErr := m.Get(fromID)
+	if fromErr != nil {
+		return nil, fromErr
+	}
+	if into.WorktreePath == "" {
+		return nil, fmt.Errorf("session: %s has no worktree (started with --no-worktree?)", into.ID)
+	}
+	if from.WorktreePath == "" {
+		return nil, fmt.Errorf("session: %s has no worktree (started with --no-worktree?)", from.ID)
+	}
+	if into.ID == from.ID {
+		return nil, fmt.Errorf("session: cannot cherry-pick a session into itself")
+	}
+	if !opts.Force && sessionStillRunning(into) {
+		return nil, fmt.Errorf("session: %s is still %s (stop it first, or pass --force)", into.ID, into.Status)
+	}
+	sha := strings.TrimSpace(opts.SHA)
+	if sha == "" {
+		var headErr error
+		sha, headErr = m.worktrees.HeadSHA(ctx, from.WorktreePath)
+		if headErr != nil {
+			return nil, headErr
+		}
+	}
+	wtRes, wtErr := m.worktrees.CherryPick(ctx, worktree.CherryPickOptions{
+		WorkDir:  into.WorktreePath,
+		Commit:   sha,
+		NoCommit: opts.NoCommit,
+	})
+	res := &CherryPickResult{
+		SessionID:     into.ID,
+		FromSessionID: from.ID,
+		WorktreePath:  into.WorktreePath,
+		NoCommit:      opts.NoCommit,
+	}
+	if wtRes != nil {
+		res.Commit = wtRes.Commit
+		res.BeforeSHA = wtRes.BeforeSHA
+		res.AfterSHA = wtRes.AfterSHA
+		res.Conflicts = wtRes.Conflicts
+	}
+	if wtErr != nil {
+		return res, wtErr
+	}
+	return res, nil
+}
+
 // AttestOptions configures Manager.Attest.
 type AttestOptions struct {
 	// OutputPath overrides the default .specular/sessions/<id>.attestation.json.

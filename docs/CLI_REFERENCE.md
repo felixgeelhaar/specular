@@ -2042,6 +2042,8 @@ specular session <subcommand>
 | `session commit <id>` | Commit worktree changes (provenance-aware message) |
 | `session sync <id>` | Rebase/merge worktree onto base (optional `--fetch`) |
 | `session push <id>` | Push worktree branch (`--pr` opens a GitHub PR via gh) |
+| `session merge <id>` | Merge worktree branch into primary checkout (local land) |
+| `session cherry-pick <id> --from <src>` | Apply source session tip into this worktree |
 | `session attest <id>` | Write signed attestation with harness/worktree provenance |
 | `session fork <id> [--name] [--start]` | Fork onto a new worktree (optionally start) |
 | `session stop [id…]` / `stop --all` | Stop one, many, or all non-terminal sessions |
@@ -2145,6 +2147,10 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `merge --no-ff` | Always create a merge commit |
 | `merge -m <msg>` | Override provenance-aware merge message |
 | `merge --force` | Merge even if the session is still running |
+| `cherry-pick --from <id>` | Source session whose HEAD (or `--sha`) is applied |
+| `cherry-pick --sha <commit>` | Specific commit to pick (default: source HEAD) |
+| `cherry-pick --no-commit` | Apply without creating a commit |
+| `cherry-pick --force` | Cherry-pick even if the target session is still running |
 | `attest --output <path>` | Override attestation path (default `.specular/sessions/<id>.attestation.json`) |
 | `attest --force` | Attest even if the session is still running |
 
@@ -2179,6 +2185,7 @@ $ specular session sync auth
 $ specular session sync auth --fetch
 $ specular session push auth --pr
 $ specular session merge auth
+$ specular session cherry-pick review --from auth
 $ specular session attest auth
 $ specular auto verify .specular/sessions/auth.attestation.json
 $ specular session diff auth --against ratelimit
