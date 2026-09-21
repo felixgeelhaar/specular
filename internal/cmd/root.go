@@ -32,16 +32,20 @@ import (
 // Testing is done through ExecuteContext() which wraps this command.
 var rootCmd = &cobra.Command{
 	Use:   "specular",
-	Short: "AI-Native Spec and Build Assistant",
-	Long: `╔══════════════════════════════════════════════════════════════╗
-║                      [ specular ]                            ║
-║            AI-Native Spec and Build Assistant                ║
-╚══════════════════════════════════════════════════════════════╝
+	Short: "Trust boundary for AI-authored software changes",
+	Long: `Specular is the independent change-control and evidence layer for AI-authored code.
 
-specular is a CLI tool that enables spec-first, policy-enforced software
-development using AI. It transforms natural language product requirements into
-structured specifications, executable plans, and production-ready code while
-maintaining traceability and enforcing organizational guardrails.`,
+Primary command:
+  specular gate     Evaluate a proposed change (ALLOW / DENY)
+
+Supporting surfaces:
+  specular init     Brownfield repository setup
+  specular explain  Explain decisions (expanding)
+  specular session  Strong provenance / governed agent sessions
+  specular evidence Show evidence records (expanding)
+
+Product intent: docs/PRODUCT_INTENT.md
+`,
 	SilenceUsage:  true, // Don't show usage on errors - it's noise
 	SilenceErrors: true, // main.go handles error printing
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -85,6 +89,7 @@ func isFastCommand() bool {
 		"version":    true,
 		"completion": true,
 		"help":       true,
+		"gate":       true, // thin change-control evaluation
 		"__complete": true, // Cobra completion helper
 	}
 

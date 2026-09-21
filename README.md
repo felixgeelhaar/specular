@@ -4,14 +4,17 @@
 
 # Specular
 
-**AI Change Control — parallel agent sessions + an auditor-ready gate**
+**The trust boundary for AI-authored code**
 
-A Go-based CLI that owns both loops of AI-authored software change:
+A Go-based CLI that evaluates proposed software changes for provenance, drift, policy, and verification before they ship:
 
-- **Inner loop** — run Claude Code, Codex, Gemini, or governed `specular-auto` in parallel Git worktrees (`specular session`)
-- **Outer loop** — drift detection, policy enforcement, and signed attestations/bundles so what ships is reviewable and attributable
+```bash
+specular gate
+```
 
-Transform requirements into specs, plans, and production-ready changes while recording which harness authored the work and whether it drifted from intent.
+Also owns parallel agent sessions (`specular session`) with strong provenance when you want governed execution — without requiring Specular-native agents to get value from the gate.
+
+Product intent: [`docs/PRODUCT_INTENT.md`](docs/PRODUCT_INTENT.md).
 
 ## Why Specular?
 

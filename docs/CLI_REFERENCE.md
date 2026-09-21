@@ -6,6 +6,8 @@ Complete reference for Specular CLI commands and flags.
 
 - [Overview](#overview)
 - [Global Flags](#global-flags)
+- [Change Control Gate](#change-control-gate)
+  - [gate](#gate)
 - [Governance Commands](#governance-commands)
   - [governance](#governance)
   - [doctor](#doctor)
@@ -61,6 +63,34 @@ These flags are available for all commands:
 | `--no-color` | | bool | Disable colored output |
 | `--verbose` | `-v` | bool | Enable verbose logging |
 | `--help` | `-h` | bool | Display help information |
+
+## Change Control Gate
+
+### gate
+
+Evaluate a proposed software change and print an explainable ALLOW / DENY verdict.
+
+**Usage:**
+```bash
+specular gate [--json] [--strict-spec] [--policy <file>] [--report <sarif>]
+```
+
+**Pipeline:** change discovery → provenance summary → drift (when specs exist) → policy verification (when policy exists) → verdict.
+
+Brownfield repositories without `.specular/spec`+plan+lock skip drift unless `--strict-spec`. Missing policy skips verification. Missing session attestations are reported as unattested (never silently verified).
+
+| Flag | Description |
+|------|-------------|
+| `--project-root` | Repository root (default: cwd) |
+| `--policy` | Policy file (default: `.specular/policy.yaml` if present) |
+| `--report` | Drift SARIF path when drift runs (default: `drift.sarif`) |
+| `--strict-spec` | Fail when Specular spec/plan/lock are missing |
+| `--json` | Emit machine-readable JSON |
+| `-q` / `--quiet` | Suppress human board |
+
+Exit codes: `0` ALLOW, `3` policy DENY, `4` drift DENY.
+
+Product intent: [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md).
 
 ## Governance Commands
 
