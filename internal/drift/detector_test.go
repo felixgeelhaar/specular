@@ -8,6 +8,32 @@ import (
 	"github.com/felixgeelhaar/specular/pkg/specular/types"
 )
 
+func TestDetectPlanDriftMissingTaskOrderStable(t *testing.T) {
+	t.Parallel()
+	lock := &spec.SpecLock{
+		Version: "1.0",
+		Features: map[types.FeatureID]spec.LockedFeature{
+			types.FeatureID("zeta"):  {Hash: "z"},
+			types.FeatureID("alpha"): {Hash: "a"},
+			types.FeatureID("mid"):   {Hash: "m"},
+		},
+	}
+	p := &plan.Plan{Tasks: nil}
+	findings := DetectPlanDrift(lock, p)
+	if len(findings) != 3 {
+		t.Fatalf("findings=%d", len(findings))
+	}
+	want := []string{"alpha", "mid", "zeta"}
+	for i, f := range findings {
+		if f.Code != "MISSING_TASK" {
+			t.Fatalf("code=%s", f.Code)
+		}
+		if string(f.FeatureID) != want[i] {
+			t.Fatalf("order=%v want feature %s at %d got %s", findings, want[i], i, f.FeatureID)
+		}
+	}
+}
+
 func TestDetectPlanDrift(t *testing.T) {
 	tests := []struct {
 		name         string

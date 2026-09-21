@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before signing (`[REDACTED]` + `goalDigest`); secrets never enter
   `session wait --bundle` evidence packs (PRODUCT_INTENT §8/§29)
 
+- **Deterministic gate findings**: sort drift findings and provenance
+  session/harness lists so identical inputs yield identical Reason, JSON,
+  and evidence IDs (PRODUCT_INTENT §6.7 / P0 #9)
+
 - **Brownfield `specular init`**: Detected / Existing controls / Recommended
   baseline board (PRODUCT_INTENT §24), gate-first next steps, and
   `.github/workflows/examples/specular-gate.yml` PR-check example

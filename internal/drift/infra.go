@@ -2,6 +2,7 @@ package drift
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/felixgeelhaar/specular/internal/exec"
@@ -55,7 +56,14 @@ func checkDockerImagePolicy(taskImages map[string]string, pol *policy.Policy) []
 		return findings // No allowlist defined
 	}
 
-	for taskID, image := range taskImages {
+	taskIDs := make([]string, 0, len(taskImages))
+	for taskID := range taskImages {
+		taskIDs = append(taskIDs, taskID)
+	}
+	sort.Strings(taskIDs)
+
+	for _, taskID := range taskIDs {
+		image := taskImages[taskID]
 		// Check if task specifies a Docker image
 		if image == "" {
 			findings = append(findings, Finding{
