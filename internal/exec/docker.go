@@ -169,13 +169,14 @@ func buildDockerArgs(step Step) []string {
 		args = append(args, "--memory", step.Mem)
 	}
 
-	// Security constraints
+	// Security constraints. Docker's default seccomp profile remains in effect
+	// because we never set seccomp=unconfined (seccomp=default is not a valid
+	// Docker CLI profile name and fails container create with exit 125).
 	args = append(args,
 		"--read-only",         // Read-only root filesystem
 		"--pids-limit", "256", // Limit number of processes
 		"--cap-drop", "ALL", // Drop all capabilities
 		"--security-opt", "no-new-privileges", // Prevent privilege escalation
-		"--security-opt", "seccomp=default", // Explicit default seccomp profile
 		"--tmpfs", "/tmp:rw,noexec,nosuid,size=64m", // Writable scratch under read-only root
 	)
 

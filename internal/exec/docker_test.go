@@ -126,8 +126,14 @@ func TestBuildDockerArgs(t *testing.T) {
 			got := buildDockerArgs(tt.step)
 
 			// Verify required args are present
-			if !containsAllStrings(got, []string{"run", "--rm", "--read-only", "--pids-limit", "--cap-drop", "--security-opt", "no-new-privileges", "seccomp=default", "--tmpfs", "--user"}) {
+			if !containsAllStrings(got, []string{"run", "--rm", "--read-only", "--pids-limit", "--cap-drop", "--security-opt", "no-new-privileges", "--tmpfs", "--user"}) {
 				t.Errorf("buildDockerArgs() missing required security args: %v", got)
+			}
+			if containsString(got, "seccomp=unconfined") {
+				t.Errorf("buildDockerArgs() must not disable seccomp: %v", got)
+			}
+			if containsString(got, "seccomp=default") {
+				t.Errorf("buildDockerArgs() must not pass invalid seccomp=default: %v", got)
 			}
 
 			// Verify image is present
