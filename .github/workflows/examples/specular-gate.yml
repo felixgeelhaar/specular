@@ -1,13 +1,12 @@
 # Example: Specular gate as a GitHub PR check
 #
-# Primary change-control primitive — ALLOW / DENY for the working tree.
-# Brownfield: repositories without .specular/spec soft-skip drift unless
-# --strict-spec is passed.
+# Uses native markdown + file annotations from the CLI
+# (PRODUCT_INTENT §21 — Excellent GitHub PR/check UX).
 #
 # Usage:
 #   1. Copy to .github/workflows/specular-gate.yml
 #   2. Ensure the specular binary is available (install step below)
-#   3. Optionally set fail-on drift/policy via exit codes (3=policy, 4=drift)
+#   Exit codes: 0=ALLOW, 3=policy DENY, 4=drift DENY
 
 name: Specular Gate
 
@@ -19,6 +18,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  security-events: write
 
 jobs:
   gate:
@@ -40,13 +40,23 @@ jobs:
         id: gate
         run: |
           set +e
-          specular gate --json > gate.json
+          specular gate --format markdown --github-annotations > gate.md 2>gate.annotations
           code=$?
           set -e
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          cat gate.json
-          # 0 = ALLOW; 3 = policy DENY; 4 = drift DENY
+          # Surface file annotations in the Checks UI
+          cat gate.annotations >&2 || true
+          # Job summary + keep artifact for the PR comment step
+          cat gate.md >> "$GITHUB_STEP_SUMMARY"
+          cat gate.md
           exit "$code"
+
+      - name: Upload drift SARIF
+        if: always() && hashFiles('drift.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: drift.sarif
+          category: specular-gate
 
       - name: Comment ALLOW/DENY on PR
         if: github.event_name == 'pull_request' && always()
@@ -54,30 +64,19 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            let body = '## Specular gate\n\n';
-            if (fs.existsSync('gate.json')) {
-              const res = JSON.parse(fs.readFileSync('gate.json', 'utf8'));
-              body += `**Verdict:** \`${res.verdict}\`\n\n`;
-              body += `**Reason:** ${res.reason || '(none)'}\n\n`;
-              if (res.drift && res.drift.findings && res.drift.findings.length) {
-                body += '### Drift findings\n\n';
-                res.drift.findings.slice(0, 8).forEach(f => {
-                  body += `- **[${f.severity}] ${f.code}** (${f.category})`;
-                  if (f.message) body += `: ${f.message}`;
-                  if (f.location) body += ` _at ${f.location}_`;
-                  body += '\n';
-                });
-              }
-            } else {
-              body += '_gate.json missing — see job logs._\n';
+            const marker = '## Specular Change Control';
+            let body = marker + '\n\n_gate.md missing — see job logs._\n';
+            if (fs.existsSync('gate.md')) {
+              body = fs.readFileSync('gate.md', 'utf8');
             }
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            const marker = '## Specular gate';
-            const existing = comments.find(c => c.user.type === 'Bot' && c.body.startsWith(marker));
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.startsWith(marker)
+            );
             if (existing) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,

@@ -101,6 +101,8 @@ type FindingDetail struct {
 	Message   string `json:"message"`
 	Severity  string `json:"severity"` // error, warning, info
 	Location  string `json:"location,omitempty"`
+	Path      string `json:"path,omitempty"` // parsed file path when known
+	Line      int    `json:"line,omitempty"` // parsed line when known
 }
 
 // PolicySection summarizes policy / verification evaluation.
@@ -312,14 +314,19 @@ func mapFindings(category string, in []drift.Finding) []FindingDetail {
 	}
 	out := make([]FindingDetail, 0, len(in))
 	for _, f := range in {
-		out = append(out, FindingDetail{
+		d := FindingDetail{
 			Category:  category,
 			Code:      f.Code,
 			FeatureID: string(f.FeatureID),
 			Message:   f.Message,
 			Severity:  f.Severity,
 			Location:  f.Location,
-		})
+		}
+		if path, line, ok := ParseFindingLocation(f.Location); ok {
+			d.Path = path
+			d.Line = line
+		}
+		out = append(out, d)
 	}
 	return out
 }

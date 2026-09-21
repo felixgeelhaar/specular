@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   current state (`.specular/baseline.yaml`) — PRODUCT_INTENT §25 progressive
   trust without claiming the state is good
 
+- **Gate PR/check UX**: `specular gate --format markdown` (stable
+  `## Specular Change Control` marker) and `--github-annotations` for Checks
+  file annotations; example workflow uses step summary + upsert comment + SARIF
+
 - **Brownfield `specular init`**: Detected / Existing controls / Recommended
   baseline board (PRODUCT_INTENT §24), gate-first next steps, and
   `.github/workflows/examples/specular-gate.yml` PR-check example
