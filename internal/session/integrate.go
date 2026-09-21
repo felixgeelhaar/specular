@@ -31,9 +31,13 @@ type IntegrateOptions struct {
 type IntegrateFileAction string
 
 const (
-	IntegrateWrite  IntegrateFileAction = "write"
-	IntegrateMerge  IntegrateFileAction = "merge"
-	IntegrateSkip   IntegrateFileAction = "skip"
+	// IntegrateWrite creates a new file.
+	IntegrateWrite IntegrateFileAction = "write"
+	// IntegrateMerge updates an existing settings file while preserving other keys.
+	IntegrateMerge IntegrateFileAction = "merge"
+	// IntegrateSkip leaves an existing Specular hook unchanged.
+	IntegrateSkip IntegrateFileAction = "skip"
+	// IntegrateDryRun records a planned change without writing.
 	IntegrateDryRun IntegrateFileAction = "dry-run"
 )
 
@@ -112,7 +116,7 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 		return nil, hookErr
 	}
 	res.Files = append(res.Files, IntegrateFile{
-		Path:    filepath.ToSlash(filepath.Join(claudeHookRel)),
+		Path:    filepath.ToSlash(claudeHookRel),
 		Action:  hookAction,
 		Content: maybeContent(opts.DryRun, hookContent),
 	})
@@ -122,7 +126,7 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 		return nil, settingsErr
 	}
 	res.Files = append(res.Files, IntegrateFile{
-		Path:    filepath.ToSlash(filepath.Join(claudeSettingsRel)),
+		Path:    filepath.ToSlash(claudeSettingsRel),
 		Action:  settingsAction,
 		Content: maybeContent(opts.DryRun, settingsBody),
 	})
@@ -131,25 +135,36 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 		return res, nil
 	}
 
+	if err := applyIntegrateWrites(hookPath, hookBody, hookAction, settingsPath, settingsBody, settingsAction); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func applyIntegrateWrites(hookPath, hookBody string, hookAction IntegrateFileAction, settingsPath, settingsBody string, settingsAction IntegrateFileAction) error {
 	if hookAction == IntegrateWrite {
 		if mkdirErr := os.MkdirAll(filepath.Dir(hookPath), 0o750); mkdirErr != nil {
-			return nil, fmt.Errorf("session integrate: create hooks dir: %w", mkdirErr)
+			return fmt.Errorf("session integrate: create hooks dir: %w", mkdirErr)
 		}
-		if writeErr := os.WriteFile(hookPath, []byte(hookBody), 0o750); writeErr != nil {
-			return nil, fmt.Errorf("session integrate: write hook: %w", writeErr)
+		if writeErr := os.WriteFile(hookPath, []byte(hookBody), 0o600); writeErr != nil {
+			return fmt.Errorf("session integrate: write hook: %w", writeErr)
+		}
+		// Owner-executable Stop hook; gosec G302 flags any mode with +x.
+		if chmodErr := os.Chmod(hookPath, 0o700); chmodErr != nil { //nolint:gosec // G302: shell hook must be executable by owner
+			return fmt.Errorf("session integrate: chmod hook: %w", chmodErr)
 		}
 	}
 
 	if settingsAction == IntegrateWrite || settingsAction == IntegrateMerge {
 		if mkdirErr := os.MkdirAll(filepath.Dir(settingsPath), 0o750); mkdirErr != nil {
-			return nil, fmt.Errorf("session integrate: create .claude dir: %w", mkdirErr)
+			return fmt.Errorf("session integrate: create .claude dir: %w", mkdirErr)
 		}
-		if writeErr := os.WriteFile(settingsPath, []byte(settingsBody), 0o640); writeErr != nil {
-			return nil, fmt.Errorf("session integrate: write settings: %w", writeErr)
+		if writeErr := os.WriteFile(settingsPath, []byte(settingsBody), 0o600); writeErr != nil {
+			return fmt.Errorf("session integrate: write settings: %w", writeErr)
 		}
 	}
-
-	return res, nil
+	return nil
 }
 
 func maybeContent(dryRun bool, content string) string {
@@ -256,8 +271,8 @@ func stopHookPresent(stopList []interface{}) bool {
 		}
 		inner, _ := group["hooks"].([]interface{})
 		for _, h := range inner {
-			hm, ok := h.(map[string]interface{})
-			if !ok {
+			hm, isMap := h.(map[string]interface{})
+			if !isMap {
 				continue
 			}
 			cmd, _ := hm["command"].(string)
