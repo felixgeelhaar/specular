@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Evidence list `--protocol` wording**: help/docs clarify `ok` means
+  schema+sibling binding (same as gate Protocol board after #119), not
+  schema-only.
+
 ### Added
 
 - **CI progressive-trust ladder docs**: `examples/ci-cd/README.md` +

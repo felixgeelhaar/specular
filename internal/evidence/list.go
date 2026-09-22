@@ -22,7 +22,7 @@ type ListFilter struct {
 	SoftAllow    *bool        // nil = any; true = has exception overrules; false = none
 	Attested     *bool        // nil = any; true/false = gate.provenance.attested
 	Governed     *bool        // nil = any; true/false = gate.provenance.governed
-	Protocol     *bool        // nil = any; true = APP docs present+valid; false = missing/invalid
+	Protocol     *bool        // nil = any; true = APP docs present+schema+bound; false = missing/invalid/unbound
 	Limit        int          // max results; <=0 = unlimited
 }
 
@@ -174,6 +174,8 @@ func (f ListFilter) matchProtocol(rec *Record) bool {
 }
 
 func protocolDocsOK(rec *Record) bool {
+	// ProtocolOK already means schema + sibling attestation binding for
+	// records written after ValidateBound (#117); filter compares stored counts.
 	if rec == nil || rec.Gate == nil {
 		return false
 	}

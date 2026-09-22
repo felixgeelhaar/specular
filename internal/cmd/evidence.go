@@ -56,7 +56,7 @@ Filters (combinable):
   --soft-allow[=true|false]         Exception soft-ALLOW overrules present / absent
   --attested[=true|false]           Gate provenance attested / unattested
   --governed[=true|false]           Gate provenance governed / ungoverned
-  --protocol[=true|false]           APP docs present+valid / missing or invalid
+  --protocol[=true|false]           APP docs present+schema+bound / missing, invalid, or unbound
   --limit N                         Cap results after sorting (newest first)
 
 --json emits a JSON array of matching IDs.
@@ -196,7 +196,7 @@ func init() {
 	evidenceListCmd.Flags().Bool("soft-allow", false, "Filter by exception soft-ALLOW overrules (--soft-allow / --soft-allow=false)")
 	evidenceListCmd.Flags().Bool("attested", false, "Filter by attested provenance (--attested / --attested=false)")
 	evidenceListCmd.Flags().Bool("governed", false, "Filter by governed provenance (--governed / --governed=false)")
-	evidenceListCmd.Flags().Bool("protocol", false, "Filter by APP protocol docs OK (--protocol / --protocol=false)")
+	evidenceListCmd.Flags().Bool("protocol", false, "Filter by APP protocol docs OK schema+bound (--protocol / --protocol=false)")
 	evidenceListCmd.Flags().Int("limit", 0, "Maximum number of records to return (0 = all)")
 	evidenceShowCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	evidenceCmd.AddCommand(evidenceListCmd)
