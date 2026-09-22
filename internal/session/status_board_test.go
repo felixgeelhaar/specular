@@ -1,6 +1,10 @@
 package session
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestBuildStatusBoard(t *testing.T) {
 	t.Parallel()
@@ -33,5 +37,31 @@ func TestBuildStatusBoard(t *testing.T) {
 	list[0].Status = StatusFailed
 	if board.Sessions[0].Status != StatusWorking {
 		t.Fatal("expected board to own a copy of session records")
+	}
+}
+
+func TestEvidenceFlagsAndBoard(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "auth.provenance.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	flags := EvidenceFlags(dir, "auth")
+	if !flags.Attested || !flags.App {
+		t.Fatalf("%+v", flags)
+	}
+	if EvidenceFlags(dir, "missing").Attested {
+		t.Fatal("expected missing")
+	}
+	board := BuildStatusBoardWithEvidence([]Record{{ID: "auth", Status: StatusCompleted}}, dir)
+	ev := board.Evidence["auth"]
+	if !ev.Attested || !ev.App {
+		t.Fatalf("%+v", board.Evidence)
+	}
+	if YesDash(true) != "yes" || YesDash(false) != "-" {
+		t.Fatal(YesDash(true), YesDash(false))
 	}
 }

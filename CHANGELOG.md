@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evidence) instead of legacy drift-only eval; brownfield soft-skips
   missing specs. `--bundle` also packs sibling `.provenance.json` APP docs.
 
+- **Session status/list ATTEST + APP columns**: human boards and
+  `session status --json` evidence map show sibling attestation /
+  `.provenance.json` presence beside GOV.
+
 ### Changed
 
 - **Evidence list `--protocol` wording**: help/docs clarify `ok` means

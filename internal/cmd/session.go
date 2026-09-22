@@ -289,7 +289,8 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 
 		if len(list) > 0 {
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tWORKTREE\tPID\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tWORKTREE\tPID\tGOAL")
+			storeDir := mgr.Store().Dir()
 			for _, s := range list {
 				goal := s.Goal
 				if len(goal) > 48 {
@@ -303,11 +304,10 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 				if wt == "" {
 					wt = "-"
 				}
-				gov := "-"
-				if s.Governed {
-					gov = "yes"
-				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, gov, wt, pid, goal)
+				gov := session.YesDash(s.Governed)
+				ev := session.EvidenceFlags(storeDir, s.ID)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), wt, pid, goal)
 			}
 			_ = w.Flush()
 		}
@@ -581,7 +581,7 @@ With --json, emit {summary, sessions} for dashboards (not a bare array).`,
 			if listErr != nil {
 				return listErr
 			}
-			board := session.BuildStatusBoard(list)
+			board := session.BuildStatusBoardWithEvidence(list, mgr.Store().Dir())
 			if jsonOut {
 				enc := json.NewEncoder(os.Stdout)
 				enc.SetIndent("", "  ")
@@ -592,7 +592,7 @@ With --json, emit {summary, sessions} for dashboards (not a bare array).`,
 				return nil
 			}
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tPID\tBRANCH\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPID\tBRANCH\tGOAL")
 			for _, s := range board.Sessions {
 				goal := s.Goal
 				if len(goal) > 40 {
@@ -606,11 +606,10 @@ With --json, emit {summary, sessions} for dashboards (not a bare array).`,
 				if branch == "" {
 					branch = "-"
 				}
-				gov := "-"
-				if s.Governed {
-					gov = "yes"
-				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, gov, pid, branch, goal)
+				gov := session.YesDash(s.Governed)
+				ev := board.Evidence[s.ID]
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), pid, branch, goal)
 			}
 			_ = w.Flush()
 			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
