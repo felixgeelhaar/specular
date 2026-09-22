@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/felixgeelhaar/specular/internal/provenance"
 )
 
 // MarkdownMarker is the stable heading used to upsert PR comments.
@@ -116,7 +118,8 @@ func writeMarkdownSessionProvenance(b *strings.Builder, res *Result) {
 	}
 	bits = append(bits, fmt.Sprintf("governed=`%v`", res.Provenance.Governed))
 	if res.Provenance.ProtocolDocs > 0 {
-		bits = append(bits, fmt.Sprintf("APP docs=`%d/%d ok`", res.Provenance.ProtocolOK, res.Provenance.ProtocolDocs))
+		bits = append(bits, fmt.Sprintf("APP %s",
+			provenance.FormatProtocolDocsOK(res.Provenance.ProtocolOK, res.Provenance.ProtocolDocs)))
 	} else if res.ProvenanceProtocol != nil {
 		bits = append(bits, "protocol=`"+res.ProvenanceProtocol.Schema+"`")
 	}

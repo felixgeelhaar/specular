@@ -82,15 +82,15 @@ func TestEvaluateProvenanceAPPDocs(t *testing.T) {
 	if res.Provenance.ProtocolSchema != "specular.provenance/v1" {
 		t.Fatalf("schema=%s", res.Provenance.ProtocolSchema)
 	}
-	if !strings.Contains(res.Provenance.Note, "APP docs 1/1 ok") {
+	if !strings.Contains(res.Provenance.Note, "APP docs 1/1 ok (schema+bound)") {
 		t.Fatalf("note=%q", res.Provenance.Note)
 	}
 	text := FormatText(res)
-	if !strings.Contains(text, "Protocol       specular.provenance/v1 (docs=1 ok=1)") {
+	if !strings.Contains(text, "Protocol       specular.provenance/v1 (docs=1 ok=1 schema+bound)") {
 		t.Fatalf("board:\n%s", text)
 	}
 	md := FormatMarkdown(res)
-	if !strings.Contains(md, "APP docs=`1/1 ok`") {
+	if !strings.Contains(md, "APP docs=1 ok=1 schema+bound") {
 		t.Fatalf("markdown:\n%s", md)
 	}
 }

@@ -109,10 +109,11 @@ Satisfy a required role with an open exception whose `--policy` (or
 `specular approve exception-auth --reason "…" --policy security`.
 
 **Provenance protocol (PRODUCT_INTENT §9):** When session attestations are
-present, gate counts sibling `.provenance.json` APP docs (`docs=N ok=M`).
-A doc counts as `ok` only when schema validation and sibling attestation
-binding (session / harness / governed / source) succeed — still not crypto.
-Without a policy `provenance:` block this stays advisory. Opt-in knobs:
+present, gate counts sibling `.provenance.json` APP docs
+(`docs=N ok=M schema+bound`). A doc counts as `ok` only when schema validation
+and sibling attestation binding (session / harness / governed / source)
+succeed — still not crypto. Without a policy `provenance:` block this stays
+advisory. Opt-in knobs:
 
 ```yaml
 provenance:
@@ -162,7 +163,8 @@ newest attestation by mtime.
 `verify` checks schema / version / required `session`, then binds the
 document to its sibling `.attestation.json` (harness / governed / source).
 Projected-only docs (attestation present, no `.provenance.json` on disk)
-skip sibling checks. Exit 0 on OK. Cryptographic signatures remain on
+skip sibling checks (`Bound: projected`). Successful sibling checks print
+`Bound: sibling`. Exit 0 on OK. Cryptographic signatures remain on
 `specular auto verify`.
 
 Gate can optionally **enforce** the same checks via policy

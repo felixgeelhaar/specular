@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/gate"
+	"github.com/felixgeelhaar/specular/internal/provenance"
 )
 
 // Schema identifies the evidence record format.
@@ -274,7 +275,8 @@ func writeProvenanceBlock(b *strings.Builder, g *gate.Result) {
 		if schema == "" {
 			schema = "specular.provenance/v1"
 		}
-		fmt.Fprintf(b, "Protocol     %s (docs=%d ok=%d)\n", schema, g.Provenance.ProtocolDocs, g.Provenance.ProtocolOK)
+		fmt.Fprintf(b, "Protocol     %s (%s)\n", schema,
+			provenance.FormatProtocolDocsOK(g.Provenance.ProtocolOK, g.Provenance.ProtocolDocs))
 	}
 	if !g.Provenance.Attested {
 		note := g.Provenance.Note
@@ -556,8 +558,8 @@ func writeWhyProvenanceEnforce(b *strings.Builder, g *gate.Result) {
 		if g.Provenance.Enforced {
 			mode = "enforced"
 		}
-		fmt.Fprintf(b, "  • APP protocol %s: docs=%d ok=%d\n",
-			mode, g.Provenance.ProtocolDocs, g.Provenance.ProtocolOK)
+		fmt.Fprintf(b, "  • APP protocol %s: %s\n",
+			mode, provenance.FormatProtocolDocsOK(g.Provenance.ProtocolOK, g.Provenance.ProtocolDocs))
 		return
 	}
 	if g.Provenance.Enforced {

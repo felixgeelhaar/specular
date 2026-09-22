@@ -14,11 +14,15 @@ import (
 // This checks the open protocol envelope — not cryptographic signatures
 // (those remain on specular auto verify / attestation.Verify).
 type VerifyResult struct {
-	OK      bool     `json:"ok"`
-	Schema  string   `json:"schema,omitempty"`
-	Session string   `json:"session,omitempty"`
-	Source  string   `json:"source,omitempty"`
-	Errors  []string `json:"errors,omitempty"`
+	OK      bool   `json:"ok"`
+	Schema  string `json:"schema,omitempty"`
+	Session string `json:"session,omitempty"`
+	Source  string `json:"source,omitempty"`
+	// Bound is "sibling" when harness/governed/source matched the sibling
+	// attestation, or "projected" when only an attestation exists (no
+	// .provenance.json on disk — sibling checks skipped). Empty on schema fail.
+	Bound  string   `json:"bound,omitempty"`
+	Errors []string `json:"errors,omitempty"`
 }
 
 // Validate checks required Agent Provenance Protocol v1 fields.
@@ -116,6 +120,7 @@ func bindSiblingAttestation(res *VerifyResult, doc *Document, root string) {
 	_, attErr := os.Stat(attPath)
 	if os.IsNotExist(provErr) {
 		// Projected from attestation only — nothing to bind.
+		res.Bound = "projected"
 		return
 	}
 	if attErr != nil {
@@ -149,6 +154,9 @@ func bindSiblingAttestation(res *VerifyResult, doc *Document, root string) {
 	if doc.Governed != attGoverned {
 		res.Errors = append(res.Errors,
 			fmt.Sprintf("governed %v != attestation governed %v", doc.Governed, attGoverned))
+	}
+	if len(res.Errors) == 0 {
+		res.Bound = "sibling"
 	}
 }
 
@@ -286,8 +294,20 @@ func FormatVerifyHuman(res *VerifyResult) string {
 	if res.Source != "" {
 		fmt.Fprintf(&b, "Source       %s\n", res.Source)
 	}
+	switch res.Bound {
+	case "sibling":
+		b.WriteString("Bound        sibling attestation (harness/governed/source)\n")
+	case "projected":
+		b.WriteString("Bound        projected (no .provenance.json on disk)\n")
+	}
 	for _, e := range res.Errors {
 		fmt.Fprintf(&b, "Error        %s\n", e)
 	}
 	return b.String()
+}
+
+// FormatProtocolDocsOK annotates gate/evidence protocol counts: ok means
+// schema validation plus sibling attestation binding (not crypto).
+func FormatProtocolDocsOK(ok, docs int) string {
+	return fmt.Sprintf("docs=%d ok=%d schema+bound", docs, ok)
 }
