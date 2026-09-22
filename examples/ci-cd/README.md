@@ -20,9 +20,10 @@ ALLOW/DENY, and writes evidence under `.specular/evidence/`.
 |------|----------|
 | [`gitlab-gate.yml`](./gitlab-gate.yml) | **GitLab MR gate (recommended)** — markdown + upsert note + SARIF |
 | [`gitlab-ci.yml`](./gitlab-ci.yml) | GitLab full pipeline (validate/plan/build + gate) |
-| [`Jenkinsfile`](./Jenkinsfile) | Jenkins (credentials for provider API keys unchanged) |
+| [`Jenkinsfile.gate`](./Jenkinsfile.gate) | **Jenkins gate-only (recommended)** — markdown + SARIF + brownfield soft-skip |
+| [`Jenkinsfile`](./Jenkinsfile) | Jenkins full pipeline (credentials for provider API keys unchanged) |
 | [`circleci-config.yml`](./circleci-config.yml) | CircleCI |
-| [`generic-ci.sh`](./generic-ci.sh) | Any shell-based CI (Buildkite, Tekton, etc.) |
+| [`generic-ci.sh`](./generic-ci.sh) | Any shell-based CI (Buildkite, Tekton, etc.) — brownfield-safe |
 | [`github-actions-basic.yml`](./github-actions-basic.yml) | Legacy composite-action sample — prefer the gate workflow above |
 
 ### GitLab MR gate (P1 #7)
@@ -34,6 +35,13 @@ example (update in place instead of stacking notes). Without the token,
 gate still runs and fails the pipeline on DENY.
 
 Brownfield: missing `.specular/policy.yaml` soft-skips policy inside gate.
+
+### Jenkins / generic CI (P1 #8)
+
+Use [`Jenkinsfile.gate`](./Jenkinsfile.gate) for a focused PR/branch gate, or
+[`generic-ci.sh`](./generic-ci.sh) inside any shell runner. Both omit
+`--policy` when the file is missing (brownfield) and archive `gate.md` /
+`drift.sarif` for reviewers.
 
 ## Sensible CI flags
 
