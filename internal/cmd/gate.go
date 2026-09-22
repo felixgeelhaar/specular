@@ -164,7 +164,7 @@ func init() {
 	gateCmd.Flags().String("report", "drift.sarif", "Drift SARIF output path when drift runs")
 	gateCmd.Flags().Bool("strict-spec", false, "Fail when Specular spec/plan/lock are missing")
 	gateCmd.Flags().Bool("require-attested", false, "DENY when no session attestations (mirrors provenance.attested: enforce)")
-	gateCmd.Flags().Bool("require-protocol", false, "DENY when APP .provenance.json missing/invalid (mirrors provenance.protocol: enforce)")
+	gateCmd.Flags().Bool("require-protocol", false, "DENY when APP docs missing/invalid/unbound (mirrors provenance.protocol: enforce)")
 	gateCmd.Flags().Bool("require-governed", false, "DENY when no governed session (mirrors provenance.governed: enforce)")
 	gateCmd.Flags().String("format", "text", "Output format: text, json, markdown")
 	gateCmd.Flags().Bool("json", false, "Emit machine-readable JSON (alias for --format json)")

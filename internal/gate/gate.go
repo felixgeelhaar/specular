@@ -53,7 +53,7 @@ type Options struct {
 	ReportFile      string // drift SARIF path (default drift.sarif)
 	StrictSpec      bool   // fail when plan/lock/spec missing (default: soft-skip drift)
 	RequireAttested bool   // DENY when unattested (mirrors provenance.attested: enforce)
-	RequireProtocol bool   // DENY when APP docs missing/invalid (mirrors provenance.protocol: enforce)
+	RequireProtocol bool   // DENY when APP docs missing/invalid/unbound (mirrors provenance.protocol: enforce)
 	RequireGoverned bool   // DENY when no governed session (mirrors provenance.governed: enforce)
 }
 
@@ -263,13 +263,13 @@ func discoverProvenance(root string) ProvenanceSection {
 	if len(sec.Sessions) > 0 {
 		sec.Attested = true
 		sec.Status = StatusPass
-		enrichProtocolDocs(&sec, dir)
+		enrichProtocolDocs(&sec, root, dir)
 		sec.Note = attestedProvenanceNote(sec)
 	}
 	return sec
 }
 
-func enrichProtocolDocs(sec *ProvenanceSection, sessionsDir string) {
+func enrichProtocolDocs(sec *ProvenanceSection, root, sessionsDir string) {
 	entries, err := os.ReadDir(sessionsDir)
 	if err != nil {
 		return
@@ -287,7 +287,7 @@ func enrichProtocolDocs(sec *ProvenanceSection, sessionsDir string) {
 		if sec.ProtocolSchema == "" {
 			sec.ProtocolSchema = doc.Schema
 		}
-		if vr := provenance.Validate(doc); vr.OK {
+		if vr := provenance.ValidateBound(doc, root); vr.OK {
 			sec.ProtocolOK++
 		}
 	}

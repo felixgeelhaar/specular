@@ -110,12 +110,14 @@ Satisfy a required role with an open exception whose `--policy` (or
 
 **Provenance protocol (PRODUCT_INTENT §9):** When session attestations are
 present, gate counts sibling `.provenance.json` APP docs (`docs=N ok=M`).
+A doc counts as `ok` only when schema validation and sibling attestation
+binding (session / harness / governed / source) succeed — still not crypto.
 Without a policy `provenance:` block this stays advisory. Opt-in knobs:
 
 ```yaml
 provenance:
   attested: enforce   # DENY when unattested (progressive trust)
-  protocol: enforce   # DENY when attested but APP docs missing/invalid
+  protocol: enforce   # DENY when attested but APP docs missing/invalid/unbound
 ```
 
 `protocol: enforce` alone stays idle on unattested trees. Soft-ALLOW with an
@@ -130,7 +132,7 @@ schema), e.g.
 | `--report` | Drift SARIF path when drift runs (default: `drift.sarif`) |
 | `--strict-spec` | Fail when Specular spec/plan/lock are missing |
 | `--require-attested` | DENY when no session attestations (same as `provenance.attested: enforce`) |
-| `--require-protocol` | DENY when APP `.provenance.json` missing/invalid (same as `provenance.protocol: enforce`; idle when unattested) |
+| `--require-protocol` | DENY when APP docs missing/invalid/unbound (same as `provenance.protocol: enforce`; idle when unattested) |
 | `--require-governed` | DENY when no governed session (same as `provenance.governed: enforce`; idle when unattested) |
 | `--format` | Output: `text` (default), `json`, or `markdown` (PR / step summary) |
 | `--json` | Alias for `--format json` |
@@ -157,8 +159,11 @@ attestation. `show` / `verify` prefer that sibling document when present;
 otherwise they project from `.attestation.json`. Without an id, uses the
 newest attestation by mtime.
 
-`verify` checks schema / version / required `session` (exit 0 on OK). It does
-**not** verify cryptographic signatures — use `specular auto verify` for that.
+`verify` checks schema / version / required `session`, then binds the
+document to its sibling `.attestation.json` (harness / governed / source).
+Projected-only docs (attestation present, no `.provenance.json` on disk)
+skip sibling checks. Exit 0 on OK. Cryptographic signatures remain on
+`specular auto verify`.
 
 Gate can optionally **enforce** the same checks via policy
 `provenance.protocol: enforce` (see [gate](#gate)); default remains advisory.

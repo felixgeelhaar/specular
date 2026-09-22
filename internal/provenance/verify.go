@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/felixgeelhaar/specular/internal/attestation"
 )
 
 // VerifyResult is the machine-readable outcome of schema verification.
@@ -67,7 +69,13 @@ func LoadDocumentFile(path string) (*Document, error) {
 		return nil, parseErr
 	}
 	if doc.Source == "" {
-		doc.Source = filepath.ToSlash(path)
+		base := filepath.Base(path)
+		if strings.HasSuffix(base, ".provenance.json") {
+			id := strings.TrimSuffix(base, ".provenance.json")
+			if id != "" && id != base {
+				doc.Source = AttestationFileRel(id)
+			}
+		}
 	}
 	return doc, nil
 }
@@ -76,6 +84,90 @@ func LoadDocumentFile(path string) (*Document, error) {
 func ProvenanceFileRel(sessionID string) string {
 	id := strings.TrimSpace(sessionID)
 	return filepath.ToSlash(filepath.Join(".specular", SessionsDir, id+".provenance.json"))
+}
+
+// AttestationFileRel returns the relative attestation path for a session id.
+func AttestationFileRel(sessionID string) string {
+	id := strings.TrimSpace(sessionID)
+	return filepath.ToSlash(filepath.Join(".specular", SessionsDir, id+".attestation.json"))
+}
+
+// ValidateBound runs schema Validate then binds the document to its sibling
+// .attestation.json (session / harness / governed / source). No crypto.
+// Projected-only docs (no .provenance.json on disk) skip sibling checks.
+func ValidateBound(doc *Document, root string) *VerifyResult {
+	res := Validate(doc)
+	if !res.OK || doc == nil {
+		return res
+	}
+	bindSiblingAttestation(res, doc, root)
+	res.OK = len(res.Errors) == 0
+	return res
+}
+
+func bindSiblingAttestation(res *VerifyResult, doc *Document, root string) {
+	id := strings.TrimSpace(doc.Session)
+	if id == "" {
+		return
+	}
+	provPath := filepath.Join(SessionsPath(root), id+".provenance.json")
+	attPath := filepath.Join(SessionsPath(root), id+".attestation.json")
+	_, provErr := os.Stat(provPath)
+	_, attErr := os.Stat(attPath)
+	if os.IsNotExist(provErr) {
+		// Projected from attestation only — nothing to bind.
+		return
+	}
+	if attErr != nil {
+		res.Errors = append(res.Errors, "sibling attestation missing")
+		return
+	}
+	raw, readErr := os.ReadFile(attPath)
+	if readErr != nil {
+		res.Errors = append(res.Errors, fmt.Sprintf("sibling attestation unreadable: %v", readErr))
+		return
+	}
+	attHarness, attGoverned, ok := siblingProvenanceFields(raw)
+	if !ok {
+		res.Errors = append(res.Errors, "sibling attestation parse failed")
+		return
+	}
+	wantSource := AttestationFileRel(id)
+	gotSource := filepath.ToSlash(strings.TrimSpace(doc.Source))
+	if gotSource != "" {
+		okSource := gotSource == wantSource || strings.HasSuffix(gotSource, id+".attestation.json")
+		if !okSource {
+			res.Errors = append(res.Errors,
+				fmt.Sprintf("source %q != sibling attestation %q", doc.Source, wantSource))
+		}
+	}
+	docHarness := strings.TrimSpace(doc.Harness)
+	if attHarness != docHarness {
+		res.Errors = append(res.Errors,
+			fmt.Sprintf("harness %q != attestation harness %q", doc.Harness, attHarness))
+	}
+	if doc.Governed != attGoverned {
+		res.Errors = append(res.Errors,
+			fmt.Sprintf("governed %v != attestation governed %v", doc.Governed, attGoverned))
+	}
+}
+
+// siblingProvenanceFields extracts harness/governed without requiring a fully
+// signed attestation envelope (binding is not cryptographic).
+func siblingProvenanceFields(raw []byte) (harness string, governed bool, ok bool) {
+	if att, err := attestation.FromJSON(raw); err == nil && att != nil {
+		return strings.TrimSpace(att.Provenance.Harness), att.Provenance.Governed, true
+	}
+	var payload struct {
+		Provenance struct {
+			Harness  string `json:"harness"`
+			Governed bool   `json:"governed"`
+		} `json:"provenance"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return "", false, false
+	}
+	return strings.TrimSpace(payload.Provenance.Harness), payload.Provenance.Governed, true
 }
 
 // WriteBesideAttestation writes <id>.provenance.json next to an attestation.
@@ -102,8 +194,7 @@ func WriteBesideAttestation(attestationPath string, doc *Document) (string, erro
 	if doc.Version == "" {
 		doc.Version = Version
 	}
-	rel := ProvenanceFileRel(id)
-	doc.Source = rel
+	doc.Source = AttestationFileRel(id)
 	outPath := filepath.Join(dir, id+".provenance.json")
 	data, err := doc.ToJSON()
 	if err != nil {
@@ -154,7 +245,9 @@ func loadPreferProvenance(root, sessionID string) (*Document, error) {
 		if loadErr != nil {
 			return nil, loadErr
 		}
-		doc.Source = ProvenanceFileRel(id)
+		if strings.TrimSpace(doc.Source) == "" {
+			doc.Source = AttestationFileRel(id)
+		}
 		return doc, nil
 	}
 	return LoadSession(root, id)
