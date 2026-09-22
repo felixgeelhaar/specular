@@ -1393,12 +1393,14 @@ var sessionAttestCmd = &cobra.Command{
 	Long: `Emit outer-loop evidence for a managed session — including native
 Claude Code, Codex, and Gemini runs.
 
-Writes .specular/sessions/<id>.attestation.json with provenance.harness and
-worktree fields, verifiable via specular auto verify.
+Writes .specular/sessions/<id>.attestation.json and a sibling
+.specular/sessions/<id>.provenance.json (Agent Provenance Protocol v1).
+Signatures: specular auto verify. Schema: specular provenance verify.
 
   specular session attest auth
   specular session wait --attest auth ratelimit
   specular auto verify .specular/sessions/auth.attestation.json
+  specular provenance verify auth
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
