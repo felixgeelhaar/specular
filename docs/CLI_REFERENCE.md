@@ -2328,7 +2328,7 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `cherry-pick --force` | Cherry-pick even if the target session is still running |
 | `attest --output <path>` | Override attestation path (default `.specular/sessions/<id>.attestation.json`) |
 | `attest --force` | Attest even if the session is still running |
-| `integrate <harness>` | Install native Stop hooks for `claude-code` (alias `claude`) or `cursor` (alias `cursor-agent`) |
+| `integrate <harness>` | Install native Stop/SessionEnd hooks for `claude-code`, `cursor`, `codex`, or `gemini` (aliases: `claude`, `cursor-agent`, `codex-cli`, `gemini-cli`) |
 | `integrate --dry-run` | Print planned hook/config writes without changing the repo |
 | `integrate --force` | Overwrite an existing Specular Stop hook script |
 
@@ -2336,9 +2336,13 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 writes `.claude/hooks/specular-session-stop.sh` and merges `hooks.Stop` into
 `.claude/settings.json`. `session integrate cursor` writes
 `.cursor/hooks/specular-session-stop.sh` and merges `hooks.stop` into
-`.cursor/hooks.json`. On Stop, the hook calls `session attest` + `gate`
-using `SPECULAR_SESSION_ID` exported by `session start`. See
-[`examples/agents/`](../examples/agents/).
+`.cursor/hooks.json`. `session integrate codex` writes
+`.codex/hooks/specular-session-stop.sh` and merges `hooks.Stop` into
+`.codex/hooks.json`. `session integrate gemini` writes
+`.gemini/hooks/specular-session-stop.sh` and merges `hooks.SessionEnd` +
+`hooksConfig.enabled` into `.gemini/settings.json`. On Stop/SessionEnd, the
+hook calls `session attest` + `gate` using `SPECULAR_SESSION_ID` exported by
+`session start`. See [`examples/agents/`](../examples/agents/).
 
 **Example:**
 ```bash
@@ -2346,6 +2350,8 @@ $ specular session integrate claude-code --dry-run
 $ specular session integrate claude-code
 $ specular session integrate cursor --dry-run
 $ specular session integrate cursor
+$ specular session integrate codex
+$ specular session integrate gemini
 $ specular session harnesses
 $ specular session start --harness claude-code --governed --name auth "Harden JWT validation"
 $ specular session start --harness codex --governed --name ratelimit "Add rate limiting"

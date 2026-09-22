@@ -15,6 +15,10 @@ var IntegrableHarness = []string{
 	"claude",
 	"cursor",
 	"cursor-agent",
+	"codex",
+	"codex-cli",
+	"gemini",
+	"gemini-cli",
 }
 
 // IntegrateOptions configures native agent hook installation.
@@ -64,13 +68,18 @@ const (
 	claudeHookRel      = ".claude/hooks/specular-session-stop.sh"
 	cursorHooksJSONRel = ".cursor/hooks.json"
 	cursorHookRel      = ".cursor/hooks/specular-session-stop.sh"
+	codexHooksJSONRel  = ".codex/hooks.json"
+	codexHookRel       = ".codex/hooks/specular-session-stop.sh"
+	geminiSettingsRel  = ".gemini/settings.json"
+	geminiHookRel      = ".gemini/hooks/specular-session-stop.sh"
 	specularHookMarker = "specular-session-stop.sh"
 )
 
 // IsIntegrableHarness reports whether integrate supports the harness label.
 func IsIntegrableHarness(h string) bool {
 	switch normalizeHarness(h) {
-	case "claude-code", "claude", "cursor", "cursor-agent":
+	case "claude-code", "claude", "cursor", "cursor-agent",
+		"codex", "codex-cli", "gemini", "gemini-cli":
 		return true
 	default:
 		return false
@@ -84,6 +93,10 @@ func canonicalIntegrableHarness(h string) string {
 		return "claude-code"
 	case "cursor", "cursor-agent":
 		return "cursor"
+	case "codex", "codex-cli":
+		return "codex"
+	case "gemini", "gemini-cli":
+		return "gemini"
 	default:
 		return normalizeHarness(h)
 	}
@@ -131,6 +144,22 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 			"On Agent stop, the hook runs: specular session attest <id> then specular gate (advisory)",
 		}
 		return planAndApplyCursor(res, opts)
+	case "codex":
+		res.NextSteps = []string{
+			"Commit .codex/hooks/ and .codex/hooks.json when ready to share with the team",
+			"Trust the project .codex/ layer and review the Stop hook via Codex /hooks",
+			"Start a managed session: specular session start --harness codex --governed \"…\"",
+			"On Stop, the hook runs: specular session attest <id> then specular gate (advisory)",
+		}
+		return planAndApplyCodex(res, opts)
+	case "gemini":
+		res.NextSteps = []string{
+			"Commit .gemini/hooks/ and .gemini/settings.json when ready to share with the team",
+			"Ensure hooksConfig.enabled is true (integrate sets this when merging settings)",
+			"Start a managed session: specular session start --harness gemini --governed \"…\"",
+			"On SessionEnd, the hook runs: specular session attest <id> then specular gate (advisory)",
+		}
+		return planAndApplyGemini(res, opts)
 	default:
 		return nil, fmt.Errorf("session integrate: unsupported harness %q", harness)
 	}
@@ -142,6 +171,14 @@ func planAndApplyClaude(res *IntegrateResult, opts IntegrateOptions) (*Integrate
 
 func planAndApplyCursor(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
 	return planAndApplyPair(res, opts, cursorHookRel, cursorHooksJSONRel, cursorStopHookScript(), planCursorHooksJSON)
+}
+
+func planAndApplyCodex(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
+	return planAndApplyPair(res, opts, codexHookRel, codexHooksJSONRel, codexStopHookScript(), planCodexHooksJSON)
+}
+
+func planAndApplyGemini(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
+	return planAndApplyPair(res, opts, geminiHookRel, geminiSettingsRel, geminiSessionEndHookScript(), planGeminiSettings)
 }
 
 func planAndApplyPair(
@@ -237,6 +274,14 @@ func planClaudeSettings(path string, dryRun bool) (string, IntegrateFileAction, 
 
 func planCursorHooksJSON(path string, dryRun bool) (string, IntegrateFileAction, error) {
 	return planJSONConfig(path, cursorHooksJSONRel, "hooks.json", dryRun, mergeCursorStopHook)
+}
+
+func planCodexHooksJSON(path string, dryRun bool) (string, IntegrateFileAction, error) {
+	return planJSONConfig(path, codexHooksJSONRel, "hooks.json", dryRun, mergeCodexStopHook)
+}
+
+func planGeminiSettings(path string, dryRun bool) (string, IntegrateFileAction, error) {
+	return planJSONConfig(path, geminiSettingsRel, "settings", dryRun, mergeGeminiSessionEndHook)
 }
 
 func planJSONConfig(path, relLabel, kind string, dryRun bool, merge jsonMergeFn) (string, IntegrateFileAction, error) {
@@ -350,6 +395,101 @@ func mergeCursorStopHook(doc map[string]interface{}) (map[string]interface{}, bo
 	}
 	stopList = append(stopList, entry)
 	hooksObj["stop"] = stopList
+	doc["hooks"] = hooksObj
+	return doc, true, nil
+}
+
+// mergeCodexStopHook ensures hooks.Stop includes the Specular command hook.
+// Codex project hooks live in .codex/hooks.json (Claude-style nested Stop).
+func mergeCodexStopHook(doc map[string]interface{}) (map[string]interface{}, bool, error) {
+	if doc == nil {
+		doc = map[string]interface{}{}
+	}
+	hooksObj, _ := doc["hooks"].(map[string]interface{})
+	if hooksObj == nil {
+		hooksObj = map[string]interface{}{}
+	}
+
+	stopList, _ := hooksObj["Stop"].([]interface{})
+	if stopList == nil {
+		if raw, ok := hooksObj["Stop"]; ok && raw != nil {
+			return nil, false, fmt.Errorf("session integrate: hooks.Stop must be an array")
+		}
+		stopList = []interface{}{}
+	}
+
+	if stopHookPresent(stopList) {
+		doc["hooks"] = hooksObj
+		hooksObj["Stop"] = stopList
+		return doc, false, nil
+	}
+
+	entry := map[string]interface{}{
+		"hooks": []interface{}{
+			map[string]interface{}{
+				"type":    "command",
+				"command": "$(git rev-parse --show-toplevel)/.codex/hooks/specular-session-stop.sh",
+				"timeout": 60,
+			},
+		},
+	}
+	stopList = append(stopList, entry)
+	hooksObj["Stop"] = stopList
+	doc["hooks"] = hooksObj
+	return doc, true, nil
+}
+
+// mergeGeminiSessionEndHook ensures hooks.SessionEnd includes Specular and
+// enables hooksConfig.enabled on project .gemini/settings.json.
+func mergeGeminiSessionEndHook(doc map[string]interface{}) (map[string]interface{}, bool, error) {
+	if doc == nil {
+		doc = map[string]interface{}{}
+	}
+	changed := false
+
+	hooksCfg, _ := doc["hooksConfig"].(map[string]interface{})
+	if hooksCfg == nil {
+		hooksCfg = map[string]interface{}{}
+	}
+	if enabled, ok := hooksCfg["enabled"].(bool); !ok || !enabled {
+		hooksCfg["enabled"] = true
+		doc["hooksConfig"] = hooksCfg
+		changed = true
+	} else {
+		doc["hooksConfig"] = hooksCfg
+	}
+
+	hooksObj, _ := doc["hooks"].(map[string]interface{})
+	if hooksObj == nil {
+		hooksObj = map[string]interface{}{}
+		changed = true
+	}
+
+	endList, _ := hooksObj["SessionEnd"].([]interface{})
+	if endList == nil {
+		if raw, ok := hooksObj["SessionEnd"]; ok && raw != nil {
+			return nil, false, fmt.Errorf("session integrate: hooks.SessionEnd must be an array")
+		}
+		endList = []interface{}{}
+	}
+
+	if stopHookPresent(endList) {
+		doc["hooks"] = hooksObj
+		hooksObj["SessionEnd"] = endList
+		return doc, changed, nil
+	}
+
+	entry := map[string]interface{}{
+		"hooks": []interface{}{
+			map[string]interface{}{
+				"name":    "specular-session-stop",
+				"type":    "command",
+				"command": "$PWD/.gemini/hooks/specular-session-stop.sh",
+			},
+		},
+	}
+	endList = append(endList, entry)
+	hooksObj["SessionEnd"] = endList
 	doc["hooks"] = hooksObj
 	return doc, true, nil
 }
@@ -493,6 +633,109 @@ echo "specular: running gate (advisory — does not block stop)" >&2
 specular gate || echo "specular: gate exited non-zero (advisory)" >&2
 
 # Cursor stop hooks may consume JSON on stdout; emit empty object (no follow-up).
+printf '%s\n' '{}'
+exit 0
+`
+}
+
+func codexStopHookScript() string {
+	return `#!/usr/bin/env bash
+# Specular native Stop hook for Codex (PRODUCT_INTENT P1 #4).
+# Installed by: specular session integrate codex
+# Calls existing session attest + gate surfaces — no new protocol.
+# Register via .codex/hooks.json (hooks.Stop). Prefer Stop over SessionEnd
+# so attest+gate have enough timeout budget.
+set -euo pipefail
+
+# Codex feeds Stop event JSON on stdin; drain (advisory — never block Stop).
+cat >/dev/null || true
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$ROOT"
+
+if ! command -v specular >/dev/null 2>&1; then
+  echo "specular: CLI not on PATH; skip attest/gate" >&2
+  exit 0
+fi
+
+SESSION_ID="${SPECULAR_SESSION_ID:-}"
+if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2>&1; then
+  # Prefer the newest session record labeled codex / codex-cli (portable mtime).
+  newest_mtime=0
+  for path in .specular/sessions/*.json; do
+    [[ -f "$path" ]] || continue
+    case "$path" in *.attestation.json) continue ;; esac
+    harness="$(jq -r '.harness // empty' "$path" 2>/dev/null || true)"
+    case "$harness" in codex|codex-cli) ;; *) continue ;; esac
+    mtime="$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null || echo 0)"
+    if [[ "$mtime" -ge "$newest_mtime" ]]; then
+      newest_mtime="$mtime"
+      SESSION_ID="$(jq -r '.id // empty' "$path" 2>/dev/null || true)"
+    fi
+  done
+fi
+
+if [[ -n "$SESSION_ID" ]]; then
+  echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
+  specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
+else
+  echo "specular: no SPECULAR_SESSION_ID / codex session; skip attest" >&2
+fi
+
+echo "specular: running gate (advisory — does not block Stop)" >&2
+specular gate || echo "specular: gate exited non-zero (advisory)" >&2
+exit 0
+`
+}
+
+func geminiSessionEndHookScript() string {
+	return `#!/usr/bin/env bash
+# Specular native SessionEnd hook for Gemini CLI (PRODUCT_INTENT P1 #4).
+# Installed by: specular session integrate gemini
+# Calls existing session attest + gate surfaces — no new protocol.
+# Gemini hooks require JSON-only stdout; logs go to stderr.
+set -euo pipefail
+
+# SessionEnd feeds JSON on stdin; drain it.
+cat >/dev/null || true
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$ROOT"
+
+if ! command -v specular >/dev/null 2>&1; then
+  echo "specular: CLI not on PATH; skip attest/gate" >&2
+  printf '%s\n' '{}'
+  exit 0
+fi
+
+SESSION_ID="${SPECULAR_SESSION_ID:-}"
+if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2>&1; then
+  # Prefer the newest session record labeled gemini / gemini-cli (portable mtime).
+  newest_mtime=0
+  for path in .specular/sessions/*.json; do
+    [[ -f "$path" ]] || continue
+    case "$path" in *.attestation.json) continue ;; esac
+    harness="$(jq -r '.harness // empty' "$path" 2>/dev/null || true)"
+    case "$harness" in gemini|gemini-cli) ;; *) continue ;; esac
+    mtime="$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null || echo 0)"
+    if [[ "$mtime" -ge "$newest_mtime" ]]; then
+      newest_mtime="$mtime"
+      SESSION_ID="$(jq -r '.id // empty' "$path" 2>/dev/null || true)"
+    fi
+  done
+fi
+
+if [[ -n "$SESSION_ID" ]]; then
+  echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
+  specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
+else
+  echo "specular: no SPECULAR_SESSION_ID / gemini session; skip attest" >&2
+fi
+
+echo "specular: running gate (advisory — does not block SessionEnd)" >&2
+specular gate || echo "specular: gate exited non-zero (advisory)" >&2
+
+# Gemini SessionEnd is best-effort; emit empty JSON object on stdout.
 printf '%s\n' '{}'
 exit 0
 `

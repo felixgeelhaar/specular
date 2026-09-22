@@ -10,12 +10,17 @@ import (
 
 func TestIsIntegrableHarness(t *testing.T) {
 	t.Parallel()
-	for _, h := range []string{"claude-code", "claude", "Claude-Code", "cursor", "cursor-agent", "Cursor"} {
+	for _, h := range []string{
+		"claude-code", "claude", "Claude-Code",
+		"cursor", "cursor-agent", "Cursor",
+		"codex", "codex-cli", "Codex",
+		"gemini", "gemini-cli", "Gemini",
+	} {
 		if !IsIntegrableHarness(h) {
 			t.Fatalf("expected integrable: %s", h)
 		}
 	}
-	for _, h := range []string{"codex", "gemini", "specular-auto", "aider", ""} {
+	for _, h := range []string{"specular-auto", "aider", ""} {
 		if IsIntegrableHarness(h) {
 			t.Fatalf("expected not integrable: %s", h)
 		}
@@ -167,7 +172,7 @@ func TestIntegrateMergesExistingSettings(t *testing.T) {
 
 func TestIntegrateUnsupportedHarness(t *testing.T) {
 	t.Parallel()
-	_, err := Integrate(IntegrateOptions{Harness: "codex", Root: t.TempDir()})
+	_, err := Integrate(IntegrateOptions{Harness: "aider", Root: t.TempDir()})
 	if err == nil || !strings.Contains(err.Error(), "unsupported harness") {
 		t.Fatalf("err=%v", err)
 	}
@@ -373,5 +378,173 @@ func TestMergeCursorStopHookIdempotent(t *testing.T) {
 	_, changed2, err := mergeCursorStopHook(merged)
 	if err != nil || changed2 {
 		t.Fatalf("second merge should be noop: changed=%v err=%v", changed2, err)
+	}
+}
+
+func TestIntegrateCodexWritesHookAndJSON(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	res, err := Integrate(IntegrateOptions{Harness: "codex-cli", Root: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Harness != "codex" {
+		t.Fatalf("harness=%s", res.Harness)
+	}
+	hookPath := filepath.Join(dir, codexHookRel)
+	hooksJSONPath := filepath.Join(dir, codexHooksJSONRel)
+	if _, err := os.Stat(hookPath); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(hooksJSONPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]interface{}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	hooks := doc["hooks"].(map[string]interface{})
+	stop := hooks["Stop"].([]interface{})
+	if len(stop) != 1 {
+		t.Fatalf("Stop=%v", stop)
+	}
+	hookBody, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(hookBody), "codex|codex-cli") {
+		t.Fatalf("hook missing harness fallback:\n%s", hookBody)
+	}
+	if !strings.Contains(string(hookBody), "specular session attest") {
+		t.Fatalf("hook missing attest:\n%s", hookBody)
+	}
+
+	res2, err := Integrate(IntegrateOptions{Harness: "codex", Root: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	actions := map[string]IntegrateFileAction{}
+	for _, f := range res2.Files {
+		actions[f.Path] = f.Action
+	}
+	if actions[codexHookRel] != IntegrateSkip || actions[codexHooksJSONRel] != IntegrateSkip {
+		t.Fatalf("actions=%v", actions)
+	}
+}
+
+func TestIntegrateGeminiWritesHookAndSettings(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	res, err := Integrate(IntegrateOptions{Harness: "gemini-cli", Root: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Harness != "gemini" {
+		t.Fatalf("harness=%s", res.Harness)
+	}
+	hookPath := filepath.Join(dir, geminiHookRel)
+	settingsPath := filepath.Join(dir, geminiSettingsRel)
+	if _, err := os.Stat(hookPath); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]interface{}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	cfg := doc["hooksConfig"].(map[string]interface{})
+	if enabled, _ := cfg["enabled"].(bool); !enabled {
+		t.Fatalf("hooksConfig.enabled=%v", cfg["enabled"])
+	}
+	hooks := doc["hooks"].(map[string]interface{})
+	end := hooks["SessionEnd"].([]interface{})
+	if len(end) != 1 {
+		t.Fatalf("SessionEnd=%v", end)
+	}
+	hookBody, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(hookBody), "gemini|gemini-cli") {
+		t.Fatalf("hook missing harness fallback:\n%s", hookBody)
+	}
+	if !strings.Contains(string(hookBody), `printf '%s\n' '{}'`) {
+		t.Fatalf("gemini hook must emit JSON on stdout:\n%s", hookBody)
+	}
+}
+
+func TestMergeCodexAndGeminiIdempotent(t *testing.T) {
+	t.Parallel()
+	codexDoc := map[string]interface{}{}
+	merged, changed, err := mergeCodexStopHook(codexDoc)
+	if err != nil || !changed {
+		t.Fatalf("codex changed=%v err=%v", changed, err)
+	}
+	_, changed2, err := mergeCodexStopHook(merged)
+	if err != nil || changed2 {
+		t.Fatalf("codex second merge: changed=%v err=%v", changed2, err)
+	}
+
+	gemDoc := map[string]interface{}{}
+	mergedG, changedG, err := mergeGeminiSessionEndHook(gemDoc)
+	if err != nil || !changedG {
+		t.Fatalf("gemini changed=%v err=%v", changedG, err)
+	}
+	_, changedG2, err := mergeGeminiSessionEndHook(mergedG)
+	if err != nil || changedG2 {
+		t.Fatalf("gemini second merge: changed=%v err=%v", changedG2, err)
+	}
+}
+
+func TestIntegrateMergesExistingGeminiSettings(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, ".gemini"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	existing := `{
+  "general": {"vimMode": true},
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "echo hi"}]}]
+  }
+}
+`
+	if err := os.WriteFile(filepath.Join(dir, geminiSettingsRel), []byte(existing), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Integrate(IntegrateOptions{Harness: "gemini", Root: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var action IntegrateFileAction
+	for _, f := range res.Files {
+		if f.Path == geminiSettingsRel {
+			action = f.Action
+		}
+	}
+	if action != IntegrateMerge {
+		t.Fatalf("action=%s", action)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, geminiSettingsRel))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]interface{}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := doc["general"]; !ok {
+		t.Fatalf("lost general: %s", raw)
+	}
+	hooks := doc["hooks"].(map[string]interface{})
+	if _, ok := hooks["SessionStart"]; !ok {
+		t.Fatalf("lost SessionStart: %s", raw)
+	}
+	if _, ok := hooks["SessionEnd"]; !ok {
+		t.Fatalf("missing SessionEnd: %s", raw)
 	}
 }

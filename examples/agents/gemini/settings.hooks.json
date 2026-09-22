@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "command": "$PWD/.gemini/hooks/specular-session-stop.sh",
+            "name": "specular-session-stop",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  },
+  "hooksConfig": {
+    "enabled": true
+  }
+}
