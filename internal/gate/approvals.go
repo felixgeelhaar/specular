@@ -91,12 +91,49 @@ func summaryFromRecord(rec approval.Record, now time.Time) ApprovalSummary {
 	return s
 }
 
-func writeApprovalsSection(b *strings.Builder, sec ApprovalsSection, verdict Verdict) {
+// SoftAllowPolicyHint returns the --policy token(s) to suggest on a DENY
+// Approvals Hint. Prefer a specific bind when one section failed; otherwise
+// list all soft-ALLOW kinds (including provenance).
+func SoftAllowPolicyHint(res *Result) string {
+	if res == nil {
+		return "drift|policy|risk|provenance"
+	}
+	var fails []string
+	if res.Drift.Status == StatusFail {
+		fails = append(fails, "drift")
+	}
+	if res.Policy.Status == StatusFail {
+		fails = append(fails, "policy")
+	}
+	if res.Risk.Enforced && len(res.Risk.Missing) > 0 {
+		fails = append(fails, "risk")
+	}
+	if res.Provenance.Status == StatusFail {
+		fails = append(fails, "provenance")
+	}
+	switch len(fails) {
+	case 0:
+		return "drift|policy|risk|provenance"
+	case 1:
+		return fails[0]
+	default:
+		return strings.Join(fails, "|")
+	}
+}
+
+func writeApprovalsSection(b *strings.Builder, res *Result) {
+	sec := ApprovalsSection{}
+	verdict := Verdict("")
+	if res != nil {
+		sec = res.Approvals
+		verdict = res.Verdict
+	}
 	b.WriteString("Approvals\n")
 	if sec.Count == 0 {
 		b.WriteString("  Status         none recorded\n")
 		if verdict == Deny {
-			b.WriteString("  Hint           specular approve exception-<id> --reason \"...\" --scope \"...\" --policy drift|policy|<check>\n")
+			fmt.Fprintf(b, "  Hint           specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
+				SoftAllowPolicyHint(res))
 		}
 		if sec.Note != "" {
 			fmt.Fprintf(b, "  Note           %s\n", sec.Note)
@@ -108,7 +145,8 @@ func writeApprovalsSection(b *strings.Builder, sec ApprovalsSection, verdict Ver
 	writeOpenExceptions(b, sec.Exceptions)
 	writeRecentApprovals(b, sec.Recent)
 	if verdict == Deny && len(sec.Exceptions) == 0 {
-		b.WriteString("  Hint           record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy …\n")
+		fmt.Fprintf(b, "  Hint           record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
+			SoftAllowPolicyHint(res))
 	}
 	if sec.Note != "" {
 		fmt.Fprintf(b, "  Note           %s\n", sec.Note)

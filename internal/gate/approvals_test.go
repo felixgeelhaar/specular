@@ -94,6 +94,41 @@ func TestFormatTextApprovalsHintWhenEmptyDeny(t *testing.T) {
 	if !strings.Contains(text, "specular approve exception-") {
 		t.Fatalf("expected hint:\n%s", text)
 	}
+	if !strings.Contains(text, "--policy drift") {
+		t.Fatalf("expected drift-specific policy hint:\n%s", text)
+	}
+}
+
+func TestFormatTextApprovalsHintWhenProvenanceDeny(t *testing.T) {
+	t.Parallel()
+	res := &Result{
+		Verdict:    Deny,
+		Reason:     "provenance.attested: enforce requires attestation",
+		Provenance: ProvenanceSection{Status: StatusFail, Note: "unattested"},
+		Approvals:  ApprovalsSection{},
+	}
+	text := FormatText(res)
+	if !strings.Contains(text, "--policy provenance") {
+		t.Fatalf("expected provenance policy hint:\n%s", text)
+	}
+	md := FormatMarkdown(res)
+	if !strings.Contains(md, "--policy provenance") {
+		t.Fatalf("expected markdown provenance policy hint:\n%s", md)
+	}
+}
+
+func TestSoftAllowPolicyHintMultiFail(t *testing.T) {
+	t.Parallel()
+	got := SoftAllowPolicyHint(&Result{
+		Drift:      DriftSection{Status: StatusFail},
+		Provenance: ProvenanceSection{Status: StatusFail},
+	})
+	if got != "drift|provenance" {
+		t.Fatalf("got %q", got)
+	}
+	if SoftAllowPolicyHint(nil) != "drift|policy|risk|provenance" {
+		t.Fatalf("nil fallback")
+	}
 }
 
 func TestFormatMarkdownApprovals(t *testing.T) {
