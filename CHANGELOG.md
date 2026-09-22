@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Exception close / revoke (P1 #6 depth)**: `specular approvals close
+  <id>` (alias `revoke`) early-ends an open exception by rewriting the
+  YAML in place (`closed_at`/`closed_by` + clamp `expires_at`); soft-ALLOW
+  stops on the next gate. Idempotent when already closed or expired.
+
 - **Codex / Gemini native hooks (P1 #4 depth)**: `specular session integrate
   codex|gemini` (aliases `codex-cli` / `gemini-cli`) installs Stop /
   SessionEnd hooks that call `session attest` + `gate`; reference configs

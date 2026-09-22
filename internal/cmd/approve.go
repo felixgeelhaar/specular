@@ -98,6 +98,24 @@ Exit codes:
 	RunE: runApprovalsPending,
 }
 
+var approvalsCloseCmd = &cobra.Command{
+	Use:     "close <exception-id>",
+	Aliases: []string{"revoke"},
+	Short:   "Close (revoke) an open exception early",
+	Long: `Early-end an open exception so soft-ALLOW no longer applies.
+
+Rewrites the existing YAML in place: stamps closed_at/closed_by and clamps
+expires_at to now. Idempotent when already closed or expired.
+
+  specular approvals close exception-EX-192
+  specular approvals close EX-192 --reason "incident mitigated"
+  specular approvals revoke exception-app-protocol --json
+
+Uses the same Pro license gate as approve (approvals.create).`,
+	Args: cobra.ExactArgs(1),
+	RunE: runApprovalsClose,
+}
+
 // ApprovalRecord is retained for compatibility with existing tests.
 // Prefer approval.Record for new code.
 type ApprovalRecord struct {
@@ -340,12 +358,24 @@ func formatApprovalExplain(rec approval.Record) string {
 		}
 		if rec.ExpiresAt != nil {
 			fmt.Fprintf(&b, "Expires      %s\n", rec.ExpiresAt.UTC().Format(time.RFC3339))
-			if rec.IsExpired(time.Now().UTC()) {
-				b.WriteString("Status       EXPIRED\n")
-			} else {
-				b.WriteString("Status       OPEN\n")
+		}
+		switch {
+		case rec.IsClosed():
+			b.WriteString("Status       CLOSED\n")
+			if rec.ClosedBy != "" {
+				fmt.Fprintf(&b, "ClosedBy     %s\n", rec.ClosedBy)
 			}
-		} else if rec.Type == approval.TypeException {
+			if rec.ClosedAt != nil {
+				fmt.Fprintf(&b, "ClosedAt     %s\n", rec.ClosedAt.UTC().Format(time.RFC3339))
+			}
+			if rec.CloseReason != "" {
+				fmt.Fprintf(&b, "CloseReason  %s\n", rec.CloseReason)
+			}
+		case rec.ExpiresAt != nil && rec.IsExpired(time.Now().UTC()):
+			b.WriteString("Status       EXPIRED\n")
+		case rec.ExpiresAt != nil:
+			b.WriteString("Status       OPEN\n")
+		case rec.Type == approval.TypeException:
 			b.WriteString("Status       OPEN (no expiration)\n")
 		}
 	}
@@ -385,14 +415,77 @@ func printApprovalHuman(rec approval.Record, now time.Time) {
 	}
 	if rec.ExpiresAt != nil {
 		status := "open"
-		if rec.IsExpired(now) {
+		switch {
+		case rec.IsClosed():
+			status = "closed"
+		case rec.IsExpired(now):
 			status = "expired"
 		}
 		fmt.Printf("    Expires: %s (%s)\n", rec.ExpiresAt.Format(time.RFC3339), status)
+	} else if rec.IsClosed() {
+		fmt.Printf("    Status: closed")
+		if rec.ClosedAt != nil {
+			fmt.Printf(" at %s", rec.ClosedAt.Format(time.RFC3339))
+		}
+		fmt.Println()
 	}
 	if rec.Path != "" {
 		fmt.Printf("    File: %s\n", rec.Path)
 	}
+}
+
+func runApprovalsClose(cmd *cobra.Command, args []string) error {
+	if err := license.RequireFeature("approvals.create", license.TierPro); err != nil {
+		license.DisplayUpgradeMessage(err, "approvals close")
+		return err
+	}
+
+	reason, _ := cmd.Flags().GetString("reason")
+	jsonOut, _ := cmd.Flags().GetBool("json")
+	now := time.Now().UTC()
+	id := approval.NormalizeExceptionID(args[0], now)
+
+	by := os.Getenv("USER")
+	if by == "" {
+		by = os.Getenv("USERNAME")
+	}
+	if by == "" {
+		by = "unknown"
+	}
+
+	rec, err := approval.Close(".", id, approval.CloseOptions{
+		Now:    now,
+		By:     by,
+		Reason: reason,
+	})
+	if err != nil {
+		return err
+	}
+
+	if jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(rec)
+	}
+
+	fmt.Printf("⚠ Exception closed: %s\n", rec.ResourceID)
+	if rec.ClosedBy != "" {
+		fmt.Printf("Closed by:   %s\n", rec.ClosedBy)
+	}
+	if rec.ClosedAt != nil {
+		fmt.Printf("Closed at:   %s\n", rec.ClosedAt.UTC().Format(time.RFC3339))
+	}
+	if rec.CloseReason != "" {
+		fmt.Printf("Close note:  %s\n", rec.CloseReason)
+	}
+	if rec.ExpiresAt != nil {
+		fmt.Printf("Expires:     %s\n", rec.ExpiresAt.UTC().Format(time.RFC3339))
+	}
+	if rec.Path != "" {
+		fmt.Printf("Saved:       %s\n", rec.Path)
+	}
+	fmt.Println("Note: soft-ALLOW no longer applies for this id")
+	return nil
 }
 
 func runApprovalsPending(cmd *cobra.Command, args []string) error {
@@ -597,6 +690,7 @@ func init() {
 	approvalsCmd.AddCommand(approvalsListCmd)
 	approvalsCmd.AddCommand(approvalsShowCmd)
 	approvalsCmd.AddCommand(approvalsPendingCmd)
+	approvalsCmd.AddCommand(approvalsCloseCmd)
 
 	approveCmd.Flags().String("message", "", "Approval message or comment")
 	approveCmd.Flags().String("reason", "", "Exception reason (required for exception-*)")
@@ -609,4 +703,6 @@ func init() {
 
 	approvalsListCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 	approvalsShowCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
+	approvalsCloseCmd.Flags().String("reason", "", "Optional close note (audit)")
+	approvalsCloseCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 }

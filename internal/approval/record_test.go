@@ -175,3 +175,121 @@ func TestWriteExceptionRequiresReason(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+func TestCloseOpenException(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 22, 8, 0, 0, 0, time.UTC)
+	exp := now.Add(48 * time.Hour)
+	if _, err := Write(root, &Record{
+		Type:       TypeException,
+		ResourceID: "exception-EX-192",
+		ApprovedBy: "alice",
+		ApprovedAt: now,
+		Reason:     "hotfix",
+		Policy:     "provenance",
+		ExpiresAt:  &exp,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	open, err := OpenExceptions(root, now)
+	if err != nil || len(open) != 1 {
+		t.Fatalf("open before=%v err=%v", open, err)
+	}
+
+	closed, err := Close(root, "exception-EX-192", CloseOptions{
+		Now:    now.Add(time.Minute),
+		By:     "alice",
+		Reason: "incident mitigated",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !closed.IsClosed() || closed.ClosedBy != "alice" {
+		t.Fatalf("closed=%+v", closed)
+	}
+	if closed.CloseReason != "incident mitigated" {
+		t.Fatalf("reason=%q", closed.CloseReason)
+	}
+	if closed.ExpiresAt == nil || closed.ExpiresAt.After(now.Add(time.Minute)) {
+		t.Fatalf("expires=%v", closed.ExpiresAt)
+	}
+	if closed.IsOpen(now.Add(time.Minute)) {
+		t.Fatal("expected not open after close")
+	}
+
+	openAfter, err := OpenExceptions(root, now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(openAfter) != 0 {
+		t.Fatalf("open after close=%+v", openAfter)
+	}
+
+	// File still on disk with closed_at.
+	raw, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(closed.Path)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"closed_at:", "closed_by: alice", "close_reason: incident mitigated"} {
+		if !strings.Contains(string(raw), want) {
+			t.Fatalf("missing %q in:\n%s", want, raw)
+		}
+	}
+
+	// Idempotent second close.
+	again, err := Close(root, "EX-192", CloseOptions{Now: now.Add(2 * time.Minute), By: "bob"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.ClosedBy != "alice" {
+		t.Fatalf("idempotent should keep original closer, got %q", again.ClosedBy)
+	}
+}
+
+func TestCloseMissingAndNonException(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Now().UTC()
+	if _, err := Close(root, "exception-missing", CloseOptions{Now: now, By: "x"}); err == nil {
+		t.Fatal("expected missing error")
+	}
+	if _, err := Write(root, &Record{
+		Type: TypeBundle, ResourceID: "bundle-abc", ApprovedBy: "a", ApprovedAt: now, Message: "m",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Close(root, "bundle-abc", CloseOptions{Now: now, By: "x"}); err == nil ||
+		!strings.Contains(err.Error(), "not an exception") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestCloseAlreadyExpiredStampsClosed(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 22, 8, 0, 0, 0, time.UTC)
+	past := now.Add(-time.Hour)
+	if _, err := Write(root, &Record{
+		Type:       TypeException,
+		ResourceID: "exception-stale",
+		ApprovedBy: "alice",
+		ApprovedAt: now.Add(-2 * time.Hour),
+		Reason:     "stale",
+		ExpiresAt:  &past,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rec, err := Close(root, "exception-stale", CloseOptions{Now: now, By: "ops", Reason: "ack"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rec.IsClosed() || rec.ClosedBy != "ops" {
+		t.Fatalf("%+v", rec)
+	}
+	// Do not move expires_at earlier than original past.
+	if rec.ExpiresAt == nil || !rec.ExpiresAt.Equal(past) {
+		t.Fatalf("expires=%v want %v", rec.ExpiresAt, past)
+	}
+}

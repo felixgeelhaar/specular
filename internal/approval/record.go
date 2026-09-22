@@ -46,6 +46,11 @@ type Record struct {
 	Artifact     string            `yaml:"artifact,omitempty" json:"artifact,omitempty"`
 	EvidenceID   string            `yaml:"evidence_id,omitempty" json:"evidence_id,omitempty"`
 	Metadata     map[string]string `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+	// ClosedAt / ClosedBy / CloseReason record an early revoke of an open
+	// exception (PRODUCT_INTENT §18). Soft-ALLOW only applies while IsOpen.
+	ClosedAt    *time.Time `yaml:"closed_at,omitempty" json:"closed_at,omitempty"`
+	ClosedBy    string     `yaml:"closed_by,omitempty" json:"closed_by,omitempty"`
+	CloseReason string     `yaml:"close_reason,omitempty" json:"close_reason,omitempty"`
 
 	// Path is the relative file path when loaded (not written to disk).
 	Path string `yaml:"-" json:"path,omitempty"`
@@ -84,6 +89,134 @@ func (r *Record) IsExpired(now time.Time) bool {
 		return false
 	}
 	return !r.ExpiresAt.After(now)
+}
+
+// IsClosed reports whether the exception was explicitly revoked early.
+func (r *Record) IsClosed() bool {
+	return r != nil && r.ClosedAt != nil && !r.ClosedAt.IsZero()
+}
+
+// IsOpen reports whether an exception is eligible for soft-ALLOW
+// (exception type, not closed, not expired).
+func (r *Record) IsOpen(now time.Time) bool {
+	if r == nil || r.Type != TypeException {
+		return false
+	}
+	if r.IsClosed() {
+		return false
+	}
+	return !r.IsExpired(now)
+}
+
+// CloseOptions configures early revoke of an open exception.
+type CloseOptions struct {
+	Now    time.Time
+	By     string
+	Reason string
+}
+
+// Close early-ends an open exception by rewriting its YAML in place:
+// stamps closed_* and clamps expires_at to now so soft-ALLOW stops.
+// Idempotent when already closed or already expired.
+func Close(root, resourceID string, opts CloseOptions) (*Record, error) {
+	now := opts.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	} else {
+		now = now.UTC()
+	}
+	id, by, resolveErr := resolveCloseIdentity(resourceID, opts.By, now)
+	if resolveErr != nil {
+		return nil, resolveErr
+	}
+	matches, err := FindByResourceID(root, id)
+	if err != nil {
+		return nil, err
+	}
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("no approval record for %q", id)
+	}
+	target, pickErr := pickExceptionForClose(matches, now, id)
+	if pickErr != nil {
+		return nil, pickErr
+	}
+	if target.IsClosed() {
+		return target, nil
+	}
+	applyCloseStamp(target, now, by, opts.Reason)
+	absPath := target.Path
+	if !filepath.IsAbs(absPath) {
+		absPath = filepath.Join(root, filepath.FromSlash(target.Path))
+	}
+	if rewriteErr := rewrite(absPath, target); rewriteErr != nil {
+		return nil, rewriteErr
+	}
+	return target, nil
+}
+
+func resolveCloseIdentity(resourceID, by string, now time.Time) (id, closer string, err error) {
+	rawID := strings.TrimSpace(resourceID)
+	if rawID == "" {
+		return "", "", fmt.Errorf("approval close: resource_id is required")
+	}
+	if typ, typErr := TypeFromResourceID(rawID); typErr == nil && typ != TypeException {
+		return "", "", fmt.Errorf("approval close: %q is not an exception record", rawID)
+	}
+	closer = strings.TrimSpace(by)
+	if closer == "" {
+		closer = "unknown"
+	}
+	return NormalizeExceptionID(rawID, now), closer, nil
+}
+
+func pickExceptionForClose(matches []Record, now time.Time, id string) (*Record, error) {
+	var target *Record
+	for i := range matches {
+		if matches[i].Type != TypeException {
+			continue
+		}
+		if matches[i].IsOpen(now) {
+			target = &matches[i]
+			break
+		}
+		if target == nil {
+			target = &matches[i]
+		}
+	}
+	if target == nil {
+		return nil, fmt.Errorf("approval close: %q is not an exception record", id)
+	}
+	if strings.TrimSpace(target.Path) == "" {
+		return nil, fmt.Errorf("approval close: record path missing for %q", id)
+	}
+	return target, nil
+}
+
+func applyCloseStamp(rec *Record, now time.Time, by, reason string) {
+	closedAt := now
+	rec.ClosedAt = &closedAt
+	rec.ClosedBy = by
+	if note := strings.TrimSpace(reason); note != "" {
+		rec.CloseReason = note
+	}
+	if rec.ExpiresAt == nil || rec.ExpiresAt.After(now) {
+		exp := now
+		rec.ExpiresAt = &exp
+	}
+}
+
+func rewrite(absPath string, rec *Record) error {
+	if rec == nil {
+		return fmt.Errorf("approval: nil record")
+	}
+	data, err := yaml.Marshal(rec)
+	if err != nil {
+		return fmt.Errorf("approval: marshal: %w", err)
+	}
+	if writeErr := os.WriteFile(absPath, data, 0o600); writeErr != nil {
+		return fmt.Errorf("approval: rewrite: %w", writeErr)
+	}
+	return nil
 }
 
 // Write persists a record under .specular/approvals/ and returns the file path.
@@ -191,7 +324,8 @@ func FindByResourceID(root, resourceID string) ([]Record, error) {
 	return out, nil
 }
 
-// OpenExceptions returns non-expired exception records (newest first).
+// OpenExceptions returns open (non-closed, non-expired) exception records
+// newest first.
 func OpenExceptions(root string, now time.Time) ([]Record, error) {
 	all, err := List(root)
 	if err != nil {
@@ -202,10 +336,7 @@ func OpenExceptions(root string, now time.Time) ([]Record, error) {
 	}
 	var out []Record
 	for _, rec := range all {
-		if rec.Type != TypeException {
-			continue
-		}
-		if rec.IsExpired(now) {
+		if !rec.IsOpen(now) {
 			continue
 		}
 		out = append(out, rec)
