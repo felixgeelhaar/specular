@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Session status/list ATTEST + APP columns**: human boards and
+  `session status --json` evidence map show sibling attestation /
+  `.provenance.json` presence beside GOV.
+
 ### Changed
 
 - **Evidence list `--protocol` wording**: help/docs clarify `ok` means
