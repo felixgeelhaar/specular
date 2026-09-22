@@ -2246,7 +2246,7 @@ specular session <subcommand>
 | `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
 | `session show <id>` | Show session details, worktree, harness, log path; lists sibling attestation/APP paths when present |
 | `session status [--watch]` | Live multi-session board (counts + PID/branch/goal; `--json` → `{summary,sessions}`) |
-| `session wait [id…]` | Block until sessions finish; `--attest` / `--gate` / `--bundle` close the fleet→evidence loop |
+| `session wait [id…]` | Block until sessions finish; `--attest` / `--gate` / `--bundle` (+ optional `--require-*`) close the fleet→evidence loop |
 | `session logs <id> [--follow]` | Print or follow the session log |
 | `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
 | `session restart <id>` | Re-launch in the same worktree (optional harness swap) |
@@ -2321,6 +2321,9 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `wait --bundle` | Package attestations + APP `.provenance.json` + drift SARIF (+ `--policy` fragments) into an evidence bundle (implies `--gate`) |
 | `wait --bundle-out <path>` | Bundle output path (default `session-evidence.sbundle.tgz`) |
 | `wait --policy <path>` | Policy/library files to include in `--bundle` (repeatable) |
+| `wait --require-attested` | With `--gate`/`--bundle`: DENY when unattested (same as `gate --require-attested`) |
+| `wait --require-protocol` | With `--gate`/`--bundle`: DENY when APP docs missing/invalid/unbound |
+| `wait --require-governed` | With `--gate`/`--bundle`: DENY when no governed session |
 | `open --shell` | Print `cd "<worktree>"` instead of the bare path |
 | `open --editor` | Open the worktree in `$EDITOR` / `$VISUAL` |
 | `restart --harness <name>` | Switch harness on restart |
@@ -2421,7 +2424,7 @@ $ cat > fleet.yaml <<'EOF'
 EOF
 $ specular session batch fleet.yaml
 $ specular session status
-$ specular session wait --attest --gate --bundle --policy .specular/policies/soc2-cc8.1.yaml auth ratelimit review
+$ specular session wait --attest --gate --require-attested --require-protocol --bundle --policy .specular/policies/soc2-cc8.1.yaml auth ratelimit review
 $ specular session exec auth -- go test ./...
 $ specular session diff auth --stat
 $ specular session commit auth --all

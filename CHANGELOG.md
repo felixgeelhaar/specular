@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session wait progressive-trust `--require-*`**: `session wait --gate` /
+  `--bundle` accept `--require-attested` / `--require-protocol` /
+  `--require-governed` (same semantics as `specular gate`); fleet CI example
+  + `proof.sh` honor optional `REQUIRE_*` env vars.
+
 - **Session wait product gate (fleet→evidence)**: `session wait --gate` /
   `--bundle` runs product `specular gate` (provenance/drift/policy +
   evidence) instead of legacy drift-only eval; brownfield soft-skips

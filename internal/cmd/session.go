@@ -709,7 +709,8 @@ Examples:
   specular session wait --timeout 45m --stop
   specular session wait --attest auth ratelimit
   specular session wait --attest --gate
-  specular session wait --bundle --policy .specular/policies/soc2-cc8.1.yaml
+  specular session wait --gate --require-attested --require-protocol
+  specular session wait --bundle --require-governed --policy .specular/policies/soc2-cc8.1.yaml
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
@@ -730,8 +731,23 @@ Examples:
 		doBundle, _ := cmd.Flags().GetBool("bundle")
 		bundleOut, _ := cmd.Flags().GetString("bundle-out")
 		policies, _ := cmd.Flags().GetStringSlice("policy")
+		requireAttested, _ := cmd.Flags().GetBool("require-attested")
+		requireProtocol, _ := cmd.Flags().GetBool("require-protocol")
+		requireGoverned, _ := cmd.Flags().GetBool("require-governed")
 		if stopOnTimeout && timeout <= 0 {
 			return fmt.Errorf("session: --stop requires --timeout")
+		}
+		if (requireAttested || requireProtocol || requireGoverned) && !doGate && !doBundle {
+			return fmt.Errorf("session: --require-* requires --gate or --bundle")
+		}
+
+		postOpts := sessionWaitPostOptions{
+			Ctx: cmd.Context(), Mgr: mgr,
+			Attest: doAttest, Gate: doGate, Bundle: doBundle,
+			BundleOut: bundleOut, Policies: policies,
+			RequireAttested: requireAttested,
+			RequireProtocol: requireProtocol,
+			RequireGoverned: requireGoverned,
 		}
 
 		recs, waitErr := mgr.Wait(cmd.Context(), args, session.WaitOptions{
@@ -740,6 +756,7 @@ Examples:
 			Any:           anyDone,
 			StopOnTimeout: stopOnTimeout,
 		})
+		postOpts.Recs = recs
 		if jsonOut {
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
@@ -747,22 +764,15 @@ Examples:
 			if waitErr != nil {
 				return waitErr
 			}
-			return runSessionWaitPost(sessionWaitPostOptions{
-				Ctx: cmd.Context(), Mgr: mgr, Recs: recs,
-				Attest: doAttest, Gate: doGate, Bundle: doBundle,
-				BundleOut: bundleOut, Policies: policies, Quiet: true,
-			})
+			postOpts.Quiet = true
+			return runSessionWaitPost(postOpts)
 		}
 		if len(recs) == 0 {
 			fmt.Println("No active sessions to wait for.")
 			if waitErr != nil {
 				return waitErr
 			}
-			return runSessionWaitPost(sessionWaitPostOptions{
-				Ctx: cmd.Context(), Mgr: mgr, Recs: recs,
-				Attest: doAttest, Gate: doGate, Bundle: doBundle,
-				BundleOut: bundleOut, Policies: policies, Quiet: false,
-			})
+			return runSessionWaitPost(postOpts)
 		}
 		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tEXIT")
@@ -777,11 +787,7 @@ Examples:
 		if waitErr != nil {
 			return waitErr
 		}
-		return runSessionWaitPost(sessionWaitPostOptions{
-			Ctx: cmd.Context(), Mgr: mgr, Recs: recs,
-			Attest: doAttest, Gate: doGate, Bundle: doBundle,
-			BundleOut: bundleOut, Policies: policies, Quiet: false,
-		})
+		return runSessionWaitPost(postOpts)
 	},
 }
 
@@ -1755,6 +1761,9 @@ func init() {
 	sessionWaitCmd.Flags().Bool("bundle", false, "Package attestations + APP docs + drift (+ policies) into an evidence bundle (implies --gate)")
 	sessionWaitCmd.Flags().String("bundle-out", "session-evidence.sbundle.tgz", "Output path for --bundle")
 	sessionWaitCmd.Flags().StringSlice("policy", nil, "Policy files to include when using --bundle")
+	sessionWaitCmd.Flags().Bool("require-attested", false, "With --gate/--bundle: DENY when unattested (mirrors gate --require-attested)")
+	sessionWaitCmd.Flags().Bool("require-protocol", false, "With --gate/--bundle: DENY when APP docs missing/invalid/unbound")
+	sessionWaitCmd.Flags().Bool("require-governed", false, "With --gate/--bundle: DENY when no governed session")
 	sessionWaitCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionRestartCmd.Flags().String("harness", "", "Switch harness on restart")
