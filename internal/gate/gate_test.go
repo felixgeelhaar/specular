@@ -33,9 +33,15 @@ func TestEvaluateBrownfieldAllow(t *testing.T) {
 	if !containsFactor(res.Risk.Factors, FactorUnattested) {
 		t.Fatalf("expected unattested risk factor, got %v", res.Risk.Factors)
 	}
+	if res.Change.Commit == "" {
+		t.Fatal("expected Change.Commit from HEAD")
+	}
 	text := FormatText(res)
 	if !strings.Contains(text, "VERDICT: ALLOW") {
 		t.Fatalf("board missing ALLOW:\n%s", text)
+	}
+	if !strings.Contains(text, "Commit") || !strings.Contains(text, res.Change.Commit) {
+		t.Fatalf("board missing Commit:\n%s", text)
 	}
 	if !strings.Contains(text, "Risk") {
 		t.Fatalf("board missing Risk:\n%s", text)

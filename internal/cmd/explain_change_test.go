@@ -16,10 +16,54 @@ func TestChangeExplainFileFlagRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"file", "control", "policy-file"} {
+	for _, name := range []string{"file", "control", "commit", "policy-file"} {
 		if cmd.Flags().Lookup(name) == nil {
 			t.Fatalf("missing --%s", name)
 		}
+	}
+}
+
+func TestLooksLikeCommitPrefix(t *testing.T) {
+	t.Parallel()
+	if !looksLikeCommitPrefix("abc123") || !looksLikeCommitPrefix("ABCDEF01") {
+		t.Fatal("expected hex prefixes")
+	}
+	if looksLikeCommitPrefix("ev_abc123") || looksLikeCommitPrefix("ab") || looksLikeCommitPrefix("not-hex!") {
+		t.Fatal("rejected invalid")
+	}
+}
+
+func TestLoadEvidenceByCommitPrefix(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 22, 19, 0, 0, 0, time.UTC)
+	_ = mustWriteExplainRecord(t, root, &evidence.Record{
+		ID:        "ev_old_sha",
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(-time.Hour),
+		Commit:    "abcdef0123456789deadbeef0000000000000001",
+		Gate:      &gate.Result{Verdict: gate.Deny, Reason: "old"},
+	})
+	newer := mustWriteExplainRecord(t, root, &evidence.Record{
+		ID:        "ev_new_sha",
+		Schema:    evidence.Schema,
+		CreatedAt: now,
+		Commit:    "abcdef0123456789deadbeef0000000000000002",
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Reason:  "new",
+			Change:  gate.ChangeSection{Commit: "abcdef0123456789deadbeef0000000000000002"},
+		},
+	})
+	rec, err := loadEvidenceByFilter(root, evidence.ListFilter{
+		CommitPrefix: "abcdef",
+		Limit:        1,
+	}, "commit", "abcdef")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.ID != newer.ID {
+		t.Fatalf("got %s want %s", rec.ID, newer.ID)
 	}
 }
 

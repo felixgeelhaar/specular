@@ -77,6 +77,7 @@ type ChangeSection struct {
 	Dirty  bool   `json:"dirty"`
 	Files  int    `json:"files"`
 	Branch string `json:"branch,omitempty"`
+	Commit string `json:"commit,omitempty"` // HEAD SHA when discoverable
 	Root   string `json:"root,omitempty"`
 }
 
@@ -191,6 +192,9 @@ func discoverChange(root string) ChangeSection {
 	}
 	if branch, bErr := runGit(root, "rev-parse", "--abbrev-ref", "HEAD"); bErr == nil {
 		sec.Branch = strings.TrimSpace(branch)
+	}
+	if commit, cErr := runGit(root, "rev-parse", "HEAD"); cErr == nil {
+		sec.Commit = strings.TrimSpace(commit)
 	}
 	return sec
 }
@@ -679,6 +683,9 @@ func FormatText(res *Result) string {
 	fmt.Fprintf(&b, "  Uncommitted    %d\n", res.Change.Files)
 	if res.Change.Branch != "" {
 		fmt.Fprintf(&b, "  Branch         %s\n", res.Change.Branch)
+	}
+	if res.Change.Commit != "" {
+		fmt.Fprintf(&b, "  Commit         %s\n", res.Change.Commit)
 	}
 	b.WriteString("Provenance\n")
 	fmt.Fprintf(&b, "  Status         %s\n", res.Provenance.Status)

@@ -56,6 +56,9 @@ func NewFromGate(root string, res *gate.Result) (*Record, error) {
 	if res.Change.Branch != "" {
 		rec.Branch = res.Change.Branch
 	}
+	if res.Change.Commit != "" {
+		rec.Commit = res.Change.Commit
+	}
 	id, err := contentID(rec)
 	if err != nil {
 		return nil, err
