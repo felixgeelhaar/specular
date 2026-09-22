@@ -35,7 +35,7 @@ type IntegrateOptions struct {
 	// attest + gate --require-attested --require-protocol; non-zero on DENY.
 	Enforce bool
 	// RequireGoverned adds --require-governed to enforce gate (Level 3 + governed).
-	// Only valid with Enforce.
+	// Only valid with Enforce. Documented in examples/agents/<harness>/README.md.
 	RequireGoverned bool
 }
 

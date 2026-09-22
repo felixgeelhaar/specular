@@ -7,6 +7,7 @@ Prefer the CLI so `hooks.json` merge is idempotent:
 ```bash
 specular session integrate cursor
 specular session integrate cursor --enforce --force  # Level-3 fail-closed
+specular session integrate cursor --enforce --require-governed --force  # + governed
 ```
 
 Alias: `specular session integrate cursor-agent`.
@@ -43,5 +44,6 @@ Cursor Agent stop
 session attest  →  .specular/sessions/<id>.attestation.json
         │            provenance.harness from session record
         ▼
-specular gate   →  ALLOW/DENY board (advisory default; --enforce fails closed)
+specular gate   →  ALLOW/DENY board (advisory default; --enforce fails closed;
+                     --require-governed also DENYs without a governed session)
 ```
