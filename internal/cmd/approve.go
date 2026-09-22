@@ -58,15 +58,18 @@ var approvalsCmd = &cobra.Command{
 var approvalsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all approval records",
-	Long: `Display approval records with optional status filtering.
+	Long: `Display approval records with optional filters.
 
 Shows:
   • Approval type (bundle, drift, policy, plan, exception)
   • Resource ID, approver, timestamp
   • Exception reason/scope/policy/expiration when present
 
-Filters:
+Filters (combinable):
   --status open|closed|expired   Lifecycle status (closed wins over expired)
+  --type bundle|drift|policy|plan|exception
+  --policy <substr>              Case-insensitive match on policy field
+  --scope <substr>               Case-insensitive match on scope field
 
 --json emits a machine-readable array of matching records.`,
 	RunE: runApprovalsList,
@@ -236,6 +239,9 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	status, _ := cmd.Flags().GetString("status")
+	typ, _ := cmd.Flags().GetString("type")
+	policySub, _ := cmd.Flags().GetString("policy")
+	scopeSub, _ := cmd.Flags().GetString("scope")
 	recs, err := approval.List(".")
 	if err != nil {
 		return err
@@ -245,6 +251,12 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	recs, err = approval.FilterByType(recs, typ)
+	if err != nil {
+		return err
+	}
+	recs = approval.FilterByPolicy(recs, policySub)
+	recs = approval.FilterByScope(recs, scopeSub)
 
 	if jsonOut {
 		enc := json.NewEncoder(os.Stdout)
@@ -256,8 +268,9 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(recs) == 0 {
-		if strings.TrimSpace(status) != "" {
-			fmt.Printf("No approval records with status %q.\n", strings.ToLower(strings.TrimSpace(status)))
+		if filtered := strings.TrimSpace(status) != "" || strings.TrimSpace(typ) != "" ||
+			strings.TrimSpace(policySub) != "" || strings.TrimSpace(scopeSub) != ""; filtered {
+			fmt.Println("No approval records match the given filters.")
 			return nil
 		}
 		fmt.Println("No approval records found.")
@@ -715,6 +728,9 @@ func init() {
 
 	approvalsListCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 	approvalsListCmd.Flags().String("status", "", "Filter by lifecycle status (open|closed|expired)")
+	approvalsListCmd.Flags().String("type", "", "Filter by record type (bundle|drift|policy|plan|exception)")
+	approvalsListCmd.Flags().String("policy", "", "Filter by policy field substring (case-insensitive)")
+	approvalsListCmd.Flags().String("scope", "", "Filter by scope field substring (case-insensitive)")
 	approvalsShowCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 	approvalsCloseCmd.Flags().String("reason", "", "Optional close note (audit)")
 	approvalsCloseCmd.Flags().Bool("json", false, "Emit machine-readable JSON")

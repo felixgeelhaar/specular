@@ -356,6 +356,58 @@ func TestFilterByStatus(t *testing.T) {
 	}
 }
 
+func TestFilterByTypePolicyScope(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)
+	exp := now.Add(24 * time.Hour)
+	recs := []Record{
+		{
+			Type: TypeException, ResourceID: "exception-app",
+			ApprovedAt: now, ExpiresAt: &exp,
+			Policy: "provenance", Scope: "auth-service",
+		},
+		{
+			Type: TypeException, ResourceID: "exception-sec",
+			ApprovedAt: now, ExpiresAt: &exp,
+			Policy: "security", Scope: "payments",
+		},
+		{
+			Type: TypeBundle, ResourceID: "bundle-abc", ApprovedAt: now,
+			Policy: "soc2", Scope: "release",
+		},
+	}
+
+	ex, err := FilterByType(recs, "exception")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ex) != 2 {
+		t.Fatalf("exception=%v", idsOfApprovals(ex))
+	}
+	if _, err := FilterByType(recs, "unknown"); err == nil {
+		t.Fatal("expected invalid type")
+	}
+
+	pol := FilterByPolicy(recs, "PROVENANCE")
+	if len(pol) != 1 || pol[0].ResourceID != "exception-app" {
+		t.Fatalf("policy=%v", idsOfApprovals(pol))
+	}
+	scope := FilterByScope(recs, "pay")
+	if len(scope) != 1 || scope[0].ResourceID != "exception-sec" {
+		t.Fatalf("scope=%v", idsOfApprovals(scope))
+	}
+
+	// Combinable: type + policy
+	typed, err := FilterByType(recs, "exception")
+	if err != nil {
+		t.Fatal(err)
+	}
+	combo := FilterByPolicy(typed, "sec")
+	if len(combo) != 1 || combo[0].ResourceID != "exception-sec" {
+		t.Fatalf("combo=%v", idsOfApprovals(combo))
+	}
+}
+
 func idsOfApprovals(recs []Record) []string {
 	out := make([]string, len(recs))
 	for i, r := range recs {

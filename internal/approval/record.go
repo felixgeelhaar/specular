@@ -154,6 +154,59 @@ func FilterByStatus(recs []Record, status string, now time.Time) ([]Record, erro
 	return out, nil
 }
 
+// FilterByType keeps records whose Type matches (case-insensitive).
+// Empty type returns all. Unknown types error.
+func FilterByType(recs []Record, typ string) ([]Record, error) {
+	want := strings.ToLower(strings.TrimSpace(typ))
+	if want == "" {
+		return recs, nil
+	}
+	switch want {
+	case TypeBundle, TypeDrift, TypePolicy, TypePlan, TypeException:
+	default:
+		return nil, fmt.Errorf("approval: invalid type %q (want bundle|drift|policy|plan|exception)", typ)
+	}
+	var out []Record
+	for _, rec := range recs {
+		if strings.ToLower(strings.TrimSpace(rec.Type)) == want {
+			out = append(out, rec)
+		}
+	}
+	return out, nil
+}
+
+// FilterByPolicy keeps records whose Policy contains substr (case-insensitive).
+// Empty substr returns all.
+func FilterByPolicy(recs []Record, substr string) []Record {
+	needle := strings.ToLower(strings.TrimSpace(substr))
+	if needle == "" {
+		return recs
+	}
+	var out []Record
+	for _, rec := range recs {
+		if strings.Contains(strings.ToLower(rec.Policy), needle) {
+			out = append(out, rec)
+		}
+	}
+	return out
+}
+
+// FilterByScope keeps records whose Scope contains substr (case-insensitive).
+// Empty substr returns all.
+func FilterByScope(recs []Record, substr string) []Record {
+	needle := strings.ToLower(strings.TrimSpace(substr))
+	if needle == "" {
+		return recs
+	}
+	var out []Record
+	for _, rec := range recs {
+		if strings.Contains(strings.ToLower(rec.Scope), needle) {
+			out = append(out, rec)
+		}
+	}
+	return out
+}
+
 // CloseOptions configures early revoke of an open exception.
 type CloseOptions struct {
 	Now    time.Time
