@@ -91,7 +91,7 @@ func applyRequireProtocolFlag(res *Result, require bool) {
 	}
 	applyProtocolGovernance(&res.Provenance)
 	if res.Provenance.Note != "" && !strings.Contains(res.Provenance.Note, "--require-protocol") {
-		res.Provenance.Note = res.Provenance.Note + " (--require-protocol)"
+		res.Provenance.Note += " (--require-protocol)"
 	}
 }
 
