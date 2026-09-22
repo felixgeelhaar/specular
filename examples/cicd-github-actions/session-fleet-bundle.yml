@@ -61,9 +61,20 @@ jobs:
           specular session status
 
       - name: Wait + gate + evidence bundle
+        env:
+          # Progressive-trust ladder (optional): set to true to pass matching
+          # session wait --require-* flags (same semantics as specular gate).
+          REQUIRE_ATTESTED: ${{ vars.REQUIRE_ATTESTED || 'false' }}
+          REQUIRE_PROTOCOL: ${{ vars.REQUIRE_PROTOCOL || 'false' }}
+          REQUIRE_GOVERNED: ${{ vars.REQUIRE_GOVERNED || 'false' }}
         run: |
           # --stop aborts stuck harnesses when the deadline fires (fleet abort).
+          EXTRA=()
+          [[ "${REQUIRE_ATTESTED}" == "true" ]] && EXTRA+=(--require-attested)
+          [[ "${REQUIRE_PROTOCOL}" == "true" ]] && EXTRA+=(--require-protocol)
+          [[ "${REQUIRE_GOVERNED}" == "true" ]] && EXTRA+=(--require-governed)
           specular session wait --timeout 45m --stop --bundle \
+            "${EXTRA[@]}" \
             --policy .specular/policies/soc2-cc8.1.yaml \
             --bundle-out session-evidence.sbundle.tgz
 

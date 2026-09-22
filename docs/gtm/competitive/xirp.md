@@ -60,7 +60,7 @@ everywhere compliance matters — Specular is the stronger product.
 - `session merge [--into]` lands the branch into the primary checkout (no gh)
 - `session stop [ids…] [--all]` / `wait --timeout --stop` fleet abort
 - `session attest` / `wait --attest` signed provenance for native harnesses
-- `session wait --gate` fleet→evidence drift proof (fail-on-drift, exit 4)
+- `session wait --gate` fleet→evidence product gate (provenance/drift/policy; DENY → exit 3/4); climb progressive-trust with `--require-attested` / `--require-protocol` / `--require-governed`
 - `session wait --bundle` one-command attest/gate/evidence packet
 - `session start --governed` safer native launch + preamble + attest provenance
 - Auto-governed when `.specular/policy.yaml` exists (`--no-governed` to opt out)

@@ -214,6 +214,50 @@ func TestRunSessionProductGateStrictSpecMissing(t *testing.T) {
 	}
 }
 
+func TestRunSessionProductGateRequireAttestedDeny(t *testing.T) {
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(cwd) }()
+
+	err = runSessionProductGate(sessionProductGateOptions{
+		Quiet:           true,
+		RequireAttested: true,
+	})
+	if err == nil {
+		t.Fatal("expected DENY with --require-attested on unattested tree")
+	}
+	if code := exitcode.DetermineExitCode(err); code != exitcode.PolicyViolation {
+		t.Fatalf("code=%d want %d for %v", code, exitcode.PolicyViolation, err)
+	}
+}
+
+func TestRunSessionWaitPostPassesRequireFlags(t *testing.T) {
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(cwd) }()
+
+	err = runSessionWaitPost(sessionWaitPostOptions{
+		Gate:            true,
+		Quiet:           true,
+		RequireAttested: true,
+	})
+	if err == nil {
+		t.Fatal("expected wait --gate --require-attested DENY without attestations")
+	}
+}
+
 func TestProductGateDenyMapsToExitCode(t *testing.T) {
 	err := fmt.Errorf("drift detection failed: code drift")
 	if code := exitcode.DetermineExitCode(err); code != exitcode.DriftDetected {

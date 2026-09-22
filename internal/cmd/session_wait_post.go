@@ -8,15 +8,18 @@ import (
 
 // sessionWaitPostOptions is the fleet→evidence post-wait pipeline.
 type sessionWaitPostOptions struct {
-	Ctx       context.Context
-	Mgr       *session.Manager
-	Recs      []session.Record
-	Attest    bool
-	Gate      bool
-	Bundle    bool
-	BundleOut string
-	Policies  []string
-	Quiet     bool
+	Ctx             context.Context
+	Mgr             *session.Manager
+	Recs            []session.Record
+	Attest          bool
+	Gate            bool
+	Bundle          bool
+	BundleOut       string
+	Policies        []string
+	Quiet           bool
+	RequireAttested bool
+	RequireProtocol bool
+	RequireGoverned bool
 }
 
 // runSessionWaitPost runs optional attest → gate → evidence bundle after wait.
@@ -37,7 +40,12 @@ func runSessionWaitPost(opts sessionWaitPostOptions) error {
 		}
 	}
 	if doGate {
-		if err := runSessionProductGate(sessionProductGateOptions{Quiet: opts.Quiet}); err != nil {
+		if err := runSessionProductGate(sessionProductGateOptions{
+			Quiet:           opts.Quiet,
+			RequireAttested: opts.RequireAttested,
+			RequireProtocol: opts.RequireProtocol,
+			RequireGoverned: opts.RequireGoverned,
+		}); err != nil {
 			return err
 		}
 	}

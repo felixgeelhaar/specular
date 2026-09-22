@@ -20,7 +20,12 @@ specular session batch --governed "$FLEET"
 specular session status
 
 echo "==> session wait --timeout ${TIMEOUT} --stop --bundle"
+EXTRA=()
+[[ "${REQUIRE_ATTESTED:-}" == "1" || "${REQUIRE_ATTESTED:-}" == "true" ]] && EXTRA+=(--require-attested)
+[[ "${REQUIRE_PROTOCOL:-}" == "1" || "${REQUIRE_PROTOCOL:-}" == "true" ]] && EXTRA+=(--require-protocol)
+[[ "${REQUIRE_GOVERNED:-}" == "1" || "${REQUIRE_GOVERNED:-}" == "true" ]] && EXTRA+=(--require-governed)
 specular session wait --timeout "$TIMEOUT" --stop --bundle \
+  "${EXTRA[@]}" \
   --policy ".specular/policies/${POLICY_ID}.yaml" \
   --bundle-out "$BUNDLE_OUT"
 
