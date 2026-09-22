@@ -6,6 +6,8 @@
 # Usage:
 #   1. Copy to .github/workflows/specular-gate.yml
 #   2. Ensure the specular binary is available (install step below)
+#   3. Optional: set repository variable REQUIRE_ATTESTED=true to DENY
+#      unattested trees (mirrors provenance.attested: enforce / --require-attested)
 #   Exit codes: 0=ALLOW, 3=policy DENY, 4=drift DENY
 
 name: Specular Gate
@@ -38,9 +40,16 @@ jobs:
 
       - name: Run gate
         id: gate
+        env:
+          REQUIRE_ATTESTED: ${{ vars.REQUIRE_ATTESTED }}
         run: |
           set +e
-          specular gate --format markdown --github-annotations > gate.md 2>gate.annotations
+          EXTRA=()
+          if [ "${REQUIRE_ATTESTED:-}" = "true" ] || [ "${REQUIRE_ATTESTED:-}" = "1" ]; then
+            EXTRA+=(--require-attested)
+            echo "Progressive trust: --require-attested enabled"
+          fi
+          specular gate --format markdown --github-annotations "${EXTRA[@]}" > gate.md 2>gate.annotations
           code=$?
           set -e
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"

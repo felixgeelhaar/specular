@@ -10,10 +10,11 @@
 #   4 = drift DENY
 #
 # Env (optional):
-#   POLICY_FILE   default: .specular/policy.yaml (omitted when missing — brownfield)
-#   REPORT_FILE   default: drift.sarif
-#   STRICT_SPEC   set to 1 to pass --strict-spec
-#   GATE_MD       default: gate.md
+#   POLICY_FILE        default: .specular/policy.yaml (omitted when missing — brownfield)
+#   REPORT_FILE        default: drift.sarif
+#   STRICT_SPEC        set to 1 to pass --strict-spec
+#   REQUIRE_ATTESTED   set to 1 to pass --require-attested (progressive trust)
+#   GATE_MD            default: gate.md
 
 set -u
 
@@ -29,6 +30,10 @@ else
 fi
 if [ "${STRICT_SPEC:-0}" = "1" ]; then
   ARGS+=(--strict-spec)
+fi
+if [ "${REQUIRE_ATTESTED:-0}" = "1" ] || [ "${REQUIRE_ATTESTED:-false}" = "true" ]; then
+  ARGS+=(--require-attested)
+  echo "Progressive trust: --require-attested enabled"
 fi
 
 # Non-interactive. Do not pass --github-annotations outside GitHub Actions
