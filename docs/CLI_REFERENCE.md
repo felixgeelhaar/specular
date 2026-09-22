@@ -2276,9 +2276,9 @@ specular session <subcommand>
 | `session start <goal>` | Start a detached harness run in an isolated worktree |
 | `session start --manifest <file>` | Start a fleet from a YAML/JSON manifest |
 | `session batch <manifest>` | Alias for fleet launch from a manifest |
-| `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
+| `session list [--checkpoints]` | List managed sessions (GOV/ATTEST/APP/COMMIT columns; optionally legacy checkpoints) |
 | `session show <id>` | Show session details, worktree, harness, log path; lists sibling attestation/APP paths when present |
-| `session status [--watch]` | Live multi-session board (counts + PID/branch/goal; `--json` → `{summary,sessions}`) |
+| `session status [--watch]` | Live multi-session board (GOV/ATTEST/APP/COMMIT + PID/branch/goal; `--json` → `{summary,sessions,evidence}`) |
 | `session wait [id…]` | Block until sessions finish; `--attest` / `--gate` / `--bundle` (+ optional `--require-*`) close the fleet→evidence loop |
 | `session logs <id> [--follow]` | Print or follow the session log |
 | `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
