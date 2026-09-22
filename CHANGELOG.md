@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **APP protocol enforce (P1 #3/#10 depth)**: opt-in policy `provenance:
+  protocol: enforce` DENYs when attested sessions lack valid sibling
+  `.provenance.json` docs (or schema validation fails). Soft-ALLOW via
+  exception `--policy provenance` (or session id / schema). Without the
+  block, APP doc counts stay advisory. Example:
+  `examples/policy/provenance-protocol.yaml`.
+
 - **Stronger session provenance (P1 #10 depth)**: gate discovers sibling
   `.provenance.json` APP docs, reports `Protocol` schema with docs/ok counts
   on the board/markdown/explain, and notes `APP docs N/M ok` when attested.

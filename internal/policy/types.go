@@ -11,6 +11,9 @@ type Policy struct {
 	// Risk is opt-in risk-adaptive governance (PRODUCT_INTENT §13).
 	// When unset, gate Risk stays advisory and never flips ALLOW→DENY.
 	Risk *RiskGovernance `yaml:"risk,omitempty"`
+	// Provenance is opt-in Agent Provenance Protocol enforcement (§9).
+	// When unset, APP doc counts stay advisory and never flip ALLOW→DENY.
+	Provenance *ProvenanceGovernance `yaml:"provenance,omitempty"`
 }
 
 // RiskGovernance maps change-risk levels to approval requirements.

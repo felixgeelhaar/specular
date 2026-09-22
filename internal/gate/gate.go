@@ -99,6 +99,9 @@ type ProvenanceSection struct {
 	ProtocolDocs   int    `json:"protocolDocs,omitempty"`
 	ProtocolOK     int    `json:"protocolOk,omitempty"`
 	ProtocolSchema string `json:"protocolSchema,omitempty"`
+	// Enforced is true when policy provenance.protocol: enforce is active.
+	// With Enforced and Status=FAIL, decide() DENYs unless soft-ALLOW matches.
+	Enforced bool `json:"enforced,omitempty"`
 }
 
 // DriftSection summarizes drift evaluation.
@@ -167,6 +170,7 @@ func Evaluate(opts Options) (*Result, error) {
 	res.Risk = assessRisk(res.Provenance, root)
 	res.Approvals = discoverApprovals(root)
 	applyRiskGovernance(res, root, opts.PolicyPath)
+	applyProvenanceGovernance(res, root, opts.PolicyPath)
 	res.Verdict, res.Reason = decide(res)
 	return res, nil
 }
@@ -582,6 +586,14 @@ func trySoftAllowDenies(res *Result) (overruled []string, verdict Verdict, reaso
 				level, strings.Join(res.Risk.Missing, ", "))
 		}
 	}
+	if res.Provenance.Enforced && res.Provenance.Status == StatusFail {
+		if o := findExceptionOverrule(res, DenyKindProvenance); o != nil {
+			res.Approvals.Overrules = append(res.Approvals.Overrules, *o)
+			overruled = append(overruled, fmt.Sprintf("%s overruled provenance DENY (%s)", o.ResourceID, o.Binding))
+		} else {
+			return nil, Deny, firstNonEmpty(res.Provenance.Note, "APP protocol verification failed")
+		}
+	}
 	return overruled, Allow, ""
 }
 
@@ -604,12 +616,19 @@ func allowReasonParts(res *Result) []string {
 		parts = append(parts, "policy skipped")
 	}
 	if res.Provenance.Attested {
-		parts = append(parts, "provenance attested")
+		if res.Provenance.Enforced && res.Provenance.Status == StatusFail {
+			parts = append(parts, "provenance fail (exception soft-ALLOW)")
+		} else {
+			parts = append(parts, "provenance attested")
+		}
 	} else {
 		parts = append(parts, "provenance unattested")
 	}
 	if res.Risk.Enforced && len(res.Risk.Required) > 0 && len(res.Risk.Missing) == 0 {
 		parts = append(parts, "risk approvals satisfied")
+	}
+	if res.Provenance.Enforced && res.Provenance.Attested && res.Provenance.Status == StatusPass {
+		parts = append(parts, "APP protocol ok")
 	}
 	return parts
 }

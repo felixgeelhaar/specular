@@ -107,6 +107,20 @@ Satisfy a required role with an open exception whose `--policy` (or
 `--scope`) matches the role, e.g.
 `specular approve exception-auth --reason "…" --policy security`.
 
+**Provenance protocol (PRODUCT_INTENT §9):** When session attestations are
+present, gate counts sibling `.provenance.json` APP docs (`docs=N ok=M`).
+Without a policy `provenance:` block this stays advisory. With opt-in
+enforce, missing or invalid APP docs DENY:
+
+```yaml
+provenance:
+  protocol: enforce
+```
+
+Soft-ALLOW with an open exception whose `--policy` is `provenance`
+(or `protocol` / session id / schema), e.g.
+`specular approve exception-app --reason "…" --policy provenance`.
+
 | Flag | Description |
 |------|-------------|
 | `--project-root` | Repository root (default: cwd) |
@@ -140,6 +154,9 @@ newest attestation by mtime.
 
 `verify` checks schema / version / required `session` (exit 0 on OK). It does
 **not** verify cryptographic signatures — use `specular auto verify` for that.
+
+Gate can optionally **enforce** the same checks via policy
+`provenance.protocol: enforce` (see [gate](#gate)); default remains advisory.
 
 This is PRODUCT_INTENT §9 / P1 #3 — a format + emit/consume path, not a
 control plane. Third-party agents can produce the same schema without
