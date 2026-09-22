@@ -44,6 +44,12 @@ func TestListFilters(t *testing.T) {
 			},
 			Policy: gate.PolicySection{Status: gate.StatusSkipped},
 			Risk:   gate.RiskSection{Level: "HIGH", Factors: []string{"authentication / authorization paths modified"}},
+			Provenance: gate.ProvenanceSection{
+				Status:    gate.StatusPass,
+				Attested:  true,
+				Sessions:  []string{"auth", "auth-alt"},
+				Harnesses: []string{"claude-code"},
+			},
 		},
 	})
 	allowNew := mustWriteRecord(t, root, &Record{
@@ -57,6 +63,12 @@ func TestListFilters(t *testing.T) {
 			Drift:   gate.DriftSection{Status: gate.StatusPass},
 			Policy:  gate.PolicySection{Status: gate.StatusSkipped},
 			Risk:    gate.RiskSection{Level: "LOW"},
+			Provenance: gate.ProvenanceSection{
+				Status:    gate.StatusPass,
+				Attested:  true,
+				Sessions:  []string{"fleet-review"},
+				Harnesses: []string{"cursor"},
+			},
 		},
 	})
 
@@ -192,6 +204,61 @@ func TestListFilters(t *testing.T) {
 		_, err := List(root, ListFilter{RiskLevel: "EXTREME"})
 		if err == nil {
 			t.Fatal("expected error")
+		}
+	})
+
+	t.Run("session_exact", func(t *testing.T) {
+		t.Parallel()
+		recs, err := List(root, ListFilter{Session: "auth"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) != 1 || recs[0].ID != denyMid.ID {
+			t.Fatalf("got %v", idsOf(recs))
+		}
+		// Must not substring-match auth-alt alone when querying auth-alt's sibling.
+		miss, err := List(root, ListFilter{Session: "auth-missing"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(miss) != 0 {
+			t.Fatalf("got %v", idsOf(miss))
+		}
+	})
+
+	t.Run("harness_substring", func(t *testing.T) {
+		t.Parallel()
+		recs, err := List(root, ListFilter{Harness: "Claude"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) != 1 || recs[0].ID != denyMid.ID {
+			t.Fatalf("got %v", idsOf(recs))
+		}
+		cursor, err := List(root, ListFilter{Harness: "cursor"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(cursor) != 1 || cursor[0].ID != allowNew.ID {
+			t.Fatalf("got %v", idsOf(cursor))
+		}
+	})
+
+	t.Run("session_and_harness", func(t *testing.T) {
+		t.Parallel()
+		recs, err := List(root, ListFilter{Session: "auth", Harness: "claude"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) != 1 || recs[0].ID != denyMid.ID {
+			t.Fatalf("got %v", idsOf(recs))
+		}
+		miss, err := List(root, ListFilter{Session: "auth", Harness: "cursor"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(miss) != 0 {
+			t.Fatalf("got %v", idsOf(miss))
 		}
 	})
 }

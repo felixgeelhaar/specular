@@ -17,6 +17,8 @@ type ListFilter struct {
 	Since        time.Time    // inclusive lower bound on CreatedAt; zero = any
 	PathContains string       // substring match on root / finding paths
 	RiskLevel    string       // NONE|LOW|MEDIUM|HIGH|CRITICAL; empty = any
+	Session      string       // exact match against gate.provenance.sessions[]
+	Harness      string       // case-insensitive substring against harnesses[]
 	Limit        int          // max results; <=0 = unlimited
 }
 
@@ -70,34 +72,66 @@ func (f ListFilter) Match(rec *Record) bool {
 	if rec == nil {
 		return false
 	}
-	if f.Verdict != "" {
-		if rec.Gate == nil || rec.Gate.Verdict != f.Verdict {
-			return false
-		}
+	if !f.matchVerdict(rec) || !f.matchSince(rec) || !f.matchPath(rec) {
+		return false
 	}
-	if !f.Since.IsZero() {
-		if rec.CreatedAt.IsZero() || rec.CreatedAt.Before(f.Since) {
-			return false
-		}
-	}
-	if sub := strings.TrimSpace(f.PathContains); sub != "" {
-		if !pathContains(rec, sub) {
-			return false
-		}
-	}
-	if level := strings.ToUpper(strings.TrimSpace(f.RiskLevel)); level != "" {
-		got := ""
-		if rec.Gate != nil {
-			got = strings.ToUpper(strings.TrimSpace(rec.Gate.Risk.Level))
-		}
-		if got == "" {
-			got = "NONE"
-		}
-		if got != level {
-			return false
-		}
+	if !f.matchRisk(rec) || !f.matchSession(rec) || !f.matchHarness(rec) {
+		return false
 	}
 	return true
+}
+
+func (f ListFilter) matchVerdict(rec *Record) bool {
+	if f.Verdict == "" {
+		return true
+	}
+	return rec.Gate != nil && rec.Gate.Verdict == f.Verdict
+}
+
+func (f ListFilter) matchSince(rec *Record) bool {
+	if f.Since.IsZero() {
+		return true
+	}
+	return !rec.CreatedAt.IsZero() && !rec.CreatedAt.Before(f.Since)
+}
+
+func (f ListFilter) matchPath(rec *Record) bool {
+	sub := strings.TrimSpace(f.PathContains)
+	if sub == "" {
+		return true
+	}
+	return pathContains(rec, sub)
+}
+
+func (f ListFilter) matchRisk(rec *Record) bool {
+	level := strings.ToUpper(strings.TrimSpace(f.RiskLevel))
+	if level == "" {
+		return true
+	}
+	got := ""
+	if rec.Gate != nil {
+		got = strings.ToUpper(strings.TrimSpace(rec.Gate.Risk.Level))
+	}
+	if got == "" {
+		got = "NONE"
+	}
+	return got == level
+}
+
+func (f ListFilter) matchSession(rec *Record) bool {
+	session := strings.TrimSpace(f.Session)
+	if session == "" {
+		return true
+	}
+	return provenanceSessionMatch(rec, session)
+}
+
+func (f ListFilter) matchHarness(rec *Record) bool {
+	harness := strings.TrimSpace(f.Harness)
+	if harness == "" {
+		return true
+	}
+	return provenanceHarnessContains(rec, harness)
 }
 
 func (f ListFilter) validate() error {
@@ -144,6 +178,31 @@ func pathContains(rec *Record, sub string) bool {
 	subLower := strings.ToLower(sub)
 	for _, p := range recordPathStrings(rec) {
 		if strings.Contains(strings.ToLower(p), subLower) {
+			return true
+		}
+	}
+	return false
+}
+
+func provenanceSessionMatch(rec *Record, id string) bool {
+	if rec == nil || rec.Gate == nil {
+		return false
+	}
+	for _, s := range rec.Gate.Provenance.Sessions {
+		if strings.TrimSpace(s) == id {
+			return true
+		}
+	}
+	return false
+}
+
+func provenanceHarnessContains(rec *Record, sub string) bool {
+	if rec == nil || rec.Gate == nil {
+		return false
+	}
+	subLower := strings.ToLower(sub)
+	for _, h := range rec.Gate.Provenance.Harnesses {
+		if strings.Contains(strings.ToLower(h), subLower) {
 			return true
 		}
 	}

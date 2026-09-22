@@ -30,6 +30,7 @@ Examples:
   specular evidence list --verdict DENY --since 24h --limit 20
   specular evidence list --path internal/auth --json
   specular evidence list --risk HIGH --verdict DENY
+  specular evidence list --session auth --harness claude
   specular evidence show
   specular evidence show ev_abc123
   specular evidence show --json
@@ -46,6 +47,8 @@ Filters (combinable):
   --since <dur|RFC3339>             CreatedAt at or after (e.g. 24h, 2026-09-01T00:00:00Z)
   --path <substr>                   Root or drift finding path contains substring
   --risk NONE|LOW|MEDIUM|HIGH|CRITICAL  Gate risk level (empty risk treated as NONE)
+  --session <id>                    Exact match on gate.provenance.sessions[]
+  --harness <substr>                Case-insensitive substring on harnesses[]
   --limit N                         Cap results after sorting (newest first)
 
 --json emits a JSON array of matching IDs.
@@ -85,7 +88,8 @@ func runEvidenceList(cmd *cobra.Command, _ []string) error {
 		return enc.Encode(ids)
 	}
 	if len(ids) == 0 {
-		if filter.Verdict != "" || !filter.Since.IsZero() || filter.PathContains != "" {
+		if filter.Verdict != "" || !filter.Since.IsZero() || filter.PathContains != "" ||
+			filter.RiskLevel != "" || filter.Session != "" || filter.Harness != "" {
 			fmt.Println("No evidence records match filters.")
 			return nil
 		}
@@ -116,6 +120,10 @@ func evidenceListFilter(cmd *cobra.Command) (evidence.ListFilter, error) {
 	f.PathContains = strings.TrimSpace(pathSub)
 	risk, _ := cmd.Flags().GetString("risk")
 	f.RiskLevel = strings.TrimSpace(risk)
+	session, _ := cmd.Flags().GetString("session")
+	f.Session = strings.TrimSpace(session)
+	harness, _ := cmd.Flags().GetString("harness")
+	f.Harness = strings.TrimSpace(harness)
 	limit, _ := cmd.Flags().GetInt("limit")
 	f.Limit = limit
 	return f, nil
@@ -160,6 +168,8 @@ func init() {
 	evidenceListCmd.Flags().String("since", "", "Only records at or after time (duration like 24h, or RFC3339)")
 	evidenceListCmd.Flags().String("path", "", "Only records whose root or finding paths contain substring")
 	evidenceListCmd.Flags().String("risk", "", "Filter by gate risk level (NONE|LOW|MEDIUM|HIGH|CRITICAL)")
+	evidenceListCmd.Flags().String("session", "", "Exact match on gate provenance session id")
+	evidenceListCmd.Flags().String("harness", "", "Substring match on gate provenance harness label")
 	evidenceListCmd.Flags().Int("limit", 0, "Maximum number of records to return (0 = all)")
 	evidenceShowCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	evidenceCmd.AddCommand(evidenceListCmd)

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Evidence list session/harness filters (P1 #9 depth)**: `specular evidence
+  list --session <id>` (exact) and `--harness <substr>` (case-insensitive)
+  filter Change Evidence Graph records by gate provenance; combinable with
+  verdict/since/path/risk/limit.
+
 - **Require attested provenance (P1 #10 depth)**: opt-in policy
   `provenance.attested: enforce` DENYs unattested trees (progressive trust).
   Independent of `protocol: enforce` (which stays idle when unattested).
