@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Session store concurrent Save**: unique temp files per `Store.Save` so
+  concurrent writers for the same session ID cannot truncate a shared
+  `.json.tmp` (fixes `TestStartManyDependencyChain` decode flake); `Load`
+  retries briefly on JSON decode errors.
+
 ### Added
 
 - **Progressive-trust policy example**: `examples/policy/progressive-trust.yaml`

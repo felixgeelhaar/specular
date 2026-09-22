@@ -63,6 +63,46 @@ func TestStoreSaveLoadList(t *testing.T) {
 	}
 }
 
+func TestStoreConcurrentSaveSameID(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	store, err := NewStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const n = 32
+	errCh := make(chan error, n)
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			errCh <- store.Save(&Record{
+				ID:        "race",
+				Goal:      "g-" + strconv.Itoa(i),
+				Harness:   "specular-auto",
+				Status:    StatusWorking,
+				CreatedAt: time.Now().UTC(),
+			})
+		}(i)
+	}
+	for i := 0; i < n; i++ {
+		if err := <-errCh; err != nil {
+			t.Fatal(err)
+		}
+	}
+	loaded, loadErr := store.Load("race")
+	if loadErr != nil {
+		t.Fatal(loadErr)
+	}
+	if loaded.ID != "race" || loaded.Goal == "" {
+		t.Fatalf("%+v", loaded)
+	}
+	entries, _ := os.ReadDir(store.Dir())
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".tmp") {
+			t.Fatalf("leftover temp %s", e.Name())
+		}
+	}
+}
+
 func TestStartDetachStop(t *testing.T) {
 	repo := initTempRepo(t)
 	mgr, err := NewManager(repo)
