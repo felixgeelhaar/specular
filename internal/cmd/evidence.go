@@ -125,6 +125,8 @@ func evidenceListFilter(cmd *cobra.Command) (evidence.ListFilter, error) {
 	}
 	pathSub, _ := cmd.Flags().GetString("path")
 	f.PathContains = strings.TrimSpace(pathSub)
+	controlSub, _ := cmd.Flags().GetString("control")
+	f.ControlContains = strings.TrimSpace(controlSub)
 	risk, _ := cmd.Flags().GetString("risk")
 	f.RiskLevel = strings.TrimSpace(risk)
 	session, _ := cmd.Flags().GetString("session")
@@ -190,6 +192,7 @@ func init() {
 	evidenceListCmd.Flags().String("verdict", "", "Filter by gate verdict (ALLOW or DENY)")
 	evidenceListCmd.Flags().String("since", "", "Only records at or after time (duration like 24h, or RFC3339)")
 	evidenceListCmd.Flags().String("path", "", "Only records whose root or finding paths contain substring")
+	evidenceListCmd.Flags().String("control", "", "Only records matching failed check / exception policy / soft-ALLOW bind substring")
 	evidenceListCmd.Flags().String("risk", "", "Filter by gate risk level (NONE|LOW|MEDIUM|HIGH|CRITICAL)")
 	evidenceListCmd.Flags().String("session", "", "Exact match on gate provenance session id")
 	evidenceListCmd.Flags().String("harness", "", "Substring match on gate provenance harness label")

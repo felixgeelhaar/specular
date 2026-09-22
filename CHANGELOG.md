@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Explain / evidence `--control` (PRODUCT_INTENT §20)**: substring filter
+  on failed policy checks, exception `--policy`, and soft-ALLOW bind tokens;
+  `explain --control SEC-17` + `evidence list --control`. Explain `--policy`
+  (fresh policy file) renamed to `--policy-file` (deprecated alias retained).
+
 - **Explain `--file` (PRODUCT_INTENT §20)**: `specular explain --file
   <substr>` selects the newest evidence record whose root / drift finding
   paths contain that substring (same matcher as `evidence list --path`).

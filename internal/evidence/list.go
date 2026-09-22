@@ -13,17 +13,18 @@ import (
 // ListFilter selects local evidence records. Zero-valued fields mean no constraint.
 // Sorting is always newest CreatedAt first, then ID ascending for stability.
 type ListFilter struct {
-	Verdict      gate.Verdict // ALLOW or DENY; empty = any
-	Since        time.Time    // inclusive lower bound on CreatedAt; zero = any
-	PathContains string       // substring match on root / finding paths
-	RiskLevel    string       // NONE|LOW|MEDIUM|HIGH|CRITICAL; empty = any
-	Session      string       // exact match against gate.provenance.sessions[]
-	Harness      string       // case-insensitive substring against harnesses[]
-	SoftAllow    *bool        // nil = any; true = has exception overrules; false = none
-	Attested     *bool        // nil = any; true/false = gate.provenance.attested
-	Governed     *bool        // nil = any; true/false = gate.provenance.governed
-	Protocol     *bool        // nil = any; true = APP docs present+schema+bound; false = missing/invalid/unbound
-	Limit        int          // max results; <=0 = unlimited
+	Verdict         gate.Verdict // ALLOW or DENY; empty = any
+	Since           time.Time    // inclusive lower bound on CreatedAt; zero = any
+	PathContains    string       // substring match on root / finding paths
+	ControlContains string       // substring match on failed checks / exception policy / overrule bind
+	RiskLevel       string       // NONE|LOW|MEDIUM|HIGH|CRITICAL; empty = any
+	Session         string       // exact match against gate.provenance.sessions[]
+	Harness         string       // case-insensitive substring against harnesses[]
+	SoftAllow       *bool        // nil = any; true = has exception overrules; false = none
+	Attested        *bool        // nil = any; true/false = gate.provenance.attested
+	Governed        *bool        // nil = any; true/false = gate.provenance.governed
+	Protocol        *bool        // nil = any; true = APP docs present+schema+bound; false = missing/invalid/unbound
+	Limit           int          // max results; <=0 = unlimited
 }
 
 // List returns evidence records matching filter, newest-first.
@@ -76,7 +77,7 @@ func (f ListFilter) Match(rec *Record) bool {
 	if rec == nil {
 		return false
 	}
-	if !f.matchVerdict(rec) || !f.matchSince(rec) || !f.matchPath(rec) {
+	if !f.matchVerdict(rec) || !f.matchSince(rec) || !f.matchPath(rec) || !f.matchControl(rec) {
 		return false
 	}
 	if !f.matchRisk(rec) || !f.matchSession(rec) || !f.matchHarness(rec) {
@@ -108,6 +109,14 @@ func (f ListFilter) matchPath(rec *Record) bool {
 		return true
 	}
 	return pathContains(rec, sub)
+}
+
+func (f ListFilter) matchControl(rec *Record) bool {
+	sub := strings.TrimSpace(f.ControlContains)
+	if sub == "" {
+		return true
+	}
+	return controlContains(rec, sub)
 }
 
 func (f ListFilter) matchRisk(rec *Record) bool {
@@ -187,6 +196,7 @@ func protocolDocsOK(rec *Record) bool {
 // Active reports whether any selection constraint is set (ignores Limit).
 func (f ListFilter) Active() bool {
 	return f.Verdict != "" || !f.Since.IsZero() || strings.TrimSpace(f.PathContains) != "" ||
+		strings.TrimSpace(f.ControlContains) != "" ||
 		strings.TrimSpace(f.RiskLevel) != "" || strings.TrimSpace(f.Session) != "" ||
 		strings.TrimSpace(f.Harness) != "" || f.SoftAllow != nil || f.Attested != nil ||
 		f.Governed != nil || f.Protocol != nil
@@ -240,6 +250,50 @@ func pathContains(rec *Record, sub string) bool {
 		}
 	}
 	return false
+}
+
+func controlContains(rec *Record, sub string) bool {
+	subLower := strings.ToLower(sub)
+	for _, s := range recordControlStrings(rec) {
+		if strings.Contains(strings.ToLower(s), subLower) {
+			return true
+		}
+	}
+	return false
+}
+
+// recordControlStrings collects policy/control tokens from failed checks,
+// exception --policy fields, and soft-ALLOW overrule kind/binding.
+func recordControlStrings(rec *Record) []string {
+	if rec == nil || rec.Gate == nil {
+		return nil
+	}
+	g := rec.Gate
+	var out []string
+	out = append(out, g.Policy.FailedChecks...)
+	for _, ex := range g.Approvals.Exceptions {
+		if ex.Policy != "" {
+			out = append(out, ex.Policy)
+		}
+		if ex.Scope != "" {
+			out = append(out, ex.Scope)
+		}
+	}
+	for _, o := range g.Approvals.Overrules {
+		if o.Kind != "" {
+			out = append(out, o.Kind)
+		}
+		if o.Binding != "" {
+			out = append(out, o.Binding)
+		}
+		if o.Policy != "" {
+			out = append(out, o.Policy)
+		}
+		if o.ResourceID != "" {
+			out = append(out, o.ResourceID)
+		}
+	}
+	return out
 }
 
 func provenanceSessionMatch(rec *Record, id string) bool {

@@ -25,6 +25,8 @@ specular gate. Pass an evidence id (ev_…) to explain a specific record.
 With --fresh, re-run the gate (and persist evidence) before explaining.
 With --file <substr>, select the newest record whose root / drift finding
 paths contain that substring (same matcher as evidence list --path).
+With --control <substr>, select the newest record matching failed checks /
+exception --policy / soft-ALLOW bind tokens (same as evidence list --control).
 
 Human text is an auditor-facing AI CHANGE RECORD (PRODUCT_INTENT §19).
 --json emits the unchanged machine-readable evidence record.
@@ -38,7 +40,8 @@ Examples:
   specular explain
   specular explain ev_abc123
   specular explain --file internal/auth/token.go
-  specular explain --fresh
+  specular explain --control SEC-17
+  specular explain --fresh --policy-file .specular/policy.yaml
   specular explain --json
 `,
 	Args: cobra.MaximumNArgs(1),
@@ -50,8 +53,9 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	fresh, _ := cmd.Flags().GetBool("fresh")
 	strictSpec, _ := cmd.Flags().GetBool("strict-spec")
-	policyPath, _ := cmd.Flags().GetString("policy")
+	policyPath := explainPolicyFile(cmd)
 	fileFilter, _ := cmd.Flags().GetString("file")
+	controlFilter, _ := cmd.Flags().GetString("control")
 
 	if projectRoot == "" {
 		cwd, err := os.Getwd()
@@ -62,13 +66,12 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 	}
 
 	fileFilter = strings.TrimSpace(fileFilter)
-	if fileFilter != "" {
-		if fresh {
-			return fmt.Errorf("explain: --file cannot be combined with --fresh")
-		}
-		if len(args) == 1 {
-			return fmt.Errorf("explain: --file cannot be combined with evidence-id")
-		}
+	controlFilter = strings.TrimSpace(controlFilter)
+	if fileFilter != "" && controlFilter != "" {
+		return fmt.Errorf("explain: --file and --control are mutually exclusive")
+	}
+	if err := explainGraphFilterExclusive(fileFilter, controlFilter, fresh, args); err != nil {
+		return err
 	}
 
 	var rec *evidence.Record
@@ -91,7 +94,15 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 			return writeErr
 		}
 	case fileFilter != "":
-		rec, err = loadEvidenceByFile(projectRoot, fileFilter)
+		rec, err = loadEvidenceByFilter(projectRoot, evidence.ListFilter{
+			PathContains: fileFilter,
+			Limit:        1,
+		}, "file", fileFilter)
+	case controlFilter != "":
+		rec, err = loadEvidenceByFilter(projectRoot, evidence.ListFilter{
+			ControlContains: controlFilter,
+			Limit:           1,
+		}, "control", controlFilter)
 	case len(args) == 1:
 		rec, err = evidence.Load(projectRoot, args[0])
 	default:
@@ -110,26 +121,73 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func loadEvidenceByFile(projectRoot, substr string) (*evidence.Record, error) {
-	recs, err := evidence.List(projectRoot, evidence.ListFilter{
-		PathContains: substr,
-		Limit:        1,
-	})
+func explainGraphFilterExclusive(fileFilter, controlFilter string, fresh bool, args []string) error {
+	if fileFilter == "" && controlFilter == "" {
+		return nil
+	}
+	flag := "--file"
+	if controlFilter != "" {
+		flag = "--control"
+	}
+	if fresh {
+		return fmt.Errorf("explain: %s cannot be combined with --fresh", flag)
+	}
+	if len(args) == 1 {
+		return fmt.Errorf("explain: %s cannot be combined with evidence-id", flag)
+	}
+	return nil
+}
+
+// explainPolicyFile resolves --policy-file, falling back to deprecated --policy.
+func explainPolicyFile(cmd *cobra.Command) string {
+	if cmd.Flags().Changed("policy-file") {
+		v, _ := cmd.Flags().GetString("policy-file")
+		return strings.TrimSpace(v)
+	}
+	if cmd.Flags().Changed("policy") {
+		v, _ := cmd.Flags().GetString("policy")
+		return strings.TrimSpace(v)
+	}
+	v, _ := cmd.Flags().GetString("policy-file")
+	if strings.TrimSpace(v) != "" {
+		return strings.TrimSpace(v)
+	}
+	v, _ = cmd.Flags().GetString("policy")
+	return strings.TrimSpace(v)
+}
+
+func loadEvidenceByFilter(projectRoot string, filter evidence.ListFilter, flag, substr string) (*evidence.Record, error) {
+	recs, err := evidence.List(projectRoot, filter)
 	if err != nil {
 		return nil, err
 	}
 	if len(recs) == 0 {
-		return nil, fmt.Errorf("explain: no evidence matches --file %q (try: specular evidence list --path %q)", substr, substr)
+		listFlag := "path"
+		if flag == "control" {
+			listFlag = "control"
+		}
+		return nil, fmt.Errorf("explain: no evidence matches --%s %q (try: specular evidence list --%s %q)", flag, substr, listFlag, substr)
 	}
 	return recs[0], nil
 }
 
+// loadEvidenceByFile kept for tests; prefer loadEvidenceByFilter.
+func loadEvidenceByFile(projectRoot, substr string) (*evidence.Record, error) {
+	return loadEvidenceByFilter(projectRoot, evidence.ListFilter{
+		PathContains: substr,
+		Limit:        1,
+	}, "file", substr)
+}
+
 func init() {
 	changeExplainCmd.Flags().String("project-root", "", "Repository root (default: cwd)")
-	changeExplainCmd.Flags().String("policy", "", "Policy file when using --fresh")
+	changeExplainCmd.Flags().String("policy-file", "", "Policy file when using --fresh")
+	changeExplainCmd.Flags().String("policy", "", "Deprecated alias for --policy-file")
+	_ = changeExplainCmd.Flags().MarkDeprecated("policy", "use --policy-file")
 	changeExplainCmd.Flags().Bool("strict-spec", false, "Require specs when using --fresh")
 	changeExplainCmd.Flags().Bool("fresh", false, "Re-run specular gate before explaining")
 	changeExplainCmd.Flags().String("file", "", "Explain newest evidence whose paths contain this substring (PRODUCT_INTENT §20)")
+	changeExplainCmd.Flags().String("control", "", "Explain newest evidence matching failed check / exception policy / soft-ALLOW bind (PRODUCT_INTENT §20)")
 	changeExplainCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	rootCmd.AddCommand(changeExplainCmd)
 }

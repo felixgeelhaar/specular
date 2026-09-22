@@ -16,9 +16,58 @@ func TestChangeExplainFileFlagRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cmd.Flags().Lookup("file") == nil {
-		t.Fatal("missing --file")
+	for _, name := range []string{"file", "control", "policy-file"} {
+		if cmd.Flags().Lookup(name) == nil {
+			t.Fatalf("missing --%s", name)
+		}
 	}
+}
+
+func TestLoadEvidenceByControlNewestWins(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)
+	_ = mustWriteExplainRecord(t, root, &evidence.Record{
+		ID:        "ev_old_sec",
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(-time.Hour),
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Policy:  gate.PolicySection{Status: gate.StatusFail, FailedChecks: []string{"SEC-17"}},
+		},
+	})
+	newer := mustWriteExplainRecord(t, root, &evidence.Record{
+		ID:        "ev_new_sec",
+		Schema:    evidence.Schema,
+		CreatedAt: now,
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Policy:  gate.PolicySection{Status: gate.StatusFail, FailedChecks: []string{"SEC-17", "Coverage"}},
+		},
+	})
+	rec, err := loadEvidenceByFilter(root, evidence.ListFilter{
+		ControlContains: "SEC-17",
+		Limit:           1,
+	}, "control", "SEC-17")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.ID != newer.ID {
+		t.Fatalf("got %s want %s", rec.ID, newer.ID)
+	}
+}
+
+func TestRunChangeExplainControlExclusivity(t *testing.T) {
+	t.Parallel()
+	cmd := changeExplainCmd
+	_ = cmd.Flags().Set("control", "SEC-17")
+	_ = cmd.Flags().Set("file", "x.go")
+	err := runChangeExplain(cmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "mutually exclusive") {
+		t.Fatalf("err=%v", err)
+	}
+	_ = cmd.Flags().Set("control", "")
+	_ = cmd.Flags().Set("file", "")
 }
 
 func TestLoadEvidenceByFileNewestWins(t *testing.T) {
