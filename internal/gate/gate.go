@@ -302,7 +302,7 @@ func attestedProvenanceNote(sec ProvenanceSection) string {
 		parts = append(parts, "governed")
 	}
 	if sec.ProtocolDocs > 0 {
-		parts = append(parts, fmt.Sprintf("APP docs %d/%d ok", sec.ProtocolOK, sec.ProtocolDocs))
+		parts = append(parts, fmt.Sprintf("APP docs %d/%d ok (schema+bound)", sec.ProtocolOK, sec.ProtocolDocs))
 	}
 	return strings.Join(parts, "; ")
 }
@@ -751,7 +751,7 @@ func writeProvenanceProtocol(b *strings.Builder, p ProvenanceSection, ref *prove
 	}
 	fmt.Fprintf(b, "  Protocol       %s", schema)
 	if p.ProtocolDocs > 0 {
-		fmt.Fprintf(b, " (docs=%d ok=%d)", p.ProtocolDocs, p.ProtocolOK)
+		fmt.Fprintf(b, " (%s)", provenance.FormatProtocolDocsOK(p.ProtocolOK, p.ProtocolDocs))
 	}
 	b.WriteString("\n")
 }

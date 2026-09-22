@@ -90,6 +90,13 @@ func TestWriteBesideAndResolvePrefer(t *testing.T) {
 	if !bound.OK {
 		t.Fatalf("bound=%+v", bound)
 	}
+	if bound.Bound != "sibling" {
+		t.Fatalf("Bound=%q", bound.Bound)
+	}
+	human := FormatVerifyHuman(bound)
+	if !strings.Contains(human, "Bound        sibling attestation") {
+		t.Fatalf("human:\n%s", human)
+	}
 }
 
 func TestValidateBoundHarnessMismatch(t *testing.T) {

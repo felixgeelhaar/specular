@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Protocol board schema+bound labels**: gate / evidence / markdown Protocol
+  counts annotate `ok` as schema+sibling binding (`docs=N ok=M schema+bound`);
+  `provenance verify` prints a Bound line (`sibling` / `projected`).
+
 - **Session integrate `--require-governed` (P1 #4 depth)**: with
   `--enforce`, Stop/SessionEnd hooks also pass `gate --require-governed`
   so fail-closed completion requires a governed (safer native) session.
