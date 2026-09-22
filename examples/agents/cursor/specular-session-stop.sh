@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Specular native stop hook for Cursor (PRODUCT_INTENT P1 #4).
+# Installed by: specular session integrate cursor
+# Calls existing session attest + gate surfaces — no new protocol.
+# Project hooks run from the repo root; register via .cursor/hooks.json.
+set -euo pipefail
+
+# Cursor feeds stop-event JSON on stdin; drain it (advisory — never block stop).
+cat >/dev/null || true
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$ROOT"
+
+if ! command -v specular >/dev/null 2>&1; then
+  echo "specular: CLI not on PATH; skip attest/gate" >&2
+  printf '%s\n' '{}'
+  exit 0
+fi
+
+SESSION_ID="${SPECULAR_SESSION_ID:-}"
+if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2>&1; then
+  # Prefer the newest session record labeled cursor / cursor-agent (portable mtime).
+  newest_mtime=0
+  for path in .specular/sessions/*.json; do
+    [[ -f "$path" ]] || continue
+    case "$path" in *.attestation.json) continue ;; esac
+    harness="$(jq -r '.harness // empty' "$path" 2>/dev/null || true)"
+    case "$harness" in cursor|cursor-agent) ;; *) continue ;; esac
+    mtime="$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null || echo 0)"
+    if [[ "$mtime" -ge "$newest_mtime" ]]; then
+      newest_mtime="$mtime"
+      SESSION_ID="$(jq -r '.id // empty' "$path" 2>/dev/null || true)"
+    fi
+  done
+fi
+
+if [[ -n "$SESSION_ID" ]]; then
+  echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
+  specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
+else
+  echo "specular: no SPECULAR_SESSION_ID / cursor session; skip attest" >&2
+fi
+
+echo "specular: running gate (advisory — does not block stop)" >&2
+specular gate || echo "specular: gate exited non-zero (advisory)" >&2
+
+# Cursor stop hooks may consume JSON on stdout; emit empty object (no follow-up).
+printf '%s\n' '{}'
+exit 0

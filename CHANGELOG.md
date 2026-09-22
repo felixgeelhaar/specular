@@ -16,9 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   additive `provenanceProtocol` ref when attested — not a control plane
 
 - **Native agent hooks (P1 #4)**: `specular session integrate <harness>`
-  installs a Claude Code Stop hook that calls `session attest` + `gate`
-  (`--dry-run` / `--force`); `session start` exports `SPECULAR_SESSION_ID`
-  / `SPECULAR_SESSION_HARNESS`; reference configs under `examples/agents/`
+  installs Claude Code Stop / Cursor `stop` hooks that call `session attest`
+  + `gate` (`--dry-run` / `--force` / `--json`); `session start` exports
+  `SPECULAR_SESSION_ID` / `SPECULAR_SESSION_HARNESS`; reference configs under
+  `examples/agents/` (`claude-code/`, `cursor/`)
 
 - **Executable control packs CLI**: `specular policy pack list|show|apply`
   over embedded `internal/policylibrary` seeds (id/title/summary list,
