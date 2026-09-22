@@ -387,3 +387,89 @@ func TestEvaluateRequireProtocolFlagIdleWhenUnattested(t *testing.T) {
 		t.Fatalf("note=%s", res.Provenance.Note)
 	}
 }
+
+func TestEvaluateGovernedEnforceDenyUngoverned(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	writeRiskPolicy(t, root, "provenance:\n  governed: enforce\n")
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{"provenance":{"harness":"claude-code"}}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Deny {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if !strings.Contains(res.Provenance.Note, "governed provenance required") {
+		t.Fatalf("note=%s", res.Provenance.Note)
+	}
+}
+
+func TestEvaluateGovernedEnforceAllowGoverned(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	writeRiskPolicy(t, root, "provenance:\n  governed: enforce\n")
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{"provenance":{"harness":"claude-code","governed":true}}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Allow {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if !strings.Contains(res.Reason, "governed provenance ok") {
+		t.Fatalf("reason=%s note=%s", res.Reason, res.Provenance.Note)
+	}
+}
+
+func TestEvaluateRequireGovernedFlagDeny(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{"provenance":{"harness":"codex"}}`
+	if err := os.WriteFile(filepath.Join(dir, "x.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Evaluate(Options{ProjectRoot: root, RequireGoverned: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Deny {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if !strings.Contains(res.Provenance.Note, "--require-governed") {
+		t.Fatalf("note=%s", res.Provenance.Note)
+	}
+}
+
+func TestEvaluateRequireGovernedFlagIdleWhenUnattested(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	res, err := Evaluate(Options{ProjectRoot: root, RequireGoverned: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Allow {
+		t.Fatalf("governed flag must stay idle unattested: %s %s", res.Verdict, res.Reason)
+	}
+	if !strings.Contains(res.Provenance.Note, "governed enforce idle") {
+		t.Fatalf("note=%s", res.Provenance.Note)
+	}
+}

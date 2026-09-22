@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Require governed sessions (P1 #10 depth)**: opt-in policy
+  `provenance.governed: enforce` and CLI `--require-governed` / CI
+  `REQUIRE_GOVERNED` DENY attested trees without a governed session
+  (idle when unattested). Soft-ALLOW via `--policy provenance`. Example:
+  `examples/policy/provenance-governed.yaml`.
+
 - **Approvals list `--status` (P1 #6 depth)**: `specular approvals list
   --status open|closed|expired` filters the local trail by lifecycle
   (closed wins over expired).

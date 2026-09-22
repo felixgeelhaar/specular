@@ -37,6 +37,8 @@ is reported explicitly — never silently treated as verified. Pass
 --require-attested (or policy provenance.attested: enforce) to DENY
 unattested trees. Pass --require-protocol (or provenance.protocol: enforce)
 to DENY attested sessions that lack valid APP .provenance.json docs.
+Pass --require-governed (or provenance.governed: enforce) to DENY
+attested sessions that are not governed.
 
 Exit codes:
   0  ALLOW
@@ -54,6 +56,7 @@ Examples:
   specular gate --strict-spec
   specular gate --require-attested
   specular gate --require-protocol
+  specular gate --require-governed
   specular gate --policy .specular/policy.yaml
   specular gate --no-evidence
 `,
@@ -68,6 +71,7 @@ func runGate(cmd *cobra.Command, _ []string) error {
 	strictSpec, _ := cmd.Flags().GetBool("strict-spec")
 	requireAttested, _ := cmd.Flags().GetBool("require-attested")
 	requireProtocol, _ := cmd.Flags().GetBool("require-protocol")
+	requireGoverned, _ := cmd.Flags().GetBool("require-governed")
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	quiet, _ := cmd.Flags().GetBool("quiet")
 	noEvidence, _ := cmd.Flags().GetBool("no-evidence")
@@ -97,6 +101,7 @@ func runGate(cmd *cobra.Command, _ []string) error {
 		StrictSpec:      strictSpec,
 		RequireAttested: requireAttested,
 		RequireProtocol: requireProtocol,
+		RequireGoverned: requireGoverned,
 	})
 	if err != nil {
 		return err
@@ -160,6 +165,7 @@ func init() {
 	gateCmd.Flags().Bool("strict-spec", false, "Fail when Specular spec/plan/lock are missing")
 	gateCmd.Flags().Bool("require-attested", false, "DENY when no session attestations (mirrors provenance.attested: enforce)")
 	gateCmd.Flags().Bool("require-protocol", false, "DENY when APP .provenance.json missing/invalid (mirrors provenance.protocol: enforce)")
+	gateCmd.Flags().Bool("require-governed", false, "DENY when no governed session (mirrors provenance.governed: enforce)")
 	gateCmd.Flags().String("format", "text", "Output format: text, json, markdown")
 	gateCmd.Flags().Bool("json", false, "Emit machine-readable JSON (alias for --format json)")
 	gateCmd.Flags().Bool("github-annotations", false, "Emit GitHub Actions ::error/::warning annotations to stderr")

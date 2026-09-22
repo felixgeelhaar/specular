@@ -50,6 +50,7 @@ specular gate --format markdown --policy .specular/policy.yaml --report drift.sa
 # Progressive trust (optional):
 specular gate --format markdown --require-attested --report drift.sarif
 specular gate --format markdown --require-protocol --report drift.sarif
+specular gate --format markdown --require-governed --report drift.sarif
 ```
 
 - **`--format markdown`** — stable `## Specular Change Control` body for MR/PR notes or job summaries
@@ -61,6 +62,9 @@ specular gate --format markdown --require-protocol --report drift.sarif
 - **`--require-protocol`** — DENY when APP `.provenance.json` is missing/invalid
   (opt in; same as `provenance.protocol: enforce`; idle when unattested). Wired
   via `REQUIRE_PROTOCOL` in the same templates.
+- **`--require-governed`** — DENY when attested sessions are not governed
+  (opt in; same as `provenance.governed: enforce`; idle when unattested). Wired
+  via `REQUIRE_GOVERNED` in the same templates.
 - Keep provider tokens in your CI secret store; these examples do not hardcode them
 
 Brownfield repos soft-skip missing drift/policy inputs unless `--strict-spec` is set.

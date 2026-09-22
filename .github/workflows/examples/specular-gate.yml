@@ -9,6 +9,7 @@
 #   3. Optional progressive-trust vars (without editing policy.yaml):
 #      REQUIRE_ATTESTED=true  → --require-attested (DENY unattested)
 #      REQUIRE_PROTOCOL=true  → --require-protocol (DENY missing/invalid APP docs)
+#      REQUIRE_GOVERNED=true  → --require-governed (DENY ungoverned sessions)
 #   Exit codes: 0=ALLOW, 3=policy DENY, 4=drift DENY
 
 name: Specular Gate
@@ -44,6 +45,7 @@ jobs:
         env:
           REQUIRE_ATTESTED: ${{ vars.REQUIRE_ATTESTED }}
           REQUIRE_PROTOCOL: ${{ vars.REQUIRE_PROTOCOL }}
+          REQUIRE_GOVERNED: ${{ vars.REQUIRE_GOVERNED }}
         run: |
           set +e
           EXTRA=()
@@ -54,6 +56,10 @@ jobs:
           if [ "${REQUIRE_PROTOCOL:-}" = "true" ] || [ "${REQUIRE_PROTOCOL:-}" = "1" ]; then
             EXTRA+=(--require-protocol)
             echo "Progressive trust: --require-protocol enabled"
+          fi
+          if [ "${REQUIRE_GOVERNED:-}" = "true" ] || [ "${REQUIRE_GOVERNED:-}" = "1" ]; then
+            EXTRA+=(--require-governed)
+            echo "Progressive trust: --require-governed enabled"
           fi
           specular gate --format markdown --github-annotations "${EXTRA[@]}" > gate.md 2>gate.annotations
           code=$?

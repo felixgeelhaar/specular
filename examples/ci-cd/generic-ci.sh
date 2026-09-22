@@ -15,6 +15,7 @@
 #   STRICT_SPEC        set to 1 to pass --strict-spec
 #   REQUIRE_ATTESTED   set to 1 to pass --require-attested (progressive trust)
 #   REQUIRE_PROTOCOL   set to 1 to pass --require-protocol (progressive trust)
+#   REQUIRE_GOVERNED   set to 1 to pass --require-governed (progressive trust)
 #   GATE_MD            default: gate.md
 
 set -u
@@ -39,6 +40,10 @@ fi
 if [ "${REQUIRE_PROTOCOL:-0}" = "1" ] || [ "${REQUIRE_PROTOCOL:-false}" = "true" ]; then
   ARGS+=(--require-protocol)
   echo "Progressive trust: --require-protocol enabled"
+fi
+if [ "${REQUIRE_GOVERNED:-0}" = "1" ] || [ "${REQUIRE_GOVERNED:-false}" = "true" ]; then
+  ARGS+=(--require-governed)
+  echo "Progressive trust: --require-governed enabled"
 fi
 
 # Non-interactive. Do not pass --github-annotations outside GitHub Actions

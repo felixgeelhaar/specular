@@ -56,10 +56,14 @@ func TestProvenanceEnforcesProtocolAliases(t *testing.T) {
 		if !g2.EnforcesAttested() {
 			t.Fatalf("attested %q should enforce", v)
 		}
+		g3 := &ProvenanceGovernance{Governed: v}
+		if !g3.EnforcesGoverned() {
+			t.Fatalf("governed %q should enforce", v)
+		}
 	}
 	for _, v := range []string{"", "advisory", "off", "false", "no"} {
-		g := &ProvenanceGovernance{Protocol: v, Attested: v}
-		if g.EnforcesProtocol() || g.EnforcesAttested() {
+		g := &ProvenanceGovernance{Protocol: v, Attested: v, Governed: v}
+		if g.EnforcesProtocol() || g.EnforcesAttested() || g.EnforcesGoverned() {
 			t.Fatalf("%q should not enforce", v)
 		}
 	}

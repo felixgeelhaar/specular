@@ -54,6 +54,7 @@ type Options struct {
 	StrictSpec      bool   // fail when plan/lock/spec missing (default: soft-skip drift)
 	RequireAttested bool   // DENY when unattested (mirrors provenance.attested: enforce)
 	RequireProtocol bool   // DENY when APP docs missing/invalid (mirrors provenance.protocol: enforce)
+	RequireGoverned bool   // DENY when no governed session (mirrors provenance.governed: enforce)
 }
 
 // Result is the machine-readable gate outcome.
@@ -175,6 +176,7 @@ func Evaluate(opts Options) (*Result, error) {
 	applyProvenanceGovernance(res, root, opts.PolicyPath)
 	applyRequireAttestedFlag(res, opts.RequireAttested)
 	applyRequireProtocolFlag(res, opts.RequireProtocol)
+	applyRequireGovernedFlag(res, opts.RequireGoverned)
 	res.Verdict, res.Reason = decide(res)
 	return res, nil
 }
@@ -619,26 +621,43 @@ func allowReasonParts(res *Result) []string {
 	default:
 		parts = append(parts, "policy skipped")
 	}
-	if res.Provenance.Enforced && res.Provenance.Status == StatusFail {
-		parts = append(parts, "provenance fail (exception soft-ALLOW)")
-	} else if res.Provenance.Attested {
-		parts = append(parts, "provenance attested")
-	} else {
-		parts = append(parts, "provenance unattested")
-	}
+	parts = append(parts, allowProvenanceReason(res))
 	if res.Risk.Enforced && len(res.Risk.Required) > 0 && len(res.Risk.Missing) == 0 {
 		parts = append(parts, "risk approvals satisfied")
 	}
-	if res.Provenance.Enforced && res.Provenance.Status == StatusPass {
-		switch {
-		case strings.Contains(res.Provenance.Note, "APP protocol enforce"):
-			parts = append(parts, "APP protocol ok")
-		case strings.Contains(res.Provenance.Note, "attested provenance enforce"),
-			strings.Contains(res.Provenance.Note, "--require-attested"):
-			parts = append(parts, "attested provenance ok")
-		}
+	if ok := allowProvenanceEnforceOK(res); ok != "" {
+		parts = append(parts, ok)
 	}
 	return parts
+}
+
+func allowProvenanceReason(res *Result) string {
+	if res.Provenance.Enforced && res.Provenance.Status == StatusFail {
+		return "provenance fail (exception soft-ALLOW)"
+	}
+	if res.Provenance.Attested {
+		return "provenance attested"
+	}
+	return "provenance unattested"
+}
+
+func allowProvenanceEnforceOK(res *Result) string {
+	if !res.Provenance.Enforced || res.Provenance.Status != StatusPass {
+		return ""
+	}
+	note := res.Provenance.Note
+	switch {
+	case strings.Contains(note, "APP protocol enforce"):
+		return "APP protocol ok"
+	case strings.Contains(note, "governed provenance enforce"),
+		strings.Contains(note, "--require-governed"):
+		return "governed provenance ok"
+	case strings.Contains(note, "attested provenance enforce"),
+		strings.Contains(note, "--require-attested"):
+		return "attested provenance ok"
+	default:
+		return ""
+	}
 }
 
 func firstNonEmpty(vals ...string) string {

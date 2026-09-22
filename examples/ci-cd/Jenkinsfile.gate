@@ -21,6 +21,7 @@ pipeline {
         booleanParam(name: 'STRICT_SPEC', defaultValue: false, description: 'Pass --strict-spec (fail when specs missing)')
         booleanParam(name: 'REQUIRE_ATTESTED', defaultValue: false, description: 'Pass --require-attested (DENY unattested)')
         booleanParam(name: 'REQUIRE_PROTOCOL', defaultValue: false, description: 'Pass --require-protocol (DENY missing APP docs)')
+        booleanParam(name: 'REQUIRE_GOVERNED', defaultValue: false, description: 'Pass --require-governed (DENY ungoverned)')
         booleanParam(name: 'FAIL_ON_DENY', defaultValue: true, description: 'Fail build on gate DENY (exit 3/4)')
     }
 
@@ -69,6 +70,7 @@ pipeline {
                     def strict = params.STRICT_SPEC ? '1' : '0'
                     def requireAttested = params.REQUIRE_ATTESTED ? '1' : '0'
                     def requireProtocol = params.REQUIRE_PROTOCOL ? '1' : '0'
+                    def requireGoverned = params.REQUIRE_GOVERNED ? '1' : '0'
                     def exitCode = sh(
                         script: """
                             set +e
@@ -90,6 +92,10 @@ pipeline {
                             if [ "${requireProtocol}" = "1" ]; then
                               ATTEST_ARGS+=(--require-protocol)
                               echo "Progressive trust: --require-protocol enabled"
+                            fi
+                            if [ "${requireGoverned}" = "1" ]; then
+                              ATTEST_ARGS+=(--require-governed)
+                              echo "Progressive trust: --require-governed enabled"
                             fi
                             # --github-annotations is GitHub-only — omit here.
                             specular gate --format markdown "\${POLICY_ARGS[@]}" "\${STRICT_ARGS[@]}" "\${ATTEST_ARGS[@]}" --report "\$REPORT_FILE" > "\$GATE_MD"
