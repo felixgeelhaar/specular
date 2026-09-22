@@ -49,6 +49,7 @@ Use [`Jenkinsfile.gate`](./Jenkinsfile.gate) for a focused PR/branch gate, or
 specular gate --format markdown --policy .specular/policy.yaml --report drift.sarif
 # Progressive trust (optional):
 specular gate --format markdown --require-attested --report drift.sarif
+specular gate --format markdown --require-protocol --report drift.sarif
 ```
 
 - **`--format markdown`** — stable `## Specular Change Control` body for MR/PR notes or job summaries
@@ -57,6 +58,9 @@ specular gate --format markdown --require-attested --report drift.sarif
 - **`--require-attested`** — DENY when no session attestations (opt in; same as
   `provenance.attested: enforce`). Wired via `REQUIRE_ATTESTED` in GitHub vars,
   GitLab CI variables, Jenkins params, and `generic-ci.sh`.
+- **`--require-protocol`** — DENY when APP `.provenance.json` is missing/invalid
+  (opt in; same as `provenance.protocol: enforce`; idle when unattested). Wired
+  via `REQUIRE_PROTOCOL` in the same templates.
 - Keep provider tokens in your CI secret store; these examples do not hardcode them
 
 Brownfield repos soft-skip missing drift/policy inputs unless `--strict-spec` is set.

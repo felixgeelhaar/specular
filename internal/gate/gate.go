@@ -52,7 +52,8 @@ type Options struct {
 	PolicyPath      string // empty = default .specular/policy.yaml if present
 	ReportFile      string // drift SARIF path (default drift.sarif)
 	StrictSpec      bool   // fail when plan/lock/spec missing (default: soft-skip drift)
-	RequireAttested bool   // DENY when unattested (mirrors provenance.attested: enforce)
+	RequireAttested bool // DENY when unattested (mirrors provenance.attested: enforce)
+	RequireProtocol bool // DENY when APP docs missing/invalid (mirrors provenance.protocol: enforce)
 }
 
 // Result is the machine-readable gate outcome.
@@ -173,6 +174,7 @@ func Evaluate(opts Options) (*Result, error) {
 	applyRiskGovernance(res, root, opts.PolicyPath)
 	applyProvenanceGovernance(res, root, opts.PolicyPath)
 	applyRequireAttestedFlag(res, opts.RequireAttested)
+	applyRequireProtocolFlag(res, opts.RequireProtocol)
 	res.Verdict, res.Reason = decide(res)
 	return res, nil
 }

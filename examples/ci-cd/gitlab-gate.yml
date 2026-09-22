@@ -21,6 +21,8 @@ variables:
   GATE_MARKER: "## Specular Change Control"
   # Set REQUIRE_ATTESTED=true to pass --require-attested (progressive trust).
   REQUIRE_ATTESTED: "false"
+  # Set REQUIRE_PROTOCOL=true to pass --require-protocol (progressive trust).
+  REQUIRE_PROTOCOL: "false"
 
 .install_specular: &install_specular
   - |
@@ -60,6 +62,10 @@ specular_gate:
       if [ "${REQUIRE_ATTESTED:-false}" = "true" ] || [ "${REQUIRE_ATTESTED:-0}" = "1" ]; then
         ATTEST_ARGS=(--require-attested)
         echo "Progressive trust: --require-attested enabled"
+      fi
+      if [ "${REQUIRE_PROTOCOL:-false}" = "true" ] || [ "${REQUIRE_PROTOCOL:-0}" = "1" ]; then
+        ATTEST_ARGS+=(--require-protocol)
+        echo "Progressive trust: --require-protocol enabled"
       fi
       # --github-annotations is GitHub-only — omit on GitLab.
       specular gate --format markdown "${POLICY_ARGS[@]}" "${ATTEST_ARGS[@]}" --report drift.sarif > gate.md

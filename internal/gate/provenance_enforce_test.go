@@ -306,3 +306,84 @@ func TestEvaluateRequireAttestedFlagAllow(t *testing.T) {
 		t.Fatalf("enforced=%v status=%s", res.Provenance.Enforced, res.Provenance.Status)
 	}
 }
+
+func TestEvaluateRequireProtocolFlagDenyMissing(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{"provenance":{"harness":"claude-code"}}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Evaluate(Options{ProjectRoot: root, RequireProtocol: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Deny {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if !res.Provenance.Enforced || res.Provenance.Status != StatusFail {
+		t.Fatalf("enforced=%v status=%s", res.Provenance.Enforced, res.Provenance.Status)
+	}
+	if !strings.Contains(res.Provenance.Note, "--require-protocol") {
+		t.Fatalf("note=%s", res.Provenance.Note)
+	}
+	if !strings.Contains(res.Reason, "missing .provenance.json") {
+		t.Fatalf("reason=%s", res.Reason)
+	}
+}
+
+func TestEvaluateRequireProtocolFlagAllowValid(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{"provenance":{"harness":"claude-code","governed":true}}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	prov := `{"schema":"specular.provenance/v1","version":"1","session":"auth","harness":"claude-code","governed":true}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.provenance.json"), []byte(prov), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Evaluate(Options{ProjectRoot: root, RequireProtocol: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Allow {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if !res.Provenance.Enforced || res.Provenance.Status != StatusPass {
+		t.Fatalf("enforced=%v status=%s note=%s", res.Provenance.Enforced, res.Provenance.Status, res.Provenance.Note)
+	}
+	if !strings.Contains(res.Provenance.Note, "--require-protocol") {
+		t.Fatalf("note=%s", res.Provenance.Note)
+	}
+	if !strings.Contains(res.Reason, "APP protocol ok") {
+		t.Fatalf("reason=%s", res.Reason)
+	}
+}
+
+func TestEvaluateRequireProtocolFlagIdleWhenUnattested(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	res, err := Evaluate(Options{ProjectRoot: root, RequireProtocol: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Allow {
+		t.Fatalf("protocol-only flag must stay idle unattested: %s %s", res.Verdict, res.Reason)
+	}
+	if !res.Provenance.Enforced || res.Provenance.Status == StatusFail {
+		t.Fatalf("enforced=%v status=%s note=%s", res.Provenance.Enforced, res.Provenance.Status, res.Provenance.Note)
+	}
+	if !strings.Contains(res.Provenance.Note, "protocol enforce idle") ||
+		!strings.Contains(res.Provenance.Note, "--require-protocol") {
+		t.Fatalf("note=%s", res.Provenance.Note)
+	}
+}
