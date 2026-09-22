@@ -47,6 +47,7 @@ func TestListFilters(t *testing.T) {
 			Provenance: gate.ProvenanceSection{
 				Status:    gate.StatusPass,
 				Attested:  true,
+				Governed:  true,
 				Sessions:  []string{"auth", "auth-alt"},
 				Harnesses: []string{"claude-code"},
 			},
@@ -85,6 +86,7 @@ func TestListFilters(t *testing.T) {
 			Provenance: gate.ProvenanceSection{
 				Status:   gate.StatusFail,
 				Attested: true,
+				Governed: true,
 				Sessions: []string{"migrate"},
 				Note:     "APP protocol enforce: attested sessions missing .provenance.json",
 			},
@@ -353,6 +355,37 @@ func TestListFilters(t *testing.T) {
 		}
 		if len(recs) != 1 || recs[0].ID != softAllow.ID {
 			t.Fatalf("got %v", idsOf(recs))
+		}
+	})
+
+	t.Run("governed_true", func(t *testing.T) {
+		t.Parallel()
+		yes := true
+		recs, err := List(root, ListFilter{Governed: &yes})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := idsOf(recs)
+		if len(got) != 2 || got[0] != softAllow.ID || got[1] != denyMid.ID {
+			t.Fatalf("got %v", got)
+		}
+	})
+
+	t.Run("governed_false", func(t *testing.T) {
+		t.Parallel()
+		no := false
+		recs, err := List(root, ListFilter{Governed: &no})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := idsOf(recs)
+		if len(got) != 2 {
+			t.Fatalf("got %v", got)
+		}
+		for _, id := range got {
+			if id == softAllow.ID || id == denyMid.ID {
+				t.Fatalf("governed record leaked: %v", got)
+			}
 		}
 	})
 }
