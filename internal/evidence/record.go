@@ -537,9 +537,18 @@ func writeWhyProvenanceEnforce(b *strings.Builder, g *gate.Result) {
 	if g.Provenance.Enforced && g.Provenance.Status == gate.StatusFail {
 		note := g.Provenance.Note
 		if note == "" {
-			note = "APP protocol verification failed"
+			note = "provenance verification failed"
 		}
-		fmt.Fprintf(b, "  • APP protocol enforce FAIL — %s\n", note)
+		label := "Provenance enforce FAIL"
+		switch {
+		case strings.Contains(note, "APP protocol"):
+			label = "APP protocol enforce FAIL"
+		case strings.Contains(note, "governed provenance"):
+			label = "Governed provenance enforce FAIL"
+		case strings.Contains(note, "attested provenance"):
+			label = "Attested provenance enforce FAIL"
+		}
+		fmt.Fprintf(b, "  • %s — %s\n", label, note)
 		return
 	}
 	if g.Provenance.ProtocolDocs > 0 {
@@ -552,7 +561,14 @@ func writeWhyProvenanceEnforce(b *strings.Builder, g *gate.Result) {
 		return
 	}
 	if g.Provenance.Enforced {
-		b.WriteString("  • APP protocol enforce active\n")
+		switch {
+		case strings.Contains(g.Provenance.Note, "governed provenance"):
+			b.WriteString("  • Governed provenance enforce active\n")
+		case strings.Contains(g.Provenance.Note, "attested provenance"):
+			b.WriteString("  • Attested provenance enforce active\n")
+		default:
+			b.WriteString("  • APP protocol enforce active\n")
+		}
 	}
 }
 

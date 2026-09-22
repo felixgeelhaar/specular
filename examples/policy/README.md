@@ -42,4 +42,15 @@ specular approve exception-brownfield \
 specular gate
 ```
 
+## Require governed sessions
+
+Copy or merge [`provenance-governed.yaml`](provenance-governed.yaml) so
+attested sessions must have launched with `--governed` (safer native launch).
+Idle when unattested — pair with `attested: enforce` when ready.
+
+```bash
+specular session start --harness claude-code --governed --name auth "…"
+specular gate --require-governed
+```
+
 See `docs/CLI_REFERENCE.md` (gate / provenance).

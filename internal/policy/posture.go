@@ -16,6 +16,7 @@ type GovernancePosture struct {
 	RiskLevels         []string `json:"risk_levels,omitempty"`
 	ProvenanceAttested bool     `json:"provenance_attested"`
 	ProvenanceProtocol bool     `json:"provenance_protocol"`
+	ProvenanceGoverned bool     `json:"provenance_governed"`
 	Active             []string `json:"active,omitempty"`
 	PolicyPath         string   `json:"policy_path,omitempty"`
 }
@@ -38,6 +39,10 @@ func DescribeGovernance(p *Policy) GovernancePosture {
 	if p.Provenance != nil && p.Provenance.EnforcesProtocol() {
 		out.ProvenanceProtocol = true
 		out.Active = append(out.Active, "provenance.protocol")
+	}
+	if p.Provenance != nil && p.Provenance.EnforcesGoverned() {
+		out.ProvenanceGoverned = true
+		out.Active = append(out.Active, "provenance.governed")
 	}
 	if len(out.Active) > 0 {
 		out.Mode = "progressive"
@@ -101,7 +106,7 @@ func FormatProgressiveTrust(p GovernancePosture) string {
 	b.WriteString("Progressive trust:\n")
 	if p.Mode != "progressive" {
 		b.WriteString("  ○ Mode: advisory (no opt-in knobs)\n")
-		b.WriteString("      enable via policy risk: / provenance.attested|protocol: enforce\n")
+		b.WriteString("      enable via policy risk: / provenance.attested|protocol|governed: enforce\n")
 		return b.String()
 	}
 	b.WriteString("  ✓ Mode: progressive")
@@ -127,6 +132,9 @@ func FormatProgressiveTrust(p GovernancePosture) string {
 	}
 	if p.ProvenanceProtocol {
 		b.WriteString("  ✓ provenance.protocol: enforce\n")
+	}
+	if p.ProvenanceGoverned {
+		b.WriteString("  ✓ provenance.governed: enforce\n")
 	}
 	return b.String()
 }

@@ -1,0 +1,11 @@
+# Opt-in governed session requirement (PRODUCT_INTENT §9 / progressive trust).
+# DENY when attested sessions lack provenance.governed=true (safer native
+# launch). Idle when unattested — combine with attested: enforce to require
+# both presence and governed launch.
+#
+# Merge into .specular/policy.yaml. Without this block, governed stays
+# advisory (surfaced on the gate board, never flips ALLOW→DENY).
+provenance:
+  governed: enforce
+  # attested: enforce
+  # protocol: enforce
