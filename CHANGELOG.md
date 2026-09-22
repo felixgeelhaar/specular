@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Control pack check (P1 #5 depth)**: `specular policy pack check <id>`
+  reports auditor-facing control→evidence presence for embedded pack
+  artifacts (glob/file/dir); exit non-zero when required paths are missing;
+  `--json` emits the report. Does not certify compliance.
+
 - **Agent Provenance emit + verify (P1 #3 depth)**: `session attest` writes
   `.specular/sessions/<id>.provenance.json` beside the attestation;
   `specular provenance verify [id|path]` schema-checks the open

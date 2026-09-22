@@ -14,16 +14,18 @@ import (
 
 var policyPackCmd = &cobra.Command{
 	Use:   "pack",
-	Short: "List, show, and apply executable control packs",
+	Short: "List, show, apply, and check executable control packs",
 	Long: `Executable control packs (PRODUCT_INTENT §15): open framework control
-→ Specular policy/evidence mappings shipped as embedded seeds.
+→ Specular evidence mappings shipped as embedded seeds.
 
 Packs are the same seeds as "policy library"; this surface is the
-product-facing control-pack CLI (list / show / apply).
+product-facing control-pack CLI (list / show / apply / check).
 
-Apply writes a pack fragment into .specular/policies/ for use with
-bundle create --policy and gate --policy. Specular does not claim that
-applying a pack means an organization is compliant.
+Apply writes a mapping fragment into .specular/policies/ for bundle
+create --policy and evidence workflows. Check reports whether mapped
+artifacts exist under the repo (auditor-facing control→evidence status).
+Specular does not claim that applying or checking a pack means an
+organization is compliant.
 
 Examples:
   specular policy pack list
@@ -31,6 +33,8 @@ Examples:
   specular policy pack show soc2-cc8.1 --json
   specular policy pack apply soc2-cc8.1 --dry-run
   specular policy pack apply soc2-cc8.1
+  specular policy pack check soc2-cc8.1
+  specular policy pack check soc2-cc8.1 --json
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
@@ -55,6 +59,13 @@ var policyPackApplyCmd = &cobra.Command{
 	Short: "Apply a control pack into .specular/policies/",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runPolicyPackApply,
+}
+
+var policyPackCheckCmd = &cobra.Command{
+	Use:   "check <id>",
+	Short: "Check whether mapped control-pack artifacts exist",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runPolicyPackCheck,
 }
 
 func runPolicyPackList(cmd *cobra.Command, args []string) error {
@@ -197,6 +208,41 @@ func runPolicyPackApply(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println("\nNote: applying a control pack implements Specular controls and evidence")
 	fmt.Println("paths; it does not certify organizational compliance.")
+	fmt.Printf("Next: specular policy pack check %s\n", id)
+	return nil
+}
+
+func runPolicyPackCheck(cmd *cobra.Command, args []string) error {
+	root, _ := cmd.Flags().GetString("project-root")
+	if root == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		root = cwd
+	}
+	rep, err := policylibrary.Check(root, args[0])
+	if err != nil {
+		return err
+	}
+	jsonOut, _ := cmd.Flags().GetBool("json")
+	if jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if encErr := enc.Encode(rep); encErr != nil {
+			return encErr
+		}
+	} else {
+		fmt.Print(policylibrary.FormatCheckHuman(rep))
+		if len(rep.Artifacts) > 0 && !rep.OK {
+			fmt.Println("\nEvidence loop:")
+			fmt.Println("  specular session wait --attest --gate")
+			fmt.Printf("  specular policy pack check %s\n", rep.ID)
+		}
+	}
+	if !rep.OK {
+		return fmt.Errorf("policy pack check failed: %d missing artifact(s)", rep.Missing)
+	}
 	return nil
 }
 
@@ -220,6 +266,7 @@ func init() {
 	policyPackCmd.AddCommand(policyPackListCmd)
 	policyPackCmd.AddCommand(policyPackShowCmd)
 	policyPackCmd.AddCommand(policyPackApplyCmd)
+	policyPackCmd.AddCommand(policyPackCheckCmd)
 
 	policyPackListCmd.Flags().Bool("json", false, "Emit JSON")
 	policyPackShowCmd.Flags().Bool("json", false, "Emit JSON")
@@ -227,4 +274,6 @@ func init() {
 	policyPackApplyCmd.Flags().Bool("force", false, "Overwrite existing file")
 	policyPackApplyCmd.Flags().Bool("dry-run", false, "Show what would be written without writing")
 	policyPackApplyCmd.Flags().Bool("json", false, "Emit JSON result")
+	policyPackCheckCmd.Flags().String("project-root", "", "Repository root (default: cwd)")
+	policyPackCheckCmd.Flags().Bool("json", false, "Emit JSON report")
 }
