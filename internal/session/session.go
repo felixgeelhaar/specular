@@ -255,6 +255,9 @@ func NewManager(repoRoot string) (*Manager, error) {
 // Store exposes the underlying store (for tests / CLI).
 func (m *Manager) Store() *Store { return m.store }
 
+// RepoRoot returns the git repository root for this manager.
+func (m *Manager) RepoRoot() string { return m.repoRoot }
+
 // Start creates an isolated worktree (unless skipped) and launches the
 // selected harness (specular-auto, claude-code, codex, or gemini).
 func (m *Manager) Start(ctx context.Context, opts StartOptions) (*Record, error) {

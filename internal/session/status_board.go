@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/felixgeelhaar/specular/internal/evidence"
 )
 
 // StatusSummary counts sessions by lifecycle bucket for dashboards.
@@ -18,12 +20,15 @@ type StatusSummary struct {
 	Total     int `json:"total"`
 }
 
-// SessionEvidenceFlags reports sibling attestation / APP doc presence and
-// worktree HEAD tip for a session (fleet board → explain <sha>).
+// SessionEvidenceFlags reports sibling attestation / APP doc presence,
+// worktree HEAD tip, and newest gate verdict from the Change Evidence Graph
+// (fleet board → explain / evidence show).
 type SessionEvidenceFlags struct {
-	Attested bool   `json:"attested"`
-	App      bool   `json:"app"`              // sibling .provenance.json present
-	Commit   string `json:"commit,omitempty"` // short worktree HEAD SHA
+	Attested   bool   `json:"attested"`
+	App        bool   `json:"app"`                  // sibling .provenance.json present
+	Commit     string `json:"commit,omitempty"`     // short worktree HEAD SHA
+	Verdict    string `json:"verdict,omitempty"`    // ALLOW | DENY from newest evidence
+	EvidenceID string `json:"evidenceId,omitempty"` // newest matching evidence record id
 }
 
 // StatusBoard is the JSON shape for `session status --json`: summary counts
@@ -51,11 +56,60 @@ func EvidenceFlags(sessionsDir, id string) SessionEvidenceFlags {
 	return f
 }
 
-// EvidenceFlagsFor is EvidenceFlags plus short worktree HEAD when present.
-func EvidenceFlagsFor(sessionsDir string, rec Record) SessionEvidenceFlags {
+// EvidenceFlagsFor is EvidenceFlags plus short worktree HEAD and newest gate
+// verdict when repoRoot has matching Change Evidence Graph records.
+func EvidenceFlagsFor(sessionsDir, repoRoot string, rec Record) SessionEvidenceFlags {
 	f := EvidenceFlags(sessionsDir, rec.ID)
 	f.Commit = WorktreeHEADShort(rec.WorktreePath)
+	if g, ok := NewestGateBySession(repoRoot)[rec.ID]; ok {
+		f.Verdict = g.Verdict
+		f.EvidenceID = g.EvidenceID
+	}
 	return f
+}
+
+// SessionGate is the newest gate verdict for a session id.
+type SessionGate struct {
+	Verdict    string
+	EvidenceID string
+}
+
+// NewestGateBySession returns ALLOW/DENY (and evidence id) for each session
+// from the newest matching Change Evidence Graph record under repoRoot.
+// Sessions appearing on older records only keep the newest hit (List order).
+func NewestGateBySession(repoRoot string) map[string]SessionGate {
+	repoRoot = strings.TrimSpace(repoRoot)
+	if repoRoot == "" {
+		return nil
+	}
+	recs, err := evidence.List(repoRoot, evidence.ListFilter{})
+	if err != nil || len(recs) == 0 {
+		return nil
+	}
+	out := make(map[string]SessionGate)
+	for _, rec := range recs {
+		if rec == nil || rec.Gate == nil {
+			continue
+		}
+		verdict := strings.TrimSpace(string(rec.Gate.Verdict))
+		if verdict == "" {
+			continue
+		}
+		for _, sid := range rec.Gate.Provenance.Sessions {
+			sid = strings.TrimSpace(sid)
+			if sid == "" {
+				continue
+			}
+			if _, exists := out[sid]; exists {
+				continue // newer already recorded (List is newest-first)
+			}
+			out[sid] = SessionGate{Verdict: verdict, EvidenceID: rec.ID}
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // WorktreeHEADShort returns `git rev-parse --short HEAD` for a worktree path,
@@ -91,11 +145,13 @@ func DashOr(s string) string {
 
 // BuildStatusBoard aggregates a session list into a dashboard board.
 func BuildStatusBoard(list []Record) StatusBoard {
-	return BuildStatusBoardWithEvidence(list, "")
+	return BuildStatusBoardWithEvidence(list, "", "")
 }
 
-// BuildStatusBoardWithEvidence is BuildStatusBoard plus optional attest/APP/commit flags.
-func BuildStatusBoardWithEvidence(list []Record, sessionsDir string) StatusBoard {
+// BuildStatusBoardWithEvidence is BuildStatusBoard plus optional
+// attest/APP/commit/gate flags. sessionsDir is Manager.Store().Dir();
+// repoRoot is the git repository root for .specular/evidence.
+func BuildStatusBoardWithEvidence(list []Record, sessionsDir, repoRoot string) StatusBoard {
 	board := StatusBoard{
 		Sessions: append([]Record(nil), list...),
 		Summary:  StatusSummary{Total: len(list)},
@@ -103,6 +159,7 @@ func BuildStatusBoardWithEvidence(list []Record, sessionsDir string) StatusBoard
 	if sessionsDir != "" && len(list) > 0 {
 		board.Evidence = make(map[string]SessionEvidenceFlags, len(list))
 	}
+	gates := NewestGateBySession(repoRoot)
 	for _, s := range list {
 		switch s.Status {
 		case StatusWorking, StatusIdle, StatusWaiting:
@@ -119,7 +176,13 @@ func BuildStatusBoardWithEvidence(list []Record, sessionsDir string) StatusBoard
 			board.Summary.Other++
 		}
 		if board.Evidence != nil {
-			board.Evidence[s.ID] = EvidenceFlagsFor(sessionsDir, s)
+			f := EvidenceFlags(sessionsDir, s.ID)
+			f.Commit = WorktreeHEADShort(s.WorktreePath)
+			if g, ok := gates[s.ID]; ok {
+				f.Verdict = g.Verdict
+				f.EvidenceID = g.EvidenceID
+			}
+			board.Evidence[s.ID] = f
 		}
 	}
 	return board

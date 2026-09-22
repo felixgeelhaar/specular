@@ -5,6 +5,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/felixgeelhaar/specular/internal/evidence"
+	"github.com/felixgeelhaar/specular/internal/gate"
 )
 
 func TestBuildStatusBoard(t *testing.T) {
@@ -57,7 +61,7 @@ func TestEvidenceFlagsAndBoard(t *testing.T) {
 	if EvidenceFlags(dir, "missing").Attested {
 		t.Fatal("expected missing")
 	}
-	board := BuildStatusBoardWithEvidence([]Record{{ID: "auth", Status: StatusCompleted}}, dir)
+	board := BuildStatusBoardWithEvidence([]Record{{ID: "auth", Status: StatusCompleted}}, dir, "")
 	ev := board.Evidence["auth"]
 	if !ev.Attested || !ev.App {
 		t.Fatalf("%+v", board.Evidence)
@@ -97,8 +101,100 @@ func TestWorktreeHEADShort(t *testing.T) {
 	}
 	board := BuildStatusBoardWithEvidence([]Record{{
 		ID: "demo", Status: StatusCompleted, WorktreePath: repo,
-	}}, t.TempDir())
+	}}, t.TempDir(), "")
 	if board.Evidence["demo"].Commit != sha {
 		t.Fatalf("evidence commit=%q want %q", board.Evidence["demo"].Commit, sha)
 	}
+}
+
+func TestNewestGateBySessionAndBoard(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)
+
+	older := mustWriteEvidence(t, root, &evidence.Record{
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(-2 * time.Hour),
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Provenance: gate.ProvenanceSection{
+				Sessions: []string{"auth", "shared"},
+			},
+		},
+	})
+	newer := mustWriteEvidence(t, root, &evidence.Record{
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(-10 * time.Minute),
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Provenance: gate.ProvenanceSection{
+				Sessions: []string{"auth"},
+			},
+		},
+	})
+	_ = mustWriteEvidence(t, root, &evidence.Record{
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(-5 * time.Minute),
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Provenance: gate.ProvenanceSection{
+				Sessions: []string{"review"},
+			},
+		},
+	})
+
+	gates := NewestGateBySession(root)
+	if gates["auth"].Verdict != "ALLOW" || gates["auth"].EvidenceID != newer.ID {
+		t.Fatalf("auth=%+v want ALLOW/%s (not older %s)", gates["auth"], newer.ID, older.ID)
+	}
+	if gates["shared"].Verdict != "DENY" || gates["shared"].EvidenceID != older.ID {
+		t.Fatalf("shared=%+v", gates["shared"])
+	}
+	if gates["review"].Verdict != "DENY" {
+		t.Fatalf("review=%+v", gates["review"])
+	}
+	if _, ok := gates["missing"]; ok {
+		t.Fatal("unexpected missing session")
+	}
+	if NewestGateBySession("") != nil || NewestGateBySession(t.TempDir()) != nil {
+		t.Fatal("expected nil for empty/unpopulated roots")
+	}
+
+	store := t.TempDir()
+	board := BuildStatusBoardWithEvidence([]Record{
+		{ID: "auth", Status: StatusCompleted},
+		{ID: "shared", Status: StatusFailed},
+		{ID: "orphan", Status: StatusStopped},
+	}, store, root)
+	if board.Evidence["auth"].Verdict != "ALLOW" || board.Evidence["auth"].EvidenceID != newer.ID {
+		t.Fatalf("board auth=%+v", board.Evidence["auth"])
+	}
+	if board.Evidence["shared"].Verdict != "DENY" {
+		t.Fatalf("board shared=%+v", board.Evidence["shared"])
+	}
+	if board.Evidence["orphan"].Verdict != "" || board.Evidence["orphan"].EvidenceID != "" {
+		t.Fatalf("board orphan=%+v", board.Evidence["orphan"])
+	}
+
+	ev := EvidenceFlagsFor(store, root, Record{ID: "auth"})
+	if ev.Verdict != "ALLOW" || ev.EvidenceID != newer.ID {
+		t.Fatalf("EvidenceFlagsFor=%+v", ev)
+	}
+}
+
+func mustWriteEvidence(t *testing.T, root string, rec *evidence.Record) *evidence.Record {
+	t.Helper()
+	// contentID is unexported; Write path via NewFromGate-style: set ID by writing through package API.
+	// Use evidence.Write after computing a stable unique ID via Save through List roundtrip.
+	// Persist with a unique CreatedAt already set; evidence.Write requires ID.
+	payload := *rec
+	idRec, err := evidence.NewFromGate(root, rec.Gate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	idRec.CreatedAt = payload.CreatedAt
+	if err := evidence.Write(root, idRec); err != nil {
+		t.Fatal(err)
+	}
+	return idRec
 }
