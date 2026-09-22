@@ -185,6 +185,7 @@ func FormatExplain(rec *Record) string {
 	writeProvenanceBlock(&b, g)
 	writePolicyBlock(&b, g)
 	writeDriftBlock(&b, g)
+	writeRiskBlock(&b, g)
 	writeApprovalsBlock(&b, g)
 
 	b.WriteString("Why\n")
@@ -341,13 +342,47 @@ func writeDriftFindings(b *strings.Builder, findings []gate.FindingDetail) {
 	}
 }
 
+func writeRiskBlock(b *strings.Builder, g *gate.Result) {
+	b.WriteString("Risk\n")
+	level := strings.TrimSpace(g.Risk.Level)
+	if level == "" {
+		level = "NONE"
+	}
+	mode := "advisory"
+	if g.Risk.Enforced {
+		mode = "enforced"
+	}
+	fmt.Fprintf(b, "Level        %s (%s)\n", level, mode)
+	for _, f := range g.Risk.Factors {
+		fmt.Fprintf(b, "  + %s\n", f)
+	}
+	if len(g.Risk.Required) > 0 {
+		fmt.Fprintf(b, "Required     %s\n", strings.Join(g.Risk.Required, ", "))
+	}
+	if len(g.Risk.Observed) > 0 {
+		fmt.Fprintf(b, "Observed     %s\n", strings.Join(g.Risk.Observed, ", "))
+	}
+	if len(g.Risk.Missing) > 0 {
+		fmt.Fprintf(b, "Missing      %s\n", strings.Join(g.Risk.Missing, ", "))
+	}
+	if g.Risk.Note != "" {
+		fmt.Fprintf(b, "Note         %s\n", g.Risk.Note)
+	}
+}
+
 func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
 	b.WriteString("Approvals\n")
 	sec := g.Approvals
+	if len(sec.Overrules) > 0 {
+		b.WriteString("Overruled\n")
+		for _, o := range sec.Overrules {
+			fmt.Fprintf(b, "⚠ soft-ALLOW %-6s %s (%s)\n", o.Kind, o.ResourceID, o.Binding)
+		}
+	}
 	if sec.Count == 0 {
 		b.WriteString("Status       none recorded\n")
 		if g.Verdict == gate.Deny {
-			b.WriteString("Hint         specular approve exception-<id> --reason \"...\" --scope \"...\"\n")
+			b.WriteString("Hint         specular approve exception-<id> --reason \"...\" --scope \"...\" --policy …\n")
 		}
 		return
 	}
@@ -355,7 +390,10 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
 	writeApprovalExceptions(b, sec.Exceptions)
 	writeApprovalRecent(b, sec.Recent)
 	if g.Verdict == gate.Deny && len(sec.Exceptions) == 0 {
-		b.WriteString("Hint         record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\"\n")
+		b.WriteString("Hint         record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy …\n")
+	}
+	if sec.Note != "" {
+		fmt.Fprintf(b, "Note         %s\n", sec.Note)
 	}
 }
 
@@ -439,38 +477,78 @@ func writeWhy(b *strings.Builder, g *gate.Result) {
 		gate.StatusSkipped: "Drift skipped (brownfield / missing spec)",
 	})
 	writeSectionWhy(b, "Policy", g.Policy.Status, g.Policy.Note, nil)
-	if g.Provenance.Attested {
-		b.WriteString("  • Provenance attested")
-		if len(g.Provenance.Harnesses) > 0 {
-			fmt.Fprintf(b, " (%s)", strings.Join(g.Provenance.Harnesses, ", "))
-		}
-		b.WriteString("\n")
-		if len(g.Provenance.WorktreePaths) > 0 || len(g.Provenance.WorktreeBranches) > 0 {
-			b.WriteString("  • Worktree ")
-			parts := make([]string, 0, 2)
-			if len(g.Provenance.WorktreePaths) > 0 {
-				parts = append(parts, strings.Join(g.Provenance.WorktreePaths, ", "))
-			}
-			if len(g.Provenance.WorktreeBranches) > 0 {
-				parts = append(parts, "branch="+strings.Join(g.Provenance.WorktreeBranches, ", "))
-			}
-			b.WriteString(strings.Join(parts, " · "))
-			b.WriteString("\n")
-		}
-		fmt.Fprintf(b, "  • Governed %v\n", g.Provenance.Governed)
-	} else {
+	writeWhyProvenance(b, g)
+	writeWhyApprovals(b, g)
+	writeWhyRisk(b, g)
+	writeWhyVerdict(b, g)
+}
+
+func writeWhyProvenance(b *strings.Builder, g *gate.Result) {
+	if !g.Provenance.Attested {
 		b.WriteString("  • Provenance unattested — not treated as verified\n")
+		return
 	}
-	if n := len(g.Approvals.Exceptions); n > 0 {
-		fmt.Fprintf(b, "  • %d open exception(s) on local trail (advisory)\n", n)
-	} else if g.Approvals.Count > 0 {
+	b.WriteString("  • Provenance attested")
+	if len(g.Provenance.Harnesses) > 0 {
+		fmt.Fprintf(b, " (%s)", strings.Join(g.Provenance.Harnesses, ", "))
+	}
+	b.WriteString("\n")
+	if len(g.Provenance.WorktreePaths) > 0 || len(g.Provenance.WorktreeBranches) > 0 {
+		b.WriteString("  • Worktree ")
+		parts := make([]string, 0, 2)
+		if len(g.Provenance.WorktreePaths) > 0 {
+			parts = append(parts, strings.Join(g.Provenance.WorktreePaths, ", "))
+		}
+		if len(g.Provenance.WorktreeBranches) > 0 {
+			parts = append(parts, "branch="+strings.Join(g.Provenance.WorktreeBranches, ", "))
+		}
+		b.WriteString(strings.Join(parts, " · "))
+		b.WriteString("\n")
+	}
+	fmt.Fprintf(b, "  • Governed %v\n", g.Provenance.Governed)
+}
+
+func writeWhyApprovals(b *strings.Builder, g *gate.Result) {
+	switch {
+	case len(g.Approvals.Overrules) > 0:
+		fmt.Fprintf(b, "  • %d exception soft-ALLOW overrule(s)\n", len(g.Approvals.Overrules))
+		for _, o := range g.Approvals.Overrules {
+			fmt.Fprintf(b, "    – %s overruled %s (%s)\n", o.ResourceID, o.Kind, o.Binding)
+		}
+	case len(g.Approvals.Exceptions) > 0:
+		fmt.Fprintf(b, "  • %d open exception(s) on local trail\n", len(g.Approvals.Exceptions))
+	case g.Approvals.Count > 0:
 		fmt.Fprintf(b, "  • %d approval record(s) on local trail\n", g.Approvals.Count)
-	} else if g.Verdict == gate.Deny {
+	case g.Verdict == gate.Deny:
 		b.WriteString("  • No local exception/approval trail for this DENY\n")
 	}
-	if g.Verdict == gate.Allow {
-		b.WriteString("  → ALLOW because no blocking drift or policy failure was present.\n")
+}
+
+func writeWhyRisk(b *strings.Builder, g *gate.Result) {
+	if g.Risk.Enforced && len(g.Risk.Missing) > 0 && len(g.Approvals.Overrules) == 0 {
+		fmt.Fprintf(b, "  • Risk %s missing approvals: %s\n",
+			firstNonEmpty(g.Risk.Level, "UNKNOWN"), strings.Join(g.Risk.Missing, ", "))
+		return
+	}
+	if g.Risk.Level == "" || g.Risk.Level == "NONE" {
+		return
+	}
+	fmt.Fprintf(b, "  • Risk level %s", g.Risk.Level)
+	if g.Risk.Enforced {
+		b.WriteString(" (enforced)")
 	} else {
+		b.WriteString(" (advisory)")
+	}
+	b.WriteString("\n")
+}
+
+func writeWhyVerdict(b *strings.Builder, g *gate.Result) {
+	switch {
+	case g.Verdict == gate.Allow && len(g.Approvals.Overrules) > 0:
+		b.WriteString("  → ALLOW via scoped exception soft-ALLOW (underlying FAIL sections preserved).\n")
+	case g.Verdict == gate.Allow:
+		b.WriteString("  → ALLOW because no blocking drift, policy, or risk requirement failed.\n")
+	default:
 		b.WriteString("  → DENY because a blocking section failed (see above).\n")
 	}
 }
@@ -494,4 +572,13 @@ func writeSectionWhy(b *strings.Builder, name string, status gate.SectionStatus,
 		fmt.Fprintf(b, " — %s", note)
 	}
 	b.WriteString("\n")
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
 }

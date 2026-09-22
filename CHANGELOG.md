@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **AI CHANGE RECORD risk + soft-ALLOW (P1 #2 depth)**: `specular explain` /
+  `evidence show` human layout includes Risk (level/enforced/required) and
+  Approvals Overruled soft-ALLOW lines; Why reflects exception overrules.
+
 - **Jenkins / generic CI gate depth (P1 #8)**: focused `Jenkinsfile.gate`
   (markdown + SARIF + brownfield policy soft-skip); `generic-ci.sh` and the
   full `Jenkinsfile` gate stage omit `--policy` when the file is missing.
