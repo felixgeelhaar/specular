@@ -29,6 +29,7 @@ Examples:
   specular evidence list
   specular evidence list --verdict DENY --since 24h --limit 20
   specular evidence list --path internal/auth --json
+  specular evidence list --risk HIGH --verdict DENY
   specular evidence show
   specular evidence show ev_abc123
   specular evidence show --json
@@ -41,10 +42,11 @@ var evidenceListCmd = &cobra.Command{
 	Long: `List local Change Evidence Graph record IDs under .specular/evidence/.
 
 Filters (combinable):
-  --verdict ALLOW|DENY   Gate decision
-  --since <dur|RFC3339>  CreatedAt at or after (e.g. 24h, 2026-09-01T00:00:00Z)
-  --path <substr>        Root or drift finding path contains substring
-  --limit N              Cap results after sorting (newest first)
+  --verdict ALLOW|DENY              Gate decision
+  --since <dur|RFC3339>             CreatedAt at or after (e.g. 24h, 2026-09-01T00:00:00Z)
+  --path <substr>                   Root or drift finding path contains substring
+  --risk NONE|LOW|MEDIUM|HIGH|CRITICAL  Gate risk level (empty risk treated as NONE)
+  --limit N                         Cap results after sorting (newest first)
 
 --json emits a JSON array of matching IDs.
 `,
@@ -112,6 +114,8 @@ func evidenceListFilter(cmd *cobra.Command) (evidence.ListFilter, error) {
 	}
 	pathSub, _ := cmd.Flags().GetString("path")
 	f.PathContains = strings.TrimSpace(pathSub)
+	risk, _ := cmd.Flags().GetString("risk")
+	f.RiskLevel = strings.TrimSpace(risk)
 	limit, _ := cmd.Flags().GetInt("limit")
 	f.Limit = limit
 	return f, nil
@@ -155,6 +159,7 @@ func init() {
 	evidenceListCmd.Flags().String("verdict", "", "Filter by gate verdict (ALLOW or DENY)")
 	evidenceListCmd.Flags().String("since", "", "Only records at or after time (duration like 24h, or RFC3339)")
 	evidenceListCmd.Flags().String("path", "", "Only records whose root or finding paths contain substring")
+	evidenceListCmd.Flags().String("risk", "", "Filter by gate risk level (NONE|LOW|MEDIUM|HIGH|CRITICAL)")
 	evidenceListCmd.Flags().Int("limit", 0, "Maximum number of records to return (0 = all)")
 	evidenceShowCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	evidenceCmd.AddCommand(evidenceListCmd)
