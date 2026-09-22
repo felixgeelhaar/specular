@@ -69,7 +69,11 @@ func writeMarkdownTable(b *strings.Builder, res *Result) {
 	if riskLevel == "" {
 		riskLevel = "NONE"
 	}
-	fmt.Fprintf(b, "| Risk | `%s` (advisory) |\n", riskLevel)
+	riskMode := "advisory"
+	if res.Risk.Enforced {
+		riskMode = "enforced"
+	}
+	fmt.Fprintf(b, "| Risk | `%s` (%s) |\n", riskLevel, riskMode)
 	approvalStatus := "none"
 	if res.Approvals.Count > 0 {
 		approvalStatus = fmt.Sprintf("%d recorded", res.Approvals.Count)
@@ -77,7 +81,11 @@ func writeMarkdownTable(b *strings.Builder, res *Result) {
 			approvalStatus += fmt.Sprintf(", %d open exception(s)", n)
 		}
 	}
-	fmt.Fprintf(b, "| Approvals | `%s` (advisory) |\n\n", approvalStatus)
+	approvalMode := "advisory"
+	if res.Risk.Enforced {
+		approvalMode = "risk-adaptive"
+	}
+	fmt.Fprintf(b, "| Approvals | `%s` (%s) |\n\n", approvalStatus, approvalMode)
 }
 
 func writeMarkdownNotes(b *strings.Builder, res *Result) {
@@ -102,13 +110,26 @@ func writeMarkdownNotes(b *strings.Builder, res *Result) {
 		fmt.Fprintf(b, "_Policy:_ %s\n\n", res.Policy.Note)
 	}
 	if len(res.Risk.Factors) > 0 {
-		b.WriteString("_Risk factors (advisory):_\n")
+		label := "_Risk factors (advisory):_"
+		if res.Risk.Enforced {
+			label = "_Risk factors (enforced):_"
+		}
+		b.WriteString(label + "\n")
 		for _, f := range res.Risk.Factors {
 			fmt.Fprintf(b, "- %s\n", f)
 		}
 		b.WriteString("\n")
 	} else if res.Risk.Note != "" {
 		fmt.Fprintf(b, "_Risk:_ %s\n\n", res.Risk.Note)
+	}
+	if res.Risk.Enforced && len(res.Risk.Required) > 0 {
+		fmt.Fprintf(b, "_Risk required:_ `%s`", strings.Join(res.Risk.Required, "`, `"))
+		if len(res.Risk.Missing) > 0 {
+			fmt.Fprintf(b, " — **missing** `%s`", strings.Join(res.Risk.Missing, "`, `"))
+		} else if len(res.Risk.Observed) > 0 {
+			fmt.Fprintf(b, " — observed `%s`", strings.Join(res.Risk.Observed, "`, `"))
+		}
+		b.WriteString("\n\n")
 	}
 	writeMarkdownApprovals(b, res)
 }

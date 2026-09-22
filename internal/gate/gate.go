@@ -30,7 +30,7 @@ type Verdict string
 const (
 	// Allow means the change may proceed under current evidence.
 	Allow Verdict = "ALLOW"
-	// Deny means drift or policy blocked the change.
+	// Deny means drift, policy, or risk-adaptive requirements blocked the change.
 	Deny Verdict = "DENY"
 )
 
@@ -160,6 +160,7 @@ func Evaluate(opts Options) (*Result, error) {
 	res.Policy = evaluatePolicy(root, opts.PolicyPath)
 	res.Risk = assessRisk(res.Provenance, root)
 	res.Approvals = discoverApprovals(root)
+	applyRiskGovernance(res, root, opts.PolicyPath)
 	res.Verdict, res.Reason = decide(res)
 	return res, nil
 }
@@ -497,12 +498,20 @@ func evaluatePolicy(root, policyPath string) PolicySection {
 }
 
 func decide(res *Result) (Verdict, string) {
-	// Risk is advisory only and must not flip ALLOW→DENY.
 	if res.Drift.Status == StatusFail {
 		return Deny, firstNonEmpty(res.Drift.Note, "drift evaluation failed")
 	}
 	if res.Policy.Status == StatusFail {
 		return Deny, firstNonEmpty(res.Policy.Note, "policy evaluation failed")
+	}
+	// Opt-in risk-adaptive governance (policy risk: block). Advisory-only when unset.
+	if res.Risk.Enforced && len(res.Risk.Missing) > 0 {
+		level := res.Risk.Level
+		if level == "" {
+			level = "UNKNOWN"
+		}
+		return Deny, fmt.Sprintf("risk %s requires approvals: missing %s",
+			level, strings.Join(res.Risk.Missing, ", "))
 	}
 	parts := []string{}
 	if res.Drift.Status == StatusPass {
@@ -519,6 +528,9 @@ func decide(res *Result) (Verdict, string) {
 		parts = append(parts, "provenance attested")
 	} else {
 		parts = append(parts, "provenance unattested")
+	}
+	if res.Risk.Enforced && len(res.Risk.Required) > 0 {
+		parts = append(parts, "risk approvals satisfied")
 	}
 	return Allow, strings.Join(parts, "; ")
 }
@@ -606,12 +618,25 @@ func writeRiskSection(b *strings.Builder, risk RiskSection) {
 	if level == "" {
 		level = "NONE"
 	}
-	fmt.Fprintf(b, "  Level          %s\n", level)
+	mode := "advisory"
+	if risk.Enforced {
+		mode = "enforced"
+	}
+	fmt.Fprintf(b, "  Level          %s (%s)\n", level, mode)
 	if len(risk.Factors) > 0 {
 		b.WriteString("  Factors\n")
 		for _, f := range risk.Factors {
 			fmt.Fprintf(b, "    + %s\n", f)
 		}
+	}
+	if len(risk.Required) > 0 {
+		fmt.Fprintf(b, "  Required       %s\n", strings.Join(risk.Required, ", "))
+	}
+	if len(risk.Observed) > 0 {
+		fmt.Fprintf(b, "  Observed       %s\n", strings.Join(risk.Observed, ", "))
+	}
+	if len(risk.Missing) > 0 {
+		fmt.Fprintf(b, "  Missing        %s\n", strings.Join(risk.Missing, ", "))
 	}
 	if risk.Note != "" {
 		fmt.Fprintf(b, "  Note           %s\n", risk.Note)

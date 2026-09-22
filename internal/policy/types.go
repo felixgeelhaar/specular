@@ -8,6 +8,26 @@ type Policy struct {
 	Tests      TestPolicy            `yaml:"tests"`
 	Security   SecurityPolicy        `yaml:"security"`
 	Routing    RoutingPolicy         `yaml:"routing"`
+	// Risk is opt-in risk-adaptive governance (PRODUCT_INTENT §13).
+	// When unset, gate Risk stays advisory and never flips ALLOW→DENY.
+	Risk *RiskGovernance `yaml:"risk,omitempty"`
+}
+
+// RiskGovernance maps change-risk levels to approval requirements.
+// Keys match gate advisory levels: low, medium, high, critical (case-insensitive).
+type RiskGovernance struct {
+	Low      *RiskTier `yaml:"low,omitempty"`
+	Medium   *RiskTier `yaml:"medium,omitempty"`
+	High     *RiskTier `yaml:"high,omitempty"`
+	Critical *RiskTier `yaml:"critical,omitempty"`
+}
+
+// RiskTier is one risk level's governance requirements.
+// PRODUCT_INTENT allows either `approval:` (string or list) or `approvals:`.
+type RiskTier struct {
+	Approval            StringList `yaml:"approval,omitempty"`
+	Approvals           []string   `yaml:"approvals,omitempty"`
+	AutonomousExecution *bool      `yaml:"autonomous_execution,omitempty"`
 }
 
 // ExecutionPolicy defines execution constraints

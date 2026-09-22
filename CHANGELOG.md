@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Risk-adaptive governance (P1 #1 depth)**: opt-in policy `risk:` tiers
+  (`low`/`medium`/`high`/`critical`) map advisory path-heuristic levels to
+  required approvals; missing roles DENY with Required/Observed/Missing on
+  the gate board. Without `risk:`, Risk stays advisory (never flips verdict).
+  Open exceptions satisfy a role via matching `--policy` / `--scope`.
+
 - **Agent Provenance Protocol (P1 #3)**: `specular.provenance/v1` envelope
   in `internal/provenance` maps session `attestation.Provenance` into a
   stable document; `specular provenance show [id] [--json]` projects the

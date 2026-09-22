@@ -1,18 +1,27 @@
 package gate
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/felixgeelhaar/specular/internal/policy"
 )
 
-// RiskSection is an advisory change-risk profile for the gate board.
+// RiskSection is a change-risk profile for the gate board.
 // Factors are explainable strings derived from path heuristics and provenance.
-// Risk never flips ALLOW→DENY by itself; drift and policy remain decisive.
+// Without an opt-in policy `risk:` block, Risk is advisory and never flips
+// ALLOW→DENY. With `risk:` configured, missing required approvals DENY.
 type RiskSection struct {
-	Level   string   `json:"level"` // NONE | LOW | MEDIUM | HIGH — advisory only
-	Factors []string `json:"factors,omitempty"`
-	Note    string   `json:"note,omitempty"`
+	Level    string   `json:"level"` // NONE | LOW | MEDIUM | HIGH | CRITICAL
+	Factors  []string `json:"factors,omitempty"`
+	Note     string   `json:"note,omitempty"`
+	Enforced bool     `json:"enforced,omitempty"`
+	Required []string `json:"required,omitempty"` // roles from policy risk tier
+	Missing  []string `json:"missing,omitempty"`  // required roles not yet satisfied
+	Observed []string `json:"observed,omitempty"` // roles satisfied by open trail
 }
 
 // Known explainable factor strings (stable for tests and JSON consumers).
@@ -38,6 +47,99 @@ func assessRisk(provenance ProvenanceSection, root string) RiskSection {
 		sec.Note = "advisory only — does not change gate verdict"
 	}
 	return sec
+}
+
+// applyRiskGovernance overlays opt-in policy risk: requirements onto res.Risk.
+// No-op when policy is missing or has no risk: block (advisory-only behavior).
+func applyRiskGovernance(res *Result, root, policyPath string) {
+	if res == nil {
+		return
+	}
+	pol := loadPolicyForRisk(root, policyPath)
+	if pol == nil || !pol.HasRiskGovernance() {
+		return
+	}
+	tier := pol.Risk.TierFor(res.Risk.Level)
+	if tier == nil {
+		res.Risk.Note = fmt.Sprintf("risk level %s — no policy tier configured (advisory)", res.Risk.Level)
+		return
+	}
+
+	required := tier.RequiredApprovals()
+	if tier.BlocksAutonomous() && len(required) == 0 {
+		required = []string{"human-approval"}
+	}
+	observed, missing := matchRiskApprovals(required, res.Approvals)
+
+	res.Risk.Enforced = true
+	res.Risk.Required = required
+	res.Risk.Observed = observed
+	res.Risk.Missing = missing
+	switch {
+	case len(required) == 0:
+		res.Risk.Note = "risk-adaptive: no approvals required at this level"
+	case len(missing) == 0:
+		res.Risk.Note = "risk-adaptive requirements satisfied"
+	default:
+		res.Risk.Note = fmt.Sprintf("risk-adaptive: missing approvals [%s]", strings.Join(missing, ", "))
+	}
+}
+
+func loadPolicyForRisk(root, policyPath string) *policy.Policy {
+	path := strings.TrimSpace(policyPath)
+	if path == "" {
+		path = filepath.Join(root, ".specular", "policy.yaml")
+		if _, err := os.Stat(path); err != nil {
+			alt := filepath.Join(root, ".specular", "policies.yaml")
+			if _, altErr := os.Stat(alt); altErr != nil {
+				return nil
+			}
+			path = alt
+		}
+	}
+	pol, err := policy.LoadPolicy(path)
+	if err != nil {
+		return nil
+	}
+	return pol
+}
+
+// matchRiskApprovals returns observed roles and missing roles from the trail.
+// An open exception or non-expired approval satisfies a role when its Policy
+// or Scope equals the role (case-insensitive).
+func matchRiskApprovals(required []string, sec ApprovalsSection) (observed, missing []string) {
+	if len(required) == 0 {
+		return nil, nil
+	}
+	have := map[string]struct{}{}
+	collect := func(items []ApprovalSummary) {
+		for _, a := range items {
+			if a.Expired {
+				continue
+			}
+			for _, cand := range []string{a.Policy, a.Scope} {
+				role := strings.ToLower(strings.TrimSpace(cand))
+				if role != "" {
+					have[role] = struct{}{}
+				}
+			}
+		}
+	}
+	collect(sec.Exceptions)
+	collect(sec.Recent)
+
+	for _, role := range required {
+		r := strings.ToLower(strings.TrimSpace(role))
+		if r == "" {
+			continue
+		}
+		if _, ok := have[r]; ok {
+			observed = append(observed, r)
+		} else {
+			missing = append(missing, r)
+		}
+	}
+	return observed, missing
 }
 
 func collectChangePaths(root string) []string {
@@ -129,8 +231,10 @@ func advisoryRiskLevel(factors []string) string {
 		return "LOW"
 	case n == 2:
 		return "MEDIUM"
-	default:
+	case n == 3:
 		return "HIGH"
+	default:
+		return "CRITICAL"
 	}
 }
 
