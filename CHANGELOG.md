@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session attest/show APP surface**: `session attest` reports `ProvenancePath`
+  + `governed` and prints `provenance verify` next to `auto verify`;
+  `session show` lists sibling attestation/APP paths when present.
+
 - **Agents harness `--require-governed` docs**: per-harness READMEs
   (`claude-code` / `cursor` / `codex` / `gemini`) document
   `integrate --enforce --require-governed --force` beside Level-3 enforce.

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -360,6 +361,15 @@ var sessionShowCmd = &cobra.Command{
 				fmt.Printf("Updated:    %s\n", rec.UpdatedAt.Format(time.RFC3339))
 				if rec.LogPath != "" {
 					fmt.Printf("Log:        %s\n", rec.LogPath)
+				}
+				attRel := filepath.Join(".specular", "sessions", rec.ID+".attestation.json")
+				provRel := filepath.Join(".specular", "sessions", rec.ID+".provenance.json")
+				if _, err := os.Stat(filepath.Join(cwd, attRel)); err == nil {
+					fmt.Printf("Attest:     %s\n", filepath.ToSlash(attRel))
+				}
+				if _, err := os.Stat(filepath.Join(cwd, provRel)); err == nil {
+					fmt.Printf("Provenance: %s\n", filepath.ToSlash(provRel))
+					fmt.Printf("Verify:     specular provenance verify %s\n", rec.ID)
 				}
 				if rec.Error != "" {
 					fmt.Printf("Error:      %s\n", rec.Error)
@@ -1430,10 +1440,19 @@ Signatures: specular auto verify. Schema: specular provenance verify.
 			return enc.Encode(res)
 		}
 		fmt.Printf("Attested session %s\n", res.SessionID)
-		fmt.Printf("  Harness: %s\n", res.Harness)
-		fmt.Printf("  Status:  %s\n", res.Status)
-		fmt.Printf("  Path:    %s\n", res.Path)
+		fmt.Printf("  Harness:    %s\n", res.Harness)
+		if res.Governed {
+			fmt.Printf("  Governed:   true\n")
+		}
+		fmt.Printf("  Status:     %s\n", res.Status)
+		fmt.Printf("  Attest:     %s\n", res.Path)
+		if res.ProvenancePath != "" {
+			fmt.Printf("  Provenance: %s\n", res.ProvenancePath)
+		}
 		fmt.Printf("\n  specular auto verify %s\n", res.Path)
+		if res.ProvenancePath != "" {
+			fmt.Printf("  specular provenance verify %s\n", res.SessionID)
+		}
 		return nil
 	},
 }

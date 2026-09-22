@@ -2240,7 +2240,7 @@ specular session <subcommand>
 | `session start --manifest <file>` | Start a fleet from a YAML/JSON manifest |
 | `session batch <manifest>` | Alias for fleet launch from a manifest |
 | `session list [--checkpoints]` | List managed sessions (optionally legacy checkpoints) |
-| `session show <id>` | Show session details, worktree, harness, log path |
+| `session show <id>` | Show session details, worktree, harness, log path; lists sibling attestation/APP paths when present |
 | `session status [--watch]` | Live multi-session board (counts + PID/branch/goal; `--json` → `{summary,sessions}`) |
 | `session wait [id…]` | Block until sessions finish; `--attest` / `--gate` / `--bundle` close the fleet→evidence loop |
 | `session logs <id> [--follow]` | Print or follow the session log |
