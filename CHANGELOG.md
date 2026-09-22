@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Provenance verify sibling binding**: `specular provenance verify` (and
+  gate `protocol: enforce` APP doc counts) bind `.provenance.json` to the
+  sibling `.attestation.json` for session / harness / governed / source —
+  still schema-level, not cryptographic signatures.
+
 - **Evidence list `--protocol` (P1 #9 depth)**: `specular evidence list
   --protocol[=true|false]` filters records by APP `.provenance.json` docs
   present+valid vs missing/invalid (`protocolDocs` / `protocolOk`).

@@ -18,8 +18,9 @@ var provenanceCmd = &cobra.Command{
 specular.provenance/v1 maps existing session attestation.Provenance fields
 into a stable, agent-neutral document. session attest emits
 .specular/sessions/<id>.provenance.json beside the attestation.
-provenance verify checks schema/required fields (not cryptographic
-signatures — use specular auto verify for those).
+provenance verify checks schema/required fields and binds the document to
+its sibling .attestation.json (session / harness / governed / source).
+Cryptographic signatures remain on specular auto verify.
 
 Examples:
   specular provenance show
@@ -39,7 +40,7 @@ var provenanceShowCmd = &cobra.Command{
 
 var provenanceVerifyCmd = &cobra.Command{
 	Use:   "verify [session-id|path]",
-	Short: "Verify Agent Provenance Protocol schema (not signatures)",
+	Short: "Verify APP schema + sibling attestation binding (not signatures)",
 	Args:  cobra.MaximumNArgs(1),
 	RunE:  runProvenanceVerify,
 }
@@ -80,7 +81,7 @@ func runProvenanceVerify(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	res := provenance.Validate(doc)
+	res := provenance.ValidateBound(doc, root)
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	if jsonOut {
 		enc := json.NewEncoder(os.Stdout)

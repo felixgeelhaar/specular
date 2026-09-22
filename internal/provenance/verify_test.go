@@ -79,11 +79,75 @@ func TestWriteBesideAndResolvePrefer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasSuffix(loaded.Source, ".provenance.json") {
+	if !strings.HasSuffix(loaded.Source, ".attestation.json") {
 		t.Fatalf("source=%s", loaded.Source)
 	}
 	res := Validate(loaded)
 	if !res.OK {
+		t.Fatalf("%+v", res)
+	}
+	bound := ValidateBound(loaded, root)
+	if !bound.OK {
+		t.Fatalf("bound=%+v", bound)
+	}
+}
+
+func TestValidateBoundHarnessMismatch(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	attJSON := `{
+		"version":"1.0","workflowId":"session-auth",
+		"provenance":{"hostname":"h","platform":"linux","arch":"amd64",
+			"specularVersion":"1.0.0","profile":"ci","harness":"claude-code","governed":true,"models":[]},
+		"planHash":"","outputHash":"",
+		"signedAt":"2026-01-02T00:00:00Z","signedBy":"t","signature":"x","publicKey":"y"
+	}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(attJSON), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	prov := `{
+		"schema":"specular.provenance/v1","version":"1","session":"auth",
+		"harness":"codex","governed":false,
+		"source":".specular/sessions/auth.attestation.json"
+	}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.provenance.json"), []byte(prov), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	doc, err := Resolve(root, "auth")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := ValidateBound(doc, root)
+	if res.OK {
+		t.Fatal("expected bind failure")
+	}
+	joined := strings.Join(res.Errors, " ")
+	if !strings.Contains(joined, "harness") || !strings.Contains(joined, "governed") {
+		t.Fatalf("errors=%v", res.Errors)
+	}
+}
+
+func TestValidateBoundMissingSibling(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	prov := `{"schema":"specular.provenance/v1","version":"1","session":"orphan","harness":"x"}`
+	if err := os.WriteFile(filepath.Join(dir, "orphan.provenance.json"), []byte(prov), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	doc, err := LoadDocumentFile(filepath.Join(dir, "orphan.provenance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := ValidateBound(doc, root)
+	if res.OK || !strings.Contains(strings.Join(res.Errors, " "), "sibling attestation missing") {
 		t.Fatalf("%+v", res)
 	}
 }

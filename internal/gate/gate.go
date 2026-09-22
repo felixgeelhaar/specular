@@ -263,13 +263,13 @@ func discoverProvenance(root string) ProvenanceSection {
 	if len(sec.Sessions) > 0 {
 		sec.Attested = true
 		sec.Status = StatusPass
-		enrichProtocolDocs(&sec, dir)
+		enrichProtocolDocs(&sec, root, dir)
 		sec.Note = attestedProvenanceNote(sec)
 	}
 	return sec
 }
 
-func enrichProtocolDocs(sec *ProvenanceSection, sessionsDir string) {
+func enrichProtocolDocs(sec *ProvenanceSection, root, sessionsDir string) {
 	entries, err := os.ReadDir(sessionsDir)
 	if err != nil {
 		return
@@ -287,7 +287,7 @@ func enrichProtocolDocs(sec *ProvenanceSection, sessionsDir string) {
 		if sec.ProtocolSchema == "" {
 			sec.ProtocolSchema = doc.Schema
 		}
-		if vr := provenance.Validate(doc); vr.OK {
+		if vr := provenance.ValidateBound(doc, root); vr.OK {
 			sec.ProtocolOK++
 		}
 	}
