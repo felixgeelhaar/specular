@@ -31,6 +31,9 @@ type IntegrateOptions struct {
 	DryRun bool
 	// Force overwrites an existing Specular hook script.
 	Force bool
+	// Enforce installs fail-closed Stop/SessionEnd hooks (Level 3):
+	// attest + gate --require-attested --require-protocol; non-zero on DENY.
+	Enforce bool
 }
 
 // IntegrateFileAction describes what happened (or would happen) to a path.
@@ -59,6 +62,7 @@ type IntegrateResult struct {
 	Harness   string          `json:"harness"`
 	Root      string          `json:"root"`
 	DryRun    bool            `json:"dryRun"`
+	Enforce   bool            `json:"enforce,omitempty"`
 	Files     []IntegrateFile `json:"files"`
 	NextSteps []string        `json:"nextSteps,omitempty"`
 }
@@ -125,6 +129,12 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 		Harness: harness,
 		Root:    abs,
 		DryRun:  opts.DryRun,
+		Enforce: opts.Enforce,
+	}
+
+	hookMode := "advisory"
+	if opts.Enforce {
+		hookMode = "enforce (fail-closed)"
 	}
 
 	switch harness {
@@ -133,7 +143,7 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 			"Commit .claude/hooks/ and .claude/settings.json when ready to share with the team",
 			"Start a managed session: specular session start --harness claude-code --governed \"…\"",
 			"session start exports SPECULAR_SESSION_ID / SPECULAR_SESSION_HARNESS for the Stop hook",
-			"On Stop, the hook runs: specular session attest <id> then specular gate (advisory)",
+			fmt.Sprintf("On Stop, the hook runs: specular session attest <id> then specular gate (%s)", hookMode),
 		}
 		return planAndApplyClaude(res, opts)
 	case "cursor":
@@ -141,7 +151,7 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 			"Commit .cursor/hooks/ and .cursor/hooks.json when ready to share with the team",
 			"Ensure Cursor loads project hooks (trusted workspace; Settings → Hooks)",
 			"session start exports SPECULAR_SESSION_ID / SPECULAR_SESSION_HARNESS — export them into the Cursor agent environment when using a managed session",
-			"On Agent stop, the hook runs: specular session attest <id> then specular gate (advisory)",
+			fmt.Sprintf("On Agent stop, the hook runs: specular session attest <id> then specular gate (%s)", hookMode),
 		}
 		return planAndApplyCursor(res, opts)
 	case "codex":
@@ -149,7 +159,7 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 			"Commit .codex/hooks/ and .codex/hooks.json when ready to share with the team",
 			"Trust the project .codex/ layer and review the Stop hook via Codex /hooks",
 			"Start a managed session: specular session start --harness codex --governed \"…\"",
-			"On Stop, the hook runs: specular session attest <id> then specular gate (advisory)",
+			fmt.Sprintf("On Stop, the hook runs: specular session attest <id> then specular gate (%s)", hookMode),
 		}
 		return planAndApplyCodex(res, opts)
 	case "gemini":
@@ -157,7 +167,7 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 			"Commit .gemini/hooks/ and .gemini/settings.json when ready to share with the team",
 			"Ensure hooksConfig.enabled is true (integrate sets this when merging settings)",
 			"Start a managed session: specular session start --harness gemini --governed \"…\"",
-			"On SessionEnd, the hook runs: specular session attest <id> then specular gate (advisory)",
+			fmt.Sprintf("On SessionEnd, the hook runs: specular session attest <id> then specular gate (%s)", hookMode),
 		}
 		return planAndApplyGemini(res, opts)
 	default:
@@ -166,19 +176,19 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 }
 
 func planAndApplyClaude(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	return planAndApplyPair(res, opts, claudeHookRel, claudeSettingsRel, claudeStopHookScript(), planClaudeSettings)
+	return planAndApplyPair(res, opts, claudeHookRel, claudeSettingsRel, claudeStopHookScript(opts.Enforce), planClaudeSettings)
 }
 
 func planAndApplyCursor(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	return planAndApplyPair(res, opts, cursorHookRel, cursorHooksJSONRel, cursorStopHookScript(), planCursorHooksJSON)
+	return planAndApplyPair(res, opts, cursorHookRel, cursorHooksJSONRel, cursorStopHookScript(opts.Enforce), planCursorHooksJSON)
 }
 
 func planAndApplyCodex(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	return planAndApplyPair(res, opts, codexHookRel, codexHooksJSONRel, codexStopHookScript(), planCodexHooksJSON)
+	return planAndApplyPair(res, opts, codexHookRel, codexHooksJSONRel, codexStopHookScript(opts.Enforce), planCodexHooksJSON)
 }
 
 func planAndApplyGemini(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	return planAndApplyPair(res, opts, geminiHookRel, geminiSettingsRel, geminiSessionEndHookScript(), planGeminiSettings)
+	return planAndApplyPair(res, opts, geminiHookRel, geminiSettingsRel, geminiSessionEndHookScript(opts.Enforce), planGeminiSettings)
 }
 
 func planAndApplyPair(
@@ -529,11 +539,62 @@ func cursorStopHookPresent(stopList []interface{}) bool {
 	return false
 }
 
-func claudeStopHookScript() string {
-	return `#!/usr/bin/env bash
+func hookModeComment(enforce bool) string {
+	if enforce {
+		return "# Specular hook mode: enforce"
+	}
+	return "# Specular hook mode: advisory"
+}
+
+func hookMissingCLIExit(enforce, emitJSON bool) string {
+	var b strings.Builder
+	b.WriteString("  echo \"specular: CLI not on PATH;")
+	if enforce {
+		b.WriteString(" enforce requires specular\" >&2\n")
+	} else {
+		b.WriteString(" skip attest/gate\" >&2\n")
+	}
+	if emitJSON {
+		b.WriteString("  printf '%s\\n' '{}'\n")
+	}
+	if enforce {
+		b.WriteString("  exit 1\n")
+	} else {
+		b.WriteString("  exit 0\n")
+	}
+	return b.String()
+}
+
+func hookAttestGateBlock(eventLabel string, enforce bool) string {
+	if enforce {
+		return fmt.Sprintf(`if [[ -z "$SESSION_ID" ]]; then
+  echo "specular: no session id; enforce requires attest" >&2
+  exit 1
+fi
+echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
+specular session attest "$SESSION_ID"
+echo "specular: running gate (enforce — blocks %s on DENY)" >&2
+specular gate --require-attested --require-protocol
+`, eventLabel)
+	}
+	return fmt.Sprintf(`if [[ -n "$SESSION_ID" ]]; then
+  echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
+  specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
+else
+  echo "specular: no SPECULAR_SESSION_ID / matching session; skip attest" >&2
+fi
+
+echo "specular: running gate (advisory — does not block %s)" >&2
+specular gate || echo "specular: gate exited non-zero (advisory)" >&2
+`, eventLabel)
+}
+
+func claudeStopHookScript(enforce bool) string {
+	return fmt.Sprintf(`#!/usr/bin/env bash
 # Specular native Stop hook for Claude Code (PRODUCT_INTENT P1 #4).
 # Installed by: specular session integrate claude-code
 # Calls existing session attest + gate surfaces — no new protocol.
+%s
 set -euo pipefail
 
 # Claude Code feeds Stop event JSON on stdin.
@@ -551,9 +612,7 @@ fi
 cd "$ROOT"
 
 if ! command -v specular >/dev/null 2>&1; then
-  echo "specular: CLI not on PATH; skip attest/gate" >&2
-  exit 0
-fi
+%sfi
 
 SESSION_ID="${SPECULAR_SESSION_ID:-}"
 if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2>&1; then
@@ -564,7 +623,7 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
     case "$path" in *.attestation.json) continue ;; esac
     harness="$(jq -r '.harness // empty' "$path" 2>/dev/null || true)"
     case "$harness" in claude-code|claude) ;; *) continue ;; esac
-    mtime="$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null || echo 0)"
+    mtime="$(stat -c %%Y "$path" 2>/dev/null || stat -f %%m "$path" 2>/dev/null || echo 0)"
     if [[ "$mtime" -ge "$newest_mtime" ]]; then
       newest_mtime="$mtime"
       SESSION_ID="$(jq -r '.id // empty' "$path" 2>/dev/null || true)"
@@ -572,38 +631,33 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
   done
 fi
 
-if [[ -n "$SESSION_ID" ]]; then
-  echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
-  specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
-else
-  echo "specular: no SPECULAR_SESSION_ID / claude-code session; skip attest" >&2
-fi
-
-echo "specular: running gate (advisory — does not block Stop)" >&2
-specular gate || echo "specular: gate exited non-zero (advisory)" >&2
-exit 0
-`
+%s
+`, hookModeComment(enforce), hookMissingCLIExit(enforce, false), hookAttestGateBlock("Stop", enforce))
 }
 
-func cursorStopHookScript() string {
-	return `#!/usr/bin/env bash
+func cursorStopHookScript(enforce bool) string {
+	tail := hookAttestGateBlock("stop", enforce)
+	if enforce {
+		tail += "\n# Cursor stop hooks may consume JSON on stdout; emit empty object (no follow-up).\nprintf '%s\\n' '{}'\n"
+	} else {
+		tail += "\n# Cursor stop hooks may consume JSON on stdout; emit empty object (no follow-up).\nprintf '%s\\n' '{}'\nexit 0\n"
+	}
+	return fmt.Sprintf(`#!/usr/bin/env bash
 # Specular native stop hook for Cursor (PRODUCT_INTENT P1 #4).
 # Installed by: specular session integrate cursor
 # Calls existing session attest + gate surfaces — no new protocol.
 # Project hooks run from the repo root; register via .cursor/hooks.json.
+%s
 set -euo pipefail
 
-# Cursor feeds stop-event JSON on stdin; drain it (advisory — never block stop).
+# Cursor feeds stop-event JSON on stdin; drain it.
 cat >/dev/null || true
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$ROOT"
 
 if ! command -v specular >/dev/null 2>&1; then
-  echo "specular: CLI not on PATH; skip attest/gate" >&2
-  printf '%s\n' '{}'
-  exit 0
-fi
+%sfi
 
 SESSION_ID="${SPECULAR_SESSION_ID:-}"
 if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2>&1; then
@@ -614,7 +668,7 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
     case "$path" in *.attestation.json) continue ;; esac
     harness="$(jq -r '.harness // empty' "$path" 2>/dev/null || true)"
     case "$harness" in cursor|cursor-agent) ;; *) continue ;; esac
-    mtime="$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null || echo 0)"
+    mtime="$(stat -c %%Y "$path" 2>/dev/null || stat -f %%m "$path" 2>/dev/null || echo 0)"
     if [[ "$mtime" -ge "$newest_mtime" ]]; then
       newest_mtime="$mtime"
       SESSION_ID="$(jq -r '.id // empty' "$path" 2>/dev/null || true)"
@@ -622,41 +676,31 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
   done
 fi
 
-if [[ -n "$SESSION_ID" ]]; then
-  echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
-  specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
-else
-  echo "specular: no SPECULAR_SESSION_ID / cursor session; skip attest" >&2
-fi
-
-echo "specular: running gate (advisory — does not block stop)" >&2
-specular gate || echo "specular: gate exited non-zero (advisory)" >&2
-
-# Cursor stop hooks may consume JSON on stdout; emit empty object (no follow-up).
-printf '%s\n' '{}'
-exit 0
-`
+%s`, hookModeComment(enforce), hookMissingCLIExit(enforce, true), tail)
 }
 
-func codexStopHookScript() string {
-	return `#!/usr/bin/env bash
+func codexStopHookScript(enforce bool) string {
+	tail := hookAttestGateBlock("Stop", enforce)
+	if !enforce {
+		tail += "exit 0\n"
+	}
+	return fmt.Sprintf(`#!/usr/bin/env bash
 # Specular native Stop hook for Codex (PRODUCT_INTENT P1 #4).
 # Installed by: specular session integrate codex
 # Calls existing session attest + gate surfaces — no new protocol.
 # Register via .codex/hooks.json (hooks.Stop). Prefer Stop over SessionEnd
 # so attest+gate have enough timeout budget.
+%s
 set -euo pipefail
 
-# Codex feeds Stop event JSON on stdin; drain (advisory — never block Stop).
+# Codex feeds Stop event JSON on stdin; drain.
 cat >/dev/null || true
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$ROOT"
 
 if ! command -v specular >/dev/null 2>&1; then
-  echo "specular: CLI not on PATH; skip attest/gate" >&2
-  exit 0
-fi
+%sfi
 
 SESSION_ID="${SPECULAR_SESSION_ID:-}"
 if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2>&1; then
@@ -667,7 +711,7 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
     case "$path" in *.attestation.json) continue ;; esac
     harness="$(jq -r '.harness // empty' "$path" 2>/dev/null || true)"
     case "$harness" in codex|codex-cli) ;; *) continue ;; esac
-    mtime="$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null || echo 0)"
+    mtime="$(stat -c %%Y "$path" 2>/dev/null || stat -f %%m "$path" 2>/dev/null || echo 0)"
     if [[ "$mtime" -ge "$newest_mtime" ]]; then
       newest_mtime="$mtime"
       SESSION_ID="$(jq -r '.id // empty' "$path" 2>/dev/null || true)"
@@ -675,25 +719,22 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
   done
 fi
 
-if [[ -n "$SESSION_ID" ]]; then
-  echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
-  specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
-else
-  echo "specular: no SPECULAR_SESSION_ID / codex session; skip attest" >&2
-fi
-
-echo "specular: running gate (advisory — does not block Stop)" >&2
-specular gate || echo "specular: gate exited non-zero (advisory)" >&2
-exit 0
-`
+%s`, hookModeComment(enforce), hookMissingCLIExit(enforce, false), tail)
 }
 
-func geminiSessionEndHookScript() string {
-	return `#!/usr/bin/env bash
+func geminiSessionEndHookScript(enforce bool) string {
+	tail := hookAttestGateBlock("SessionEnd", enforce)
+	if enforce {
+		tail += "\n# Gemini SessionEnd requires JSON-only stdout; logs go to stderr.\nprintf '%s\\n' '{}'\n"
+	} else {
+		tail += "\n# Gemini SessionEnd is best-effort; emit empty JSON object on stdout.\nprintf '%s\\n' '{}'\nexit 0\n"
+	}
+	return fmt.Sprintf(`#!/usr/bin/env bash
 # Specular native SessionEnd hook for Gemini CLI (PRODUCT_INTENT P1 #4).
 # Installed by: specular session integrate gemini
 # Calls existing session attest + gate surfaces — no new protocol.
 # Gemini hooks require JSON-only stdout; logs go to stderr.
+%s
 set -euo pipefail
 
 # SessionEnd feeds JSON on stdin; drain it.
@@ -703,10 +744,7 @@ ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$ROOT"
 
 if ! command -v specular >/dev/null 2>&1; then
-  echo "specular: CLI not on PATH; skip attest/gate" >&2
-  printf '%s\n' '{}'
-  exit 0
-fi
+%sfi
 
 SESSION_ID="${SPECULAR_SESSION_ID:-}"
 if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2>&1; then
@@ -717,7 +755,7 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
     case "$path" in *.attestation.json) continue ;; esac
     harness="$(jq -r '.harness // empty' "$path" 2>/dev/null || true)"
     case "$harness" in gemini|gemini-cli) ;; *) continue ;; esac
-    mtime="$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null || echo 0)"
+    mtime="$(stat -c %%Y "$path" 2>/dev/null || stat -f %%m "$path" 2>/dev/null || echo 0)"
     if [[ "$mtime" -ge "$newest_mtime" ]]; then
       newest_mtime="$mtime"
       SESSION_ID="$(jq -r '.id // empty' "$path" 2>/dev/null || true)"
@@ -725,18 +763,5 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
   done
 fi
 
-if [[ -n "$SESSION_ID" ]]; then
-  echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
-  specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
-else
-  echo "specular: no SPECULAR_SESSION_ID / gemini session; skip attest" >&2
-fi
-
-echo "specular: running gate (advisory — does not block SessionEnd)" >&2
-specular gate || echo "specular: gate exited non-zero (advisory)" >&2
-
-# Gemini SessionEnd is best-effort; emit empty JSON object on stdout.
-printf '%s\n' '{}'
-exit 0
-`
+%s`, hookModeComment(enforce), hookMissingCLIExit(enforce, true), tail)
 }

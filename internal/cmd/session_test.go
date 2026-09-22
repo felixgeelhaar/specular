@@ -160,7 +160,7 @@ func TestSessionLifecycleFlags(t *testing.T) {
 	if found["integrate"] == nil {
 		t.Fatal("integrate subcommand not found")
 	}
-	for _, name := range []string{"dry-run", "force", "json"} {
+	for _, name := range []string{"dry-run", "force", "enforce", "json"} {
 		if found["integrate"].Flags().Lookup(name) == nil {
 			t.Errorf("flag %q not found on session integrate", name)
 		}
