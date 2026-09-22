@@ -53,7 +53,7 @@ type Options struct {
 	ReportFile      string // drift SARIF path (default drift.sarif)
 	StrictSpec      bool   // fail when plan/lock/spec missing (default: soft-skip drift)
 	RequireAttested bool   // DENY when unattested (mirrors provenance.attested: enforce)
-	RequireProtocol bool   // DENY when APP docs missing/invalid (mirrors provenance.protocol: enforce)
+	RequireProtocol bool   // DENY when APP docs missing/invalid/unbound (mirrors provenance.protocol: enforce)
 	RequireGoverned bool   // DENY when no governed session (mirrors provenance.governed: enforce)
 }
 

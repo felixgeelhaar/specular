@@ -138,7 +138,7 @@ func applyProtocolGovernance(sec *ProvenanceSection) {
 	case ok < docs:
 		sec.Status = StatusFail
 		sec.Note = fmt.Sprintf(
-			"APP protocol enforce: %d/%d docs valid (schema check failed)", ok, docs)
+			"APP protocol enforce: %d/%d docs valid (schema/binding check failed)", ok, docs)
 	default:
 		note := fmt.Sprintf("APP protocol enforce: %d/%d docs ok", ok, docs)
 		if sec.Note != "" && !strings.Contains(sec.Note, "APP protocol enforce") {
