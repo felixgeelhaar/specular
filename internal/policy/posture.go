@@ -106,7 +106,8 @@ func FormatProgressiveTrust(p GovernancePosture) string {
 	b.WriteString("Progressive trust:\n")
 	if p.Mode != "progressive" {
 		b.WriteString("  ○ Mode: advisory (no opt-in knobs)\n")
-		b.WriteString("      enable via policy risk: / provenance.attested|protocol|governed: enforce\n")
+		b.WriteString("      enable via examples/policy/progressive-trust.yaml\n")
+		b.WriteString("      (or risk: / provenance.attested|protocol|governed: enforce)\n")
 		return b.String()
 	}
 	b.WriteString("  ✓ Mode: progressive")

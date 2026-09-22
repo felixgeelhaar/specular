@@ -1,0 +1,33 @@
+# Combined progressive-trust ladder (PRODUCT_INTENT §6.4 / §9 / §13).
+# Merge into .specular/policy.yaml when ready to leave advisory Mode.
+#
+# Ladder:
+#   1. risk tiers — approvals scale with change risk
+#   2. attested — DENY unattested trees
+#   3. protocol — DENY attested trees missing/invalid/unbound APP docs
+#   4. governed — DENY attested trees without a governed (safer native) session
+#
+# Soft-ALLOW with: specular approve exception-<id> --reason "…" --policy provenance
+# CI mirrors: REQUIRE_ATTESTED / REQUIRE_PROTOCOL / REQUIRE_GOVERNED
+# Hooks: specular session integrate <harness> --enforce --require-governed --force
+
+risk:
+  low:
+    approval: none
+  medium:
+    approval:
+      - code-owner
+  high:
+    approvals:
+      - security
+      - service-owner
+  critical:
+    autonomous_execution: false
+    approvals:
+      - security
+      - platform
+
+provenance:
+  attested: enforce
+  protocol: enforce
+  governed: enforce

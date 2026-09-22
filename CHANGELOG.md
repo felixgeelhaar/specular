@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Progressive-trust policy example**: `examples/policy/progressive-trust.yaml`
+  combines risk tiers + `provenance.attested|protocol|governed: enforce`;
+  doctor advisory Mode points at it (Next Steps + Progressive trust block).
+
 - **Approvals list `--type` / `--policy` / `--scope` (P1 #6 depth)**:
   `specular approvals list` filters by record type and case-insensitive
   policy/scope substrings (combinable with `--status`).
