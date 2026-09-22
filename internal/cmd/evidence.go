@@ -31,6 +31,8 @@ Examples:
   specular evidence list --path internal/auth --json
   specular evidence list --risk HIGH --verdict DENY
   specular evidence list --session auth --harness claude
+  specular evidence list --soft-allow --verdict ALLOW
+  specular evidence list --attested=false
   specular evidence show
   specular evidence show ev_abc123
   specular evidence show --json
@@ -49,6 +51,8 @@ Filters (combinable):
   --risk NONE|LOW|MEDIUM|HIGH|CRITICAL  Gate risk level (empty risk treated as NONE)
   --session <id>                    Exact match on gate.provenance.sessions[]
   --harness <substr>                Case-insensitive substring on harnesses[]
+  --soft-allow[=true|false]         Exception soft-ALLOW overrules present / absent
+  --attested[=true|false]           Gate provenance attested / unattested
   --limit N                         Cap results after sorting (newest first)
 
 --json emits a JSON array of matching IDs.
@@ -88,8 +92,7 @@ func runEvidenceList(cmd *cobra.Command, _ []string) error {
 		return enc.Encode(ids)
 	}
 	if len(ids) == 0 {
-		if filter.Verdict != "" || !filter.Since.IsZero() || filter.PathContains != "" ||
-			filter.RiskLevel != "" || filter.Session != "" || filter.Harness != "" {
+		if filter.Active() {
 			fmt.Println("No evidence records match filters.")
 			return nil
 		}
@@ -124,6 +127,14 @@ func evidenceListFilter(cmd *cobra.Command) (evidence.ListFilter, error) {
 	f.Session = strings.TrimSpace(session)
 	harness, _ := cmd.Flags().GetString("harness")
 	f.Harness = strings.TrimSpace(harness)
+	if cmd.Flags().Changed("soft-allow") {
+		v, _ := cmd.Flags().GetBool("soft-allow")
+		f.SoftAllow = &v
+	}
+	if cmd.Flags().Changed("attested") {
+		v, _ := cmd.Flags().GetBool("attested")
+		f.Attested = &v
+	}
 	limit, _ := cmd.Flags().GetInt("limit")
 	f.Limit = limit
 	return f, nil
@@ -170,6 +181,8 @@ func init() {
 	evidenceListCmd.Flags().String("risk", "", "Filter by gate risk level (NONE|LOW|MEDIUM|HIGH|CRITICAL)")
 	evidenceListCmd.Flags().String("session", "", "Exact match on gate provenance session id")
 	evidenceListCmd.Flags().String("harness", "", "Substring match on gate provenance harness label")
+	evidenceListCmd.Flags().Bool("soft-allow", false, "Filter by exception soft-ALLOW overrules (--soft-allow / --soft-allow=false)")
+	evidenceListCmd.Flags().Bool("attested", false, "Filter by attested provenance (--attested / --attested=false)")
 	evidenceListCmd.Flags().Int("limit", 0, "Maximum number of records to return (0 = all)")
 	evidenceShowCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	evidenceCmd.AddCommand(evidenceListCmd)

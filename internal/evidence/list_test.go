@@ -71,6 +71,32 @@ func TestListFilters(t *testing.T) {
 			},
 		},
 	})
+	softAllow := mustWriteRecord(t, root, &Record{
+		Schema:    Schema,
+		CreatedAt: now.Add(-10 * time.Minute),
+		Root:      "/repos/payments-api",
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Reason:  "drift fail (exception soft-ALLOW)",
+			Change:  gate.ChangeSection{Root: "/repos/payments-api"},
+			Drift:   gate.DriftSection{Status: gate.StatusFail},
+			Policy:  gate.PolicySection{Status: gate.StatusSkipped},
+			Risk:    gate.RiskSection{Level: "MEDIUM"},
+			Provenance: gate.ProvenanceSection{
+				Status:   gate.StatusFail,
+				Attested: true,
+				Sessions: []string{"migrate"},
+				Note:     "APP protocol enforce: attested sessions missing .provenance.json",
+			},
+			Approvals: gate.ApprovalsSection{
+				Overrules: []gate.ExceptionOverrule{{
+					Kind:       "provenance",
+					ResourceID: "exception-app-protocol",
+					ApprovedBy: "platform",
+				}},
+			},
+		},
+	})
 
 	t.Run("newest_first", func(t *testing.T) {
 		t.Parallel()
@@ -78,7 +104,7 @@ func TestListFilters(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := []string{allowNew.ID, denyMid.ID, allowOld.ID}
+		want := []string{softAllow.ID, allowNew.ID, denyMid.ID, allowOld.ID}
 		got := idsOf(recs)
 		if len(got) != len(want) {
 			t.Fatalf("got %v want %v", got, want)
@@ -107,9 +133,9 @@ func TestListFilters(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := []string{allowNew.ID, denyMid.ID}
+		want := []string{softAllow.ID, allowNew.ID, denyMid.ID}
 		got := idsOf(recs)
-		if len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		if len(got) != 3 || got[0] != want[0] || got[1] != want[1] || got[2] != want[2] {
 			t.Fatalf("got %v want %v", got, want)
 		}
 	})
@@ -132,11 +158,11 @@ func TestListFilters(t *testing.T) {
 			t.Fatal(err)
 		}
 		got := idsOf(recs)
-		if len(got) != 2 {
+		if len(got) != 3 {
 			t.Fatalf("got %v", got)
 		}
 		// newest first among matches
-		if got[0] != denyMid.ID || got[1] != allowOld.ID {
+		if got[0] != softAllow.ID || got[1] != denyMid.ID || got[2] != allowOld.ID {
 			t.Fatalf("got %v", got)
 		}
 	})
@@ -147,7 +173,7 @@ func TestListFilters(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(recs) != 1 || recs[0].ID != allowNew.ID {
+		if len(recs) != 1 || recs[0].ID != softAllow.ID {
 			t.Fatalf("got %v", idsOf(recs))
 		}
 	})
@@ -163,8 +189,9 @@ func TestListFilters(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(recs) != 1 || recs[0].ID != allowOld.ID {
-			t.Fatalf("got %v", idsOf(recs))
+		got := idsOf(recs)
+		if len(got) != 2 || got[0] != softAllow.ID || got[1] != allowOld.ID {
+			t.Fatalf("got %v", got)
 		}
 	})
 
@@ -259,6 +286,73 @@ func TestListFilters(t *testing.T) {
 		}
 		if len(miss) != 0 {
 			t.Fatalf("got %v", idsOf(miss))
+		}
+	})
+
+	t.Run("soft_allow_true", func(t *testing.T) {
+		t.Parallel()
+		yes := true
+		recs, err := List(root, ListFilter{SoftAllow: &yes})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) != 1 || recs[0].ID != softAllow.ID {
+			t.Fatalf("got %v", idsOf(recs))
+		}
+	})
+
+	t.Run("soft_allow_false", func(t *testing.T) {
+		t.Parallel()
+		no := false
+		recs, err := List(root, ListFilter{SoftAllow: &no})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := idsOf(recs)
+		if len(got) != 3 {
+			t.Fatalf("got %v", got)
+		}
+		for _, id := range got {
+			if id == softAllow.ID {
+				t.Fatalf("soft-allow record leaked: %v", got)
+			}
+		}
+	})
+
+	t.Run("attested_true", func(t *testing.T) {
+		t.Parallel()
+		yes := true
+		recs, err := List(root, ListFilter{Attested: &yes})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := idsOf(recs)
+		if len(got) != 3 || got[0] != softAllow.ID || got[1] != allowNew.ID || got[2] != denyMid.ID {
+			t.Fatalf("got %v", got)
+		}
+	})
+
+	t.Run("attested_false", func(t *testing.T) {
+		t.Parallel()
+		no := false
+		recs, err := List(root, ListFilter{Attested: &no})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) != 1 || recs[0].ID != allowOld.ID {
+			t.Fatalf("got %v", idsOf(recs))
+		}
+	})
+
+	t.Run("soft_allow_and_attested", func(t *testing.T) {
+		t.Parallel()
+		yes := true
+		recs, err := List(root, ListFilter{SoftAllow: &yes, Attested: &yes, Verdict: gate.Allow})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) != 1 || recs[0].ID != softAllow.ID {
+			t.Fatalf("got %v", idsOf(recs))
 		}
 	})
 }
