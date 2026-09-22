@@ -2351,7 +2351,7 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `wait --any` | Return when the first named session finishes |
 | `wait --attest` | Write `.attestation.json` for each waited session after success |
 | `wait --gate` | After wait (and optional `--attest`) succeeds, run product `specular gate` (provenance/drift/policy + evidence; DENY → exit 3/4) |
-| `wait --bundle` | Package attestations + APP `.provenance.json` + drift SARIF (+ `--policy` fragments) into an evidence bundle (implies `--gate`) |
+| `wait --bundle` | Package attestations + APP `.provenance.json` + drift SARIF + Change Evidence Graph records (+ `--policy` fragments) into an evidence bundle (implies `--gate`) |
 | `wait --bundle-out <path>` | Bundle output path (default `session-evidence.sbundle.tgz`) |
 | `wait --policy <path>` | Policy/library files to include in `--bundle` (repeatable) |
 | `wait --require-attested` | With `--gate`/`--bundle`: DENY when unattested (same as `gate --require-attested`) |

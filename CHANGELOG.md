@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session wait `--bundle` packs Change Evidence Graph**: includes
+  `.specular/evidence/*.json` (+ `latest`) beside attest/APP/SARIF so fleet
+  packets support `explain <sha>` / `explain --commit` offline.
+
 - **Session status/list COMMIT column**: human boards and
   `session status --json` evidence map show short worktree HEAD beside
   ATTEST/APP so fleet CI can jump to `explain <sha>`.

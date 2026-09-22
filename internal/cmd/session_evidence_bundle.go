@@ -20,8 +20,8 @@ type sessionEvidenceBundleOptions struct {
 }
 
 // runSessionEvidenceBundle creates a governance bundle from session evidence
-// (attestations, APP .provenance.json, drift SARIF) plus optional policy
-// library fragments.
+// (attestations, APP .provenance.json, drift SARIF, Change Evidence Graph
+// records) plus optional policy library fragments.
 func runSessionEvidenceBundle(opts sessionEvidenceBundleOptions) error {
 	output := opts.Output
 	if output == "" {
@@ -73,6 +73,25 @@ func runSessionEvidenceBundle(opts sessionEvidenceBundleOptions) error {
 			}
 		}
 	}
+
+	// Change Evidence Graph (PRODUCT_INTENT §7/§20) — fleet→explain packet.
+	evidenceDir := filepath.Join(".specular", "evidence")
+	if entries, err := os.ReadDir(evidenceDir); err == nil {
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			name := e.Name()
+			if name != "latest" && !strings.HasSuffix(name, ".json") {
+				continue
+			}
+			path := filepath.Join(evidenceDir, name)
+			if !containsPath(bo.IncludePaths, path) {
+				bo.IncludePaths = append(bo.IncludePaths, path)
+			}
+		}
+	}
+
 	for _, p := range opts.Includes {
 		if fileExists(p) && !containsPath(bo.IncludePaths, p) {
 			bo.IncludePaths = append(bo.IncludePaths, p)

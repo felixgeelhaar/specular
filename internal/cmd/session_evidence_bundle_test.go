@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"archive/tar"
+	"compress/gzip"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/felixgeelhaar/specular/internal/policylibrary"
@@ -123,6 +127,80 @@ milestones: []
 	if _, err := os.Stat(filepath.Join(dir, "drift.sarif")); err != nil {
 		t.Fatalf("gate should write drift.sarif: %v", err)
 	}
+}
+
+func TestRunSessionEvidenceBundleIncludesEvidence(t *testing.T) {
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(cwd) }()
+
+	evDir := filepath.Join(dir, ".specular", "evidence")
+	if err := os.MkdirAll(evDir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	evPath := filepath.Join(evDir, "ev_fleet_demo.json")
+	if err := os.WriteFile(evPath, []byte(`{"schema":"specular.evidence/v1","id":"ev_fleet_demo","commit":"abcdef01"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(evDir, "latest"), []byte("ev_fleet_demo\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	policyPath := filepath.Join(dir, "soc2.yaml")
+	if err := policylibrary.Install("soc2-cc8.1", policyPath, true); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "with-evidence.sbundle.tgz")
+	if err := runSessionEvidenceBundle(sessionEvidenceBundleOptions{
+		Output:   out,
+		Policies: []string{policyPath},
+		Quiet:    true,
+	}); err != nil {
+		t.Fatalf("bundle: %v", err)
+	}
+	names := tarballMemberNames(t, out)
+	found := false
+	for _, n := range names {
+		if strings.Contains(n, "ev_fleet_demo.json") || strings.HasSuffix(n, "ev_fleet_demo.json") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected evidence json in bundle, got %v", names)
+	}
+}
+
+func tarballMemberNames(t *testing.T, path string) []string {
+	t.Helper()
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer gz.Close()
+	tr := tar.NewReader(gz)
+	var names []string
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		names = append(names, hdr.Name)
+	}
+	return names
 }
 
 func TestRunSessionEvidenceBundleIncludesProvenance(t *testing.T) {

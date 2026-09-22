@@ -1758,7 +1758,7 @@ func init() {
 	sessionWaitCmd.Flags().Bool("stop", false, "Stop still-running sessions when --timeout fires")
 	sessionWaitCmd.Flags().Bool("attest", false, "Write session attestations after wait succeeds")
 	sessionWaitCmd.Flags().Bool("gate", false, "Run product specular gate after wait (provenance/drift/policy; fail-on-DENY)")
-	sessionWaitCmd.Flags().Bool("bundle", false, "Package attestations + APP docs + drift (+ policies) into an evidence bundle (implies --gate)")
+	sessionWaitCmd.Flags().Bool("bundle", false, "Package attestations + APP docs + evidence graph + drift (+ policies) into a bundle (implies --gate)")
 	sessionWaitCmd.Flags().String("bundle-out", "session-evidence.sbundle.tgz", "Output path for --bundle")
 	sessionWaitCmd.Flags().StringSlice("policy", nil, "Policy files to include when using --bundle")
 	sessionWaitCmd.Flags().Bool("require-attested", false, "With --gate/--bundle: DENY when unattested (mirrors gate --require-attested)")

@@ -102,5 +102,7 @@ jobs:
             session-evidence.sbundle.tgz
             drift.sarif
             .specular/sessions/*.attestation.json
+            .specular/sessions/*.provenance.json
+            .specular/evidence/
             .specular/policies/soc2-cc8.1.yaml
           if-no-files-found: warn
