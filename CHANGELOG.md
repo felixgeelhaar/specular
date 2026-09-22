@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals list `--status` (P1 #6 depth)**: `specular approvals list
+  --status open|closed|expired` filters the local trail by lifecycle
+  (closed wins over expired).
+
 - **Evidence list soft-ALLOW / attested filters (P1 #9 depth)**:
   `specular evidence list --soft-allow[=true|false]` and `--attested[=true|false]`
   query exception soft-ALLOW overrules and provenance attestation on Change

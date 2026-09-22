@@ -108,6 +108,52 @@ func (r *Record) IsOpen(now time.Time) bool {
 	return !r.IsExpired(now)
 }
 
+// LifecycleStatus is open | closed | expired for list filtering.
+const (
+	StatusOpen    = "open"
+	StatusClosed  = "closed"
+	StatusExpired = "expired"
+)
+
+// Lifecycle returns open, closed, or expired for auditor filters.
+// Closed wins over expired when both apply.
+func (r *Record) Lifecycle(now time.Time) string {
+	if r == nil {
+		return StatusOpen
+	}
+	if r.IsClosed() {
+		return StatusClosed
+	}
+	if r.IsExpired(now) {
+		return StatusExpired
+	}
+	return StatusOpen
+}
+
+// FilterByStatus keeps records whose Lifecycle matches status
+// (open|closed|expired). Empty status returns all.
+func FilterByStatus(recs []Record, status string, now time.Time) ([]Record, error) {
+	want := strings.ToLower(strings.TrimSpace(status))
+	if want == "" {
+		return recs, nil
+	}
+	switch want {
+	case StatusOpen, StatusClosed, StatusExpired:
+	default:
+		return nil, fmt.Errorf("approval: invalid status %q (want open|closed|expired)", status)
+	}
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	var out []Record
+	for _, rec := range recs {
+		if rec.Lifecycle(now) == want {
+			out = append(out, rec)
+		}
+	}
+	return out, nil
+}
+
 // CloseOptions configures early revoke of an open exception.
 type CloseOptions struct {
 	Now    time.Time
