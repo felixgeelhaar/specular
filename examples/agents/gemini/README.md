@@ -6,6 +6,7 @@ Prefer the CLI so settings merge is idempotent:
 
 ```bash
 specular session integrate gemini
+specular session integrate gemini --enforce --force  # Level-3 fail-closed
 ```
 
 Alias: `specular session integrate gemini-cli`.
