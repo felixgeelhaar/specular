@@ -110,16 +110,17 @@ Satisfy a required role with an open exception whose `--policy` (or
 
 **Provenance protocol (PRODUCT_INTENT §9):** When session attestations are
 present, gate counts sibling `.provenance.json` APP docs (`docs=N ok=M`).
-Without a policy `provenance:` block this stays advisory. With opt-in
-enforce, missing or invalid APP docs DENY:
+Without a policy `provenance:` block this stays advisory. Opt-in knobs:
 
 ```yaml
 provenance:
-  protocol: enforce
+  attested: enforce   # DENY when unattested (progressive trust)
+  protocol: enforce   # DENY when attested but APP docs missing/invalid
 ```
 
-Soft-ALLOW with an open exception whose `--policy` is `provenance`
-(or `protocol` / session id / schema), e.g.
+`protocol: enforce` alone stays idle on unattested trees. Soft-ALLOW with an
+open exception whose `--policy` is `provenance` (or `protocol` / session id /
+schema), e.g.
 `specular approve exception-app --reason "…" --policy provenance`.
 
 | Flag | Description |

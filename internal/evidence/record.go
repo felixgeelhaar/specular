@@ -492,7 +492,7 @@ func writeWhy(b *strings.Builder, g *gate.Result) {
 
 func writeWhyProvenance(b *strings.Builder, g *gate.Result) {
 	if !g.Provenance.Attested {
-		b.WriteString("  • Provenance unattested — not treated as verified\n")
+		writeWhyUnattested(b, g)
 		return
 	}
 	b.WriteString("  • Provenance attested")
@@ -500,19 +500,40 @@ func writeWhyProvenance(b *strings.Builder, g *gate.Result) {
 		fmt.Fprintf(b, " (%s)", strings.Join(g.Provenance.Harnesses, ", "))
 	}
 	b.WriteString("\n")
-	if len(g.Provenance.WorktreePaths) > 0 || len(g.Provenance.WorktreeBranches) > 0 {
-		b.WriteString("  • Worktree ")
-		parts := make([]string, 0, 2)
-		if len(g.Provenance.WorktreePaths) > 0 {
-			parts = append(parts, strings.Join(g.Provenance.WorktreePaths, ", "))
-		}
-		if len(g.Provenance.WorktreeBranches) > 0 {
-			parts = append(parts, "branch="+strings.Join(g.Provenance.WorktreeBranches, ", "))
-		}
-		b.WriteString(strings.Join(parts, " · "))
-		b.WriteString("\n")
-	}
+	writeWhyWorktree(b, g)
 	fmt.Fprintf(b, "  • Governed %v\n", g.Provenance.Governed)
+	writeWhyProvenanceEnforce(b, g)
+}
+
+func writeWhyUnattested(b *strings.Builder, g *gate.Result) {
+	if g.Provenance.Enforced && g.Provenance.Status == gate.StatusFail {
+		note := g.Provenance.Note
+		if note == "" {
+			note = "attested provenance required"
+		}
+		fmt.Fprintf(b, "  • Provenance unattested — enforce FAIL (%s)\n", note)
+		return
+	}
+	b.WriteString("  • Provenance unattested — not treated as verified\n")
+}
+
+func writeWhyWorktree(b *strings.Builder, g *gate.Result) {
+	if len(g.Provenance.WorktreePaths) == 0 && len(g.Provenance.WorktreeBranches) == 0 {
+		return
+	}
+	b.WriteString("  • Worktree ")
+	parts := make([]string, 0, 2)
+	if len(g.Provenance.WorktreePaths) > 0 {
+		parts = append(parts, strings.Join(g.Provenance.WorktreePaths, ", "))
+	}
+	if len(g.Provenance.WorktreeBranches) > 0 {
+		parts = append(parts, "branch="+strings.Join(g.Provenance.WorktreeBranches, ", "))
+	}
+	b.WriteString(strings.Join(parts, " · "))
+	b.WriteString("\n")
+}
+
+func writeWhyProvenanceEnforce(b *strings.Builder, g *gate.Result) {
 	if g.Provenance.Enforced && g.Provenance.Status == gate.StatusFail {
 		note := g.Provenance.Note
 		if note == "" {
@@ -528,7 +549,9 @@ func writeWhyProvenance(b *strings.Builder, g *gate.Result) {
 		}
 		fmt.Fprintf(b, "  • APP protocol %s: docs=%d ok=%d\n",
 			mode, g.Provenance.ProtocolDocs, g.Provenance.ProtocolOK)
-	} else if g.Provenance.Enforced {
+		return
+	}
+	if g.Provenance.Enforced {
 		b.WriteString("  • APP protocol enforce active\n")
 	}
 }

@@ -615,20 +615,23 @@ func allowReasonParts(res *Result) []string {
 	default:
 		parts = append(parts, "policy skipped")
 	}
-	if res.Provenance.Attested {
-		if res.Provenance.Enforced && res.Provenance.Status == StatusFail {
-			parts = append(parts, "provenance fail (exception soft-ALLOW)")
-		} else {
-			parts = append(parts, "provenance attested")
-		}
+	if res.Provenance.Enforced && res.Provenance.Status == StatusFail {
+		parts = append(parts, "provenance fail (exception soft-ALLOW)")
+	} else if res.Provenance.Attested {
+		parts = append(parts, "provenance attested")
 	} else {
 		parts = append(parts, "provenance unattested")
 	}
 	if res.Risk.Enforced && len(res.Risk.Required) > 0 && len(res.Risk.Missing) == 0 {
 		parts = append(parts, "risk approvals satisfied")
 	}
-	if res.Provenance.Enforced && res.Provenance.Attested && res.Provenance.Status == StatusPass {
-		parts = append(parts, "APP protocol ok")
+	if res.Provenance.Enforced && res.Provenance.Status == StatusPass {
+		switch {
+		case strings.Contains(res.Provenance.Note, "APP protocol enforce"):
+			parts = append(parts, "APP protocol ok")
+		case strings.Contains(res.Provenance.Note, "attested provenance enforce"):
+			parts = append(parts, "attested provenance ok")
+		}
 	}
 	return parts
 }
