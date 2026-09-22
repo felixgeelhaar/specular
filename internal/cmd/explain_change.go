@@ -30,6 +30,7 @@ Graph filters (newest match):
   --file <substr>     root / drift finding paths (evidence list --path)
   --control <substr>  failed checks / exception policy / soft-ALLOW bind
   --commit <prefix>   record / gate.change commit SHA prefix
+  --session <id>      exact gate.provenance.sessions[] match (fleet board id)
 
 Human text is an auditor-facing AI CHANGE RECORD (PRODUCT_INTENT §19).
 --json emits the unchanged machine-readable evidence record.
@@ -44,6 +45,7 @@ Examples:
   specular explain ev_abc123
   specular explain abc123
   specular explain --commit abc123
+  specular explain --session auth
   specular explain --file internal/auth/token.go
   specular explain --control SEC-17
   specular explain --fresh --policy-file .specular/policy.yaml
@@ -62,6 +64,7 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 	fileFilter, _ := cmd.Flags().GetString("file")
 	controlFilter, _ := cmd.Flags().GetString("control")
 	commitFilter, _ := cmd.Flags().GetString("commit")
+	sessionFilter, _ := cmd.Flags().GetString("session")
 
 	if projectRoot == "" {
 		cwd, err := os.Getwd()
@@ -74,6 +77,7 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 	fileFilter = strings.TrimSpace(fileFilter)
 	controlFilter = strings.TrimSpace(controlFilter)
 	commitFilter = strings.TrimSpace(commitFilter)
+	sessionFilter = strings.TrimSpace(sessionFilter)
 
 	// Positional short SHA → --commit (PRODUCT_INTENT §20: explain abc123).
 	if len(args) == 1 && commitFilter == "" && looksLikeCommitPrefix(args[0]) {
@@ -81,7 +85,12 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 		args = nil
 	}
 
-	if err := explainGraphFiltersExclusive(fileFilter, controlFilter, commitFilter, fresh, args); err != nil {
+	if err := explainGraphFiltersExclusive([]explainNamedFilter{
+		{name: "file", value: fileFilter},
+		{name: "control", value: controlFilter},
+		{name: "commit", value: commitFilter},
+		{name: "session", value: sessionFilter},
+	}, fresh, args); err != nil {
 		return err
 	}
 
@@ -119,6 +128,11 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 			CommitPrefix: commitFilter,
 			Limit:        1,
 		}, "commit", commitFilter)
+	case sessionFilter != "":
+		rec, err = loadEvidenceByFilter(projectRoot, evidence.ListFilter{
+			Session: sessionFilter,
+			Limit:   1,
+		}, "session", sessionFilter)
 	case len(args) == 1:
 		rec, err = evidence.Load(projectRoot, args[0])
 	default:
@@ -137,27 +151,25 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func explainGraphFiltersExclusive(file, control, commit string, fresh bool, args []string) error {
-	active := 0
-	flag := ""
-	if file != "" {
-		active++
-		flag = "--file"
+type explainNamedFilter struct {
+	name  string
+	value string
+}
+
+func explainGraphFiltersExclusive(filters []explainNamedFilter, fresh bool, args []string) error {
+	var active []string
+	for _, f := range filters {
+		if f.value != "" {
+			active = append(active, "--"+f.name)
+		}
 	}
-	if control != "" {
-		active++
-		flag = "--control"
+	if len(active) > 1 {
+		return fmt.Errorf("explain: %s are mutually exclusive", strings.Join(active, ", "))
 	}
-	if commit != "" {
-		active++
-		flag = "--commit"
-	}
-	if active > 1 {
-		return fmt.Errorf("explain: --file, --control, and --commit are mutually exclusive")
-	}
-	if active == 0 {
+	if len(active) == 0 {
 		return nil
 	}
+	flag := active[0]
 	if fresh {
 		return fmt.Errorf("explain: %s cannot be combined with --fresh", flag)
 	}
@@ -235,6 +247,7 @@ func init() {
 	changeExplainCmd.Flags().String("file", "", "Explain newest evidence whose paths contain this substring (PRODUCT_INTENT §20)")
 	changeExplainCmd.Flags().String("control", "", "Explain newest evidence matching failed check / exception policy / soft-ALLOW bind (PRODUCT_INTENT §20)")
 	changeExplainCmd.Flags().String("commit", "", "Explain newest evidence whose commit SHA starts with this prefix (PRODUCT_INTENT §20)")
+	changeExplainCmd.Flags().String("session", "", "Explain newest evidence for this session id (gate.provenance.sessions[]; PRODUCT_INTENT §20)")
 	changeExplainCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	rootCmd.AddCommand(changeExplainCmd)
 }

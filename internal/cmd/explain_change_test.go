@@ -16,7 +16,7 @@ func TestChangeExplainFileFlagRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"file", "control", "commit", "policy-file"} {
+	for _, name := range []string{"file", "control", "commit", "session", "policy-file"} {
 		if cmd.Flags().Lookup(name) == nil {
 			t.Fatalf("missing --%s", name)
 		}
@@ -101,17 +101,44 @@ func TestLoadEvidenceByControlNewestWins(t *testing.T) {
 	}
 }
 
-func TestRunChangeExplainControlExclusivity(t *testing.T) {
+func TestLoadEvidenceBySession(t *testing.T) {
 	t.Parallel()
-	cmd := changeExplainCmd
-	_ = cmd.Flags().Set("control", "SEC-17")
-	_ = cmd.Flags().Set("file", "x.go")
-	err := runChangeExplain(cmd, nil)
-	if err == nil || !strings.Contains(err.Error(), "mutually exclusive") {
-		t.Fatalf("err=%v", err)
+	root := t.TempDir()
+	now := time.Date(2026, 9, 22, 20, 0, 0, 0, time.UTC)
+	_ = mustWriteExplainRecord(t, root, &evidence.Record{
+		ID:        "ev_old_auth",
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(-time.Hour),
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Provenance: gate.ProvenanceSection{
+				Attested: true,
+				Sessions: []string{"auth"},
+			},
+		},
+	})
+	newer := mustWriteExplainRecord(t, root, &evidence.Record{
+		ID:        "ev_new_auth",
+		Schema:    evidence.Schema,
+		CreatedAt: now,
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Provenance: gate.ProvenanceSection{
+				Attested: true,
+				Sessions: []string{"auth", "review"},
+			},
+		},
+	})
+	rec, err := loadEvidenceByFilter(root, evidence.ListFilter{
+		Session: "auth",
+		Limit:   1,
+	}, "session", "auth")
+	if err != nil {
+		t.Fatal(err)
 	}
-	_ = cmd.Flags().Set("control", "")
-	_ = cmd.Flags().Set("file", "")
+	if rec.ID != newer.ID {
+		t.Fatalf("got %s want %s", rec.ID, newer.ID)
+	}
 }
 
 func TestLoadEvidenceByFileNewestWins(t *testing.T) {
@@ -173,31 +200,30 @@ func TestLoadEvidenceByFileNoMatch(t *testing.T) {
 	}
 }
 
-func TestRunChangeExplainFileExclusivity(t *testing.T) {
+func TestExplainGraphFiltersExclusive(t *testing.T) {
 	t.Parallel()
-	cmd := changeExplainCmd
-	// Fresh + file
-	if err := cmd.Flags().Set("file", "x.go"); err != nil {
-		t.Fatal(err)
+	err := explainGraphFiltersExclusive([]explainNamedFilter{
+		{name: "file", value: "x.go"},
+		{name: "control", value: "SEC-17"},
+	}, false, nil)
+	if err == nil || !strings.Contains(err.Error(), "mutually exclusive") {
+		t.Fatalf("err=%v", err)
 	}
-	if err := cmd.Flags().Set("fresh", "true"); err != nil {
-		t.Fatal(err)
-	}
-	err := runChangeExplain(cmd, nil)
+	err = explainGraphFiltersExclusive([]explainNamedFilter{
+		{name: "session", value: "auth"},
+	}, true, nil)
 	if err == nil || !strings.Contains(err.Error(), "--fresh") {
 		t.Fatalf("err=%v", err)
 	}
-	_ = cmd.Flags().Set("fresh", "false")
-	_ = cmd.Flags().Set("file", "")
-
-	if err := cmd.Flags().Set("file", "x.go"); err != nil {
-		t.Fatal(err)
-	}
-	err = runChangeExplain(cmd, []string{"ev_abc"})
+	err = explainGraphFiltersExclusive([]explainNamedFilter{
+		{name: "commit", value: "abcdef"},
+	}, false, []string{"ev_abc"})
 	if err == nil || !strings.Contains(err.Error(), "evidence-id") {
 		t.Fatalf("err=%v", err)
 	}
-	_ = cmd.Flags().Set("file", "")
+	if err := explainGraphFiltersExclusive(nil, false, nil); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func mustWriteExplainRecord(t *testing.T, root string, rec *evidence.Record) *evidence.Record {
