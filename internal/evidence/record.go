@@ -192,6 +192,13 @@ func FormatExplain(rec *Record) string {
 	b.WriteString("Why\n")
 	writeWhy(&b, g)
 
+	if steps := gate.DenyNextSteps(g); len(steps) > 0 {
+		b.WriteString("Next steps\n")
+		for _, s := range steps {
+			fmt.Fprintf(&b, "  • %s\n", s)
+		}
+	}
+
 	b.WriteString(changeRecordRule + "\n")
 	b.WriteString("Refs\n")
 	fmt.Fprintf(&b, "Evidence     %s\n", evidenceRef(rec))

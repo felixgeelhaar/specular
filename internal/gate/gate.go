@@ -723,6 +723,7 @@ func FormatText(res *Result) string {
 	b.WriteString(strings.Repeat("─", 46) + "\n")
 	fmt.Fprintf(&b, "VERDICT: %s\n", res.Verdict)
 	fmt.Fprintf(&b, "REASON:  %s\n", res.Reason)
+	writeDenyNextSteps(&b, res)
 	return b.String()
 }
 
