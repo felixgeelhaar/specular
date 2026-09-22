@@ -44,5 +44,6 @@ Cursor Agent stop
 session attest  →  .specular/sessions/<id>.attestation.json
         │            provenance.harness from session record
         ▼
-specular gate   →  ALLOW/DENY board (advisory default; --enforce fails closed)
+specular gate   →  ALLOW/DENY board (advisory default; --enforce fails closed;
+                     --require-governed also DENYs without a governed session)
 ```

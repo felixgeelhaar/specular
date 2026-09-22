@@ -29,7 +29,9 @@ chmod +x .gemini/hooks/specular-session-stop.sh
 ```
 
 Gemini requires JSON-only stdout from hooks (logs go to stderr). SessionEnd
-is advisory by default; use `session integrate gemini --enforce --force` for fail-closed SessionEnd. Ensure `hooksConfig.enabled` is
+is advisory by default; use `session integrate gemini --enforce --force` for
+fail-closed SessionEnd (add `--require-governed` to also require a governed
+session). Ensure `hooksConfig.enabled` is
 true (integrate sets this when merging).
 
 ## Provenance flow
@@ -44,5 +46,6 @@ Gemini SessionEnd
 session attest  →  .specular/sessions/<id>.attestation.json
         │            provenance.harness = gemini
         ▼
-specular gate   →  ALLOW/DENY board (advisory default; --enforce fails closed)
+specular gate   →  ALLOW/DENY board (advisory default; --enforce fails closed;
+                     --require-governed also DENYs without a governed session)
 ```

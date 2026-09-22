@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Agents harness `--require-governed` docs**: per-harness READMEs
+  (`claude-code` / `cursor` / `codex` / `gemini`) document
+  `integrate --enforce --require-governed --force` beside Level-3 enforce.
+
 - **Protocol board schema+bound labels**: gate / evidence / markdown Protocol
   counts annotate `ok` as schema+sibling binding (`docs=N ok=M schema+bound`);
   `provenance verify` prints a Bound line (`sibling` / `projected`).
