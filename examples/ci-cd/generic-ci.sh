@@ -11,6 +11,8 @@
 #
 # Env (optional):
 #   POLICY_FILE        default: .specular/policy.yaml (omitted when missing — brownfield)
+#                      Prefer merging examples/policy/progressive-trust.yaml once
+#                      instead of toggling REQUIRE_* forever.
 #   REPORT_FILE        default: drift.sarif
 #   STRICT_SPEC        set to 1 to pass --strict-spec
 #   REQUIRE_ATTESTED   set to 1 to pass --require-attested (progressive trust)

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CI progressive-trust ladder docs**: `examples/ci-cd/README.md` +
+  `generic-ci.sh` point at `examples/policy/progressive-trust.yaml` and
+  clarify `--require-protocol` / board `schema+bound` wording.
+
 ### Fixed
 
 - **Session store concurrent Save**: unique temp files per `Store.Save` so
