@@ -17,7 +17,7 @@ func TestPolicyPackRegistered(t *testing.T) {
 			continue
 		}
 		packCmdFound = true
-		subs := map[string]bool{"list": false, "show": false, "apply": false}
+		subs := map[string]bool{"list": false, "show": false, "apply": false, "check": false}
 		for _, s := range c.Commands() {
 			if _, ok := subs[s.Name()]; ok {
 				subs[s.Name()] = true
@@ -159,5 +159,60 @@ func TestRunPolicyPackApplyDryRun(t *testing.T) {
 	}
 	if _, err := os.Stat(dest); err != nil {
 		t.Fatalf("missing apply output: %v", err)
+	}
+}
+
+func TestRunPolicyPackCheckMissingAndPresent(t *testing.T) {
+	root := t.TempDir()
+	_ = policyPackCheckCmd.Flags().Set("project-root", root)
+	defer func() { _ = policyPackCheckCmd.Flags().Set("project-root", "") }()
+
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	runErr := runPolicyPackCheck(policyPackCheckCmd, []string{"soc2-cc8.1"})
+	_ = w.Close()
+	os.Stdout = old
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	if runErr == nil {
+		t.Fatal("expected check failure when artifacts missing")
+	}
+	if !strings.Contains(buf.String(), "FAIL") {
+		t.Fatalf("%s", buf.String())
+	}
+
+	sess := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(sess, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sess, "a.attestation.json"), []byte(`{}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "drift.sarif"), []byte(`{}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".specular", "approvals"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+
+	r2, w2, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w2
+	runErr = runPolicyPackCheck(policyPackCheckCmd, []string{"soc2-cc8.1"})
+	_ = w2.Close()
+	os.Stdout = old
+	buf.Reset()
+	_, _ = io.Copy(&buf, r2)
+	if runErr != nil {
+		t.Fatalf("expected pass: %v\n%s", runErr, buf.String())
+	}
+	if !strings.Contains(buf.String(), "PASS") {
+		t.Fatalf("%s", buf.String())
 	}
 }

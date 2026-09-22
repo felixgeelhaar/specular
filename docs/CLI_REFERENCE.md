@@ -401,21 +401,24 @@ Policy commands help you define, validate, and enforce governance policies for y
 
 #### policy pack
 
-List, show, and apply executable control packs (PRODUCT_INTENT §15; free; no Pro license).
+List, show, apply, and check executable control packs (PRODUCT_INTENT §15; free; no Pro license).
 
 ```bash
 specular policy pack list [--json]
 specular policy pack show <id> [--json]
 specular policy pack apply <id> [--path <file>] [--force] [--dry-run] [--json]
+specular policy pack check <id> [--project-root <path>] [--json]
 ```
 
 **Description:**
 
 Same embedded seeds as `policy library`, exposed as the control-pack CLI:
-list id/title/summary, show a pack (human or JSON), and apply a fragment into
-`.specular/policies/` for `bundle create --policy` / `gate --policy`.
-`--dry-run` previews the write without creating files. Applying a pack does
-not certify organizational compliance.
+list id/title/summary, show a pack (human or JSON), apply a fragment into
+`.specular/policies/` for `bundle create --policy`, and **check** whether
+mapped artifacts exist under the repo (auditor-facing control→evidence
+status; exit non-zero when required artifacts are missing). `--dry-run`
+previews apply without writing. Applying or checking a pack does not
+certify organizational compliance.
 
 **Example:**
 ```bash
@@ -428,6 +431,11 @@ $ specular policy pack apply soc2-cc8.1 --dry-run
 
 $ specular policy pack apply soc2-cc8.1
 ✓ Applied soc2-cc8.1 → .specular/policies/soc2-cc8.1.yaml
+
+$ specular policy pack check soc2-cc8.1
+CONTROL PACK CHECK
+...
+Status       FAIL  (present=0 missing=3)
 ```
 
 #### policy library
