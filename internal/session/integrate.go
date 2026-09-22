@@ -137,68 +137,46 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 }
 
 func planAndApplyClaude(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	hookBody := claudeStopHookScript()
-	hookPath := filepath.Join(res.Root, claudeHookRel)
-	settingsPath := filepath.Join(res.Root, claudeSettingsRel)
-
-	hookAction, hookContent, hookErr := planHookScript(hookPath, hookBody, opts.DryRun, opts.Force)
-	if hookErr != nil {
-		return nil, hookErr
-	}
-	res.Files = append(res.Files, IntegrateFile{
-		Path:    filepath.ToSlash(claudeHookRel),
-		Action:  hookAction,
-		Content: maybeContent(opts.DryRun, hookContent),
-	})
-
-	settingsBody, settingsAction, settingsErr := planClaudeSettings(settingsPath, opts.DryRun)
-	if settingsErr != nil {
-		return nil, settingsErr
-	}
-	res.Files = append(res.Files, IntegrateFile{
-		Path:    filepath.ToSlash(claudeSettingsRel),
-		Action:  settingsAction,
-		Content: maybeContent(opts.DryRun, settingsBody),
-	})
-
-	if opts.DryRun {
-		return res, nil
-	}
-	if err := applyIntegrateWrites(hookPath, hookBody, hookAction, settingsPath, settingsBody, settingsAction); err != nil {
-		return nil, err
-	}
-	return res, nil
+	return planAndApplyPair(res, opts, claudeHookRel, claudeSettingsRel, claudeStopHookScript(), planClaudeSettings)
 }
 
 func planAndApplyCursor(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	hookBody := cursorStopHookScript()
-	hookPath := filepath.Join(res.Root, cursorHookRel)
-	hooksJSONPath := filepath.Join(res.Root, cursorHooksJSONRel)
+	return planAndApplyPair(res, opts, cursorHookRel, cursorHooksJSONRel, cursorStopHookScript(), planCursorHooksJSON)
+}
+
+func planAndApplyPair(
+	res *IntegrateResult,
+	opts IntegrateOptions,
+	hookRel, configRel, hookBody string,
+	planConfig func(path string, dryRun bool) (string, IntegrateFileAction, error),
+) (*IntegrateResult, error) {
+	hookPath := filepath.Join(res.Root, hookRel)
+	configPath := filepath.Join(res.Root, configRel)
 
 	hookAction, hookContent, hookErr := planHookScript(hookPath, hookBody, opts.DryRun, opts.Force)
 	if hookErr != nil {
 		return nil, hookErr
 	}
 	res.Files = append(res.Files, IntegrateFile{
-		Path:    filepath.ToSlash(cursorHookRel),
+		Path:    filepath.ToSlash(hookRel),
 		Action:  hookAction,
 		Content: maybeContent(opts.DryRun, hookContent),
 	})
 
-	hooksBody, hooksAction, hooksErr := planCursorHooksJSON(hooksJSONPath, opts.DryRun)
-	if hooksErr != nil {
-		return nil, hooksErr
+	configBody, configAction, configErr := planConfig(configPath, opts.DryRun)
+	if configErr != nil {
+		return nil, configErr
 	}
 	res.Files = append(res.Files, IntegrateFile{
-		Path:    filepath.ToSlash(cursorHooksJSONRel),
-		Action:  hooksAction,
-		Content: maybeContent(opts.DryRun, hooksBody),
+		Path:    filepath.ToSlash(configRel),
+		Action:  configAction,
+		Content: maybeContent(opts.DryRun, configBody),
 	})
 
 	if opts.DryRun {
 		return res, nil
 	}
-	if err := applyIntegrateWrites(hookPath, hookBody, hookAction, hooksJSONPath, hooksBody, hooksAction); err != nil {
+	if err := applyIntegrateWrites(hookPath, hookBody, hookAction, configPath, configBody, configAction); err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -251,62 +229,38 @@ func planHookScript(path, body string, dryRun, force bool) (IntegrateFileAction,
 	return IntegrateWrite, body, nil
 }
 
+type jsonMergeFn func(map[string]interface{}) (map[string]interface{}, bool, error)
+
 func planClaudeSettings(path string, dryRun bool) (string, IntegrateFileAction, error) {
-	existing := map[string]interface{}{}
-	action := IntegrateWrite
-	raw, readErr := os.ReadFile(path)
-	if readErr == nil {
-		if len(strings.TrimSpace(string(raw))) > 0 {
-			if unmarshalErr := json.Unmarshal(raw, &existing); unmarshalErr != nil {
-				return "", "", fmt.Errorf("session integrate: parse %s: %w", claudeSettingsRel, unmarshalErr)
-			}
-			action = IntegrateMerge
-		}
-	} else if !os.IsNotExist(readErr) {
-		return "", "", fmt.Errorf("session integrate: read settings: %w", readErr)
-	}
-
-	merged, changed, mergeErr := mergeClaudeStopHook(existing)
-	if mergeErr != nil {
-		return "", "", mergeErr
-	}
-	out, marshalErr := json.MarshalIndent(merged, "", "  ")
-	if marshalErr != nil {
-		return "", "", fmt.Errorf("session integrate: marshal settings: %w", marshalErr)
-	}
-	outStr := string(out) + "\n"
-
-	if dryRun {
-		return outStr, IntegrateDryRun, nil
-	}
-	if action == IntegrateMerge && !changed {
-		return outStr, IntegrateSkip, nil
-	}
-	return outStr, action, nil
+	return planJSONConfig(path, claudeSettingsRel, "settings", dryRun, mergeClaudeStopHook)
 }
 
 func planCursorHooksJSON(path string, dryRun bool) (string, IntegrateFileAction, error) {
+	return planJSONConfig(path, cursorHooksJSONRel, "hooks.json", dryRun, mergeCursorStopHook)
+}
+
+func planJSONConfig(path, relLabel, kind string, dryRun bool, merge jsonMergeFn) (string, IntegrateFileAction, error) {
 	existing := map[string]interface{}{}
 	action := IntegrateWrite
 	raw, readErr := os.ReadFile(path)
 	if readErr == nil {
 		if len(strings.TrimSpace(string(raw))) > 0 {
 			if unmarshalErr := json.Unmarshal(raw, &existing); unmarshalErr != nil {
-				return "", "", fmt.Errorf("session integrate: parse %s: %w", cursorHooksJSONRel, unmarshalErr)
+				return "", "", fmt.Errorf("session integrate: parse %s: %w", relLabel, unmarshalErr)
 			}
 			action = IntegrateMerge
 		}
 	} else if !os.IsNotExist(readErr) {
-		return "", "", fmt.Errorf("session integrate: read hooks.json: %w", readErr)
+		return "", "", fmt.Errorf("session integrate: read %s: %w", kind, readErr)
 	}
 
-	merged, changed, mergeErr := mergeCursorStopHook(existing)
+	merged, changed, mergeErr := merge(existing)
 	if mergeErr != nil {
 		return "", "", mergeErr
 	}
 	out, marshalErr := json.MarshalIndent(merged, "", "  ")
 	if marshalErr != nil {
-		return "", "", fmt.Errorf("session integrate: marshal hooks.json: %w", marshalErr)
+		return "", "", fmt.Errorf("session integrate: marshal %s: %w", kind, marshalErr)
 	}
 	outStr := string(out) + "\n"
 
