@@ -53,6 +53,28 @@ func applyUnattestedGovernance(sec *ProvenanceSection, gov *policy.ProvenanceGov
 	sec.Note = "protocol enforce idle — no session attestations"
 }
 
+// applyRequireAttestedFlag overlays CLI --require-attested onto Provenance,
+// mirroring policy provenance.attested: enforce without editing policy.yaml.
+func applyRequireAttestedFlag(res *Result, require bool) {
+	if res == nil || !require {
+		return
+	}
+	res.Provenance.Enforced = true
+	if res.Provenance.Attested {
+		if res.Provenance.Status != StatusFail {
+			note := "attested provenance required (--require-attested): sessions present"
+			if res.Provenance.Note != "" && !strings.Contains(res.Provenance.Note, "--require-attested") {
+				res.Provenance.Note = res.Provenance.Note + "; " + note
+			} else if res.Provenance.Note == "" {
+				res.Provenance.Note = note
+			}
+		}
+		return
+	}
+	res.Provenance.Status = StatusFail
+	res.Provenance.Note = "attested provenance required (--require-attested)"
+}
+
 func applyProtocolGovernance(sec *ProvenanceSection) {
 	docs := sec.ProtocolDocs
 	ok := sec.ProtocolOK

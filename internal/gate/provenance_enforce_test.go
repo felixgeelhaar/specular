@@ -265,3 +265,44 @@ func TestEvaluateProvenanceProtocolOnlyIdleWhenUnattested(t *testing.T) {
 		t.Fatalf("note=%s", res.Provenance.Note)
 	}
 }
+
+func TestEvaluateRequireAttestedFlagDeny(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	res, err := Evaluate(Options{ProjectRoot: root, RequireAttested: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Deny {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if !res.Provenance.Enforced || res.Provenance.Status != StatusFail {
+		t.Fatalf("enforced=%v status=%s", res.Provenance.Enforced, res.Provenance.Status)
+	}
+	if !strings.Contains(res.Reason, "--require-attested") && !strings.Contains(res.Provenance.Note, "--require-attested") {
+		t.Fatalf("reason=%s note=%s", res.Reason, res.Provenance.Note)
+	}
+}
+
+func TestEvaluateRequireAttestedFlagAllow(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{"provenance":{"harness":"claude-code"}}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Evaluate(Options{ProjectRoot: root, RequireAttested: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Allow {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if !res.Provenance.Enforced || res.Provenance.Status != StatusPass {
+		t.Fatalf("enforced=%v status=%s", res.Provenance.Enforced, res.Provenance.Status)
+	}
+}
