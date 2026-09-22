@@ -141,10 +141,17 @@ pipeline {
 
                     // Non-interactive; markdown for review UX. Add --strict-spec when specs are required.
                     // --github-annotations is GitHub-only — omit here.
+                    // Brownfield: omit --policy when POLICY_FILE is missing (soft-skip).
                     def exitCode = sh(
                         script: '''
                             set +e
-                            specular gate --format markdown --policy "$POLICY_FILE" --report .specular/drift.sarif > gate.md
+                            POLICY_ARGS=()
+                            if [ -f "$POLICY_FILE" ]; then
+                              POLICY_ARGS=(--policy "$POLICY_FILE")
+                            else
+                              echo "No $POLICY_FILE — gate will soft-skip policy (brownfield)."
+                            fi
+                            specular gate --format markdown "${POLICY_ARGS[@]}" --report .specular/drift.sarif > gate.md
                             code=$?
                             cat gate.md
                             echo "$code"

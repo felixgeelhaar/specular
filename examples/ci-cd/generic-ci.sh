@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Generic CI snippet: Specular change-control gate
+# Generic CI snippet: Specular change-control gate (P1 #8 depth)
 #
-# Copy into Buildkite, Tekton, Azure Pipelines, or any shell-based runner.
-# Prefer `specular gate` over `specular eval drift` as the CI entrypoint.
+# Copy into Buildkite, Tekton, Azure Pipelines, Jenkins sh step, or any
+# shell-based runner. Prefer `specular gate` over `specular eval drift`.
 #
 # Exit codes (pass through to the job):
 #   0 = ALLOW
@@ -10,7 +10,7 @@
 #   4 = drift DENY
 #
 # Env (optional):
-#   POLICY_FILE   default: .specular/policy.yaml
+#   POLICY_FILE   default: .specular/policy.yaml (omitted when missing — brownfield)
 #   REPORT_FILE   default: drift.sarif
 #   STRICT_SPEC   set to 1 to pass --strict-spec
 #   GATE_MD       default: gate.md
@@ -21,7 +21,12 @@ POLICY_FILE="${POLICY_FILE:-.specular/policy.yaml}"
 REPORT_FILE="${REPORT_FILE:-drift.sarif}"
 GATE_MD="${GATE_MD:-gate.md}"
 
-ARGS=(gate --format markdown --policy "$POLICY_FILE" --report "$REPORT_FILE")
+ARGS=(gate --format markdown --report "$REPORT_FILE")
+if [ -f "$POLICY_FILE" ]; then
+  ARGS+=(--policy "$POLICY_FILE")
+else
+  echo "No $POLICY_FILE — gate will soft-skip policy (brownfield)."
+fi
 if [ "${STRICT_SPEC:-0}" = "1" ]; then
   ARGS+=(--strict-spec)
 fi
