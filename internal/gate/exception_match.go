@@ -16,12 +16,14 @@ const (
 	DenyKindPolicy DenyKind = "policy"
 	// DenyKindRisk soft-ALLOWs a risk-adaptive approval DENY.
 	DenyKindRisk DenyKind = "risk"
+	// DenyKindProvenance soft-ALLOWs an APP protocol enforce DENY.
+	DenyKindProvenance DenyKind = "provenance"
 )
 
 // ExceptionOverrule records that an open exception soft-ALLOWed a DENY.
 type ExceptionOverrule struct {
 	ResourceID string `json:"resource_id"`
-	Kind       string `json:"kind"` // drift | policy | risk
+	Kind       string `json:"kind"` // drift | policy | risk | provenance
 	Binding    string `json:"binding"`
 	Reason     string `json:"reason,omitempty"`
 	ApprovedBy string `json:"approved_by,omitempty"`
@@ -65,6 +67,8 @@ func exceptionMatches(ex ApprovalSummary, kind DenyKind, res *Result) (binding s
 		return matchPolicyException(policy, scope, res.Policy)
 	case DenyKindRisk:
 		return matchRiskException(policy, scope, res.Risk)
+	case DenyKindProvenance:
+		return matchProvenanceException(policy, scope, res.Provenance)
 	default:
 		return "", false
 	}
@@ -126,6 +130,27 @@ func matchRiskException(policy, scope string, risk RiskSection) (string, bool) {
 		}
 		if cand == "risk" || (level != "" && cand == level) {
 			return "risk→" + cand, true
+		}
+	}
+	return "", false
+}
+
+func matchProvenanceException(policy, scope string, prov ProvenanceSection) (string, bool) {
+	schema := normToken(prov.ProtocolSchema)
+	for _, cand := range []string{policy, normToken(scope)} {
+		if cand == "" {
+			continue
+		}
+		if cand == "provenance" || cand == "protocol" || cand == "app" {
+			return "provenance→" + cand, true
+		}
+		if schema != "" && (cand == schema || cand == "specular.provenance/v1") {
+			return "provenance→schema:" + cand, true
+		}
+		for _, id := range prov.Sessions {
+			if cand == normToken(id) {
+				return "provenance→session:" + id, true
+			}
 		}
 	}
 	return "", false

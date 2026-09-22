@@ -1,0 +1,5 @@
+# Opt-in Agent Provenance Protocol enforcement (PRODUCT_INTENT §9 / P1 #3+#10).
+# Merge into .specular/policy.yaml. Without this block, gate counts APP docs
+# but never flips ALLOW→DENY on missing/invalid .provenance.json.
+provenance:
+  protocol: enforce

@@ -513,6 +513,24 @@ func writeWhyProvenance(b *strings.Builder, g *gate.Result) {
 		b.WriteString("\n")
 	}
 	fmt.Fprintf(b, "  • Governed %v\n", g.Provenance.Governed)
+	if g.Provenance.Enforced && g.Provenance.Status == gate.StatusFail {
+		note := g.Provenance.Note
+		if note == "" {
+			note = "APP protocol verification failed"
+		}
+		fmt.Fprintf(b, "  • APP protocol enforce FAIL — %s\n", note)
+		return
+	}
+	if g.Provenance.ProtocolDocs > 0 {
+		mode := "advisory"
+		if g.Provenance.Enforced {
+			mode = "enforced"
+		}
+		fmt.Fprintf(b, "  • APP protocol %s: docs=%d ok=%d\n",
+			mode, g.Provenance.ProtocolDocs, g.Provenance.ProtocolOK)
+	} else if g.Provenance.Enforced {
+		b.WriteString("  • APP protocol enforce active\n")
+	}
 }
 
 func writeWhyApprovals(b *strings.Builder, g *gate.Result) {
@@ -554,7 +572,7 @@ func writeWhyVerdict(b *strings.Builder, g *gate.Result) {
 	case g.Verdict == gate.Allow && len(g.Approvals.Overrules) > 0:
 		b.WriteString("  → ALLOW via scoped exception soft-ALLOW (underlying FAIL sections preserved).\n")
 	case g.Verdict == gate.Allow:
-		b.WriteString("  → ALLOW because no blocking drift, policy, or risk requirement failed.\n")
+		b.WriteString("  → ALLOW because no blocking drift, policy, risk, or provenance requirement failed.\n")
 	default:
 		b.WriteString("  → DENY because a blocking section failed (see above).\n")
 	}
