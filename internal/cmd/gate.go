@@ -33,7 +33,9 @@ CI file annotations (PRODUCT_INTENT §21).
 
 Brownfield: repositories without .specular/spec skip drift (unless
 --strict-spec). Missing policy skips verification. Unattested provenance
-is reported explicitly — never silently treated as verified.
+is reported explicitly — never silently treated as verified. Pass
+--require-attested (or policy provenance.attested: enforce) to DENY
+unattested trees.
 
 Exit codes:
   0  ALLOW
@@ -49,6 +51,7 @@ Examples:
   specular gate --format markdown
   specular gate --format markdown --github-annotations
   specular gate --strict-spec
+  specular gate --require-attested
   specular gate --policy .specular/policy.yaml
   specular gate --no-evidence
 `,
@@ -61,6 +64,7 @@ func runGate(cmd *cobra.Command, _ []string) error {
 	policyPath, _ := cmd.Flags().GetString("policy")
 	reportFile, _ := cmd.Flags().GetString("report")
 	strictSpec, _ := cmd.Flags().GetBool("strict-spec")
+	requireAttested, _ := cmd.Flags().GetBool("require-attested")
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	quiet, _ := cmd.Flags().GetBool("quiet")
 	noEvidence, _ := cmd.Flags().GetBool("no-evidence")
@@ -84,10 +88,11 @@ func runGate(cmd *cobra.Command, _ []string) error {
 	}
 
 	res, err := gate.Evaluate(gate.Options{
-		ProjectRoot: projectRoot,
-		PolicyPath:  policyPath,
-		ReportFile:  reportFile,
-		StrictSpec:  strictSpec,
+		ProjectRoot:     projectRoot,
+		PolicyPath:      policyPath,
+		ReportFile:      reportFile,
+		StrictSpec:      strictSpec,
+		RequireAttested: requireAttested,
 	})
 	if err != nil {
 		return err
@@ -149,6 +154,7 @@ func init() {
 	gateCmd.Flags().String("policy", "", "Policy file (default: .specular/policy.yaml if present)")
 	gateCmd.Flags().String("report", "drift.sarif", "Drift SARIF output path when drift runs")
 	gateCmd.Flags().Bool("strict-spec", false, "Fail when Specular spec/plan/lock are missing")
+	gateCmd.Flags().Bool("require-attested", false, "DENY when no session attestations (mirrors provenance.attested: enforce)")
 	gateCmd.Flags().String("format", "text", "Output format: text, json, markdown")
 	gateCmd.Flags().Bool("json", false, "Emit machine-readable JSON (alias for --format json)")
 	gateCmd.Flags().Bool("github-annotations", false, "Emit GitHub Actions ::error/::warning annotations to stderr")

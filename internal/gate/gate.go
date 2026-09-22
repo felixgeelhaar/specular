@@ -48,10 +48,11 @@ const (
 
 // Options configures Evaluate.
 type Options struct {
-	ProjectRoot string
-	PolicyPath  string // empty = default .specular/policy.yaml if present
-	ReportFile  string // drift SARIF path (default drift.sarif)
-	StrictSpec  bool   // fail when plan/lock/spec missing (default: soft-skip drift)
+	ProjectRoot     string
+	PolicyPath      string // empty = default .specular/policy.yaml if present
+	ReportFile      string // drift SARIF path (default drift.sarif)
+	StrictSpec      bool   // fail when plan/lock/spec missing (default: soft-skip drift)
+	RequireAttested bool   // DENY when unattested (mirrors provenance.attested: enforce)
 }
 
 // Result is the machine-readable gate outcome.
@@ -171,6 +172,7 @@ func Evaluate(opts Options) (*Result, error) {
 	res.Approvals = discoverApprovals(root)
 	applyRiskGovernance(res, root, opts.PolicyPath)
 	applyProvenanceGovernance(res, root, opts.PolicyPath)
+	applyRequireAttestedFlag(res, opts.RequireAttested)
 	res.Verdict, res.Reason = decide(res)
 	return res, nil
 }
@@ -629,7 +631,8 @@ func allowReasonParts(res *Result) []string {
 		switch {
 		case strings.Contains(res.Provenance.Note, "APP protocol enforce"):
 			parts = append(parts, "APP protocol ok")
-		case strings.Contains(res.Provenance.Note, "attested provenance enforce"):
+		case strings.Contains(res.Provenance.Note, "attested provenance enforce"),
+			strings.Contains(res.Provenance.Note, "--require-attested"):
 			parts = append(parts, "attested provenance ok")
 		}
 	}

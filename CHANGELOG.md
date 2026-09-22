@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gate `--require-attested`**: CLI flag mirrors policy
+  `provenance.attested: enforce` so CI can DENY unattested trees without
+  editing `policy.yaml`.
+
 - **Doctor progressive-trust posture**: `specular doctor` reports which
   opt-in governance knobs are active (`risk.tiers`, `provenance.attested`,
   `provenance.protocol`) under Progressive trust / JSON `progressive_trust`.

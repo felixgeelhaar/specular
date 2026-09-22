@@ -129,6 +129,7 @@ schema), e.g.
 | `--policy` | Policy file (default: `.specular/policy.yaml` if present) |
 | `--report` | Drift SARIF path when drift runs (default: `drift.sarif`) |
 | `--strict-spec` | Fail when Specular spec/plan/lock are missing |
+| `--require-attested` | DENY when no session attestations (same as `provenance.attested: enforce`) |
 | `--format` | Output: `text` (default), `json`, or `markdown` (PR / step summary) |
 | `--json` | Alias for `--format json` |
 | `--github-annotations` | Emit `::error`/`::warning`/`::notice` to stderr for Checks |
