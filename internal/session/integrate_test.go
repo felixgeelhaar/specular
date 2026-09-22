@@ -62,6 +62,12 @@ func TestIntegrateDryRunClaudeCode(t *testing.T) {
 	if !strings.Contains(hook, "SPECULAR_SESSION_ID") {
 		t.Fatalf("hook missing session id env:\n%s", hook)
 	}
+	if !strings.Contains(hook, "Specular hook mode: advisory") {
+		t.Fatalf("expected advisory mode marker:\n%s", hook)
+	}
+	if strings.Contains(hook, "--require-attested") {
+		t.Fatalf("advisory must not require attested:\n%s", hook)
+	}
 	var settings map[string]interface{}
 	if err := json.Unmarshal([]byte(res.Files[1].Content), &settings); err != nil {
 		t.Fatal(err)
@@ -70,6 +76,63 @@ func TestIntegrateDryRunClaudeCode(t *testing.T) {
 	stop := hooks["Stop"].([]interface{})
 	if len(stop) != 1 {
 		t.Fatalf("stop=%v", stop)
+	}
+}
+
+func TestIntegrateEnforceFailClosed(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	res, err := Integrate(IntegrateOptions{
+		Harness: "claude-code",
+		Root:    dir,
+		DryRun:  true,
+		Enforce: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Enforce {
+		t.Fatal("expected Enforce on result")
+	}
+	hook := res.Files[0].Content
+	for _, want := range []string{
+		"Specular hook mode: enforce",
+		"--require-attested",
+		"--require-protocol",
+		"enforce — blocks Stop on DENY",
+	} {
+		if !strings.Contains(hook, want) {
+			t.Fatalf("missing %q in:\n%s", want, hook)
+		}
+	}
+	if strings.Contains(hook, "does not block") || strings.Contains(hook, "attest failed (advisory)") {
+		t.Fatalf("enforce must not swallow failures:\n%s", hook)
+	}
+	joined := strings.Join(res.NextSteps, "\n")
+	if !strings.Contains(joined, "enforce (fail-closed)") {
+		t.Fatalf("nextSteps=%v", res.NextSteps)
+	}
+
+	// Force rewrite from advisory → enforce.
+	if _, err := Integrate(IntegrateOptions{Harness: "cursor", Root: dir}); err != nil {
+		t.Fatal(err)
+	}
+	adv, err := os.ReadFile(filepath.Join(dir, cursorHookRel))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(adv), "hook mode: advisory") {
+		t.Fatalf("expected advisory install first:\n%s", adv)
+	}
+	if _, err := Integrate(IntegrateOptions{Harness: "cursor", Root: dir, Enforce: true, Force: true}); err != nil {
+		t.Fatal(err)
+	}
+	enf, err := os.ReadFile(filepath.Join(dir, cursorHookRel))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(enf), "hook mode: enforce") || !strings.Contains(string(enf), "--require-attested") {
+		t.Fatalf("force rewrite to enforce failed:\n%s", enf)
 	}
 }
 

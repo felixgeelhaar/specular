@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session integrate `--enforce` (P1 #4 depth)**: opt-in fail-closed
+  Stop/SessionEnd hooks (`attest` + `gate --require-attested --require-protocol`)
+  so provenance can block agent completion. Default remains advisory; use
+  `--force` to rewrite an existing advisory hook.
+
 - **Require governed sessions (P1 #10 depth)**: opt-in policy
   `provenance.governed: enforce` and CLI `--require-governed` / CI
   `REQUIRE_GOVERNED` DENY attested trees without a governed session
