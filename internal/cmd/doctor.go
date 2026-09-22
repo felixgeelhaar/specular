@@ -686,6 +686,12 @@ func generateNextSteps(report *DoctorReport) {
 		report.NextSteps = append(report.NextSteps, "Generate plan with 'specular plan create'")
 	}
 
+	// Progressive trust ladder still advisory — point at the combined example.
+	if report.ProgressiveTrust != nil && report.ProgressiveTrust.Mode != "progressive" {
+		report.NextSteps = append(report.NextSteps,
+			"Enable progressive trust: merge examples/policy/progressive-trust.yaml into .specular/policy.yaml")
+	}
+
 	// If issues exist, prioritize fixing them
 	if len(report.Issues) > 0 {
 		if report.Docker != nil && report.Docker.Status == "error" {

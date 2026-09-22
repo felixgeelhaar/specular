@@ -1,5 +1,23 @@
 # Policy examples
 
+## Progressive trust (combined ladder)
+
+Copy or merge [`progressive-trust.yaml`](progressive-trust.yaml) into
+`.specular/policy.yaml` for the full gate-first ladder: risk-adaptive
+approvals plus `provenance.attested|protocol|governed: enforce`.
+
+```bash
+cp examples/policy/progressive-trust.yaml .specular/policy.yaml
+# or merge the risk: / provenance: blocks into an existing policy
+
+specular doctor          # Progressive trust → Mode: progressive
+specular gate            # DENY when knobs fail
+specular session integrate claude-code --enforce --require-governed --force
+```
+
+Individual knobs below can be enabled one at a time before adopting the
+combined file.
+
 ## Risk-adaptive
 
 Copy or merge [`risk-adaptive.yaml`](risk-adaptive.yaml) into

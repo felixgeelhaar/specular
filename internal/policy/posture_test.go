@@ -86,7 +86,8 @@ provenance:
 func TestFormatProgressiveTrust(t *testing.T) {
 	t.Parallel()
 	advisory := FormatProgressiveTrust(GovernancePosture{Mode: "advisory"})
-	if !strings.Contains(advisory, "advisory") || !strings.Contains(advisory, "enable via policy") {
+	if !strings.Contains(advisory, "advisory") ||
+		!strings.Contains(advisory, "examples/policy/progressive-trust.yaml") {
 		t.Fatalf("%s", advisory)
 	}
 	prog := FormatProgressiveTrust(GovernancePosture{

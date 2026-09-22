@@ -206,6 +206,21 @@ func TestGenerateNextSteps(t *testing.T) {
 	if !hasplanSuggestion {
 		t.Error("Should suggest plan generation when spec and lock exist")
 	}
+
+	// Advisory progressive trust → ladder example
+	report.NextSteps = nil
+	report.ProgressiveTrust = &policy.GovernancePosture{Mode: "advisory"}
+	generateNextSteps(report)
+	hasTrust := false
+	for _, step := range report.NextSteps {
+		if strings.Contains(step, "progressive-trust.yaml") {
+			hasTrust = true
+			break
+		}
+	}
+	if !hasTrust {
+		t.Fatalf("expected progressive-trust next step, got %v", report.NextSteps)
+	}
 }
 
 func TestDoctorReportJSON(t *testing.T) {
