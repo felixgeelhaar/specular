@@ -3,6 +3,7 @@
 # Installed by: specular session integrate gemini
 # Calls existing session attest + gate surfaces — no new protocol.
 # Gemini hooks require JSON-only stdout; logs go to stderr.
+# Specular hook mode: advisory
 set -euo pipefail
 
 # SessionEnd feeds JSON on stdin; drain it.
@@ -38,7 +39,7 @@ if [[ -n "$SESSION_ID" ]]; then
   echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
   specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
 else
-  echo "specular: no SPECULAR_SESSION_ID / gemini session; skip attest" >&2
+  echo "specular: no SPECULAR_SESSION_ID / matching session; skip attest" >&2
 fi
 
 echo "specular: running gate (advisory — does not block SessionEnd)" >&2

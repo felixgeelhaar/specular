@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Agents examples `--enforce` docs**: `examples/agents/` README + harness
+  guides document Level-3 `session integrate --enforce --force`; reference
+  Stop scripts regenerated with advisory mode marker.
+
 - **Evidence list `--governed` (P1 #9 depth)**: `specular evidence list
   --governed[=true|false]` filters Change Evidence Graph records by
   gate provenance.governed (safer native launch), combinable with existing
