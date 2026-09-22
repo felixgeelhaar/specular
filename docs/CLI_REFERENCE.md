@@ -170,13 +170,14 @@ specular explain --json
 | `--file <substr>` | Newest record whose root / drift finding paths contain substr (same matcher as `evidence list --path`) |
 | `--control <substr>` | Newest record matching failed checks / exception `--policy` / soft-ALLOW bind (same as `evidence list --control`) |
 | `--commit <prefix>` | Newest record whose commit SHA starts with prefix (same as `evidence list --commit`; positional hex args like `abc123` also work) |
+| `--session <id>` | Newest record whose `gate.provenance.sessions[]` contains this exact session id (same as `evidence list --session`) |
 | `--fresh` | Re-run `specular gate` (persist evidence) then explain |
 | `--policy-file` | Policy file when using `--fresh` (`--policy` is a deprecated alias) |
 | `--strict-spec` | Require specs when using `--fresh` |
 | `--json` | Emit the evidence record as JSON |
 | `--project-root` | Repository root (default: cwd) |
 
-`--file` / `--control` / `--commit` are mutually exclusive with each other, `evidence-id`, and `--fresh`. A positional hex SHA prefix (4–40 chars, not `ev_…`) is treated as `--commit`. Default (no args) loads the latest evidence pointer.
+`--file` / `--control` / `--commit` / `--session` are mutually exclusive with each other, `evidence-id`, and `--fresh`. A positional hex SHA prefix (4–40 chars, not `ev_…`) is treated as `--commit`. Default (no args) loads the latest evidence pointer.
 
 ### provenance
 

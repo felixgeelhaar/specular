@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Explain `--session`**: newest Change Evidence Graph record whose
+  `gate.provenance.sessions[]` matches the fleet board session id
+  (`evidence list --session` parity).
+
 - **Session wait `--bundle` packs Change Evidence Graph**: includes
   `.specular/evidence/*.json` (+ `latest`) beside attest/APP/SARIF so fleet
   packets support `explain <sha>` / `explain --commit` offline.
