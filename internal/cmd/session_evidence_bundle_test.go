@@ -124,3 +124,42 @@ milestones: []
 		t.Fatalf("gate should write drift.sarif: %v", err)
 	}
 }
+
+func TestRunSessionEvidenceBundleIncludesProvenance(t *testing.T) {
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(cwd) }()
+
+	sess := filepath.Join(dir, ".specular", "sessions")
+	if err := os.MkdirAll(sess, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sess, "auth.attestation.json"), []byte(`{"version":"1.0"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sess, "auth.provenance.json"), []byte(`{"schema":"specular.provenance/v1"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	policyPath := filepath.Join(dir, "soc2.yaml")
+	if err := policylibrary.Install("soc2-cc8.1", policyPath, true); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "with-app.sbundle.tgz")
+	if err := runSessionEvidenceBundle(sessionEvidenceBundleOptions{
+		Output:   out,
+		Policies: []string{policyPath},
+		Quiet:    true,
+	}); err != nil {
+		t.Fatalf("bundle: %v", err)
+	}
+	// Smoke: builder accepted APP doc path (Validate requires ≥1 include).
+	if _, err := os.Stat(out); err != nil {
+		t.Fatal(err)
+	}
+}

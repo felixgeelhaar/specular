@@ -705,7 +705,7 @@ Examples:
   specular session wait
   specular session wait auth ratelimit
   specular session wait --any auth ratelimit
-  specular session wait --timeout 10m && specular eval drift --fail-on-drift
+  specular session wait --timeout 10m && specular gate
   specular session wait --timeout 45m --stop
   specular session wait --attest auth ratelimit
   specular session wait --attest --gate
@@ -1751,8 +1751,8 @@ func init() {
 	sessionWaitCmd.Flags().Bool("any", false, "Return when any named session finishes")
 	sessionWaitCmd.Flags().Bool("stop", false, "Stop still-running sessions when --timeout fires")
 	sessionWaitCmd.Flags().Bool("attest", false, "Write session attestations after wait succeeds")
-	sessionWaitCmd.Flags().Bool("gate", false, "Run outer-loop drift gate after wait succeeds (fail-on-drift)")
-	sessionWaitCmd.Flags().Bool("bundle", false, "Package attestations + drift (+ policies) into an evidence bundle (implies --gate)")
+	sessionWaitCmd.Flags().Bool("gate", false, "Run product specular gate after wait (provenance/drift/policy; fail-on-DENY)")
+	sessionWaitCmd.Flags().Bool("bundle", false, "Package attestations + APP docs + drift (+ policies) into an evidence bundle (implies --gate)")
 	sessionWaitCmd.Flags().String("bundle-out", "session-evidence.sbundle.tgz", "Output path for --bundle")
 	sessionWaitCmd.Flags().StringSlice("policy", nil, "Policy files to include when using --bundle")
 	sessionWaitCmd.Flags().Bool("json", false, "Emit JSON")

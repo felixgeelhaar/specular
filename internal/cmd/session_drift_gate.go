@@ -4,33 +4,29 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/felixgeelhaar/specular/internal/drift"
-	"github.com/felixgeelhaar/specular/internal/plan"
-	"github.com/felixgeelhaar/specular/internal/policy"
-	"github.com/felixgeelhaar/specular/internal/spec"
-	"github.com/felixgeelhaar/specular/internal/ux"
+	"github.com/felixgeelhaar/specular/internal/evidence"
+	"github.com/felixgeelhaar/specular/internal/gate"
 )
 
-// sessionDriftGateOptions configures the thin outer-loop gate used by
-// `session wait --gate` (no checkpoint/spinner UX from eval drift).
-type sessionDriftGateOptions struct {
-	ProjectRoot string
-	ReportFile  string
-	Quiet       bool
+// sessionProductGateOptions configures the product change-control gate used by
+// `session wait --gate` / `--bundle` (same Evaluate path as `specular gate`).
+type sessionProductGateOptions struct {
+	ProjectRoot     string
+	PolicyPath      string
+	ReportFile      string
+	StrictSpec      bool
+	RequireAttested bool
+	RequireProtocol bool
+	RequireGoverned bool
+	NoEvidence      bool
+	Quiet           bool
 }
 
-// runSessionDriftGate runs plan/code/(optional infra) drift with fail-on-drift
-// semantics. Returns an error whose message maps to exitcode.DriftDetected (4).
-func runSessionDriftGate(opts sessionDriftGateOptions) error {
-	defaults := ux.NewPathDefaults()
-	planFile := defaults.PlanFile()
-	lockFile := defaults.SpecLockFile()
-	specFile := defaults.SpecFile()
-	policyFile := defaults.PolicyFile()
-	reportFile := opts.ReportFile
-	if reportFile == "" {
-		reportFile = "drift.sarif"
-	}
+// runSessionProductGate runs specular's product gate (provenance → drift →
+// policy → evidence). Brownfield soft-skips missing specs unless StrictSpec.
+// DENY maps to the same exit-code strings as `specular gate` (drift → 4,
+// policy/provenance/risk → 3).
+func runSessionProductGate(opts sessionProductGateOptions) error {
 	projectRoot := opts.ProjectRoot
 	if projectRoot == "" {
 		cwd, cwdErr := os.Getwd()
@@ -39,68 +35,59 @@ func runSessionDriftGate(opts sessionDriftGateOptions) error {
 		}
 		projectRoot = cwd
 	}
-
-	for _, pair := range []struct {
-		path string
-		name string
-		hint string
-	}{
-		{planFile, "Plan file", "specular plan create"},
-		{lockFile, "SpecLock file", "specular spec lock"},
-		{specFile, "Spec file", "specular spec new"},
-	} {
-		if err := ux.ValidateRequiredFile(pair.path, pair.name, pair.hint); err != nil {
-			return ux.EnhanceError(err)
-		}
+	reportFile := opts.ReportFile
+	if reportFile == "" {
+		reportFile = "drift.sarif"
 	}
 
-	p, planErr := plan.LoadPlan(planFile)
-	if planErr != nil {
-		return fmt.Errorf("session gate: load plan: %w", planErr)
-	}
-	lock, lockErr := spec.LoadSpecLock(lockFile)
-	if lockErr != nil {
-		return fmt.Errorf("session gate: load lock: %w", lockErr)
-	}
-	s, specErr := spec.LoadSpec(specFile)
-	if specErr != nil {
-		return fmt.Errorf("session gate: load spec: %w", specErr)
-	}
-
-	planDrift := drift.DetectPlanDrift(lock, p)
-	codeDrift := drift.DetectCodeDrift(s, lock, drift.CodeDriftOptions{
-		ProjectRoot: projectRoot,
+	res, err := gate.Evaluate(gate.Options{
+		ProjectRoot:     projectRoot,
+		PolicyPath:      opts.PolicyPath,
+		ReportFile:      reportFile,
+		StrictSpec:      opts.StrictSpec,
+		RequireAttested: opts.RequireAttested,
+		RequireProtocol: opts.RequireProtocol,
+		RequireGoverned: opts.RequireGoverned,
 	})
-	var infraDrift []drift.Finding
-	if _, err := os.Stat(policyFile); err == nil {
-		pol, polErr := policy.LoadPolicy(policyFile)
-		if polErr != nil {
-			return fmt.Errorf("session gate: load policy: %w", polErr)
-		}
-		infraDrift = drift.DetectInfraDrift(drift.InfraDriftOptions{
-			Policy:     pol,
-			TaskImages: map[string]string{},
-		})
+	if err != nil {
+		return fmt.Errorf("session gate: %w", err)
 	}
 
-	report := drift.GenerateReport(planDrift, codeDrift, infraDrift)
+	if !opts.NoEvidence {
+		if rec, recErr := evidence.NewFromGate(projectRoot, res); recErr == nil {
+			if writeErr := evidence.Write(projectRoot, rec); writeErr != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not persist evidence: %v\n", writeErr)
+			} else if !opts.Quiet {
+				fmt.Fprintf(os.Stderr, "Evidence: %s (.specular/evidence/)\n", rec.ID)
+			}
+		}
+	}
+
 	if !opts.Quiet {
-		fmt.Printf("\nSession gate (drift):\n")
-		fmt.Printf("  Findings: %d  errors=%d  warnings=%d  info=%d\n",
-			report.Summary.TotalFindings, report.Summary.Errors, report.Summary.Warnings, report.Summary.Info)
+		fmt.Print(gate.FormatText(res))
 	}
-	sarif := report.ToSARIF()
-	if saveErr := drift.SaveSARIF(sarif, reportFile); saveErr != nil {
-		return fmt.Errorf("session gate: save SARIF: %w", saveErr)
-	}
-	if !opts.Quiet {
-		fmt.Printf("  SARIF: %s\n", reportFile)
-	}
-	if report.HasErrors() {
-		return fmt.Errorf("drift detection failed with %d errors", report.Summary.Errors)
-	}
-	if !opts.Quiet && report.IsClean() {
-		fmt.Println("  ✓ No drift detected")
+
+	if res.Verdict == gate.Deny {
+		return sessionGateDenyError(res)
 	}
 	return nil
+}
+
+func sessionGateDenyError(res *gate.Result) error {
+	if res == nil {
+		return fmt.Errorf("gate denied")
+	}
+	if res.Drift.Status == gate.StatusFail {
+		return fmt.Errorf("drift detection failed: %s", res.Reason)
+	}
+	if res.Policy.Status == gate.StatusFail {
+		return fmt.Errorf("policy violation: %s", res.Reason)
+	}
+	if res.Risk.Enforced && len(res.Risk.Missing) > 0 {
+		return fmt.Errorf("policy violation: %s", res.Reason)
+	}
+	if res.Provenance.Enforced && res.Provenance.Status == gate.StatusFail {
+		return fmt.Errorf("policy violation: %s", res.Reason)
+	}
+	return fmt.Errorf("gate denied: %s", res.Reason)
 }
