@@ -159,7 +159,8 @@ Explain a gate ALLOW / DENY decision from the Change Evidence Graph
 ```bash
 specular explain [evidence-id]
 specular explain --file <path-substr>
-specular explain --fresh [--policy <file>]
+specular explain --control <control-substr>
+specular explain --fresh [--policy-file <file>]
 specular explain --json
 ```
 
@@ -167,13 +168,14 @@ specular explain --json
 |---|---|
 | `evidence-id` | Explain a specific `ev_…` record |
 | `--file <substr>` | Newest record whose root / drift finding paths contain substr (same matcher as `evidence list --path`) |
+| `--control <substr>` | Newest record matching failed checks / exception `--policy` / soft-ALLOW bind (same as `evidence list --control`) |
 | `--fresh` | Re-run `specular gate` (persist evidence) then explain |
-| `--policy` | Policy file when using `--fresh` |
+| `--policy-file` | Policy file when using `--fresh` (`--policy` is a deprecated alias) |
 | `--strict-spec` | Require specs when using `--fresh` |
 | `--json` | Emit the evidence record as JSON |
 | `--project-root` | Repository root (default: cwd) |
 
-`--file` is mutually exclusive with `evidence-id` and `--fresh`. Default
+`--file` / `--control` are mutually exclusive with each other, `evidence-id`, and `--fresh`. Default
 (no args) loads the latest evidence pointer.
 
 ### provenance

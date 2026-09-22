@@ -155,6 +155,17 @@ func TestListFilters(t *testing.T) {
 		}
 	})
 
+	t.Run("control_failed_check", func(t *testing.T) {
+		t.Parallel()
+		recs, err := List(root, ListFilter{ControlContains: "provenance"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) != 1 || recs[0].ID != softAllow.ID {
+			t.Fatalf("got %v want [%s]", idsOf(recs), softAllow.ID)
+		}
+	})
+
 	t.Run("path_root", func(t *testing.T) {
 		t.Parallel()
 		recs, err := List(root, ListFilter{PathContains: "payments-api"})
@@ -486,6 +497,40 @@ func TestListIDsUsesCreatedAtOrder(t *testing.T) {
 	}
 	if len(ids) != 2 || ids[0] != newer.ID || ids[1] != older.ID {
 		t.Fatalf("ids=%v", ids)
+	}
+}
+
+func TestListControlFailedCheckSEC17(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 22, 18, 0, 0, 0, time.UTC)
+	hit := mustWriteRecord(t, root, &Record{
+		Schema:    Schema,
+		CreatedAt: now,
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Reason:  "policy failed",
+			Policy: gate.PolicySection{
+				Status:       gate.StatusFail,
+				FailedChecks: []string{"SEC-17", "Coverage"},
+			},
+		},
+	})
+	_ = mustWriteRecord(t, root, &Record{
+		Schema:    Schema,
+		CreatedAt: now.Add(-time.Hour),
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Reason:  "other",
+			Policy:  gate.PolicySection{Status: gate.StatusFail, FailedChecks: []string{"Tests"}},
+		},
+	})
+	recs, err := List(root, ListFilter{ControlContains: "SEC-17", Limit: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recs) != 1 || recs[0].ID != hit.ID {
+		t.Fatalf("got %v want [%s]", idsOf(recs), hit.ID)
 	}
 }
 
