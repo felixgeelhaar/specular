@@ -2368,6 +2368,7 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `integrate --dry-run` | Print planned hook/config writes without changing the repo |
 | `integrate --force` | Overwrite an existing Specular Stop hook script |
 | `integrate --enforce` | Fail-closed Stop hooks (`attest` + `gate --require-attested --require-protocol`; non-zero on DENY). Default remains advisory. |
+| `integrate --require-governed` | With `--enforce`, also pass `gate --require-governed` (DENY without a governed session). |
 
 **Native agent hooks** (PRODUCT_INTENT P1 #4): `session integrate claude-code`
 writes `.claude/hooks/specular-session-stop.sh` and merges `hooks.Stop` into
@@ -2380,8 +2381,9 @@ writes `.claude/hooks/specular-session-stop.sh` and merges `hooks.Stop` into
 `hooksConfig.enabled` into `.gemini/settings.json`. On Stop/SessionEnd, the
 hook calls `session attest` + `gate` using `SPECULAR_SESSION_ID` exported by
 `session start`. Default hooks are advisory (`exit 0`); `--enforce` installs
-Level-3 fail-closed hooks (use `--force` to rewrite). See
-[`examples/agents/`](../examples/agents/).
+Level-3 fail-closed hooks (use `--force` to rewrite). Pair
+`--enforce --require-governed` when Stop must require a governed session.
+See [`examples/agents/`](../examples/agents/).
 
 **Example:**
 ```bash

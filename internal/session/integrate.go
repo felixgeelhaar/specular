@@ -34,6 +34,9 @@ type IntegrateOptions struct {
 	// Enforce installs fail-closed Stop/SessionEnd hooks (Level 3):
 	// attest + gate --require-attested --require-protocol; non-zero on DENY.
 	Enforce bool
+	// RequireGoverned adds --require-governed to enforce gate (Level 3 + governed).
+	// Only valid with Enforce.
+	RequireGoverned bool
 }
 
 // IntegrateFileAction describes what happened (or would happen) to a path.
@@ -59,12 +62,13 @@ type IntegrateFile struct {
 
 // IntegrateResult summarizes native hook installation.
 type IntegrateResult struct {
-	Harness   string          `json:"harness"`
-	Root      string          `json:"root"`
-	DryRun    bool            `json:"dryRun"`
-	Enforce   bool            `json:"enforce,omitempty"`
-	Files     []IntegrateFile `json:"files"`
-	NextSteps []string        `json:"nextSteps,omitempty"`
+	Harness         string          `json:"harness"`
+	Root            string          `json:"root"`
+	DryRun          bool            `json:"dryRun"`
+	Enforce         bool            `json:"enforce,omitempty"`
+	RequireGoverned bool            `json:"requireGoverned,omitempty"`
+	Files           []IntegrateFile `json:"files"`
+	NextSteps       []string        `json:"nextSteps,omitempty"`
 }
 
 const (
@@ -125,16 +129,24 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 	}
 	harness = canonicalIntegrableHarness(harness)
 
+	if opts.RequireGoverned && !opts.Enforce {
+		return nil, fmt.Errorf("session integrate: --require-governed requires --enforce")
+	}
+
 	res := &IntegrateResult{
-		Harness: harness,
-		Root:    abs,
-		DryRun:  opts.DryRun,
-		Enforce: opts.Enforce,
+		Harness:         harness,
+		Root:            abs,
+		DryRun:          opts.DryRun,
+		Enforce:         opts.Enforce,
+		RequireGoverned: opts.RequireGoverned,
 	}
 
 	hookMode := "advisory"
 	if opts.Enforce {
 		hookMode = "enforce (fail-closed)"
+		if opts.RequireGoverned {
+			hookMode = "enforce + governed (fail-closed)"
+		}
 	}
 
 	switch harness {
@@ -176,19 +188,19 @@ func Integrate(opts IntegrateOptions) (*IntegrateResult, error) {
 }
 
 func planAndApplyClaude(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	return planAndApplyPair(res, opts, claudeHookRel, claudeSettingsRel, claudeStopHookScript(opts.Enforce), planClaudeSettings)
+	return planAndApplyPair(res, opts, claudeHookRel, claudeSettingsRel, claudeStopHookScript(opts), planClaudeSettings)
 }
 
 func planAndApplyCursor(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	return planAndApplyPair(res, opts, cursorHookRel, cursorHooksJSONRel, cursorStopHookScript(opts.Enforce), planCursorHooksJSON)
+	return planAndApplyPair(res, opts, cursorHookRel, cursorHooksJSONRel, cursorStopHookScript(opts), planCursorHooksJSON)
 }
 
 func planAndApplyCodex(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	return planAndApplyPair(res, opts, codexHookRel, codexHooksJSONRel, codexStopHookScript(opts.Enforce), planCodexHooksJSON)
+	return planAndApplyPair(res, opts, codexHookRel, codexHooksJSONRel, codexStopHookScript(opts), planCodexHooksJSON)
 }
 
 func planAndApplyGemini(res *IntegrateResult, opts IntegrateOptions) (*IntegrateResult, error) {
-	return planAndApplyPair(res, opts, geminiHookRel, geminiSettingsRel, geminiSessionEndHookScript(opts.Enforce), planGeminiSettings)
+	return planAndApplyPair(res, opts, geminiHookRel, geminiSettingsRel, geminiSessionEndHookScript(opts), planGeminiSettings)
 }
 
 func planAndApplyPair(
@@ -539,8 +551,11 @@ func cursorStopHookPresent(stopList []interface{}) bool {
 	return false
 }
 
-func hookModeComment(enforce bool) string {
-	if enforce {
+func hookModeComment(opts IntegrateOptions) string {
+	if opts.Enforce {
+		if opts.RequireGoverned {
+			return "# Specular hook mode: enforce + governed"
+		}
 		return "# Specular hook mode: enforce"
 	}
 	return "# Specular hook mode: advisory"
@@ -565,17 +580,29 @@ func hookMissingCLIExit(enforce, emitJSON bool) string {
 	return b.String()
 }
 
-func hookAttestGateBlock(eventLabel string, enforce bool) string {
-	if enforce {
+func enforceGateArgs(opts IntegrateOptions) string {
+	args := "--require-attested --require-protocol"
+	if opts.RequireGoverned {
+		args += " --require-governed"
+	}
+	return args
+}
+
+func hookAttestGateBlock(eventLabel string, opts IntegrateOptions) string {
+	if opts.Enforce {
+		label := "enforce"
+		if opts.RequireGoverned {
+			label = "enforce + governed"
+		}
 		return fmt.Sprintf(`if [[ -z "$SESSION_ID" ]]; then
   echo "specular: no session id; enforce requires attest" >&2
   exit 1
 fi
 echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
 specular session attest "$SESSION_ID"
-echo "specular: running gate (enforce — blocks %s on DENY)" >&2
-specular gate --require-attested --require-protocol
-`, eventLabel)
+echo "specular: running gate (%s — blocks %s on DENY)" >&2
+specular gate %s
+`, label, eventLabel, enforceGateArgs(opts))
 	}
 	return fmt.Sprintf(`if [[ -n "$SESSION_ID" ]]; then
   echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
@@ -589,7 +616,7 @@ specular gate || echo "specular: gate exited non-zero (advisory)" >&2
 `, eventLabel)
 }
 
-func claudeStopHookScript(enforce bool) string {
+func claudeStopHookScript(opts IntegrateOptions) string {
 	return fmt.Sprintf(`#!/usr/bin/env bash
 # Specular native Stop hook for Claude Code (PRODUCT_INTENT P1 #4).
 # Installed by: specular session integrate claude-code
@@ -632,12 +659,12 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
 fi
 
 %s
-`, hookModeComment(enforce), hookMissingCLIExit(enforce, false), hookAttestGateBlock("Stop", enforce))
+`, hookModeComment(opts), hookMissingCLIExit(opts.Enforce, false), hookAttestGateBlock("Stop", opts))
 }
 
-func cursorStopHookScript(enforce bool) string {
-	tail := hookAttestGateBlock("stop", enforce)
-	if enforce {
+func cursorStopHookScript(opts IntegrateOptions) string {
+	tail := hookAttestGateBlock("stop", opts)
+	if opts.Enforce {
 		tail += "\n# Cursor stop hooks may consume JSON on stdout; emit empty object (no follow-up).\nprintf '%s\\n' '{}'\n"
 	} else {
 		tail += "\n# Cursor stop hooks may consume JSON on stdout; emit empty object (no follow-up).\nprintf '%s\\n' '{}'\nexit 0\n"
@@ -676,12 +703,12 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
   done
 fi
 
-%s`, hookModeComment(enforce), hookMissingCLIExit(enforce, true), tail)
+%s`, hookModeComment(opts), hookMissingCLIExit(opts.Enforce, true), tail)
 }
 
-func codexStopHookScript(enforce bool) string {
-	tail := hookAttestGateBlock("Stop", enforce)
-	if !enforce {
+func codexStopHookScript(opts IntegrateOptions) string {
+	tail := hookAttestGateBlock("Stop", opts)
+	if !opts.Enforce {
 		tail += "exit 0\n"
 	}
 	return fmt.Sprintf(`#!/usr/bin/env bash
@@ -719,12 +746,12 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
   done
 fi
 
-%s`, hookModeComment(enforce), hookMissingCLIExit(enforce, false), tail)
+%s`, hookModeComment(opts), hookMissingCLIExit(opts.Enforce, false), tail)
 }
 
-func geminiSessionEndHookScript(enforce bool) string {
-	tail := hookAttestGateBlock("SessionEnd", enforce)
-	if enforce {
+func geminiSessionEndHookScript(opts IntegrateOptions) string {
+	tail := hookAttestGateBlock("SessionEnd", opts)
+	if opts.Enforce {
 		tail += "\n# Gemini SessionEnd requires JSON-only stdout; logs go to stderr.\nprintf '%s\\n' '{}'\n"
 	} else {
 		tail += "\n# Gemini SessionEnd is best-effort; emit empty JSON object on stdout.\nprintf '%s\\n' '{}'\nexit 0\n"
@@ -763,5 +790,5 @@ if [[ -z "$SESSION_ID" && -d .specular/sessions ]] && command -v jq >/dev/null 2
   done
 fi
 
-%s`, hookModeComment(enforce), hookMissingCLIExit(enforce, true), tail)
+%s`, hookModeComment(opts), hookMissingCLIExit(opts.Enforce, true), tail)
 }

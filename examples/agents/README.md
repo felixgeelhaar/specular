@@ -22,6 +22,9 @@ specular session integrate gemini
 # (non-zero on DENY; rewrite an existing advisory hook with --force)
 specular session integrate claude-code --enforce --force
 
+# Level-3 + governed: also requires a governed (safer native) session
+specular session integrate claude-code --enforce --require-governed --force
+
 # Then launch a governed session (exports SPECULAR_SESSION_ID for the hook)
 specular session start --harness claude-code --governed "Harden JWT validation"
 ```
@@ -33,7 +36,8 @@ the hook:
    matching session record under `.specular/sessions/`
 2. Runs `specular session attest <id>` (harness + worktree provenance)
 3. Runs `specular gate` — **advisory** by default (`exit 0`); with
-   `--enforce`, fails closed on DENY / missing session / attest failure
+   `--enforce`, fails closed on DENY / missing session / attest failure;
+   `--require-governed` (with `--enforce`) also DENYs without a governed session
 
 Example scripts under this tree are the advisory copies. Regenerate with
 `session integrate` (add `--enforce --force` for fail-closed).

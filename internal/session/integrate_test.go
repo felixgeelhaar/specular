@@ -136,6 +136,50 @@ func TestIntegrateEnforceFailClosed(t *testing.T) {
 	}
 }
 
+func TestIntegrateEnforceRequireGoverned(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	_, err := Integrate(IntegrateOptions{
+		Harness:         "claude-code",
+		Root:            dir,
+		DryRun:          true,
+		RequireGoverned: true,
+	})
+	if err == nil || !strings.Contains(err.Error(), "--require-governed requires --enforce") {
+		t.Fatalf("expected require-governed without enforce error, got %v", err)
+	}
+
+	res, err := Integrate(IntegrateOptions{
+		Harness:         "codex",
+		Root:            dir,
+		DryRun:          true,
+		Enforce:         true,
+		RequireGoverned: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.RequireGoverned || !res.Enforce {
+		t.Fatalf("%+v", res)
+	}
+	hook := res.Files[0].Content
+	for _, want := range []string{
+		"hook mode: enforce + governed",
+		"--require-attested",
+		"--require-protocol",
+		"--require-governed",
+		"enforce + governed — blocks Stop on DENY",
+	} {
+		if !strings.Contains(hook, want) {
+			t.Fatalf("missing %q in:\n%s", want, hook)
+		}
+	}
+	joined := strings.Join(res.NextSteps, "\n")
+	if !strings.Contains(joined, "enforce + governed (fail-closed)") {
+		t.Fatalf("nextSteps=%v", res.NextSteps)
+	}
+}
+
 func TestIntegrateWritesAndIdempotentMerge(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
