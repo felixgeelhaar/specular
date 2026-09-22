@@ -2345,7 +2345,7 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 |------|-------------|
 | `status --watch` | Refresh the board until interrupted |
 | `status --interval <dur>` | Refresh interval (default `2s`) |
-| `status --json` | Emit `{summary, sessions}` board (use `list --json` for a bare array) |
+| `status --json` | Emit `{summary, sessions, evidence}` board with ATTEST/APP/COMMIT flags (use `list --json` for a bare array) |
 | `wait --timeout <dur>` | Fail if sessions are still running after duration |
 | `wait --stop` | With `--timeout`, stop still-running sessions when the deadline fires |
 | `wait --any` | Return when the first named session finishes |
