@@ -14,6 +14,7 @@
 #   REPORT_FILE        default: drift.sarif
 #   STRICT_SPEC        set to 1 to pass --strict-spec
 #   REQUIRE_ATTESTED   set to 1 to pass --require-attested (progressive trust)
+#   REQUIRE_PROTOCOL   set to 1 to pass --require-protocol (progressive trust)
 #   GATE_MD            default: gate.md
 
 set -u
@@ -34,6 +35,10 @@ fi
 if [ "${REQUIRE_ATTESTED:-0}" = "1" ] || [ "${REQUIRE_ATTESTED:-false}" = "true" ]; then
   ARGS+=(--require-attested)
   echo "Progressive trust: --require-attested enabled"
+fi
+if [ "${REQUIRE_PROTOCOL:-0}" = "1" ] || [ "${REQUIRE_PROTOCOL:-false}" = "true" ]; then
+  ARGS+=(--require-protocol)
+  echo "Progressive trust: --require-protocol enabled"
 fi
 
 # Non-interactive. Do not pass --github-annotations outside GitHub Actions

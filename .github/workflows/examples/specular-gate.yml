@@ -6,8 +6,9 @@
 # Usage:
 #   1. Copy to .github/workflows/specular-gate.yml
 #   2. Ensure the specular binary is available (install step below)
-#   3. Optional: set repository variable REQUIRE_ATTESTED=true to DENY
-#      unattested trees (mirrors provenance.attested: enforce / --require-attested)
+#   3. Optional progressive-trust vars (without editing policy.yaml):
+#      REQUIRE_ATTESTED=true  → --require-attested (DENY unattested)
+#      REQUIRE_PROTOCOL=true  → --require-protocol (DENY missing/invalid APP docs)
 #   Exit codes: 0=ALLOW, 3=policy DENY, 4=drift DENY
 
 name: Specular Gate
@@ -42,12 +43,17 @@ jobs:
         id: gate
         env:
           REQUIRE_ATTESTED: ${{ vars.REQUIRE_ATTESTED }}
+          REQUIRE_PROTOCOL: ${{ vars.REQUIRE_PROTOCOL }}
         run: |
           set +e
           EXTRA=()
           if [ "${REQUIRE_ATTESTED:-}" = "true" ] || [ "${REQUIRE_ATTESTED:-}" = "1" ]; then
             EXTRA+=(--require-attested)
             echo "Progressive trust: --require-attested enabled"
+          fi
+          if [ "${REQUIRE_PROTOCOL:-}" = "true" ] || [ "${REQUIRE_PROTOCOL:-}" = "1" ]; then
+            EXTRA+=(--require-protocol)
+            echo "Progressive trust: --require-protocol enabled"
           fi
           specular gate --format markdown --github-annotations "${EXTRA[@]}" > gate.md 2>gate.annotations
           code=$?

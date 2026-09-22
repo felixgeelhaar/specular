@@ -75,6 +75,26 @@ func applyRequireAttestedFlag(res *Result, require bool) {
 	res.Provenance.Note = "attested provenance required (--require-attested)"
 }
 
+// applyRequireProtocolFlag overlays CLI --require-protocol onto Provenance,
+// mirroring policy provenance.protocol: enforce without editing policy.yaml.
+// Idle (advisory) on unattested trees — same as protocol-only policy.
+func applyRequireProtocolFlag(res *Result, require bool) {
+	if res == nil || !require {
+		return
+	}
+	res.Provenance.Enforced = true
+	if !res.Provenance.Attested {
+		if res.Provenance.Status != StatusFail {
+			res.Provenance.Note = "protocol enforce idle (--require-protocol) — no session attestations"
+		}
+		return
+	}
+	applyProtocolGovernance(&res.Provenance)
+	if res.Provenance.Note != "" && !strings.Contains(res.Provenance.Note, "--require-protocol") {
+		res.Provenance.Note += " (--require-protocol)"
+	}
+}
+
 func applyProtocolGovernance(sec *ProvenanceSection) {
 	docs := sec.ProtocolDocs
 	ok := sec.ProtocolOK

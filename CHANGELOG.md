@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gate `--require-protocol` + CI `REQUIRE_PROTOCOL`**: CLI flag mirrors policy
+  `provenance.protocol: enforce` (idle when unattested). GitHub / GitLab /
+  Jenkins / generic gate templates accept optional `REQUIRE_PROTOCOL`.
+
 - **CI examples `--require-attested`**: GitHub / GitLab / Jenkins / generic
   gate templates accept optional `REQUIRE_ATTESTED` so progressive trust can
   be toggled in CI without editing `policy.yaml`.
