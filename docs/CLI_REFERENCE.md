@@ -2362,6 +2362,7 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `integrate <harness>` | Install native Stop/SessionEnd hooks for `claude-code`, `cursor`, `codex`, or `gemini` (aliases: `claude`, `cursor-agent`, `codex-cli`, `gemini-cli`) |
 | `integrate --dry-run` | Print planned hook/config writes without changing the repo |
 | `integrate --force` | Overwrite an existing Specular Stop hook script |
+| `integrate --enforce` | Fail-closed Stop hooks (`attest` + `gate --require-attested --require-protocol`; non-zero on DENY). Default remains advisory. |
 
 **Native agent hooks** (PRODUCT_INTENT P1 #4): `session integrate claude-code`
 writes `.claude/hooks/specular-session-stop.sh` and merges `hooks.Stop` into
@@ -2373,12 +2374,15 @@ writes `.claude/hooks/specular-session-stop.sh` and merges `hooks.Stop` into
 `.gemini/hooks/specular-session-stop.sh` and merges `hooks.SessionEnd` +
 `hooksConfig.enabled` into `.gemini/settings.json`. On Stop/SessionEnd, the
 hook calls `session attest` + `gate` using `SPECULAR_SESSION_ID` exported by
-`session start`. See [`examples/agents/`](../examples/agents/).
+`session start`. Default hooks are advisory (`exit 0`); `--enforce` installs
+Level-3 fail-closed hooks (use `--force` to rewrite). See
+[`examples/agents/`](../examples/agents/).
 
 **Example:**
 ```bash
 $ specular session integrate claude-code --dry-run
 $ specular session integrate claude-code
+$ specular session integrate claude-code --enforce --force
 $ specular session integrate cursor --dry-run
 $ specular session integrate cursor
 $ specular session integrate codex
