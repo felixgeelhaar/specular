@@ -122,6 +122,8 @@ func NewStore(repoRoot string) (*Store, error) {
 func (s *Store) Dir() string { return s.dir }
 
 // Save writes a session record atomically.
+// Temp files are unique per call so concurrent Saves for the same ID cannot
+// truncate a shared `<id>.json.tmp` mid-write (decode flake under StartMany).
 func (s *Store) Save(rec *Record) error {
 	if rec == nil || rec.ID == "" {
 		return fmt.Errorf("session: empty record")
@@ -132,28 +134,50 @@ func (s *Store) Save(rec *Record) error {
 		return marshalErr
 	}
 	path := s.path(rec.ID)
-	tmp := path + ".tmp"
-	if writeErr := os.WriteFile(tmp, data, 0o600); writeErr != nil {
+	tmp, createErr := os.CreateTemp(s.dir, rec.ID+".*.tmp")
+	if createErr != nil {
+		return fmt.Errorf("session: create temp: %w", createErr)
+	}
+	tmpName := tmp.Name()
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.Remove(tmpName)
+		}
+	}()
+	if _, writeErr := tmp.Write(data); writeErr != nil {
+		_ = tmp.Close()
 		return fmt.Errorf("session: write: %w", writeErr)
 	}
-	if renameErr := os.Rename(tmp, path); renameErr != nil {
-		_ = os.Remove(tmp)
+	if closeErr := tmp.Close(); closeErr != nil {
+		return fmt.Errorf("session: close temp: %w", closeErr)
+	}
+	if renameErr := os.Rename(tmpName, path); renameErr != nil {
 		return fmt.Errorf("session: rename: %w", renameErr)
 	}
+	cleanup = false
 	return nil
 }
 
 // Load reads a session by ID.
+// Retries briefly on JSON decode errors so a rare mid-replace read does not
+// fail callers under concurrent Refresh/Save (StartMany dependency chains).
 func (s *Store) Load(id string) (*Record, error) {
-	data, readErr := os.ReadFile(s.path(id))
-	if readErr != nil {
-		return nil, fmt.Errorf("session: load %s: %w", id, readErr)
+	var lastErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		data, readErr := os.ReadFile(s.path(id))
+		if readErr != nil {
+			return nil, fmt.Errorf("session: load %s: %w", id, readErr)
+		}
+		var rec Record
+		if decodeErr := json.Unmarshal(data, &rec); decodeErr != nil {
+			lastErr = fmt.Errorf("session: decode %s: %w", id, decodeErr)
+			time.Sleep(time.Duration(attempt+1) * 2 * time.Millisecond)
+			continue
+		}
+		return &rec, nil
 	}
-	var rec Record
-	if decodeErr := json.Unmarshal(data, &rec); decodeErr != nil {
-		return nil, fmt.Errorf("session: decode %s: %w", id, decodeErr)
-	}
-	return &rec, nil
+	return nil, lastErr
 }
 
 // List returns all session records, newest first.
