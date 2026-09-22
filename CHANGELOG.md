@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session status/list GATE column**: human boards and
+  `session status --json` evidence map show ALLOW/DENY (plus `evidenceId`)
+  from the newest Change Evidence Graph record whose
+  `gate.provenance.sessions[]` matches the session id.
+
 - **Explain `--session`**: newest Change Evidence Graph record whose
   `gate.provenance.sessions[]` matches the fleet board session id
   (`evidence list --session` parity).

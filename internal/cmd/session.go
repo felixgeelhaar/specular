@@ -289,8 +289,9 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 
 		if len(list) > 0 {
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tWORKTREE\tPID\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tGATE\tWORKTREE\tPID\tGOAL")
 			storeDir := mgr.Store().Dir()
+			gates := session.NewestGateBySession(mgr.RepoRoot())
 			for _, s := range list {
 				goal := s.Goal
 				if len(goal) > 48 {
@@ -305,9 +306,13 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 					wt = "-"
 				}
 				gov := session.YesDash(s.Governed)
-				ev := session.EvidenceFlagsFor(storeDir, s)
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), wt, pid, goal)
+				ev := session.EvidenceFlagsFor(storeDir, "", s)
+				gate := "-"
+				if g, ok := gates[s.ID]; ok {
+					gate = session.DashOr(g.Verdict)
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), gate, wt, pid, goal)
 			}
 			_ = w.Flush()
 		}
@@ -559,7 +564,8 @@ var sessionStatusCmd = &cobra.Command{
 	Long: `Show a compact status board for all managed sessions.
 
 Use --watch to refresh periodically — the CLI equivalent of a session minimap.
-With --json, emit {summary, sessions} for dashboards (not a bare array).`,
+With --json, emit {summary, sessions, evidence} for dashboards (not a bare array).
+Evidence includes ATTEST/APP/COMMIT plus GATE verdict/evidenceId from newest graph records.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -581,7 +587,7 @@ With --json, emit {summary, sessions} for dashboards (not a bare array).`,
 			if listErr != nil {
 				return listErr
 			}
-			board := session.BuildStatusBoardWithEvidence(list, mgr.Store().Dir())
+			board := session.BuildStatusBoardWithEvidence(list, mgr.Store().Dir(), mgr.RepoRoot())
 			if jsonOut {
 				enc := json.NewEncoder(os.Stdout)
 				enc.SetIndent("", "  ")
@@ -592,7 +598,7 @@ With --json, emit {summary, sessions} for dashboards (not a bare array).`,
 				return nil
 			}
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tPID\tBRANCH\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tGATE\tPID\tBRANCH\tGOAL")
 			for _, s := range board.Sessions {
 				goal := s.Goal
 				if len(goal) > 40 {
@@ -608,8 +614,8 @@ With --json, emit {summary, sessions} for dashboards (not a bare array).`,
 				}
 				gov := session.YesDash(s.Governed)
 				ev := board.Evidence[s.ID]
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), pid, branch, goal)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), session.DashOr(ev.Verdict), pid, branch, goal)
 			}
 			_ = w.Flush()
 			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
