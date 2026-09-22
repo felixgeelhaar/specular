@@ -28,6 +28,7 @@ var sessionCmd = &cobra.Command{
 
 Examples:
   specular session integrate claude-code
+  specular session integrate cursor
   specular session start --harness claude-code "Add /healthz endpoint"
   specular session start --name auth --harness codex "Harden JWT validation"
   specular session status --watch
@@ -1444,13 +1445,19 @@ inventing a new protocol. Prefer managed sessions:
 
   specular session integrate claude-code
   specular session integrate claude-code --dry-run
+  specular session integrate cursor
+  specular session integrate cursor --dry-run
   specular session start --harness claude-code --governed "Harden JWT validation"
 
-Supported harnesses: claude-code (alias: claude).
+Supported harnesses: claude-code (alias: claude), cursor (alias: cursor-agent).
 
-Installs:
+Installs (claude-code):
   .claude/hooks/specular-session-stop.sh
   .claude/settings.json  (merges hooks.Stop; preserves other settings)
+
+Installs (cursor):
+  .cursor/hooks/specular-session-stop.sh
+  .cursor/hooks.json  (merges hooks.stop; preserves other hooks / version)
 
 session start exports SPECULAR_SESSION_ID and SPECULAR_SESSION_HARNESS so the
 Stop hook can attest the right record.

@@ -4,15 +4,15 @@ This directory contains complete examples demonstrating Specular workflows for d
 
 ## Available Examples
 
-### 0. [Native agent hooks](./agents/) - Claude Code Stop → attest + gate
+### 0. [Native agent hooks](./agents/) - Claude Code / Cursor Stop → attest + gate
 **Use Case:** PRODUCT_INTENT P1 #4 Level-2 integrated provenance
 **Demonstrates:**
-- `specular session integrate claude-code` (--dry-run)
+- `specular session integrate claude-code|cursor` (--dry-run)
 - Stop hook calling `session attest` + `specular gate`
 - Harness labels / `SPECULAR_SESSION_ID` provenance from `session start`
 
-**Best For:** Teams running Claude Code (or planning Cursor/Aider hooks) who
-want Specular change-control without inventing a new agent protocol
+**Best For:** Teams running Claude Code or Cursor who want Specular
+change-control without inventing a new agent protocol
 
 ---
 
