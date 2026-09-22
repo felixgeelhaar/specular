@@ -2,7 +2,9 @@ package session
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // StatusSummary counts sessions by lifecycle bucket for dashboards.
@@ -16,11 +18,12 @@ type StatusSummary struct {
 	Total     int `json:"total"`
 }
 
-// SessionEvidenceFlags reports sibling attestation / APP doc presence for a
-// session id under the sessions store directory.
+// SessionEvidenceFlags reports sibling attestation / APP doc presence and
+// worktree HEAD tip for a session (fleet board → explain <sha>).
 type SessionEvidenceFlags struct {
-	Attested bool `json:"attested"`
-	App      bool `json:"app"` // sibling .provenance.json present
+	Attested bool   `json:"attested"`
+	App      bool   `json:"app"`              // sibling .provenance.json present
+	Commit   string `json:"commit,omitempty"` // short worktree HEAD SHA
 }
 
 // StatusBoard is the JSON shape for `session status --json`: summary counts
@@ -48,6 +51,28 @@ func EvidenceFlags(sessionsDir, id string) SessionEvidenceFlags {
 	return f
 }
 
+// EvidenceFlagsFor is EvidenceFlags plus short worktree HEAD when present.
+func EvidenceFlagsFor(sessionsDir string, rec Record) SessionEvidenceFlags {
+	f := EvidenceFlags(sessionsDir, rec.ID)
+	f.Commit = WorktreeHEADShort(rec.WorktreePath)
+	return f
+}
+
+// WorktreeHEADShort returns `git rev-parse --short HEAD` for a worktree path,
+// or "" when missing / not a git dir.
+func WorktreeHEADShort(worktreePath string) string {
+	worktreePath = strings.TrimSpace(worktreePath)
+	if worktreePath == "" {
+		return ""
+	}
+	cmd := exec.Command("git", "-C", worktreePath, "rev-parse", "--short", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
 // YesDash renders a boolean as "yes" or "-" for human boards.
 func YesDash(v bool) string {
 	if v {
@@ -56,12 +81,20 @@ func YesDash(v bool) string {
 	return "-"
 }
 
+// DashOr returns s or "-" when empty (human boards).
+func DashOr(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return "-"
+	}
+	return s
+}
+
 // BuildStatusBoard aggregates a session list into a dashboard board.
 func BuildStatusBoard(list []Record) StatusBoard {
 	return BuildStatusBoardWithEvidence(list, "")
 }
 
-// BuildStatusBoardWithEvidence is BuildStatusBoard plus optional attest/APP flags.
+// BuildStatusBoardWithEvidence is BuildStatusBoard plus optional attest/APP/commit flags.
 func BuildStatusBoardWithEvidence(list []Record, sessionsDir string) StatusBoard {
 	board := StatusBoard{
 		Sessions: append([]Record(nil), list...),
@@ -86,7 +119,7 @@ func BuildStatusBoardWithEvidence(list []Record, sessionsDir string) StatusBoard
 			board.Summary.Other++
 		}
 		if board.Evidence != nil {
-			board.Evidence[s.ID] = EvidenceFlags(sessionsDir, s.ID)
+			board.Evidence[s.ID] = EvidenceFlagsFor(sessionsDir, s)
 		}
 	}
 	return board

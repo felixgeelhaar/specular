@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session status/list COMMIT column**: human boards and
+  `session status --json` evidence map show short worktree HEAD beside
+  ATTEST/APP so fleet CI can jump to `explain <sha>`.
+
 - **Evidence commit + explain/list by SHA**: gate `Change.Commit` records
   `HEAD`; evidence persists it; `explain abc123` / `--commit` and
   `evidence list --commit` select by SHA prefix (PRODUCT_INTENT §20).

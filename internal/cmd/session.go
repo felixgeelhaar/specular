@@ -289,7 +289,7 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 
 		if len(list) > 0 {
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tWORKTREE\tPID\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tWORKTREE\tPID\tGOAL")
 			storeDir := mgr.Store().Dir()
 			for _, s := range list {
 				goal := s.Goal
@@ -305,9 +305,9 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 					wt = "-"
 				}
 				gov := session.YesDash(s.Governed)
-				ev := session.EvidenceFlags(storeDir, s.ID)
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), wt, pid, goal)
+				ev := session.EvidenceFlagsFor(storeDir, s)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), wt, pid, goal)
 			}
 			_ = w.Flush()
 		}
@@ -592,7 +592,7 @@ With --json, emit {summary, sessions} for dashboards (not a bare array).`,
 				return nil
 			}
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPID\tBRANCH\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tPID\tBRANCH\tGOAL")
 			for _, s := range board.Sessions {
 				goal := s.Goal
 				if len(goal) > 40 {
@@ -608,8 +608,8 @@ With --json, emit {summary, sessions} for dashboards (not a bare array).`,
 				}
 				gov := session.YesDash(s.Governed)
 				ev := board.Evidence[s.ID]
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), pid, branch, goal)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), pid, branch, goal)
 			}
 			_ = w.Flush()
 			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
