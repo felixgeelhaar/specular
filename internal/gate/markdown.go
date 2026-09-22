@@ -38,6 +38,7 @@ func FormatMarkdownWith(res *Result, opts FormatMarkdownOptions) string {
 	writeMarkdownTable(&b, res)
 	writeMarkdownNotes(&b, res)
 	writeMarkdownFindings(&b, res.Drift.Findings, maxFindings)
+	writeMarkdownDenyNextSteps(&b, res)
 	if opts.EvidenceID != "" {
 		fmt.Fprintf(&b, "**Evidence:** `%s` — `specular explain %s`\n\n", opts.EvidenceID, opts.EvidenceID)
 	} else {

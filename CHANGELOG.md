@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gate DENY Next steps**: text / markdown / evidence explain append
+  section-specific remediation (`session attest`, APP verify, governed
+  start, drift/policy/risk fixes) beyond soft-ALLOW Approvals Hint.
+
 - **Session wait progressive-trust `--require-*`**: `session wait --gate` /
   `--bundle` accept `--require-attested` / `--require-protocol` /
   `--require-governed` (same semantics as `specular gate`); fleet CI example

@@ -278,6 +278,9 @@ func TestFormatExplainProvenanceDenyHint(t *testing.T) {
 	if !strings.Contains(text, "--policy provenance") {
 		t.Fatalf("expected provenance hint:\n%s", text)
 	}
+	if !strings.Contains(text, "Next steps") || !strings.Contains(text, "session attest") {
+		t.Fatalf("expected Next steps remediation:\n%s", text)
+	}
 }
 
 func TestFormatExplainNil(t *testing.T) {
