@@ -6,6 +6,7 @@ Prefer the CLI so `hooks.json` merge is idempotent:
 
 ```bash
 specular session integrate codex
+specular session integrate codex --enforce --force  # Level-3 fail-closed
 ```
 
 Alias: `specular session integrate codex-cli`.
@@ -42,5 +43,5 @@ Codex Stop
 session attest  →  .specular/sessions/<id>.attestation.json
         │            provenance.harness = codex
         ▼
-specular gate   →  ALLOW/DENY board (advisory from hook; exit 0)
+specular gate   →  ALLOW/DENY board (advisory default; --enforce fails closed)
 ```

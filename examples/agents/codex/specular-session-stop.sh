@@ -4,9 +4,10 @@
 # Calls existing session attest + gate surfaces — no new protocol.
 # Register via .codex/hooks.json (hooks.Stop). Prefer Stop over SessionEnd
 # so attest+gate have enough timeout budget.
+# Specular hook mode: advisory
 set -euo pipefail
 
-# Codex feeds Stop event JSON on stdin; drain (advisory — never block Stop).
+# Codex feeds Stop event JSON on stdin; drain.
 cat >/dev/null || true
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -38,7 +39,7 @@ if [[ -n "$SESSION_ID" ]]; then
   echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
   specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
 else
-  echo "specular: no SPECULAR_SESSION_ID / codex session; skip attest" >&2
+  echo "specular: no SPECULAR_SESSION_ID / matching session; skip attest" >&2
 fi
 
 echo "specular: running gate (advisory — does not block Stop)" >&2

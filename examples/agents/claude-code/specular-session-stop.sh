@@ -2,6 +2,7 @@
 # Specular native Stop hook for Claude Code (PRODUCT_INTENT P1 #4).
 # Installed by: specular session integrate claude-code
 # Calls existing session attest + gate surfaces — no new protocol.
+# Specular hook mode: advisory
 set -euo pipefail
 
 # Claude Code feeds Stop event JSON on stdin.
@@ -44,9 +45,9 @@ if [[ -n "$SESSION_ID" ]]; then
   echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
   specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
 else
-  echo "specular: no SPECULAR_SESSION_ID / claude-code session; skip attest" >&2
+  echo "specular: no SPECULAR_SESSION_ID / matching session; skip attest" >&2
 fi
 
 echo "specular: running gate (advisory — does not block Stop)" >&2
 specular gate || echo "specular: gate exited non-zero (advisory)" >&2
-exit 0
+

@@ -12,11 +12,15 @@ specular session integrate cursor --dry-run
 specular session integrate codex --dry-run
 specular session integrate gemini --dry-run
 
-# Write hooks + merge settings / hooks.json
+# Write hooks + merge settings / hooks.json (Level-2 advisory by default)
 specular session integrate claude-code
 specular session integrate cursor
 specular session integrate codex
 specular session integrate gemini
+
+# Level-3 fail-closed: attest + gate --require-attested/--require-protocol
+# (non-zero on DENY; rewrite an existing advisory hook with --force)
+specular session integrate claude-code --enforce --force
 
 # Then launch a governed session (exports SPECULAR_SESSION_ID for the hook)
 specular session start --harness claude-code --governed "Harden JWT validation"
@@ -28,7 +32,11 @@ the hook:
 1. Resolves `SPECULAR_SESSION_ID` (from `session start`) or the newest
    matching session record under `.specular/sessions/`
 2. Runs `specular session attest <id>` (harness + worktree provenance)
-3. Runs `specular gate` (advisory — does not block Stop/SessionEnd)
+3. Runs `specular gate` — **advisory** by default (`exit 0`); with
+   `--enforce`, fails closed on DENY / missing session / attest failure
+
+Example scripts under this tree are the advisory copies. Regenerate with
+`session integrate` (add `--enforce --force` for fail-closed).
 
 ## Example files
 

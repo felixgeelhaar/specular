@@ -3,9 +3,10 @@
 # Installed by: specular session integrate cursor
 # Calls existing session attest + gate surfaces — no new protocol.
 # Project hooks run from the repo root; register via .cursor/hooks.json.
+# Specular hook mode: advisory
 set -euo pipefail
 
-# Cursor feeds stop-event JSON on stdin; drain it (advisory — never block stop).
+# Cursor feeds stop-event JSON on stdin; drain it.
 cat >/dev/null || true
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -38,7 +39,7 @@ if [[ -n "$SESSION_ID" ]]; then
   echo "specular: attesting session ${SESSION_ID} (harness provenance)" >&2
   specular session attest "$SESSION_ID" || echo "specular: attest failed (advisory)" >&2
 else
-  echo "specular: no SPECULAR_SESSION_ID / cursor session; skip attest" >&2
+  echo "specular: no SPECULAR_SESSION_ID / matching session; skip attest" >&2
 fi
 
 echo "specular: running gate (advisory — does not block stop)" >&2

@@ -6,6 +6,7 @@ Prefer the CLI so settings merge is idempotent:
 
 ```bash
 specular session integrate claude-code
+specular session integrate claude-code --enforce --force  # Level-3 fail-closed
 ```
 
 ## Files
@@ -36,5 +37,5 @@ Claude Code Stop
 session attest  →  .specular/sessions/<id>.attestation.json
         │            provenance.harness = claude-code
         ▼
-specular gate   →  ALLOW/DENY board (advisory from hook; exit 0)
+specular gate   →  ALLOW/DENY board (advisory default; --enforce fails closed)
 ```
