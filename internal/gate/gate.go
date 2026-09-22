@@ -122,11 +122,12 @@ type FindingDetail struct {
 
 // PolicySection summarizes policy / verification evaluation.
 type PolicySection struct {
-	Status  SectionStatus `json:"status"`
-	Passed  int           `json:"passed,omitempty"`
-	Failed  int           `json:"failed,omitempty"`
-	Skipped int           `json:"skipped,omitempty"`
-	Note    string        `json:"note,omitempty"`
+	Status       SectionStatus `json:"status"`
+	Passed       int           `json:"passed,omitempty"`
+	Failed       int           `json:"failed,omitempty"`
+	Skipped      int           `json:"skipped,omitempty"`
+	FailedChecks []string      `json:"failedChecks,omitempty"`
+	Note         string        `json:"note,omitempty"`
 }
 
 // Evaluate runs the thin gate pipeline for a project root.
@@ -490,6 +491,11 @@ func evaluatePolicy(root, policyPath string) PolicySection {
 	if !report.AllPassed {
 		sec.Status = StatusFail
 		sec.Note = fmt.Sprintf("policy verification failed (%d checks)", report.TotalFailed)
+		for _, c := range report.Checks {
+			if c.Required && !c.Passed {
+				sec.FailedChecks = append(sec.FailedChecks, c.Name)
+			}
+		}
 		return sec
 	}
 	sec.Status = StatusPass
@@ -498,30 +504,70 @@ func evaluatePolicy(root, policyPath string) PolicySection {
 }
 
 func decide(res *Result) (Verdict, string) {
+	overruled, denyVerdict, denyReason := trySoftAllowDenies(res)
+	if denyVerdict == Deny {
+		return Deny, denyReason
+	}
+
+	parts := allowReasonParts(res)
+	if len(overruled) > 0 {
+		updateApprovalsNoteForOverrule(res)
+		return Allow, strings.Join(append(overruled, parts...), "; ")
+	}
+	return Allow, strings.Join(parts, "; ")
+}
+
+// trySoftAllowDenies walks hard DENY sections. On unmatched DENY it returns
+// Deny + reason; otherwise it appends overrule reason fragments.
+func trySoftAllowDenies(res *Result) (overruled []string, verdict Verdict, reason string) {
 	if res.Drift.Status == StatusFail {
-		return Deny, firstNonEmpty(res.Drift.Note, "drift evaluation failed")
+		if o := findExceptionOverrule(res, DenyKindDrift); o != nil {
+			res.Approvals.Overrules = append(res.Approvals.Overrules, *o)
+			overruled = append(overruled, fmt.Sprintf("%s overruled drift DENY (%s)", o.ResourceID, o.Binding))
+		} else {
+			return nil, Deny, firstNonEmpty(res.Drift.Note, "drift evaluation failed")
+		}
 	}
 	if res.Policy.Status == StatusFail {
-		return Deny, firstNonEmpty(res.Policy.Note, "policy evaluation failed")
-	}
-	// Opt-in risk-adaptive governance (policy risk: block). Advisory-only when unset.
-	if res.Risk.Enforced && len(res.Risk.Missing) > 0 {
-		level := res.Risk.Level
-		if level == "" {
-			level = "UNKNOWN"
+		if o := findExceptionOverrule(res, DenyKindPolicy); o != nil {
+			res.Approvals.Overrules = append(res.Approvals.Overrules, *o)
+			overruled = append(overruled, fmt.Sprintf("%s overruled policy DENY (%s)", o.ResourceID, o.Binding))
+		} else {
+			return nil, Deny, firstNonEmpty(res.Policy.Note, "policy evaluation failed")
 		}
-		return Deny, fmt.Sprintf("risk %s requires approvals: missing %s",
-			level, strings.Join(res.Risk.Missing, ", "))
 	}
+	if res.Risk.Enforced && len(res.Risk.Missing) > 0 {
+		if o := findExceptionOverrule(res, DenyKindRisk); o != nil {
+			res.Approvals.Overrules = append(res.Approvals.Overrules, *o)
+			overruled = append(overruled, fmt.Sprintf("%s overruled risk DENY (%s)", o.ResourceID, o.Binding))
+		} else {
+			level := res.Risk.Level
+			if level == "" {
+				level = "UNKNOWN"
+			}
+			return nil, Deny, fmt.Sprintf("risk %s requires approvals: missing %s",
+				level, strings.Join(res.Risk.Missing, ", "))
+		}
+	}
+	return overruled, Allow, ""
+}
+
+func allowReasonParts(res *Result) []string {
 	parts := []string{}
-	if res.Drift.Status == StatusPass {
+	switch res.Drift.Status {
+	case StatusPass:
 		parts = append(parts, "drift pass")
-	} else {
+	case StatusFail:
+		parts = append(parts, "drift fail (exception soft-ALLOW)")
+	default:
 		parts = append(parts, "drift skipped")
 	}
-	if res.Policy.Status == StatusPass {
+	switch res.Policy.Status {
+	case StatusPass:
 		parts = append(parts, "policy pass")
-	} else {
+	case StatusFail:
+		parts = append(parts, "policy fail (exception soft-ALLOW)")
+	default:
 		parts = append(parts, "policy skipped")
 	}
 	if res.Provenance.Attested {
@@ -529,10 +575,10 @@ func decide(res *Result) (Verdict, string) {
 	} else {
 		parts = append(parts, "provenance unattested")
 	}
-	if res.Risk.Enforced && len(res.Risk.Required) > 0 {
+	if res.Risk.Enforced && len(res.Risk.Required) > 0 && len(res.Risk.Missing) == 0 {
 		parts = append(parts, "risk approvals satisfied")
 	}
-	return Allow, strings.Join(parts, "; ")
+	return parts
 }
 
 func firstNonEmpty(vals ...string) string {

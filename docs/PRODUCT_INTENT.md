@@ -823,6 +823,9 @@ Permanent silent suppression should be discouraged.
 
 Exceptions should be searchable and auditable.
 
+Specular may soft-ALLOW a DENY only when an auditable exception binds to the
+deny reason (policy/scope); blanket suppression is not supported.
+
 
 ## 19. Evidence
 

@@ -9,13 +9,15 @@ import (
 )
 
 // ApprovalsSection summarizes recent local approvals / exceptions for the
-// gate board and evidence trail (PRODUCT_INTENT §17–§18). Advisory only —
-// never flips ALLOW↔DENY by itself.
+// gate board and evidence trail (PRODUCT_INTENT §17–§18). Unmatched
+// exceptions stay advisory; bound exceptions may soft-ALLOW a DENY via
+// Overrules (see exception_match.go).
 type ApprovalsSection struct {
-	Count      int               `json:"count"`
-	Recent     []ApprovalSummary `json:"recent,omitempty"`
-	Exceptions []ApprovalSummary `json:"exceptions,omitempty"`
-	Note       string            `json:"note,omitempty"`
+	Count      int                 `json:"count"`
+	Recent     []ApprovalSummary   `json:"recent,omitempty"`
+	Exceptions []ApprovalSummary   `json:"exceptions,omitempty"`
+	Overrules  []ExceptionOverrule `json:"overrules,omitempty"`
+	Note       string              `json:"note,omitempty"`
 }
 
 // ApprovalSummary is a compact approval/exception trail entry.
@@ -65,7 +67,7 @@ func discoverApprovals(root string) ApprovalsSection {
 	}
 	switch {
 	case len(sec.Exceptions) > 0:
-		sec.Note = fmt.Sprintf("%d open exception(s); trail is advisory — does not change gate verdict", len(sec.Exceptions))
+		sec.Note = fmt.Sprintf("%d open exception(s); unmatched stay advisory — bind --policy/--scope to soft-ALLOW", len(sec.Exceptions))
 	default:
 		sec.Note = "recent approvals listed; no open exceptions"
 	}
@@ -97,7 +99,7 @@ func writeApprovalsSection(b *strings.Builder, sec ApprovalsSection, verdict Ver
 	if sec.Count == 0 {
 		b.WriteString("  Status         none recorded\n")
 		if verdict == Deny {
-			b.WriteString("  Hint           specular approve exception-<id> --reason \"...\" --scope \"...\"\n")
+			b.WriteString("  Hint           specular approve exception-<id> --reason \"...\" --scope \"...\" --policy drift|policy|<check>\n")
 		}
 		if sec.Note != "" {
 			fmt.Fprintf(b, "  Note           %s\n", sec.Note)
@@ -105,13 +107,24 @@ func writeApprovalsSection(b *strings.Builder, sec ApprovalsSection, verdict Ver
 		return
 	}
 	fmt.Fprintf(b, "  Records        %d\n", sec.Count)
+	writeOverrules(b, sec.Overrules)
 	writeOpenExceptions(b, sec.Exceptions)
 	writeRecentApprovals(b, sec.Recent)
 	if verdict == Deny && len(sec.Exceptions) == 0 {
-		b.WriteString("  Hint           record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\"\n")
+		b.WriteString("  Hint           record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy …\n")
 	}
 	if sec.Note != "" {
 		fmt.Fprintf(b, "  Note           %s\n", sec.Note)
+	}
+}
+
+func writeOverrules(b *strings.Builder, overrules []ExceptionOverrule) {
+	if len(overrules) == 0 {
+		return
+	}
+	b.WriteString("  Overruled\n")
+	for _, o := range overrules {
+		fmt.Fprintf(b, "    ⚠ %s soft-ALLOW %s (%s)\n", o.ResourceID, o.Kind, o.Binding)
 	}
 }
 
