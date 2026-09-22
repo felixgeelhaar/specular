@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -22,6 +23,8 @@ var changeExplainCmd = &cobra.Command{
 Default: load the latest Change Evidence Graph record written by
 specular gate. Pass an evidence id (ev_…) to explain a specific record.
 With --fresh, re-run the gate (and persist evidence) before explaining.
+With --file <substr>, select the newest record whose root / drift finding
+paths contain that substring (same matcher as evidence list --path).
 
 Human text is an auditor-facing AI CHANGE RECORD (PRODUCT_INTENT §19).
 --json emits the unchanged machine-readable evidence record.
@@ -34,6 +37,7 @@ See docs/PRODUCT_INTENT.md §7 (Change Evidence Graph) and §20 (Explain).
 Examples:
   specular explain
   specular explain ev_abc123
+  specular explain --file internal/auth/token.go
   specular explain --fresh
   specular explain --json
 `,
@@ -47,6 +51,7 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 	fresh, _ := cmd.Flags().GetBool("fresh")
 	strictSpec, _ := cmd.Flags().GetBool("strict-spec")
 	policyPath, _ := cmd.Flags().GetString("policy")
+	fileFilter, _ := cmd.Flags().GetString("file")
 
 	if projectRoot == "" {
 		cwd, err := os.Getwd()
@@ -54,6 +59,16 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		projectRoot = cwd
+	}
+
+	fileFilter = strings.TrimSpace(fileFilter)
+	if fileFilter != "" {
+		if fresh {
+			return fmt.Errorf("explain: --file cannot be combined with --fresh")
+		}
+		if len(args) == 1 {
+			return fmt.Errorf("explain: --file cannot be combined with evidence-id")
+		}
 	}
 
 	var rec *evidence.Record
@@ -75,6 +90,8 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 		if writeErr := evidence.Write(projectRoot, rec); writeErr != nil {
 			return writeErr
 		}
+	case fileFilter != "":
+		rec, err = loadEvidenceByFile(projectRoot, fileFilter)
 	case len(args) == 1:
 		rec, err = evidence.Load(projectRoot, args[0])
 	default:
@@ -93,11 +110,26 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func loadEvidenceByFile(projectRoot, substr string) (*evidence.Record, error) {
+	recs, err := evidence.List(projectRoot, evidence.ListFilter{
+		PathContains: substr,
+		Limit:        1,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(recs) == 0 {
+		return nil, fmt.Errorf("explain: no evidence matches --file %q (try: specular evidence list --path %q)", substr, substr)
+	}
+	return recs[0], nil
+}
+
 func init() {
 	changeExplainCmd.Flags().String("project-root", "", "Repository root (default: cwd)")
 	changeExplainCmd.Flags().String("policy", "", "Policy file when using --fresh")
 	changeExplainCmd.Flags().Bool("strict-spec", false, "Require specs when using --fresh")
 	changeExplainCmd.Flags().Bool("fresh", false, "Re-run specular gate before explaining")
+	changeExplainCmd.Flags().String("file", "", "Explain newest evidence whose paths contain this substring (PRODUCT_INTENT §20)")
 	changeExplainCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	rootCmd.AddCommand(changeExplainCmd)
 }
