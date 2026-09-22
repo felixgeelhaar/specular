@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Stronger session provenance (P1 #10 depth)**: gate discovers sibling
+  `.provenance.json` APP docs, reports `Protocol` schema with docs/ok counts
+  on the board/markdown/explain, and notes `APP docs N/M ok` when attested.
+
 - **AI CHANGE RECORD risk + soft-ALLOW (P1 #2 depth)**: `specular explain` /
   `evidence show` human layout includes Risk (level/enforced/required) and
   Approvals Overruled soft-ALLOW lines; Why reflects exception overrules.

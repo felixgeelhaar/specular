@@ -269,6 +269,13 @@ func writeProvenanceBlock(b *strings.Builder, g *gate.Result) {
 	if g.Provenance.Attested {
 		fmt.Fprintf(b, "Governed     %v\n", g.Provenance.Governed)
 	}
+	if g.Provenance.ProtocolDocs > 0 {
+		schema := g.Provenance.ProtocolSchema
+		if schema == "" {
+			schema = "specular.provenance/v1"
+		}
+		fmt.Fprintf(b, "Protocol     %s (docs=%d ok=%d)\n", schema, g.Provenance.ProtocolDocs, g.Provenance.ProtocolOK)
+	}
 	if !g.Provenance.Attested {
 		note := g.Provenance.Note
 		if note == "" {

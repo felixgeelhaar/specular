@@ -94,6 +94,11 @@ type ProvenanceSection struct {
 	GitBranch string `json:"gitBranch,omitempty"`
 	GitDirty  bool   `json:"gitDirty"`
 	Note      string `json:"note,omitempty"`
+	// ProtocolDocs / ProtocolOK count sibling .provenance.json APP documents
+	// (PRODUCT_INTENT §9 / P1 #10). ProtocolSchema is set when any doc is present.
+	ProtocolDocs   int    `json:"protocolDocs,omitempty"`
+	ProtocolOK     int    `json:"protocolOk,omitempty"`
+	ProtocolSchema string `json:"protocolSchema,omitempty"`
 }
 
 // DriftSection summarizes drift evaluation.
@@ -248,9 +253,34 @@ func discoverProvenance(root string) ProvenanceSection {
 	if len(sec.Sessions) > 0 {
 		sec.Attested = true
 		sec.Status = StatusPass
+		enrichProtocolDocs(&sec, dir)
 		sec.Note = attestedProvenanceNote(sec)
 	}
 	return sec
+}
+
+func enrichProtocolDocs(sec *ProvenanceSection, sessionsDir string) {
+	entries, err := os.ReadDir(sessionsDir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || !strings.HasSuffix(name, ".provenance.json") {
+			continue
+		}
+		sec.ProtocolDocs++
+		doc, loadErr := provenance.LoadDocumentFile(filepath.Join(sessionsDir, name))
+		if loadErr != nil {
+			continue
+		}
+		if sec.ProtocolSchema == "" {
+			sec.ProtocolSchema = doc.Schema
+		}
+		if vr := provenance.Validate(doc); vr.OK {
+			sec.ProtocolOK++
+		}
+	}
 }
 
 func attestedProvenanceNote(sec ProvenanceSection) string {
@@ -260,6 +290,9 @@ func attestedProvenanceNote(sec ProvenanceSection) string {
 	}
 	if sec.Governed {
 		parts = append(parts, "governed")
+	}
+	if sec.ProtocolDocs > 0 {
+		parts = append(parts, fmt.Sprintf("APP docs %d/%d ok", sec.ProtocolOK, sec.ProtocolDocs))
 	}
 	return strings.Join(parts, "; ")
 }
@@ -613,6 +646,7 @@ func FormatText(res *Result) string {
 	if res.Provenance.Attested {
 		fmt.Fprintf(&b, "  Governed       %v\n", res.Provenance.Governed)
 	}
+	writeProvenanceProtocol(&b, res.Provenance, res.ProvenanceProtocol)
 	if res.Provenance.Note != "" {
 		fmt.Fprintf(&b, "  Note           %s\n", res.Provenance.Note)
 	}
@@ -656,6 +690,24 @@ func writeProvenanceWorktree(b *strings.Builder, p ProvenanceSection) {
 	if len(p.WorktreeNames) > 0 {
 		fmt.Fprintf(b, "  WorktreeName   %s\n", strings.Join(p.WorktreeNames, ", "))
 	}
+}
+
+func writeProvenanceProtocol(b *strings.Builder, p ProvenanceSection, ref *provenance.ProtocolRef) {
+	schema := p.ProtocolSchema
+	if schema == "" && ref != nil {
+		schema = ref.Schema
+	}
+	if schema == "" && p.ProtocolDocs == 0 && ref == nil {
+		return
+	}
+	if schema == "" {
+		schema = provenance.Schema
+	}
+	fmt.Fprintf(b, "  Protocol       %s", schema)
+	if p.ProtocolDocs > 0 {
+		fmt.Fprintf(b, " (docs=%d ok=%d)", p.ProtocolDocs, p.ProtocolOK)
+	}
+	b.WriteString("\n")
 }
 
 func writeRiskSection(b *strings.Builder, risk RiskSection) {

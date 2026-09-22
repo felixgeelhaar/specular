@@ -92,23 +92,38 @@ func writeMarkdownNotes(b *strings.Builder, res *Result) {
 	if res.Provenance.Note != "" {
 		fmt.Fprintf(b, "_Provenance:_ %s\n\n", res.Provenance.Note)
 	}
-	if res.Provenance.Attested {
-		var bits []string
-		if len(res.Provenance.WorktreePaths) > 0 {
-			bits = append(bits, "worktree=`"+strings.Join(res.Provenance.WorktreePaths, ", ")+"`")
-		}
-		if len(res.Provenance.WorktreeBranches) > 0 {
-			bits = append(bits, "branch=`"+strings.Join(res.Provenance.WorktreeBranches, ", ")+"`")
-		}
-		bits = append(bits, fmt.Sprintf("governed=`%v`", res.Provenance.Governed))
-		fmt.Fprintf(b, "_Session provenance:_ %s\n\n", strings.Join(bits, " · "))
-	}
+	writeMarkdownSessionProvenance(b, res)
 	if res.Drift.Note != "" {
 		fmt.Fprintf(b, "_Drift:_ %s\n\n", res.Drift.Note)
 	}
 	if res.Policy.Note != "" {
 		fmt.Fprintf(b, "_Policy:_ %s\n\n", res.Policy.Note)
 	}
+	writeMarkdownRiskNotes(b, res)
+	writeMarkdownApprovals(b, res)
+}
+
+func writeMarkdownSessionProvenance(b *strings.Builder, res *Result) {
+	if !res.Provenance.Attested {
+		return
+	}
+	var bits []string
+	if len(res.Provenance.WorktreePaths) > 0 {
+		bits = append(bits, "worktree=`"+strings.Join(res.Provenance.WorktreePaths, ", ")+"`")
+	}
+	if len(res.Provenance.WorktreeBranches) > 0 {
+		bits = append(bits, "branch=`"+strings.Join(res.Provenance.WorktreeBranches, ", ")+"`")
+	}
+	bits = append(bits, fmt.Sprintf("governed=`%v`", res.Provenance.Governed))
+	if res.Provenance.ProtocolDocs > 0 {
+		bits = append(bits, fmt.Sprintf("APP docs=`%d/%d ok`", res.Provenance.ProtocolOK, res.Provenance.ProtocolDocs))
+	} else if res.ProvenanceProtocol != nil {
+		bits = append(bits, "protocol=`"+res.ProvenanceProtocol.Schema+"`")
+	}
+	fmt.Fprintf(b, "_Session provenance:_ %s\n\n", strings.Join(bits, " · "))
+}
+
+func writeMarkdownRiskNotes(b *strings.Builder, res *Result) {
 	if len(res.Risk.Factors) > 0 {
 		label := "_Risk factors (advisory):_"
 		if res.Risk.Enforced {
@@ -122,16 +137,16 @@ func writeMarkdownNotes(b *strings.Builder, res *Result) {
 	} else if res.Risk.Note != "" {
 		fmt.Fprintf(b, "_Risk:_ %s\n\n", res.Risk.Note)
 	}
-	if res.Risk.Enforced && len(res.Risk.Required) > 0 {
-		fmt.Fprintf(b, "_Risk required:_ `%s`", strings.Join(res.Risk.Required, "`, `"))
-		if len(res.Risk.Missing) > 0 {
-			fmt.Fprintf(b, " — **missing** `%s`", strings.Join(res.Risk.Missing, "`, `"))
-		} else if len(res.Risk.Observed) > 0 {
-			fmt.Fprintf(b, " — observed `%s`", strings.Join(res.Risk.Observed, "`, `"))
-		}
-		b.WriteString("\n\n")
+	if !res.Risk.Enforced || len(res.Risk.Required) == 0 {
+		return
 	}
-	writeMarkdownApprovals(b, res)
+	fmt.Fprintf(b, "_Risk required:_ `%s`", strings.Join(res.Risk.Required, "`, `"))
+	if len(res.Risk.Missing) > 0 {
+		fmt.Fprintf(b, " — **missing** `%s`", strings.Join(res.Risk.Missing, "`, `"))
+	} else if len(res.Risk.Observed) > 0 {
+		fmt.Fprintf(b, " — observed `%s`", strings.Join(res.Risk.Observed, "`, `"))
+	}
+	b.WriteString("\n\n")
 }
 
 func writeMarkdownApprovals(b *strings.Builder, res *Result) {

@@ -57,6 +57,44 @@ func TestEvaluateStrictSpecDeniesMissing(t *testing.T) {
 	}
 }
 
+func TestEvaluateProvenanceAPPDocs(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{"provenance":{"harness":"claude-code","governed":true}}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	prov := `{"schema":"specular.provenance/v1","version":"1","session":"auth","harness":"claude-code","governed":true}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.provenance.json"), []byte(prov), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Provenance.ProtocolDocs != 1 || res.Provenance.ProtocolOK != 1 {
+		t.Fatalf("protocol docs=%d ok=%d", res.Provenance.ProtocolDocs, res.Provenance.ProtocolOK)
+	}
+	if res.Provenance.ProtocolSchema != "specular.provenance/v1" {
+		t.Fatalf("schema=%s", res.Provenance.ProtocolSchema)
+	}
+	if !strings.Contains(res.Provenance.Note, "APP docs 1/1 ok") {
+		t.Fatalf("note=%q", res.Provenance.Note)
+	}
+	text := FormatText(res)
+	if !strings.Contains(text, "Protocol       specular.provenance/v1 (docs=1 ok=1)") {
+		t.Fatalf("board:\n%s", text)
+	}
+	md := FormatMarkdown(res)
+	if !strings.Contains(md, "APP docs=`1/1 ok`") {
+		t.Fatalf("markdown:\n%s", md)
+	}
+}
+
 func TestEvaluateProvenanceFromAttestation(t *testing.T) {
 	t.Parallel()
 	root := initTempRepo(t)
