@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Session wait product gate (fleet→evidence)**: `session wait --gate` /
+  `--bundle` runs product `specular gate` (provenance/drift/policy +
+  evidence) instead of legacy drift-only eval; brownfield soft-skips
+  missing specs. `--bundle` also packs sibling `.provenance.json` APP docs.
+
 ### Changed
 
 - **Evidence list `--protocol` wording**: help/docs clarify `ok` means

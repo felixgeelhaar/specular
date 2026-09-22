@@ -9,7 +9,7 @@ import (
 	"github.com/felixgeelhaar/specular/internal/exitcode"
 )
 
-func TestRunSessionDriftGateClean(t *testing.T) {
+func TestRunSessionProductGateClean(t *testing.T) {
 	dir := t.TempDir()
 	specular := filepath.Join(dir, ".specular")
 	if err := os.MkdirAll(specular, 0o750); err != nil {
@@ -55,7 +55,7 @@ milestones: []
 	defer func() { _ = os.Chdir(cwd) }()
 
 	report := filepath.Join(dir, "out.sarif")
-	if err := runSessionDriftGate(sessionDriftGateOptions{
+	if err := runSessionProductGate(sessionProductGateOptions{
 		ProjectRoot: dir,
 		ReportFile:  report,
 		Quiet:       true,
@@ -65,9 +65,15 @@ milestones: []
 	if _, err := os.Stat(report); err != nil {
 		t.Fatalf("sarif missing: %v", err)
 	}
+	// Product gate persists Change Evidence Graph records.
+	evDir := filepath.Join(dir, ".specular", "evidence")
+	entries, listErr := os.ReadDir(evDir)
+	if listErr != nil || len(entries) == 0 {
+		t.Fatalf("expected evidence record under %s: %v", evDir, listErr)
+	}
 }
 
-func TestRunSessionDriftGateFailsOnDrift(t *testing.T) {
+func TestRunSessionProductGateFailsOnDrift(t *testing.T) {
 	dir := t.TempDir()
 	specular := filepath.Join(dir, ".specular")
 	if err := os.MkdirAll(specular, 0o750); err != nil {
@@ -108,7 +114,7 @@ milestones: []
 	}
 	defer func() { _ = os.Chdir(cwd) }()
 
-	err = runSessionDriftGate(sessionDriftGateOptions{
+	err = runSessionProductGate(sessionProductGateOptions{
 		ProjectRoot: dir,
 		ReportFile:  filepath.Join(dir, "drift.sarif"),
 		Quiet:       true,
@@ -121,7 +127,7 @@ milestones: []
 	}
 }
 
-func TestRunSessionDriftGateDefaultsProjectRoot(t *testing.T) {
+func TestRunSessionProductGateDefaultsProjectRoot(t *testing.T) {
 	dir := t.TempDir()
 	specular := filepath.Join(dir, ".specular")
 	if err := os.MkdirAll(specular, 0o750); err != nil {
@@ -166,7 +172,7 @@ milestones: []
 	defer func() { _ = os.Chdir(cwd) }()
 
 	// Empty ProjectRoot must resolve to cwd (CLI wait --gate path).
-	if err := runSessionDriftGate(sessionDriftGateOptions{
+	if err := runSessionProductGate(sessionProductGateOptions{
 		ReportFile: filepath.Join(dir, "cwd.sarif"),
 		Quiet:      true,
 	}); err != nil {
@@ -174,7 +180,8 @@ milestones: []
 	}
 }
 
-func TestRunSessionDriftGateMissingFiles(t *testing.T) {
+func TestRunSessionProductGateBrownfieldAllows(t *testing.T) {
+	// Product gate soft-skips missing specs (unlike the old drift-only path).
 	dir := t.TempDir()
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -185,14 +192,30 @@ func TestRunSessionDriftGateMissingFiles(t *testing.T) {
 	}
 	defer func() { _ = os.Chdir(cwd) }()
 
-	err = runSessionDriftGate(sessionDriftGateOptions{Quiet: true})
-	if err == nil {
-		t.Fatal("expected missing-file error")
+	if err := runSessionProductGate(sessionProductGateOptions{Quiet: true}); err != nil {
+		t.Fatalf("brownfield should ALLOW: %v", err)
 	}
 }
 
-func TestDriftGateErrorMapsToExitCode(t *testing.T) {
-	err := fmt.Errorf("drift detection failed with %d errors", 2)
+func TestRunSessionProductGateStrictSpecMissing(t *testing.T) {
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(cwd) }()
+
+	err = runSessionProductGate(sessionProductGateOptions{Quiet: true, StrictSpec: true})
+	if err == nil {
+		t.Fatal("expected strict-spec DENY/error without specs")
+	}
+}
+
+func TestProductGateDenyMapsToExitCode(t *testing.T) {
+	err := fmt.Errorf("drift detection failed: code drift")
 	if code := exitcode.DetermineExitCode(err); code != exitcode.DriftDetected {
 		t.Fatalf("code=%d want %d for %v", code, exitcode.DriftDetected, err)
 	}

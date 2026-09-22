@@ -37,7 +37,7 @@ func runSessionWaitPost(opts sessionWaitPostOptions) error {
 		}
 	}
 	if doGate {
-		if err := runSessionDriftGate(sessionDriftGateOptions{Quiet: opts.Quiet}); err != nil {
+		if err := runSessionProductGate(sessionProductGateOptions{Quiet: opts.Quiet}); err != nil {
 			return err
 		}
 	}

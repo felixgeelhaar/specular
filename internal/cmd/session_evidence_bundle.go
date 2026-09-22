@@ -20,7 +20,8 @@ type sessionEvidenceBundleOptions struct {
 }
 
 // runSessionEvidenceBundle creates a governance bundle from session evidence
-// (attestations, drift SARIF) plus optional policy library fragments.
+// (attestations, APP .provenance.json, drift SARIF) plus optional policy
+// library fragments.
 func runSessionEvidenceBundle(opts sessionEvidenceBundleOptions) error {
 	output := opts.Output
 	if output == "" {
@@ -62,7 +63,8 @@ func runSessionEvidenceBundle(opts sessionEvidenceBundleOptions) error {
 				continue
 			}
 			name := e.Name()
-			if !strings.HasSuffix(name, ".attestation.json") {
+			if !strings.HasSuffix(name, ".attestation.json") &&
+				!strings.HasSuffix(name, ".provenance.json") {
 				continue
 			}
 			path := filepath.Join(attestDir, name)

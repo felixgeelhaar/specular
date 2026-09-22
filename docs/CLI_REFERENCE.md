@@ -2317,8 +2317,8 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `wait --stop` | With `--timeout`, stop still-running sessions when the deadline fires |
 | `wait --any` | Return when the first named session finishes |
 | `wait --attest` | Write `.attestation.json` for each waited session after success |
-| `wait --gate` | After wait (and optional `--attest`) succeeds, run outer-loop drift with fail-on-drift (exit 4) |
-| `wait --bundle` | After wait, run gate (+ attest when sessions exist) and package attestations/drift/policies into an evidence bundle |
+| `wait --gate` | After wait (and optional `--attest`) succeeds, run product `specular gate` (provenance/drift/policy + evidence; DENY → exit 3/4) |
+| `wait --bundle` | Package attestations + APP `.provenance.json` + drift SARIF (+ `--policy` fragments) into an evidence bundle (implies `--gate`) |
 | `wait --bundle-out <path>` | Bundle output path (default `session-evidence.sbundle.tgz`) |
 | `wait --policy <path>` | Policy/library files to include in `--bundle` (repeatable) |
 | `open --shell` | Print `cd "<worktree>"` instead of the bare path |
