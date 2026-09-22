@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **CI / toolchain Go 1.26**: workflows pin `go-version: '1.26'`; `go.mod`
+  requires `go 1.26.0` with `toolchain go1.26.8`; `golang.org/x/crypto`
+  bumped to v0.57.0 (clears the deferred Go 1.26-compatible OSV path).
+
 ### Added
 
 - **Evidence list `--risk` filter (P1 #9 depth)**: `specular evidence list
