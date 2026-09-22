@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Doctor progressive-trust posture**: `specular doctor` reports which
+  opt-in governance knobs are active (`risk.tiers`, `provenance.attested`,
+  `provenance.protocol`) under Progressive trust / JSON `progressive_trust`.
+
 - **Evidence list session/harness filters (P1 #9 depth)**: `specular evidence
   list --session <id>` (exact) and `--harness <substr>` (case-insensitive)
   filter Change Evidence Graph records by gate provenance; combinable with

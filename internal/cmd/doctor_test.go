@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
+
+	"github.com/felixgeelhaar/specular/internal/policy"
 )
 
 func TestDoctorCommand(t *testing.T) {
@@ -345,5 +348,45 @@ func TestDoctorIsAlsoUnderDebug(t *testing.T) {
 	}
 	if !found {
 		t.Error("doctor command should also be available under debug")
+	}
+}
+
+func TestAttachProgressiveTrust(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(".specular", 0o750); err != nil {
+		t.Fatal(err)
+	}
+	body := "provenance:\n  attested: enforce\n  protocol: enforce\nrisk:\n  high:\n    approvals: [security]\n"
+	if err := os.WriteFile(".specular/policy.yaml", []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	report := &DoctorReport{
+		Policy: &DoctorCheck{
+			Name:    "Policy",
+			Status:  "ok",
+			Details: map[string]interface{}{"path": ".specular/policy.yaml"},
+		},
+	}
+	attachProgressiveTrust(report)
+	if report.ProgressiveTrust == nil {
+		t.Fatal("expected progressive trust")
+	}
+	p := report.ProgressiveTrust
+	if p.Mode != "progressive" || !p.RiskTiers || !p.ProvenanceAttested || !p.ProvenanceProtocol {
+		t.Fatalf("%+v", p)
+	}
+	text := policy.FormatProgressiveTrust(*p)
+	if !strings.Contains(text, "provenance.protocol: enforce") {
+		t.Fatalf("%s", text)
 	}
 }

@@ -353,6 +353,9 @@ Runs comprehensive system health checks across all Specular components:
 - **Git Repository**: Repository status and configuration
 - **Project Structure**: Workspace and file structure validation
 - **Governance**: Governance workspace and policy checks
+- **Progressive trust**: Opt-in policy knobs (`risk:` tiers,
+  `provenance.attested` / `provenance.protocol` enforce) — advisory vs
+  progressive posture (JSON: `progressive_trust`)
 - **Environment**: System environment and dependencies
 - **Provider Telemetry**: Dumps recent provider events to `.specular/provider-events.log` so you can trace detections/health/spec generation history.
   Tail the log (for example `tail -f .specular/provider-events.log`) after running `specular doctor` to see the detailed history.

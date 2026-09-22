@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/detect"
+	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/provider"
 	"github.com/felixgeelhaar/specular/internal/ux"
 )
@@ -69,19 +70,20 @@ func init() {
 
 // DoctorReport represents the complete health check report
 type DoctorReport struct {
-	Docker     *DoctorCheck            `json:"docker"`
-	Podman     *DoctorCheck            `json:"podman,omitempty"`
-	Providers  map[string]*DoctorCheck `json:"providers"`
-	Spec       *DoctorCheck            `json:"spec"`
-	Lock       *DoctorCheck            `json:"lock"`
-	Policy     *DoctorCheck            `json:"policy"`
-	Router     *DoctorCheck            `json:"router"`
-	Git        *DoctorCheck            `json:"git"`
-	Governance *GovernanceChecks       `json:"governance,omitempty"`
-	Issues     []string                `json:"issues"`
-	Warnings   []string                `json:"warnings"`
-	NextSteps  []string                `json:"next_steps"`
-	Healthy    bool                    `json:"healthy"`
+	Docker           *DoctorCheck              `json:"docker"`
+	Podman           *DoctorCheck              `json:"podman,omitempty"`
+	Providers        map[string]*DoctorCheck   `json:"providers"`
+	Spec             *DoctorCheck              `json:"spec"`
+	Lock             *DoctorCheck              `json:"lock"`
+	Policy           *DoctorCheck              `json:"policy"`
+	Router           *DoctorCheck              `json:"router"`
+	Git              *DoctorCheck              `json:"git"`
+	Governance       *GovernanceChecks         `json:"governance,omitempty"`
+	ProgressiveTrust *policy.GovernancePosture `json:"progressive_trust,omitempty"`
+	Issues           []string                  `json:"issues"`
+	Warnings         []string                  `json:"warnings"`
+	NextSteps        []string                  `json:"next_steps"`
+	Healthy          bool                      `json:"healthy"`
 }
 
 // GovernanceChecks represents governance-specific health checks
@@ -442,6 +444,7 @@ func checkProjectStructure(report *DoctorReport) {
 		}
 		report.Warnings = append(report.Warnings, "No policy file found - using default policies")
 	}
+	attachProgressiveTrust(report)
 
 	// Check routing file
 	routerPath := defaults.RoutingFile()
@@ -461,6 +464,25 @@ func checkProjectStructure(report *DoctorReport) {
 			Message: "Router file not found",
 		}
 		report.Warnings = append(report.Warnings, "No router file found - run 'specular init' to create one")
+	}
+}
+
+func attachProgressiveTrust(report *DoctorReport) {
+	posture, err := policy.LoadGovernancePosture(".")
+	if err != nil {
+		report.Warnings = append(report.Warnings,
+			fmt.Sprintf("Policy file present but failed to parse for progressive trust: %v", err))
+		if report.Policy != nil && report.Policy.Status == "ok" {
+			report.Policy.Status = "warning"
+			report.Policy.Message = fmt.Sprintf("Policy file exists but failed to parse: %v", err)
+		}
+		posture.Mode = "advisory"
+		report.ProgressiveTrust = &posture
+		return
+	}
+	report.ProgressiveTrust = &posture
+	if report.Policy != nil && report.Policy.Details != nil && posture.PolicyPath != "" {
+		report.Policy.Details["progressive_trust"] = posture
 	}
 }
 
@@ -696,6 +718,7 @@ func outputText(report *DoctorReport, verbose bool) error {
 	printProjectStructure(report, verbose)
 	printGitRepository(report, verbose)
 	printGovernance(report, verbose)
+	printProgressiveTrust(report)
 	printIssues(report)
 	printWarnings(report)
 	printNextSteps(report)
@@ -847,6 +870,14 @@ func printGovernance(report *DoctorReport, verbose bool) {
 	if gov.Traces != nil {
 		printCheck(gov.Traces, verbose)
 	}
+	fmt.Println()
+}
+
+func printProgressiveTrust(report *DoctorReport) {
+	if report.ProgressiveTrust == nil {
+		return
+	}
+	fmt.Print(policy.FormatProgressiveTrust(*report.ProgressiveTrust))
 	fmt.Println()
 }
 
