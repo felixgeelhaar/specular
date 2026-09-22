@@ -1079,10 +1079,12 @@ type AttestOptions struct {
 
 // AttestResult is the outcome of writing a session attestation.
 type AttestResult struct {
-	SessionID string `json:"sessionId"`
-	Path      string `json:"path"`
-	Harness   string `json:"harness"`
-	Status    string `json:"status"`
+	SessionID      string `json:"sessionId"`
+	Path           string `json:"path"`
+	ProvenancePath string `json:"provenancePath,omitempty"`
+	Harness        string `json:"harness"`
+	Status         string `json:"status"`
+	Governed       bool   `json:"governed,omitempty"`
 }
 
 // Attest writes a signed attestation for a managed session, including harness
@@ -1141,14 +1143,17 @@ func (m *Manager) Attest(ctx context.Context, id string, opts AttestOptions) (*A
 	}
 	// Emit open Agent Provenance Protocol doc beside the attestation (P1 #3 depth).
 	provDoc := provenance.FromAttestation(rec.ID, att)
-	if _, provErr := provenance.WriteBesideAttestation(path, provDoc); provErr != nil {
+	provPath, provErr := provenance.WriteBesideAttestation(path, provDoc)
+	if provErr != nil {
 		return nil, fmt.Errorf("session: write provenance: %w", provErr)
 	}
 	return &AttestResult{
-		SessionID: rec.ID,
-		Path:      path,
-		Harness:   rec.Harness,
-		Status:    att.Status,
+		SessionID:      rec.ID,
+		Path:           path,
+		ProvenancePath: provPath,
+		Harness:        rec.Harness,
+		Status:         att.Status,
+		Governed:       rec.Governed,
 	}, nil
 }
 

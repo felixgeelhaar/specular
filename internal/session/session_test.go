@@ -1148,6 +1148,12 @@ func TestSessionAttest(t *testing.T) {
 	if res.Path == "" || res.Harness != "claude-code" {
 		t.Fatalf("%+v", res)
 	}
+	if res.ProvenancePath == "" {
+		t.Fatal("expected ProvenancePath")
+	}
+	if res.Governed {
+		t.Fatal("ungoverned stub start should not set Governed on attest")
+	}
 	data, readErr := os.ReadFile(res.Path)
 	if readErr != nil {
 		t.Fatal(readErr)
@@ -1165,7 +1171,10 @@ func TestSessionAttest(t *testing.T) {
 	if att.Signature == "" || att.PublicKey == "" {
 		t.Fatal("expected signed attestation")
 	}
-	provPath := strings.TrimSuffix(res.Path, ".attestation.json") + ".provenance.json"
+	provPath := res.ProvenancePath
+	if provPath == "" {
+		provPath = strings.TrimSuffix(res.Path, ".attestation.json") + ".provenance.json"
+	}
 	provRaw, provErr := os.ReadFile(provPath)
 	if provErr != nil {
 		t.Fatalf("expected provenance emit beside attestation: %v", provErr)
