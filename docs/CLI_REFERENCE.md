@@ -77,13 +77,35 @@ Evaluate a proposed software change and print an explainable ALLOW / DENY verdic
 specular gate [--format text|json|markdown] [--github-annotations] [--json] [--strict-spec] [--policy <file>] [--report <sarif>]
 ```
 
-**Pipeline:** change discovery → provenance summary → drift (when specs exist) → policy verification (when policy exists) → verdict → evidence record.
+**Pipeline:** change discovery → provenance summary → drift (when specs exist) → policy verification (when policy exists) → risk profile → approvals trail → verdict → evidence record.
 
 When session attestation(s) are present, gate JSON includes an additive
 `provenanceProtocol` block referencing `specular.provenance/v1` (see
 [provenance](#provenance)).
 
 Brownfield repositories without `.specular/spec`+plan+lock skip drift unless `--strict-spec`. Missing policy skips verification. Missing session attestations are reported as unattested (never silently verified).
+
+**Risk (PRODUCT_INTENT §12–§13):** Path heuristics produce an advisory
+`NONE|LOW|MEDIUM|HIGH|CRITICAL` profile (auth, deps, infra/CI, secrets,
+unattested provenance). Without a policy `risk:` block, Risk never flips
+ALLOW→DENY. With opt-in `risk:` tiers, missing required approvals DENY:
+
+```yaml
+risk:
+  low:
+    approval: none
+  medium:
+    approval: [code-owner]
+  high:
+    approvals: [security, service-owner]
+  critical:
+    autonomous_execution: false
+    approvals: [security, platform]
+```
+
+Satisfy a required role with an open exception whose `--policy` (or
+`--scope`) matches the role, e.g.
+`specular approve exception-auth --reason "…" --policy security`.
 
 | Flag | Description |
 |------|-------------|

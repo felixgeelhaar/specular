@@ -133,6 +133,9 @@ func runGate(cmd *cobra.Command, _ []string) error {
 		if res.Policy.Status == gate.StatusFail {
 			return fmt.Errorf("policy violation: %s", res.Reason)
 		}
+		if res.Risk.Enforced && len(res.Risk.Missing) > 0 {
+			return fmt.Errorf("policy violation: %s", res.Reason)
+		}
 		return fmt.Errorf("gate denied: %s", res.Reason)
 	}
 	return nil
