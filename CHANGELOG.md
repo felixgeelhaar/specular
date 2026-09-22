@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Evidence list `--governed` (P1 #9 depth)**: `specular evidence list
+  --governed[=true|false]` filters Change Evidence Graph records by
+  gate provenance.governed (safer native launch), combinable with existing
+  soft-allow/attested/session filters.
+
 - **Session integrate `--enforce` (P1 #4 depth)**: opt-in fail-closed
   Stop/SessionEnd hooks (`attest` + `gate --require-attested --require-protocol`)
   so provenance can block agent completion. Default remains advisory; use

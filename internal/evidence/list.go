@@ -21,6 +21,7 @@ type ListFilter struct {
 	Harness      string       // case-insensitive substring against harnesses[]
 	SoftAllow    *bool        // nil = any; true = has exception overrules; false = none
 	Attested     *bool        // nil = any; true/false = gate.provenance.attested
+	Governed     *bool        // nil = any; true/false = gate.provenance.governed
 	Limit        int          // max results; <=0 = unlimited
 }
 
@@ -80,7 +81,7 @@ func (f ListFilter) Match(rec *Record) bool {
 	if !f.matchRisk(rec) || !f.matchSession(rec) || !f.matchHarness(rec) {
 		return false
 	}
-	if !f.matchSoftAllow(rec) || !f.matchAttested(rec) {
+	if !f.matchSoftAllow(rec) || !f.matchAttested(rec) || !f.matchGoverned(rec) {
 		return false
 	}
 	return true
@@ -155,11 +156,20 @@ func (f ListFilter) matchAttested(rec *Record) bool {
 	return attested == *f.Attested
 }
 
+func (f ListFilter) matchGoverned(rec *Record) bool {
+	if f.Governed == nil {
+		return true
+	}
+	governed := rec != nil && rec.Gate != nil && rec.Gate.Provenance.Governed
+	return governed == *f.Governed
+}
+
 // Active reports whether any selection constraint is set (ignores Limit).
 func (f ListFilter) Active() bool {
 	return f.Verdict != "" || !f.Since.IsZero() || strings.TrimSpace(f.PathContains) != "" ||
 		strings.TrimSpace(f.RiskLevel) != "" || strings.TrimSpace(f.Session) != "" ||
-		strings.TrimSpace(f.Harness) != "" || f.SoftAllow != nil || f.Attested != nil
+		strings.TrimSpace(f.Harness) != "" || f.SoftAllow != nil || f.Attested != nil ||
+		f.Governed != nil
 }
 
 func (f ListFilter) validate() error {
