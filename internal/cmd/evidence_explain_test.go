@@ -38,7 +38,7 @@ func TestEvidenceListFilterFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"verdict", "since", "path", "risk", "limit", "json"} {
+	for _, name := range []string{"verdict", "since", "path", "risk", "session", "harness", "limit", "json"} {
 		if cmd.Flags().Lookup(name) == nil {
 			t.Fatalf("missing --%s", name)
 		}
