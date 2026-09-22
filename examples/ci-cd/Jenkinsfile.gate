@@ -1,0 +1,126 @@
+// Specular gate as a Jenkins change-control check (PRODUCT_INTENT §21 / P1 #8 depth)
+//
+// Mirrors examples/ci-cd/gitlab-gate.yml and .github/workflows/examples/specular-gate.yml:
+//   - markdown board archived as gate.md
+//   - drift SARIF recorded when present
+//   - brownfield: missing policy.yaml soft-skips policy inside gate
+//
+// Usage: copy to Jenkinsfile (or Multibranch Pipeline script path).
+// Exit codes: 0=ALLOW, 3=policy DENY, 4=drift DENY
+
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+        timeout(time: 20, unit: 'MINUTES')
+        timestamps()
+    }
+
+    parameters {
+        booleanParam(name: 'STRICT_SPEC', defaultValue: false, description: 'Pass --strict-spec (fail when specs missing)')
+        booleanParam(name: 'FAIL_ON_DENY', defaultValue: true, description: 'Fail build on gate DENY (exit 3/4)')
+    }
+
+    environment {
+        SPECULAR_VERSION = 'latest'
+        SPECULAR_NO_TELEMETRY = 'true'
+        POLICY_FILE = '.specular/policy.yaml'
+        REPORT_FILE = 'drift.sarif'
+        GATE_MD = 'gate.md'
+    }
+
+    stages {
+        stage('Setup') {
+            steps {
+                sh '''
+                    set -euo pipefail
+                    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+                    ARCH=$(uname -m)
+                    case "$ARCH" in
+                      x86_64) ARCH="amd64" ;;
+                      aarch64|arm64) ARCH="arm64" ;;
+                    esac
+                    if [ "$SPECULAR_VERSION" = "latest" ]; then
+                      URL="https://github.com/felixgeelhaar/specular/releases/latest/download/specular_${OS}_${ARCH}.tar.gz"
+                    else
+                      URL="https://github.com/felixgeelhaar/specular/releases/download/${SPECULAR_VERSION}/specular_${OS}_${ARCH}.tar.gz"
+                    fi
+                    curl -fsSL "$URL" | tar -xz -C /usr/local/bin specular
+                    chmod +x /usr/local/bin/specular
+                    specular version
+                '''
+            }
+        }
+
+        stage('Specular Gate') {
+            when {
+                anyOf {
+                    changeRequest()
+                    branch 'main'
+                    branch 'master'
+                    branch 'develop'
+                }
+            }
+            steps {
+                script {
+                    def strict = params.STRICT_SPEC ? '1' : '0'
+                    def exitCode = sh(
+                        script: """
+                            set +e
+                            POLICY_ARGS=()
+                            if [ -f "\$POLICY_FILE" ]; then
+                              POLICY_ARGS=(--policy "\$POLICY_FILE")
+                            else
+                              echo "No \$POLICY_FILE — gate will soft-skip policy (brownfield)."
+                            fi
+                            STRICT_ARGS=()
+                            if [ "${strict}" = "1" ]; then
+                              STRICT_ARGS=(--strict-spec)
+                            fi
+                            # --github-annotations is GitHub-only — omit here.
+                            specular gate --format markdown "\${POLICY_ARGS[@]}" "\${STRICT_ARGS[@]}" --report "\$REPORT_FILE" > "\$GATE_MD"
+                            code=\$?
+                            cat "\$GATE_MD"
+                            echo "\$code"
+                            exit 0
+                        """,
+                        returnStdout: true
+                    ).trim().readLines().last().toInteger()
+
+                    archiveArtifacts artifacts: 'gate.md,drift.sarif,.specular/evidence/**', allowEmptyArchive: true, fingerprint: true
+
+                    if (fileExists('drift.sarif')) {
+                        recordIssues(
+                            tool: sarif(pattern: 'drift.sarif'),
+                            name: 'Specular Gate',
+                            qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]]
+                        )
+                    }
+
+                    if (exitCode == 0) {
+                        echo 'Gate ALLOW'
+                    } else if (exitCode == 3) {
+                        echo 'Gate DENY (policy)'
+                        if (params.FAIL_ON_DENY) {
+                            error('Gate DENY (policy) — build failed')
+                        }
+                    } else if (exitCode == 4) {
+                        echo 'Gate DENY (drift)'
+                        if (params.FAIL_ON_DENY) {
+                            error('Gate DENY (drift) — build failed')
+                        }
+                    } else {
+                        error("Gate failed with unexpected exit code ${exitCode}")
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Specular gate stage finished — see archived gate.md / drift.sarif'
+        }
+    }
+}
