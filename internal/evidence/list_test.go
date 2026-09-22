@@ -500,6 +500,34 @@ func TestListIDsUsesCreatedAtOrder(t *testing.T) {
 	}
 }
 
+func TestListCommitPrefix(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 22, 19, 0, 0, 0, time.UTC)
+	hit := mustWriteRecord(t, root, &Record{
+		Schema:    Schema,
+		CreatedAt: now,
+		Commit:    "deadbeefcafebabe000000000000000000000001",
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Change:  gate.ChangeSection{Commit: "deadbeefcafebabe000000000000000000000001"},
+		},
+	})
+	_ = mustWriteRecord(t, root, &Record{
+		Schema:    Schema,
+		CreatedAt: now.Add(-time.Hour),
+		Commit:    "abcdef0123456789000000000000000000000002",
+		Gate:      &gate.Result{Verdict: gate.Deny},
+	})
+	recs, err := List(root, ListFilter{CommitPrefix: "deadbeef", Limit: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recs) != 1 || recs[0].ID != hit.ID {
+		t.Fatalf("got %v want [%s]", idsOf(recs), hit.ID)
+	}
+}
+
 func TestListControlFailedCheckSEC17(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

@@ -16,7 +16,7 @@ func TestWriteLoadLatestRoundTrip(t *testing.T) {
 	res := &gate.Result{
 		Verdict: gate.Allow,
 		Reason:  "drift skipped; policy skipped; provenance unattested",
-		Change:  gate.ChangeSection{Branch: "main", Dirty: false},
+		Change:  gate.ChangeSection{Branch: "main", Commit: "abc123def456", Dirty: false},
 		Drift:   gate.DriftSection{Status: gate.StatusSkipped, Note: "brownfield"},
 		Policy:  gate.PolicySection{Status: gate.StatusSkipped},
 		Provenance: gate.ProvenanceSection{
@@ -30,6 +30,9 @@ func TestWriteLoadLatestRoundTrip(t *testing.T) {
 	}
 	if !strings.HasPrefix(rec.ID, "ev_") {
 		t.Fatalf("id=%s", rec.ID)
+	}
+	if rec.Commit != "abc123def456" {
+		t.Fatalf("commit=%q", rec.Commit)
 	}
 	if err := Write(root, rec); err != nil {
 		t.Fatal(err)

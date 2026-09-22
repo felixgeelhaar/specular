@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Evidence commit + explain/list by SHA**: gate `Change.Commit` records
+  `HEAD`; evidence persists it; `explain abc123` / `--commit` and
+  `evidence list --commit` select by SHA prefix (PRODUCT_INTENT §20).
+
 - **Explain / evidence `--control` (PRODUCT_INTENT §20)**: substring filter
   on failed policy checks, exception `--policy`, and soft-ALLOW bind tokens;
   `explain --control SEC-17` + `evidence list --control`. Explain `--policy`

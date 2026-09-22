@@ -17,6 +17,7 @@ type ListFilter struct {
 	Since           time.Time    // inclusive lower bound on CreatedAt; zero = any
 	PathContains    string       // substring match on root / finding paths
 	ControlContains string       // substring match on failed checks / exception policy / overrule bind
+	CommitPrefix    string       // case-insensitive prefix match on record Commit / gate.change.commit
 	RiskLevel       string       // NONE|LOW|MEDIUM|HIGH|CRITICAL; empty = any
 	Session         string       // exact match against gate.provenance.sessions[]
 	Harness         string       // case-insensitive substring against harnesses[]
@@ -77,7 +78,7 @@ func (f ListFilter) Match(rec *Record) bool {
 	if rec == nil {
 		return false
 	}
-	if !f.matchVerdict(rec) || !f.matchSince(rec) || !f.matchPath(rec) || !f.matchControl(rec) {
+	if !f.matchVerdict(rec) || !f.matchSince(rec) || !f.matchPath(rec) || !f.matchControl(rec) || !f.matchCommit(rec) {
 		return false
 	}
 	if !f.matchRisk(rec) || !f.matchSession(rec) || !f.matchHarness(rec) {
@@ -117,6 +118,14 @@ func (f ListFilter) matchControl(rec *Record) bool {
 		return true
 	}
 	return controlContains(rec, sub)
+}
+
+func (f ListFilter) matchCommit(rec *Record) bool {
+	prefix := strings.TrimSpace(f.CommitPrefix)
+	if prefix == "" {
+		return true
+	}
+	return commitPrefixMatch(rec, prefix)
 }
 
 func (f ListFilter) matchRisk(rec *Record) bool {
@@ -196,7 +205,7 @@ func protocolDocsOK(rec *Record) bool {
 // Active reports whether any selection constraint is set (ignores Limit).
 func (f ListFilter) Active() bool {
 	return f.Verdict != "" || !f.Since.IsZero() || strings.TrimSpace(f.PathContains) != "" ||
-		strings.TrimSpace(f.ControlContains) != "" ||
+		strings.TrimSpace(f.ControlContains) != "" || strings.TrimSpace(f.CommitPrefix) != "" ||
 		strings.TrimSpace(f.RiskLevel) != "" || strings.TrimSpace(f.Session) != "" ||
 		strings.TrimSpace(f.Harness) != "" || f.SoftAllow != nil || f.Attested != nil ||
 		f.Governed != nil || f.Protocol != nil
@@ -260,6 +269,34 @@ func controlContains(rec *Record, sub string) bool {
 		}
 	}
 	return false
+}
+
+func commitPrefixMatch(rec *Record, prefix string) bool {
+	prefix = strings.ToLower(strings.TrimSpace(prefix))
+	if prefix == "" {
+		return false
+	}
+	for _, c := range recordCommitStrings(rec) {
+		c = strings.ToLower(strings.TrimSpace(c))
+		if c != "" && strings.HasPrefix(c, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func recordCommitStrings(rec *Record) []string {
+	if rec == nil {
+		return nil
+	}
+	var out []string
+	if rec.Commit != "" {
+		out = append(out, rec.Commit)
+	}
+	if rec.Gate != nil && rec.Gate.Change.Commit != "" {
+		out = append(out, rec.Gate.Change.Commit)
+	}
+	return out
 }
 
 // recordControlStrings collects policy/control tokens from failed checks,
