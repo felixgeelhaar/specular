@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **GitLab MR gate depth (P1 #7)**: `examples/ci-cd/gitlab-gate.yml` focused
+  gate job (markdown + SARIF + brownfield policy soft-skip) with MR note
+  **upsert** on `## Specular Change Control`; full `gitlab-ci.yml` comment
+  job updated to upsert instead of stacking notes.
+
 ### Changed
 
 - **CI / toolchain Go 1.26**: workflows pin `go-version: '1.26'`; `go.mod`

@@ -18,11 +18,22 @@ ALLOW/DENY, and writes evidence under `.specular/evidence/`.
 
 | File | Platform |
 |------|----------|
-| [`gitlab-ci.yml`](./gitlab-ci.yml) | GitLab CI (MR gate + optional comment via `GITLAB_API_TOKEN`) |
+| [`gitlab-gate.yml`](./gitlab-gate.yml) | **GitLab MR gate (recommended)** — markdown + upsert note + SARIF |
+| [`gitlab-ci.yml`](./gitlab-ci.yml) | GitLab full pipeline (validate/plan/build + gate) |
 | [`Jenkinsfile`](./Jenkinsfile) | Jenkins (credentials for provider API keys unchanged) |
 | [`circleci-config.yml`](./circleci-config.yml) | CircleCI |
 | [`generic-ci.sh`](./generic-ci.sh) | Any shell-based CI (Buildkite, Tekton, etc.) |
 | [`github-actions-basic.yml`](./github-actions-basic.yml) | Legacy composite-action sample — prefer the gate workflow above |
+
+### GitLab MR gate (P1 #7)
+
+Copy [`gitlab-gate.yml`](./gitlab-gate.yml) to `.gitlab-ci.yml` (or `include:` it).
+Optional CI/CD variable `GITLAB_API_TOKEN` (api scope) upserts an MR note on
+the stable `## Specular Change Control` marker — same UX as the GitHub
+example (update in place instead of stacking notes). Without the token,
+gate still runs and fails the pipeline on DENY.
+
+Brownfield: missing `.specular/policy.yaml` soft-skips policy inside gate.
 
 ## Sensible CI flags
 
