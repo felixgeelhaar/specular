@@ -45,11 +45,13 @@ func TestListFilters(t *testing.T) {
 			Policy: gate.PolicySection{Status: gate.StatusSkipped},
 			Risk:   gate.RiskSection{Level: "HIGH", Factors: []string{"authentication / authorization paths modified"}},
 			Provenance: gate.ProvenanceSection{
-				Status:    gate.StatusPass,
-				Attested:  true,
-				Governed:  true,
-				Sessions:  []string{"auth", "auth-alt"},
-				Harnesses: []string{"claude-code"},
+				Status:       gate.StatusPass,
+				Attested:     true,
+				Governed:     true,
+				Sessions:     []string{"auth", "auth-alt"},
+				Harnesses:    []string{"claude-code"},
+				ProtocolDocs: 1,
+				ProtocolOK:   1,
 			},
 		},
 	})
@@ -385,6 +387,36 @@ func TestListFilters(t *testing.T) {
 		for _, id := range got {
 			if id == softAllow.ID || id == denyMid.ID {
 				t.Fatalf("governed record leaked: %v", got)
+			}
+		}
+	})
+
+	t.Run("protocol_true", func(t *testing.T) {
+		t.Parallel()
+		yes := true
+		recs, err := List(root, ListFilter{Protocol: &yes})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) != 1 || recs[0].ID != denyMid.ID {
+			t.Fatalf("got %v", idsOf(recs))
+		}
+	})
+
+	t.Run("protocol_false", func(t *testing.T) {
+		t.Parallel()
+		no := false
+		recs, err := List(root, ListFilter{Protocol: &no})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := idsOf(recs)
+		if len(got) != 3 {
+			t.Fatalf("got %v", got)
+		}
+		for _, id := range got {
+			if id == denyMid.ID {
+				t.Fatalf("protocol-ok record leaked: %v", got)
 			}
 		}
 	})

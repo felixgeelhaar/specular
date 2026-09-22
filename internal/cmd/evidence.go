@@ -34,6 +34,7 @@ Examples:
   specular evidence list --soft-allow --verdict ALLOW
   specular evidence list --attested=false
   specular evidence list --governed
+  specular evidence list --protocol=false
   specular evidence show
   specular evidence show ev_abc123
   specular evidence show --json
@@ -55,6 +56,7 @@ Filters (combinable):
   --soft-allow[=true|false]         Exception soft-ALLOW overrules present / absent
   --attested[=true|false]           Gate provenance attested / unattested
   --governed[=true|false]           Gate provenance governed / ungoverned
+  --protocol[=true|false]           APP docs present+valid / missing or invalid
   --limit N                         Cap results after sorting (newest first)
 
 --json emits a JSON array of matching IDs.
@@ -141,6 +143,10 @@ func evidenceListFilter(cmd *cobra.Command) (evidence.ListFilter, error) {
 		v, _ := cmd.Flags().GetBool("governed")
 		f.Governed = &v
 	}
+	if cmd.Flags().Changed("protocol") {
+		v, _ := cmd.Flags().GetBool("protocol")
+		f.Protocol = &v
+	}
 	limit, _ := cmd.Flags().GetInt("limit")
 	f.Limit = limit
 	return f, nil
@@ -190,6 +196,7 @@ func init() {
 	evidenceListCmd.Flags().Bool("soft-allow", false, "Filter by exception soft-ALLOW overrules (--soft-allow / --soft-allow=false)")
 	evidenceListCmd.Flags().Bool("attested", false, "Filter by attested provenance (--attested / --attested=false)")
 	evidenceListCmd.Flags().Bool("governed", false, "Filter by governed provenance (--governed / --governed=false)")
+	evidenceListCmd.Flags().Bool("protocol", false, "Filter by APP protocol docs OK (--protocol / --protocol=false)")
 	evidenceListCmd.Flags().Int("limit", 0, "Maximum number of records to return (0 = all)")
 	evidenceShowCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	evidenceCmd.AddCommand(evidenceListCmd)

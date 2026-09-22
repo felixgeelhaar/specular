@@ -22,6 +22,7 @@ type ListFilter struct {
 	SoftAllow    *bool        // nil = any; true = has exception overrules; false = none
 	Attested     *bool        // nil = any; true/false = gate.provenance.attested
 	Governed     *bool        // nil = any; true/false = gate.provenance.governed
+	Protocol     *bool        // nil = any; true = APP docs present+valid; false = missing/invalid
 	Limit        int          // max results; <=0 = unlimited
 }
 
@@ -81,7 +82,7 @@ func (f ListFilter) Match(rec *Record) bool {
 	if !f.matchRisk(rec) || !f.matchSession(rec) || !f.matchHarness(rec) {
 		return false
 	}
-	if !f.matchSoftAllow(rec) || !f.matchAttested(rec) || !f.matchGoverned(rec) {
+	if !f.matchSoftAllow(rec) || !f.matchAttested(rec) || !f.matchGoverned(rec) || !f.matchProtocol(rec) {
 		return false
 	}
 	return true
@@ -164,12 +165,29 @@ func (f ListFilter) matchGoverned(rec *Record) bool {
 	return governed == *f.Governed
 }
 
+func (f ListFilter) matchProtocol(rec *Record) bool {
+	if f.Protocol == nil {
+		return true
+	}
+	ok := protocolDocsOK(rec)
+	return ok == *f.Protocol
+}
+
+func protocolDocsOK(rec *Record) bool {
+	if rec == nil || rec.Gate == nil {
+		return false
+	}
+	docs := rec.Gate.Provenance.ProtocolDocs
+	ok := rec.Gate.Provenance.ProtocolOK
+	return docs > 0 && ok >= docs
+}
+
 // Active reports whether any selection constraint is set (ignores Limit).
 func (f ListFilter) Active() bool {
 	return f.Verdict != "" || !f.Since.IsZero() || strings.TrimSpace(f.PathContains) != "" ||
 		strings.TrimSpace(f.RiskLevel) != "" || strings.TrimSpace(f.Session) != "" ||
 		strings.TrimSpace(f.Harness) != "" || f.SoftAllow != nil || f.Attested != nil ||
-		f.Governed != nil
+		f.Governed != nil || f.Protocol != nil
 }
 
 func (f ListFilter) validate() error {

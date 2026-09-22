@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Evidence list `--protocol` (P1 #9 depth)**: `specular evidence list
+  --protocol[=true|false]` filters records by APP `.provenance.json` docs
+  present+valid vs missing/invalid (`protocolDocs` / `protocolOk`).
+
 - **Agents examples `--enforce` docs**: `examples/agents/` README + harness
   guides document Level-3 `session integrate --enforce --force`; reference
   Stop scripts regenerated with advisory mode marker.
