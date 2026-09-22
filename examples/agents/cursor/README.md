@@ -6,6 +6,7 @@ Prefer the CLI so `hooks.json` merge is idempotent:
 
 ```bash
 specular session integrate cursor
+specular session integrate cursor --enforce --force  # Level-3 fail-closed
 ```
 
 Alias: `specular session integrate cursor-agent`.

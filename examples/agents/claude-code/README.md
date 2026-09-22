@@ -6,6 +6,7 @@ Prefer the CLI so settings merge is idempotent:
 
 ```bash
 specular session integrate claude-code
+specular session integrate claude-code --enforce --force  # Level-3 fail-closed
 ```
 
 ## Files
