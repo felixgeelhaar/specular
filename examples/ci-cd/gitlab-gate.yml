@@ -19,6 +19,8 @@ variables:
   SPECULAR_NO_TELEMETRY: "true"
   POLICY_FILE: ".specular/policy.yaml"
   GATE_MARKER: "## Specular Change Control"
+  # Set REQUIRE_ATTESTED=true to pass --require-attested (progressive trust).
+  REQUIRE_ATTESTED: "false"
 
 .install_specular: &install_specular
   - |
@@ -54,8 +56,13 @@ specular_gate:
       else
         echo "No $POLICY_FILE — gate will soft-skip policy (brownfield)."
       fi
+      ATTEST_ARGS=()
+      if [ "${REQUIRE_ATTESTED:-false}" = "true" ] || [ "${REQUIRE_ATTESTED:-0}" = "1" ]; then
+        ATTEST_ARGS=(--require-attested)
+        echo "Progressive trust: --require-attested enabled"
+      fi
       # --github-annotations is GitHub-only — omit on GitLab.
-      specular gate --format markdown "${POLICY_ARGS[@]}" --report drift.sarif > gate.md
+      specular gate --format markdown "${POLICY_ARGS[@]}" "${ATTEST_ARGS[@]}" --report drift.sarif > gate.md
       EXIT_CODE=$?
       set -e
       cat gate.md

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **CI examples `--require-attested`**: GitHub / GitLab / Jenkins / generic
+  gate templates accept optional `REQUIRE_ATTESTED` so progressive trust can
+  be toggled in CI without editing `policy.yaml`.
+
 - **Gate `--require-attested`**: CLI flag mirrors policy
   `provenance.attested: enforce` so CI can DENY unattested trees without
   editing `policy.yaml`.
