@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals list `--type` / `--policy` / `--scope` (P1 #6 depth)**:
+  `specular approvals list` filters by record type and case-insensitive
+  policy/scope substrings (combinable with `--status`).
+
 - **Session attest/show APP surface**: `session attest` reports `ProvenancePath`
   + `governed` and prints `provenance verify` next to `auto verify`;
   `session show` lists sibling attestation/APP paths when present.

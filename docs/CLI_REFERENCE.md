@@ -785,10 +785,12 @@ $ specular approve exception-EX-192 \
 
 ### approvals list
 
-List approval records with optional lifecycle filtering.
+List approval records with optional filters (P1 #6 depth).
 
 ```bash
-specular approvals list [--status open|closed|expired] [--json]
+specular approvals list [--status open|closed|expired] \
+  [--type bundle|drift|policy|plan|exception] \
+  [--policy <substr>] [--scope <substr>] [--json]
 ```
 
 **Description:**
@@ -796,11 +798,13 @@ specular approvals list [--status open|closed|expired] [--json]
 Displays approval records grouped by type and sorted by timestamp.
 `--status` keeps records whose lifecycle is `open` (not closed, not expired),
 `closed` (explicit revoke), or `expired` (past `expires_at`). Closed wins when
-both closed and expired apply. `--json` emits the matching record array.
+both closed and expired apply. `--type` filters by record type. `--policy` /
+`--scope` are case-insensitive substrings on those fields (combinable with
+`--status`). `--json` emits the matching record array.
 
 **Example:**
 ```bash
-$ specular approvals list --status open
+$ specular approvals list --status open --type exception --policy provenance
 
 APPROVAL / EXCEPTION TRAIL
 ──────────────────────────────────────
