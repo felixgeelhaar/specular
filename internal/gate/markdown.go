@@ -135,8 +135,19 @@ func writeMarkdownNotes(b *strings.Builder, res *Result) {
 }
 
 func writeMarkdownApprovals(b *strings.Builder, res *Result) {
+	if len(res.Approvals.Overrules) > 0 {
+		b.WriteString("_Exception soft-ALLOW overruled:_\n")
+		for _, o := range res.Approvals.Overrules {
+			fmt.Fprintf(b, "- ⚠ `%s` → `%s` (%s)\n", o.ResourceID, o.Kind, o.Binding)
+		}
+		b.WriteString("\n")
+	}
 	if len(res.Approvals.Exceptions) > 0 {
-		b.WriteString("_Open exceptions (advisory):_\n")
+		label := "_Open exceptions:_"
+		if len(res.Approvals.Overrules) == 0 {
+			label = "_Open exceptions (advisory until bound):_"
+		}
+		b.WriteString(label + "\n")
 		for _, ex := range res.Approvals.Exceptions {
 			line := "- ⚠ `" + ex.ResourceID + "`"
 			if ex.Reason != "" {
@@ -148,7 +159,7 @@ func writeMarkdownApprovals(b *strings.Builder, res *Result) {
 		return
 	}
 	if res.Verdict == Deny {
-		b.WriteString("_Approvals:_ none open — record with `specular approve exception-<id> --reason \"...\" --scope \"...\"`\n\n")
+		b.WriteString("_Approvals:_ none open — record with `specular approve exception-<id> --reason \"...\" --scope \"...\" --policy …`\n\n")
 		return
 	}
 	if res.Approvals.Note != "" && res.Approvals.Count == 0 {

@@ -52,13 +52,17 @@ specular approvals show
 specular approvals show exception-EX-192
 ```
 
-Record a controlled exception (auditable trail; does not flip gate DENY→ALLOW):
+Record a controlled exception. An open, non-expired exception can **soft-ALLOW**
+a matching gate DENY when `--policy` / `--scope` binds to that deny (drift
+finding code/path, failed policy check, or risk category/level). Unmatched
+exceptions stay advisory. Prefer short `--expires`; permanent silent
+suppression is discouraged.
 
 ```bash
 specular approve exception-EX-192 \
   --reason "Emergency auth hotfix" \
   --scope "internal/auth/**" \
-  --policy SEC-17 \
+  --policy drift \
   --expires 7d \
   --message "Security on-call approved"
 ```

@@ -195,7 +195,8 @@ func runApprove(cmd *cobra.Command, args []string) error {
 			fmt.Printf("Expires:     %s\n", rec.ExpiresAt.Format(time.RFC3339))
 		}
 		fmt.Printf("Saved:       %s\n", approvalPath)
-		fmt.Println("\nNote: exceptions are an auditable trail; they do not flip gate DENY→ALLOW.")
+		fmt.Println("\nNote: an open, non-expired exception can soft-ALLOW a matching gate DENY")
+		fmt.Println("(drift/policy/risk) when --policy/--scope binds to that deny; otherwise advisory.")
 		return nil
 	}
 

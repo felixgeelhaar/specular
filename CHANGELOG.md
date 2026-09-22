@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Scoped exception soft-ALLOW (P1 #6 depth)**: an open, non-expired
+  exception can soft-ALLOW a gate DENY when `--policy` / `--scope` binds to
+  that deny (drift finding code/path, failed policy check, or risk
+  category/level). Gate board/JSON record `approvals.overrules`; underlying
+  Drift/Policy FAIL status is preserved. Unmatched exceptions stay advisory.
+  Risk role matching via `--policy`/`--scope` (P1 #1) is unchanged.
+
 - **Risk-adaptive governance (P1 #1 depth)**: opt-in policy `risk:` tiers
   (`low`/`medium`/`high`/`critical`) map advisory path-heuristic levels to
   required approvals; missing roles DENY with Required/Observed/Missing on

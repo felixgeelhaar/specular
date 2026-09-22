@@ -697,8 +697,11 @@ Creates an approval record for:
 - `exception` / `exception-<id>` (controlled exception trail)
 
 `--message` is required for non-exception approvals. Exceptions require `--reason`
-(and should set `--scope`). Exception records are advisory audit trail only —
-they do not flip gate DENY→ALLOW. See `docs/APPROVAL_BEST_PRACTICES.md`.
+(and should set `--scope` / `--policy`). An open, non-expired exception can
+**soft-ALLOW** a matching gate DENY when `--policy`/`--scope` binds to that
+deny (drift finding code/path, failed policy check name, or risk
+category/level). Unmatched exceptions stay advisory. See
+`docs/APPROVAL_BEST_PRACTICES.md`.
 
 **Example:**
 ```bash
