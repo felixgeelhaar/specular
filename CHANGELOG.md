@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Agent Provenance emit + verify (P1 #3 depth)**: `session attest` writes
+  `.specular/sessions/<id>.provenance.json` beside the attestation;
+  `specular provenance verify [id|path]` schema-checks the open
+  `specular.provenance/v1` envelope (not signatures). `show`/`verify`
+  prefer the sibling doc when present.
+
 - **Scoped exception soft-ALLOW (P1 #6 depth)**: an open, non-expired
   exception can soft-ALLOW a gate DENY when `--policy` / `--scope` binds to
   that deny (drift finding code/path, failed policy check, or risk

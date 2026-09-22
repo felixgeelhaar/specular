@@ -22,6 +22,7 @@ import (
 
 	"github.com/felixgeelhaar/specular/internal/attestation"
 	"github.com/felixgeelhaar/specular/internal/policy"
+	"github.com/felixgeelhaar/specular/internal/provenance"
 	"github.com/felixgeelhaar/specular/internal/safeutil"
 	"github.com/felixgeelhaar/specular/internal/version"
 	"github.com/felixgeelhaar/specular/internal/worktree"
@@ -1137,6 +1138,11 @@ func (m *Manager) Attest(ctx context.Context, id string, opts AttestOptions) (*A
 	}
 	if writeErr := os.WriteFile(path, data, 0o600); writeErr != nil {
 		return nil, fmt.Errorf("session: write attestation: %w", writeErr)
+	}
+	// Emit open Agent Provenance Protocol doc beside the attestation (P1 #3 depth).
+	provDoc := provenance.FromAttestation(rec.ID, att)
+	if _, provErr := provenance.WriteBesideAttestation(path, provDoc); provErr != nil {
+		return nil, fmt.Errorf("session: write provenance: %w", provErr)
 	}
 	return &AttestResult{
 		SessionID: rec.ID,

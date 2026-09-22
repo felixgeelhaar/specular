@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/specular/internal/attestation"
+	"github.com/felixgeelhaar/specular/internal/provenance"
 )
 
 func TestStoreSaveLoadList(t *testing.T) {
@@ -1163,6 +1164,21 @@ func TestSessionAttest(t *testing.T) {
 	}
 	if att.Signature == "" || att.PublicKey == "" {
 		t.Fatal("expected signed attestation")
+	}
+	provPath := strings.TrimSuffix(res.Path, ".attestation.json") + ".provenance.json"
+	provRaw, provErr := os.ReadFile(provPath)
+	if provErr != nil {
+		t.Fatalf("expected provenance emit beside attestation: %v", provErr)
+	}
+	doc, docErr := provenance.ParseDocument(provRaw)
+	if docErr != nil {
+		t.Fatal(docErr)
+	}
+	if vr := provenance.Validate(doc); !vr.OK {
+		t.Fatalf("validate: %+v", vr)
+	}
+	if doc.Session != rec.ID || doc.Harness != "claude-code" {
+		t.Fatalf("%+v", doc)
 	}
 	verifier := attestation.NewStandardVerifier()
 	if err := verifier.Verify(att); err != nil {
