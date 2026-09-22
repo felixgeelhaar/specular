@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Codex / Gemini native hooks (P1 #4 depth)**: `specular session integrate
+  codex|gemini` (aliases `codex-cli` / `gemini-cli`) installs Stop /
+  SessionEnd hooks that call `session attest` + `gate`; reference configs
+  under `examples/agents/codex/` and `examples/agents/gemini/`.
+
 - **APP protocol enforce (P1 #3/#10 depth)**: opt-in policy `provenance:
   protocol: enforce` DENYs when attested sessions lack valid sibling
   `.provenance.json` docs (or schema validation fails). Soft-ALLOW via

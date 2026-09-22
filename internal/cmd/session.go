@@ -29,6 +29,8 @@ var sessionCmd = &cobra.Command{
 Examples:
   specular session integrate claude-code
   specular session integrate cursor
+  specular session integrate codex
+  specular session integrate gemini
   specular session start --harness claude-code "Add /healthz endpoint"
   specular session start --name auth --harness codex "Harden JWT validation"
   specular session status --watch
@@ -1449,9 +1451,12 @@ inventing a new protocol. Prefer managed sessions:
   specular session integrate claude-code --dry-run
   specular session integrate cursor
   specular session integrate cursor --dry-run
+  specular session integrate codex
+  specular session integrate gemini
   specular session start --harness claude-code --governed "Harden JWT validation"
 
-Supported harnesses: claude-code (alias: claude), cursor (alias: cursor-agent).
+Supported harnesses: claude-code (alias: claude), cursor (alias: cursor-agent),
+codex (alias: codex-cli), gemini (alias: gemini-cli).
 
 Installs (claude-code):
   .claude/hooks/specular-session-stop.sh
@@ -1461,8 +1466,16 @@ Installs (cursor):
   .cursor/hooks/specular-session-stop.sh
   .cursor/hooks.json  (merges hooks.stop; preserves other hooks / version)
 
+Installs (codex):
+  .codex/hooks/specular-session-stop.sh
+  .codex/hooks.json  (merges hooks.Stop; preserves other hooks)
+
+Installs (gemini):
+  .gemini/hooks/specular-session-stop.sh
+  .gemini/settings.json  (merges hooks.SessionEnd + hooksConfig.enabled)
+
 session start exports SPECULAR_SESSION_ID and SPECULAR_SESSION_HARNESS so the
-Stop hook can attest the right record.
+Stop/SessionEnd hook can attest the right record.
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
