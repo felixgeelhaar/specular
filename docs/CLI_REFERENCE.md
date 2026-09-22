@@ -18,6 +18,7 @@ Complete reference for Specular CLI commands and flags.
   - [approve](#approve)
   - [approvals list](#approvals-list)
   - [approvals show](#approvals-show)
+  - [approvals close](#approvals-close)
   - [approvals pending](#approvals-pending)
 - [Environment & Configuration Commands](#environment--configuration-commands)
   - [context](#context)
@@ -802,6 +803,27 @@ Show one approval/exception in AI CHANGE RECORD style.
 
 ```bash
 specular approvals show [resource-id] [--json]
+```
+
+### approvals close
+
+Early-end (revoke) an open exception so soft-ALLOW no longer applies.
+
+```bash
+specular approvals close <exception-id> [--reason <text>] [--json]
+specular approvals revoke <exception-id>   # alias
+```
+
+Rewrites the existing YAML in place: stamps `closed_at` / `closed_by` and
+clamps `expires_at` to now. Idempotent when already closed or expired.
+Gate open-exception discovery uses `IsOpen` (closed + expired both excluded).
+
+```bash
+$ specular approvals close exception-EX-192 --reason "incident mitigated"
+⚠ Exception closed: exception-EX-192
+Closed by:   alice
+…
+Note: soft-ALLOW no longer applies for this id
 ```
 
 ### approvals pending

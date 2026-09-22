@@ -54,10 +54,7 @@ func discoverApprovals(root string) ApprovalsSection {
 		sec.Recent = append(sec.Recent, summaryFromRecord(recs[i], now))
 	}
 	for _, rec := range recs {
-		if rec.Type != approval.TypeException {
-			continue
-		}
-		if rec.IsExpired(now) {
+		if !rec.IsOpen(now) {
 			continue
 		}
 		sec.Exceptions = append(sec.Exceptions, summaryFromRecord(rec, now))

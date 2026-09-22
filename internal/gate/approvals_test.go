@@ -1,6 +1,8 @@
 package gate
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -135,5 +137,90 @@ func TestEvaluateLoadsApprovals(t *testing.T) {
 	}
 	if res.Approvals.Count < 1 {
 		t.Fatalf("approvals=%+v", res.Approvals)
+	}
+}
+
+func TestDiscoverApprovalsAfterClose(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Now().UTC()
+	exp := now.Add(24 * time.Hour)
+	if _, err := approval.Write(root, &approval.Record{
+		Type:       approval.TypeException,
+		ResourceID: "exception-app",
+		ApprovedBy: "alice",
+		ApprovedAt: now,
+		Reason:     "migrate hooks",
+		Policy:     "provenance",
+		ExpiresAt:  &exp,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	sec := discoverApprovals(root)
+	if len(sec.Exceptions) != 1 {
+		t.Fatalf("before close exceptions=%+v", sec.Exceptions)
+	}
+	if _, err := approval.Close(root, "exception-app", approval.CloseOptions{
+		Now: now.Add(time.Minute),
+		By:  "alice",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	sec = discoverApprovals(root)
+	if len(sec.Exceptions) != 0 {
+		t.Fatalf("after close exceptions=%+v", sec.Exceptions)
+	}
+	if sec.Count != 1 {
+		t.Fatalf("count should still list the file: %d", sec.Count)
+	}
+}
+
+func TestSoftAllowGoneAfterClose(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	writeRiskPolicy(t, root, "provenance:\n  protocol: enforce\n")
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{"provenance":{"harness":"claude-code"}}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := approval.Write(root, &approval.Record{
+		Type:       approval.TypeException,
+		ResourceID: "exception-app-protocol",
+		ApprovedBy: "platform",
+		ApprovedAt: time.Now().UTC(),
+		Reason:     "migrate",
+		Policy:     "provenance",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Allow {
+		t.Fatalf("with open exception expected ALLOW, got %s %s", res.Verdict, res.Reason)
+	}
+
+	if _, err := approval.Close(root, "exception-app-protocol", approval.CloseOptions{
+		Now: time.Now().UTC(),
+		By:  "platform",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	res2, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res2.Verdict != Deny {
+		t.Fatalf("after close expected DENY, got %s %s", res2.Verdict, res2.Reason)
+	}
+	if len(res2.Approvals.Overrules) != 0 {
+		t.Fatalf("overrules=%+v", res2.Approvals.Overrules)
 	}
 }
