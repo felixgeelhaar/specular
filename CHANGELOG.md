@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Evidence list soft-ALLOW / attested filters (P1 #9 depth)**:
+  `specular evidence list --soft-allow[=true|false]` and `--attested[=true|false]`
+  query exception soft-ALLOW overrules and provenance attestation on Change
+  Evidence Graph records (combinable with existing filters).
+
 - **Gate `--require-protocol` + CI `REQUIRE_PROTOCOL`**: CLI flag mirrors policy
   `provenance.protocol: enforce` (idle when unattested). GitHub / GitLab /
   Jenkins / generic gate templates accept optional `REQUIRE_PROTOCOL`.
