@@ -391,7 +391,8 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
 	if sec.Count == 0 {
 		b.WriteString("Status       none recorded\n")
 		if g.Verdict == gate.Deny {
-			b.WriteString("Hint         specular approve exception-<id> --reason \"...\" --scope \"...\" --policy …\n")
+			fmt.Fprintf(b, "Hint         specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
+				gate.SoftAllowPolicyHint(g))
 		}
 		return
 	}
@@ -399,7 +400,8 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
 	writeApprovalExceptions(b, sec.Exceptions)
 	writeApprovalRecent(b, sec.Recent)
 	if g.Verdict == gate.Deny && len(sec.Exceptions) == 0 {
-		b.WriteString("Hint         record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy …\n")
+		fmt.Fprintf(b, "Hint         record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
+			gate.SoftAllowPolicyHint(g))
 	}
 	if sec.Note != "" {
 		fmt.Fprintf(b, "Note         %s\n", sec.Note)

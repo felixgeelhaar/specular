@@ -177,7 +177,8 @@ func writeMarkdownApprovals(b *strings.Builder, res *Result) {
 		return
 	}
 	if res.Verdict == Deny {
-		b.WriteString("_Approvals:_ none open — record with `specular approve exception-<id> --reason \"...\" --scope \"...\" --policy …`\n\n")
+		fmt.Fprintf(b, "_Approvals:_ none open — record with `specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s`\n\n",
+			SoftAllowPolicyHint(res))
 		return
 	}
 	if res.Approvals.Note != "" && res.Approvals.Count == 0 {

@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **DENY soft-ALLOW hints include provenance**: gate / evidence Approvals Hint
+  and approve exception footer suggest `drift|policy|risk|provenance` (and
+  section-specific `--policy` when a single section failed); docs align.
+
 - **Evidence list `--protocol` wording**: help/docs clarify `ok` means
   schema+sibling binding (same as gate Protocol board after #119), not
   schema-only.

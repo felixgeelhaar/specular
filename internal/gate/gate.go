@@ -719,7 +719,7 @@ func FormatText(res *Result) string {
 		fmt.Fprintf(&b, "  Note           %s\n", res.Policy.Note)
 	}
 	writeRiskSection(&b, res.Risk)
-	writeApprovalsSection(&b, res.Approvals, res.Verdict)
+	writeApprovalsSection(&b, res)
 	b.WriteString(strings.Repeat("─", 46) + "\n")
 	fmt.Fprintf(&b, "VERDICT: %s\n", res.Verdict)
 	fmt.Fprintf(&b, "REASON:  %s\n", res.Reason)

@@ -54,7 +54,8 @@ specular approvals show exception-EX-192
 
 Record a controlled exception. An open, non-expired exception can **soft-ALLOW**
 a matching gate DENY when `--policy` / `--scope` binds to that deny (drift
-finding code/path, failed policy check, or risk category/level). Unmatched
+finding code/path, failed policy check, risk category/level, or provenance /
+APP / governed bind tokens such as `--policy provenance`). Unmatched
 exceptions stay advisory. Prefer short `--expires`; permanent silent
 suppression is discouraged.
 

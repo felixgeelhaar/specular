@@ -254,11 +254,29 @@ func TestFormatExplainDenyWithoutApprovalsHint(t *testing.T) {
 		"Approvals",
 		"none recorded",
 		"specular approve exception-",
+		"--policy policy",
 		"No local exception/approval trail for this DENY",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)
 		}
+	}
+}
+
+func TestFormatExplainProvenanceDenyHint(t *testing.T) {
+	t.Parallel()
+	rec := &Record{
+		ID: "ev_prov_deny",
+		Gate: &gate.Result{
+			Verdict:    gate.Deny,
+			Reason:     "provenance failed",
+			Provenance: gate.ProvenanceSection{Status: gate.StatusFail},
+			Approvals:  gate.ApprovalsSection{},
+		},
+	}
+	text := FormatExplain(rec)
+	if !strings.Contains(text, "--policy provenance") {
+		t.Fatalf("expected provenance hint:\n%s", text)
 	}
 }
 

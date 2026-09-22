@@ -743,9 +743,9 @@ Creates an approval record for:
 `--message` is required for non-exception approvals. Exceptions require `--reason`
 (and should set `--scope` / `--policy`). An open, non-expired exception can
 **soft-ALLOW** a matching gate DENY when `--policy`/`--scope` binds to that
-deny (drift finding code/path, failed policy check name, or risk
-category/level). Unmatched exceptions stay advisory. See
-`docs/APPROVAL_BEST_PRACTICES.md`.
+deny (drift finding code/path, failed policy check name, risk category/level,
+or provenance / APP / governed bind tokens). Unmatched exceptions stay
+advisory. See `docs/APPROVAL_BEST_PRACTICES.md`.
 
 **Example:**
 ```bash
