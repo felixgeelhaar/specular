@@ -2,6 +2,7 @@ package session
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -63,5 +64,41 @@ func TestEvidenceFlagsAndBoard(t *testing.T) {
 	}
 	if YesDash(true) != "yes" || YesDash(false) != "-" {
 		t.Fatal(YesDash(true), YesDash(false))
+	}
+	if DashOr("") != "-" || DashOr("abc") != "abc" {
+		t.Fatal(DashOr(""), DashOr("abc"))
+	}
+}
+
+func TestWorktreeHEADShort(t *testing.T) {
+	t.Parallel()
+	if WorktreeHEADShort("") != "" || WorktreeHEADShort("/no/such/path") != "" {
+		t.Fatal("expected empty for missing worktree")
+	}
+	repo := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("%v: %s", err, out)
+		}
+	}
+	run("init")
+	run("config", "user.email", "t@example.com")
+	run("config", "user.name", "t")
+	if err := os.WriteFile(filepath.Join(repo, "a.txt"), []byte("a\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "a.txt")
+	run("commit", "-m", "init")
+	sha := WorktreeHEADShort(repo)
+	if sha == "" || len(sha) < 4 {
+		t.Fatalf("sha=%q", sha)
+	}
+	board := BuildStatusBoardWithEvidence([]Record{{
+		ID: "demo", Status: StatusCompleted, WorktreePath: repo,
+	}}, t.TempDir())
+	if board.Evidence["demo"].Commit != sha {
+		t.Fatalf("evidence commit=%q want %q", board.Evidence["demo"].Commit, sha)
 	}
 }
