@@ -174,6 +174,68 @@ func TestFormatExplainAllowAttested(t *testing.T) {
 	}
 }
 
+func TestFormatExplainRiskAndSoftAllow(t *testing.T) {
+	t.Parallel()
+	rec := &Record{
+		ID: "ev_soft",
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Reason:  "exception-EX-1 overruled drift DENY (scope→a.go); drift fail (exception soft-ALLOW)",
+			Drift: gate.DriftSection{
+				Status: gate.StatusFail,
+				Note:   "hash mismatch",
+				Findings: []gate.FindingDetail{{
+					Code: "HASH_MISMATCH", Severity: "error", Path: "a.go",
+				}},
+			},
+			Policy:     gate.PolicySection{Status: gate.StatusSkipped},
+			Provenance: gate.ProvenanceSection{Status: gate.StatusSkipped},
+			Risk: gate.RiskSection{
+				Level:    "HIGH",
+				Enforced: true,
+				Factors:  []string{"authentication / authorization paths modified"},
+				Required: []string{"security"},
+				Observed: []string{"security"},
+				Note:     "risk-adaptive requirements satisfied",
+			},
+			Approvals: gate.ApprovalsSection{
+				Count: 1,
+				Exceptions: []gate.ApprovalSummary{{
+					ResourceID: "exception-EX-1",
+					Reason:     "hotfix",
+					Scope:      "a.go",
+					Policy:     "drift",
+				}},
+				Overrules: []gate.ExceptionOverrule{{
+					ResourceID: "exception-EX-1",
+					Kind:       "drift",
+					Binding:    "scope→a.go",
+				}},
+				Note: "1 open exception(s); 1 overruled drift DENY → soft-ALLOW",
+			},
+		},
+	}
+	text := FormatExplain(rec)
+	for _, want := range []string{
+		"Risk",
+		"Level        HIGH (enforced)",
+		"+ authentication / authorization paths modified",
+		"Required     security",
+		"Observed     security",
+		"Overruled",
+		"soft-ALLOW drift",
+		"exception-EX-1",
+		"scope→a.go",
+		"exception soft-ALLOW overrule",
+		"ALLOW via scoped exception soft-ALLOW",
+		"Risk level HIGH (enforced)",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
+	}
+}
+
 func TestFormatExplainDenyWithoutApprovalsHint(t *testing.T) {
 	t.Parallel()
 	rec := &Record{
