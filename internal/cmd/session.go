@@ -1447,11 +1447,13 @@ calls existing Specular surfaces — session attest (harness provenance) and gat
 This is the PRODUCT_INTENT P1 #4 starter: Level-2 integrated provenance without
 inventing a new protocol. Pass --enforce for Level-3 fail-closed Stop hooks
 (attest + gate --require-attested --require-protocol; non-zero on DENY).
-Prefer managed sessions:
+Add --require-governed with --enforce to also pass --require-governed (safer
+native launch required). Prefer managed sessions:
 
   specular session integrate claude-code
   specular session integrate claude-code --dry-run
   specular session integrate claude-code --enforce --force
+  specular session integrate claude-code --enforce --require-governed --force
   specular session integrate cursor
   specular session integrate cursor --dry-run
   specular session integrate codex
@@ -1489,13 +1491,15 @@ Stop/SessionEnd hook can attest the right record.
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		force, _ := cmd.Flags().GetBool("force")
 		enforce, _ := cmd.Flags().GetBool("enforce")
+		requireGoverned, _ := cmd.Flags().GetBool("require-governed")
 		jsonOut, _ := cmd.Flags().GetBool("json")
 		res, integrateErr := session.Integrate(session.IntegrateOptions{
-			Harness: args[0],
-			Root:    cwd,
-			DryRun:  dryRun,
-			Force:   force,
-			Enforce: enforce,
+			Harness:         args[0],
+			Root:            cwd,
+			DryRun:          dryRun,
+			Force:           force,
+			Enforce:         enforce,
+			RequireGoverned: requireGoverned,
 		})
 		if integrateErr != nil {
 			return integrateErr
@@ -1807,6 +1811,7 @@ func init() {
 	sessionIntegrateCmd.Flags().Bool("dry-run", false, "Print planned hook/config writes without changing the repo")
 	sessionIntegrateCmd.Flags().Bool("force", false, "Overwrite an existing Specular Stop hook script")
 	sessionIntegrateCmd.Flags().Bool("enforce", false, "Install fail-closed Stop hooks (attest + gate --require-attested/--require-protocol)")
+	sessionIntegrateCmd.Flags().Bool("require-governed", false, "With --enforce, also pass gate --require-governed (requires governed session)")
 	sessionIntegrateCmd.Flags().Bool("json", false, "Emit JSON")
 
 	sessionCmd.AddCommand(sessionStartCmd)
