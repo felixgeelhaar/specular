@@ -202,7 +202,8 @@ compliance_report:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   allow_failure: true
 
-# Post MR comment with gate markdown (requires GitLab API token)
+# Post MR comment with gate markdown (requires GitLab API token).
+# Upserts on the stable "## Specular Change Control" marker (same as GitHub).
 post_mr_comment:
   stage: report
   image: alpine:latest
@@ -213,14 +214,36 @@ post_mr_comment:
     - apk add --no-cache curl jq
   script:
     - |
-      if [ -f "gate.md" ] && [ -n "$CI_MERGE_REQUEST_IID" ]; then
-        COMMENT_BODY=$(cat gate.md | jq -Rs .)
-
-        curl --request POST \
+      if [ ! -f "gate.md" ] || [ -z "$CI_MERGE_REQUEST_IID" ]; then
+        echo "No gate.md or MR iid — skip comment."
+        exit 0
+      fi
+      if [ -z "${GITLAB_API_TOKEN:-}" ]; then
+        echo "GITLAB_API_TOKEN unset — skip MR note upsert."
+        exit 0
+      fi
+      GATE_MARKER="## Specular Change Control"
+      BODY=$(jq -Rs . < gate.md)
+      NOTES_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes"
+      EXISTING_ID=$(curl -fsSL --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
+        "$NOTES_URL?per_page=100" \
+        | jq -r --arg m "$GATE_MARKER" '
+            [.[] | select(.body | startswith($m))] | .[0].id // empty
+          ')
+      if [ -n "$EXISTING_ID" ]; then
+        echo "Updating MR note $EXISTING_ID"
+        curl -fsSL --request PUT \
           --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
           --header "Content-Type: application/json" \
-          --data "{\"body\": $COMMENT_BODY}" \
-          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes"
+          --data "{\"body\": $BODY}" \
+          "$NOTES_URL/$EXISTING_ID" >/dev/null
+      else
+        echo "Creating MR note"
+        curl -fsSL --request POST \
+          --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
+          --header "Content-Type: application/json" \
+          --data "{\"body\": $BODY}" \
+          "$NOTES_URL" >/dev/null
       fi
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

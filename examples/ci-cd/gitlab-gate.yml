@@ -1,0 +1,127 @@
+# Specular gate as a GitLab MR check (PRODUCT_INTENT §21 / P1 #7 depth)
+#
+# Mirrors .github/workflows/examples/specular-gate.yml:
+#   - markdown board for MR notes
+#   - upsert comment on the stable "## Specular Change Control" marker
+#   - drift SARIF as a SAST report artifact
+#
+# Usage:
+#   1. Copy to .gitlab-ci.yml (or include: from this path)
+#   2. Optional CI/CD variable GITLAB_API_TOKEN (api scope) for MR notes
+# Exit codes: 0=ALLOW, 3=policy DENY, 4=drift DENY
+
+stages:
+  - gate
+  - report
+
+variables:
+  SPECULAR_VERSION: "latest"
+  SPECULAR_NO_TELEMETRY: "true"
+  POLICY_FILE: ".specular/policy.yaml"
+  GATE_MARKER: "## Specular Change Control"
+
+.install_specular: &install_specular
+  - |
+    echo "Installing Specular ${SPECULAR_VERSION}..."
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+    case "$ARCH" in
+      x86_64) ARCH="amd64" ;;
+      aarch64|arm64) ARCH="arm64" ;;
+    esac
+    if [ "$SPECULAR_VERSION" = "latest" ]; then
+      DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/latest/download/specular_${OS}_${ARCH}.tar.gz"
+    else
+      DOWNLOAD_URL="https://github.com/felixgeelhaar/specular/releases/download/${SPECULAR_VERSION}/specular_${OS}_${ARCH}.tar.gz"
+    fi
+    curl -fsSL "$DOWNLOAD_URL" | tar -xz -C /usr/local/bin specular
+    chmod +x /usr/local/bin/specular
+    specular version
+
+# Change-control gate (MRs + default branch)
+specular_gate:
+  stage: gate
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl tar bash
+    - *install_specular
+  script:
+    - |
+      set +e
+      POLICY_ARGS=()
+      if [ -f "$POLICY_FILE" ]; then
+        POLICY_ARGS=(--policy "$POLICY_FILE")
+      else
+        echo "No $POLICY_FILE — gate will soft-skip policy (brownfield)."
+      fi
+      # --github-annotations is GitHub-only — omit on GitLab.
+      specular gate --format markdown "${POLICY_ARGS[@]}" --report drift.sarif > gate.md
+      EXIT_CODE=$?
+      set -e
+      cat gate.md
+      case "$EXIT_CODE" in
+        0) echo "Gate ALLOW" ;;
+        3) echo "Gate DENY (policy)" ;;
+        4) echo "Gate DENY (drift)" ;;
+        *) echo "Gate failed (exit $EXIT_CODE)" ;;
+      esac
+      exit "$EXIT_CODE"
+  artifacts:
+    when: always
+    paths:
+      - gate.md
+      - drift.sarif
+      - .specular/evidence/
+    reports:
+      sast: drift.sarif
+    expire_in: 30 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Upsert MR note with gate markdown (requires GITLAB_API_TOKEN)
+post_mr_gate_comment:
+  stage: report
+  image: alpine:latest
+  needs:
+    - job: specular_gate
+      optional: true
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - |
+      if [ ! -f gate.md ] || [ -z "$CI_MERGE_REQUEST_IID" ]; then
+        echo "No gate.md or MR iid — skip comment."
+        exit 0
+      fi
+      if [ -z "${GITLAB_API_TOKEN:-}" ]; then
+        echo "GITLAB_API_TOKEN unset — skip MR note upsert."
+        exit 0
+      fi
+      BODY=$(jq -Rs . < gate.md)
+      NOTES_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes"
+      # Find existing bot/human note starting with the stable marker and PUT-update.
+      EXISTING_ID=$(curl -fsSL --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
+        "$NOTES_URL?per_page=100" \
+        | jq -r --arg m "$GATE_MARKER" '
+            [.[] | select(.body | startswith($m))] | .[0].id // empty
+          ')
+      if [ -n "$EXISTING_ID" ]; then
+        echo "Updating MR note $EXISTING_ID"
+        curl -fsSL --request PUT \
+          --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
+          --header "Content-Type: application/json" \
+          --data "{\"body\": $BODY}" \
+          "$NOTES_URL/$EXISTING_ID" >/dev/null
+      else
+        echo "Creating MR note"
+        curl -fsSL --request POST \
+          --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
+          --header "Content-Type: application/json" \
+          --data "{\"body\": $BODY}" \
+          "$NOTES_URL" >/dev/null
+      fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+  allow_failure: true
