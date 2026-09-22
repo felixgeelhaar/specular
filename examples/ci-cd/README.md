@@ -46,8 +46,11 @@ Use [`Jenkinsfile.gate`](./Jenkinsfile.gate) for a focused PR/branch gate, or
 ## Sensible CI flags
 
 ```bash
+# Policy-first (recommended): merge the combined ladder once
+#   examples/policy/progressive-trust.yaml → .specular/policy.yaml
 specular gate --format markdown --policy .specular/policy.yaml --report drift.sarif
-# Progressive trust (optional):
+
+# Or toggle progressive-trust knobs via CLI / CI vars (without editing policy):
 specular gate --format markdown --require-attested --report drift.sarif
 specular gate --format markdown --require-protocol --report drift.sarif
 specular gate --format markdown --require-governed --report drift.sarif
@@ -59,12 +62,16 @@ specular gate --format markdown --require-governed --report drift.sarif
 - **`--require-attested`** — DENY when no session attestations (opt in; same as
   `provenance.attested: enforce`). Wired via `REQUIRE_ATTESTED` in GitHub vars,
   GitLab CI variables, Jenkins params, and `generic-ci.sh`.
-- **`--require-protocol`** — DENY when APP `.provenance.json` is missing/invalid
+- **`--require-protocol`** — DENY when APP docs are missing/invalid/unbound
   (opt in; same as `provenance.protocol: enforce`; idle when unattested). Wired
-  via `REQUIRE_PROTOCOL` in the same templates.
+  via `REQUIRE_PROTOCOL` in the same templates. Gate board prints
+  `docs=N ok=M schema+bound`.
 - **`--require-governed`** — DENY when attested sessions are not governed
   (opt in; same as `provenance.governed: enforce`; idle when unattested). Wired
   via `REQUIRE_GOVERNED` in the same templates.
+- **Policy ladder** — [`examples/policy/progressive-trust.yaml`](../policy/progressive-trust.yaml)
+  enables risk tiers + all three provenance knobs in one file (`specular doctor`
+  points advisory Mode at it).
 - Keep provider tokens in your CI secret store; these examples do not hardcode them
 
 Brownfield repos soft-skip missing drift/policy inputs unless `--strict-spec` is set.
