@@ -7,6 +7,7 @@ Prefer the CLI so `hooks.json` merge is idempotent:
 ```bash
 specular session integrate codex
 specular session integrate codex --enforce --force  # Level-3 fail-closed
+specular session integrate codex --enforce --require-governed --force  # + governed
 ```
 
 Alias: `specular session integrate codex-cli`.
