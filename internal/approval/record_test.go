@@ -293,3 +293,73 @@ func TestCloseAlreadyExpiredStampsClosed(t *testing.T) {
 		t.Fatalf("expires=%v want %v", rec.ExpiresAt, past)
 	}
 }
+
+func TestFilterByStatus(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)
+	exp := now.Add(24 * time.Hour)
+	past := now.Add(-time.Hour)
+	closedAt := now.Add(-30 * time.Minute)
+
+	openRec := Record{
+		Type: TypeException, ResourceID: "exception-open",
+		ApprovedAt: now, ExpiresAt: &exp,
+	}
+	expiredRec := Record{
+		Type: TypeException, ResourceID: "exception-expired",
+		ApprovedAt: now.Add(-2 * time.Hour), ExpiresAt: &past,
+	}
+	closedRec := Record{
+		Type: TypeException, ResourceID: "exception-closed",
+		ApprovedAt: now.Add(-time.Hour), ExpiresAt: &exp, ClosedAt: &closedAt, ClosedBy: "ops",
+	}
+	bundle := Record{
+		Type: TypeBundle, ResourceID: "bundle-abc", ApprovedAt: now,
+	}
+	all := []Record{openRec, expiredRec, closedRec, bundle}
+
+	open, err := FilterByStatus(all, "open", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(open) != 2 {
+		t.Fatalf("open=%v", idsOfApprovals(open))
+	}
+	for _, rec := range open {
+		if rec.Lifecycle(now) != StatusOpen {
+			t.Fatalf("%s lifecycle=%s", rec.ResourceID, rec.Lifecycle(now))
+		}
+	}
+
+	closed, err := FilterByStatus(all, "closed", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(closed) != 1 || closed[0].ResourceID != "exception-closed" {
+		t.Fatalf("closed=%v", idsOfApprovals(closed))
+	}
+
+	expired, err := FilterByStatus(all, "expired", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(expired) != 1 || expired[0].ResourceID != "exception-expired" {
+		t.Fatalf("expired=%v", idsOfApprovals(expired))
+	}
+
+	passthrough, err := FilterByStatus(all, "", now)
+	if err != nil || len(passthrough) != 4 {
+		t.Fatalf("empty: %v len=%d", err, len(passthrough))
+	}
+	if _, err := FilterByStatus(all, "pending", now); err == nil {
+		t.Fatal("expected invalid status error")
+	}
+}
+
+func idsOfApprovals(recs []Record) []string {
+	out := make([]string, len(recs))
+	for i, r := range recs {
+		out[i] = r.ResourceID
+	}
+	return out
+}

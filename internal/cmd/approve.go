@@ -58,14 +58,17 @@ var approvalsCmd = &cobra.Command{
 var approvalsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all approval records",
-	Long: `Display all approval records with details.
+	Long: `Display approval records with optional status filtering.
 
 Shows:
   • Approval type (bundle, drift, policy, plan, exception)
   • Resource ID, approver, timestamp
   • Exception reason/scope/policy/expiration when present
 
---json emits a machine-readable array of records.`,
+Filters:
+  --status open|closed|expired   Lifecycle status (closed wins over expired)
+
+--json emits a machine-readable array of matching records.`,
 	RunE: runApprovalsList,
 }
 
@@ -232,7 +235,13 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 	}
 
 	jsonOut, _ := cmd.Flags().GetBool("json")
+	status, _ := cmd.Flags().GetString("status")
 	recs, err := approval.List(".")
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	recs, err = approval.FilterByStatus(recs, status, now)
 	if err != nil {
 		return err
 	}
@@ -247,6 +256,10 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(recs) == 0 {
+		if strings.TrimSpace(status) != "" {
+			fmt.Printf("No approval records with status %q.\n", strings.ToLower(strings.TrimSpace(status)))
+			return nil
+		}
 		fmt.Println("No approval records found.")
 		fmt.Println("\nRun 'specular governance init' to create the governance workspace.")
 		fmt.Println("Record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\"")
@@ -268,7 +281,6 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 		approval.TypeDrift,
 		approval.TypePlan,
 	}
-	now := time.Now().UTC()
 	for _, approvalType := range order {
 		group := approvalsByType[approvalType]
 		if len(group) == 0 {
@@ -702,6 +714,7 @@ func init() {
 	approveCmd.Flags().String("evidence", "", "Related evidence id (ev_…)")
 
 	approvalsListCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
+	approvalsListCmd.Flags().String("status", "", "Filter by lifecycle status (open|closed|expired)")
 	approvalsShowCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 	approvalsCloseCmd.Flags().String("reason", "", "Optional close note (audit)")
 	approvalsCloseCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
