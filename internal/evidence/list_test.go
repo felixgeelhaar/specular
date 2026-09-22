@@ -43,6 +43,7 @@ func TestListFilters(t *testing.T) {
 				}},
 			},
 			Policy: gate.PolicySection{Status: gate.StatusSkipped},
+			Risk:   gate.RiskSection{Level: "HIGH", Factors: []string{"authentication / authorization paths modified"}},
 		},
 	})
 	allowNew := mustWriteRecord(t, root, &Record{
@@ -55,6 +56,7 @@ func TestListFilters(t *testing.T) {
 			Change:  gate.ChangeSection{Root: "/repos/other"},
 			Drift:   gate.DriftSection{Status: gate.StatusPass},
 			Policy:  gate.PolicySection{Status: gate.StatusSkipped},
+			Risk:    gate.RiskSection{Level: "LOW"},
 		},
 	})
 
@@ -157,6 +159,37 @@ func TestListFilters(t *testing.T) {
 	t.Run("invalid_verdict", func(t *testing.T) {
 		t.Parallel()
 		_, err := List(root, ListFilter{Verdict: gate.Verdict("MAYBE")})
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+
+	t.Run("risk_high", func(t *testing.T) {
+		t.Parallel()
+		recs, err := List(root, ListFilter{RiskLevel: "HIGH"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) != 1 || recs[0].ID != denyMid.ID {
+			t.Fatalf("got %v", idsOf(recs))
+		}
+	})
+
+	t.Run("risk_none_includes_empty", func(t *testing.T) {
+		t.Parallel()
+		recs, err := List(root, ListFilter{RiskLevel: "NONE"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		// allowOld has no Risk.Level → treated as NONE
+		if len(recs) != 1 || recs[0].ID != allowOld.ID {
+			t.Fatalf("got %v", idsOf(recs))
+		}
+	})
+
+	t.Run("invalid_risk", func(t *testing.T) {
+		t.Parallel()
+		_, err := List(root, ListFilter{RiskLevel: "EXTREME"})
 		if err == nil {
 			t.Fatal("expected error")
 		}

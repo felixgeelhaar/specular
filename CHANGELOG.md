@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Evidence list `--risk` filter (P1 #9 depth)**: `specular evidence list
+  --risk NONE|LOW|MEDIUM|HIGH|CRITICAL` filters Change Evidence Graph
+  records by gate risk level (combinable with verdict/since/path/limit;
+  empty risk treated as NONE).
+
 - **Control pack check (P1 #5 depth)**: `specular policy pack check <id>`
   reports auditor-facing control→evidence presence for embedded pack
   artifacts (glob/file/dir); exit non-zero when required paths are missing;

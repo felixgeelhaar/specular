@@ -16,6 +16,7 @@ type ListFilter struct {
 	Verdict      gate.Verdict // ALLOW or DENY; empty = any
 	Since        time.Time    // inclusive lower bound on CreatedAt; zero = any
 	PathContains string       // substring match on root / finding paths
+	RiskLevel    string       // NONE|LOW|MEDIUM|HIGH|CRITICAL; empty = any
 	Limit        int          // max results; <=0 = unlimited
 }
 
@@ -84,19 +85,37 @@ func (f ListFilter) Match(rec *Record) bool {
 			return false
 		}
 	}
+	if level := strings.ToUpper(strings.TrimSpace(f.RiskLevel)); level != "" {
+		got := ""
+		if rec.Gate != nil {
+			got = strings.ToUpper(strings.TrimSpace(rec.Gate.Risk.Level))
+		}
+		if got == "" {
+			got = "NONE"
+		}
+		if got != level {
+			return false
+		}
+	}
 	return true
 }
 
 func (f ListFilter) validate() error {
-	if f.Verdict == "" {
-		return nil
+	if f.Verdict != "" {
+		switch f.Verdict {
+		case gate.Allow, gate.Deny:
+		default:
+			return fmt.Errorf("evidence: invalid verdict %q (want ALLOW or DENY)", f.Verdict)
+		}
 	}
-	switch f.Verdict {
-	case gate.Allow, gate.Deny:
-		return nil
-	default:
-		return fmt.Errorf("evidence: invalid verdict %q (want ALLOW or DENY)", f.Verdict)
+	if level := strings.TrimSpace(f.RiskLevel); level != "" {
+		switch strings.ToUpper(level) {
+		case "NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL":
+		default:
+			return fmt.Errorf("evidence: invalid risk %q (want NONE|LOW|MEDIUM|HIGH|CRITICAL)", level)
+		}
 	}
+	return nil
 }
 
 // ParseSince parses a duration (e.g. "24h", "30m") or RFC3339 timestamp.
