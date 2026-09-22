@@ -8,6 +8,7 @@ Complete reference for Specular CLI commands and flags.
 - [Global Flags](#global-flags)
 - [Change Control Gate](#change-control-gate)
   - [gate](#gate)
+  - [explain](#explain)
   - [provenance](#provenance)
 - [Governance Commands](#governance-commands)
   - [governance](#governance)
@@ -148,6 +149,32 @@ section-specific remediation (`session attest`, APP verify, governed start,
 drift/policy/risk fixes). Approvals Hint remains the exception soft-ALLOW path.
 
 Product intent: [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md).
+
+### explain
+
+Explain a gate ALLOW / DENY decision from the Change Evidence Graph
+(PRODUCT_INTENT §20).
+
+**Usage:**
+```bash
+specular explain [evidence-id]
+specular explain --file <path-substr>
+specular explain --fresh [--policy <file>]
+specular explain --json
+```
+
+| Flag / arg | Description |
+|---|---|
+| `evidence-id` | Explain a specific `ev_…` record |
+| `--file <substr>` | Newest record whose root / drift finding paths contain substr (same matcher as `evidence list --path`) |
+| `--fresh` | Re-run `specular gate` (persist evidence) then explain |
+| `--policy` | Policy file when using `--fresh` |
+| `--strict-spec` | Require specs when using `--fresh` |
+| `--json` | Emit the evidence record as JSON |
+| `--project-root` | Repository root (default: cwd) |
+
+`--file` is mutually exclusive with `evidence-id` and `--fresh`. Default
+(no args) loads the latest evidence pointer.
 
 ### provenance
 

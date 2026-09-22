@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Explain `--file` (PRODUCT_INTENT §20)**: `specular explain --file
+  <substr>` selects the newest evidence record whose root / drift finding
+  paths contain that substring (same matcher as `evidence list --path`).
+
 - **Gate DENY Next steps**: text / markdown / evidence explain append
   section-specific remediation (`session attest`, APP verify, governed
   start, drift/policy/risk fixes) beyond soft-ALLOW Approvals Hint.
