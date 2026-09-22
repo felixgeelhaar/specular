@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Require attested provenance (P1 #10 depth)**: opt-in policy
+  `provenance.attested: enforce` DENYs unattested trees (progressive trust).
+  Independent of `protocol: enforce` (which stays idle when unattested).
+  Soft-ALLOW via `--policy provenance`. Example:
+  `examples/policy/provenance-require.yaml`.
+
 - **Exception close / revoke (P1 #6 depth)**: `specular approvals close
   <id>` (alias `revoke`) early-ends an open exception by rewriting the
   YAML in place (`closed_at`/`closed_by` + clamp `expires_at`); soft-ALLOW

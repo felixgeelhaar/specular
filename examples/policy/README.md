@@ -29,4 +29,17 @@ specular approve exception-app-protocol \
 specular gate
 ```
 
+## Require attested provenance
+
+Copy or merge [`provenance-require.yaml`](provenance-require.yaml) so the
+gate DENYs unattested trees (progressive trust beyond Level 0–1). Protocol
+enforce alone stays idle when unattested; combine both knobs when ready.
+
+```bash
+specular approve exception-brownfield \
+  --reason "ramp attestation hooks" \
+  --policy provenance
+specular gate
+```
+
 See `docs/CLI_REFERENCE.md` (gate / provenance).

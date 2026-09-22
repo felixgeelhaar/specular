@@ -1,0 +1,9 @@
+# Opt-in attested provenance requirement (PRODUCT_INTENT §6.4 / §9).
+# DENY when no session attestations are present. Combine with protocol:
+# enforce to also require valid sibling .provenance.json docs.
+#
+# Merge into .specular/policy.yaml. Without this block, unattested stays
+# advisory (reported, never flips ALLOW→DENY).
+provenance:
+  attested: enforce
+  # protocol: enforce

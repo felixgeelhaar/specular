@@ -169,3 +169,99 @@ func TestEvaluateProvenanceProtocolAdvisoryWithoutPolicy(t *testing.T) {
 		t.Fatalf("enforced=%v status=%s", res.Provenance.Enforced, res.Provenance.Status)
 	}
 }
+
+func TestEvaluateProvenanceAttestedEnforceDenyUnattested(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	writeRiskPolicy(t, root, "provenance:\n  attested: enforce\n")
+
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Deny {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if !res.Provenance.Enforced || res.Provenance.Status != StatusFail {
+		t.Fatalf("enforced=%v status=%s", res.Provenance.Enforced, res.Provenance.Status)
+	}
+	if !strings.Contains(res.Reason, "attested provenance required") {
+		t.Fatalf("reason=%s", res.Reason)
+	}
+}
+
+func TestEvaluateProvenanceAttestedEnforceAllowAttested(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	writeRiskPolicy(t, root, "provenance:\n  attested: enforce\n")
+	dir := filepath.Join(root, ".specular", "sessions")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	att := `{"provenance":{"harness":"claude-code","governed":true}}`
+	if err := os.WriteFile(filepath.Join(dir, "auth.attestation.json"), []byte(att), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Allow {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if !res.Provenance.Enforced || res.Provenance.Status != StatusPass {
+		t.Fatalf("enforced=%v status=%s", res.Provenance.Enforced, res.Provenance.Status)
+	}
+	if !strings.Contains(res.Reason, "attested provenance ok") {
+		t.Fatalf("reason=%s", res.Reason)
+	}
+}
+
+func TestEvaluateProvenanceAttestedEnforceSoftAllow(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	writeRiskPolicy(t, root, "provenance:\n  attested: enforce\n")
+	if _, err := approval.Write(root, &approval.Record{
+		Type:       approval.TypeException,
+		ResourceID: "exception-attested",
+		ApprovedBy: "platform",
+		Reason:     "brownfield ramp",
+		Policy:     "provenance",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Allow {
+		t.Fatalf("verdict=%s reason=%s", res.Verdict, res.Reason)
+	}
+	if res.Provenance.Status != StatusFail {
+		t.Fatalf("underlying status should stay FAIL, got %s", res.Provenance.Status)
+	}
+	if len(res.Approvals.Overrules) != 1 || res.Approvals.Overrules[0].Kind != "provenance" {
+		t.Fatalf("overrules=%+v", res.Approvals.Overrules)
+	}
+}
+
+func TestEvaluateProvenanceProtocolOnlyIdleWhenUnattested(t *testing.T) {
+	t.Parallel()
+	root := initTempRepo(t)
+	writeRiskPolicy(t, root, "provenance:\n  protocol: enforce\n")
+	res, err := Evaluate(Options{ProjectRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Verdict != Allow {
+		t.Fatalf("protocol-only must stay idle unattested: %s %s", res.Verdict, res.Reason)
+	}
+	if !res.Provenance.Enforced || res.Provenance.Status == StatusFail {
+		t.Fatalf("enforced=%v status=%s note=%s", res.Provenance.Enforced, res.Provenance.Status, res.Provenance.Note)
+	}
+	if !strings.Contains(res.Provenance.Note, "protocol enforce idle") {
+		t.Fatalf("note=%s", res.Provenance.Note)
+	}
+}
