@@ -36,7 +36,7 @@ func FormatMarkdownWith(res *Result, opts FormatMarkdownOptions) string {
 	b.WriteString(MarkdownMarker + "\n\n")
 	writeMarkdownVerdict(&b, res)
 	writeMarkdownTable(&b, res)
-	writeMarkdownNotes(&b, res)
+	writeMarkdownNotes(&b, res, opts.EvidenceID)
 	writeMarkdownFindings(&b, res.Drift.Findings, maxFindings)
 	writeMarkdownDenyNextSteps(&b, res)
 	if opts.EvidenceID != "" {
@@ -91,7 +91,7 @@ func writeMarkdownTable(b *strings.Builder, res *Result) {
 	fmt.Fprintf(b, "| Approvals | `%s` (%s) |\n\n", approvalStatus, approvalMode)
 }
 
-func writeMarkdownNotes(b *strings.Builder, res *Result) {
+func writeMarkdownNotes(b *strings.Builder, res *Result, evidenceID string) {
 	if res.Provenance.Note != "" {
 		fmt.Fprintf(b, "_Provenance:_ %s\n\n", res.Provenance.Note)
 	}
@@ -103,7 +103,7 @@ func writeMarkdownNotes(b *strings.Builder, res *Result) {
 		fmt.Fprintf(b, "_Policy:_ %s\n\n", res.Policy.Note)
 	}
 	writeMarkdownRiskNotes(b, res)
-	writeMarkdownApprovals(b, res)
+	writeMarkdownApprovals(b, res, evidenceID)
 }
 
 func writeMarkdownSessionProvenance(b *strings.Builder, res *Result) {
@@ -153,7 +153,7 @@ func writeMarkdownRiskNotes(b *strings.Builder, res *Result) {
 	b.WriteString("\n\n")
 }
 
-func writeMarkdownApprovals(b *strings.Builder, res *Result) {
+func writeMarkdownApprovals(b *strings.Builder, res *Result, evidenceID string) {
 	if len(res.Approvals.Overrules) > 0 {
 		b.WriteString("_Exception soft-ALLOW overruled:_\n")
 		for _, o := range res.Approvals.Overrules {
@@ -162,7 +162,7 @@ func writeMarkdownApprovals(b *strings.Builder, res *Result) {
 		for _, id := range SoftAllowResourceIDs(res.Approvals.Overrules) {
 			fmt.Fprintf(b, "- Show: `specular approvals show %s`\n", id)
 		}
-		b.WriteString("- List: `specular approvals list --status open`\n")
+		fmt.Fprintf(b, "- List: `%s`\n", SoftAllowListHint(evidenceID))
 		b.WriteString("\n")
 	}
 	if len(res.Approvals.Exceptions) > 0 {

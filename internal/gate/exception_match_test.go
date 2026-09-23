@@ -55,6 +55,10 @@ func TestDecideSoftAllowDriftByScope(t *testing.T) {
 			t.Fatalf("missing soft-ALLOW jump %q:\n%s", want, text)
 		}
 	}
+	textEv := FormatTextWith(res, FormatTextOptions{EvidenceID: "ev_soft"})
+	if !strings.Contains(textEv, "List           specular approvals list --evidence ev_soft") {
+		t.Fatalf("expected --evidence list:\n%s", textEv)
+	}
 	md := FormatMarkdown(res)
 	for _, want := range []string{
 		"Show: `specular approvals show exception-EX-192`",
@@ -63,6 +67,10 @@ func TestDecideSoftAllowDriftByScope(t *testing.T) {
 		if !strings.Contains(md, want) {
 			t.Fatalf("missing markdown soft-ALLOW jump %q:\n%s", want, md)
 		}
+	}
+	mdEv := FormatMarkdownWith(res, FormatMarkdownOptions{EvidenceID: "ev_soft"})
+	if !strings.Contains(mdEv, "List: `specular approvals list --evidence ev_soft`") {
+		t.Fatalf("expected markdown --evidence list:\n%s", mdEv)
 	}
 }
 

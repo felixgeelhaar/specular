@@ -121,7 +121,7 @@ func SoftAllowPolicyHint(res *Result) string {
 	}
 }
 
-func writeApprovalsSection(b *strings.Builder, res *Result) {
+func writeApprovalsSection(b *strings.Builder, res *Result, evidenceID string) {
 	sec := ApprovalsSection{}
 	verdict := Verdict("")
 	if res != nil {
@@ -141,7 +141,7 @@ func writeApprovalsSection(b *strings.Builder, res *Result) {
 		return
 	}
 	fmt.Fprintf(b, "  Records        %d\n", sec.Count)
-	writeOverrules(b, sec.Overrules)
+	writeOverrules(b, sec.Overrules, evidenceID)
 	writeOpenExceptions(b, sec.Exceptions)
 	writeRecentApprovals(b, sec.Recent)
 	if verdict == Deny && len(sec.Exceptions) == 0 {
@@ -153,7 +153,7 @@ func writeApprovalsSection(b *strings.Builder, res *Result) {
 	}
 }
 
-func writeOverrules(b *strings.Builder, overrules []ExceptionOverrule) {
+func writeOverrules(b *strings.Builder, overrules []ExceptionOverrule, evidenceID string) {
 	if len(overrules) == 0 {
 		return
 	}
@@ -161,7 +161,7 @@ func writeOverrules(b *strings.Builder, overrules []ExceptionOverrule) {
 	for _, o := range overrules {
 		fmt.Fprintf(b, "    ⚠ %s soft-ALLOW %s (%s)\n", o.ResourceID, o.Kind, o.Binding)
 	}
-	writeSoftAllowBoardHints(b, overrules, "    ")
+	writeSoftAllowBoardHints(b, overrules, evidenceID, "    ")
 }
 
 // SoftAllowResourceIDs returns deduped soft-ALLOW exception ids (explain/gate board jumps).
@@ -185,15 +185,24 @@ func SoftAllowResourceIDs(overrules []ExceptionOverrule) []string {
 	return out
 }
 
+// SoftAllowListHint returns the approvals list command for soft-ALLOW jumps.
+// Prefer --evidence when a Change Evidence Graph id is known (#154).
+func SoftAllowListHint(evidenceID string) string {
+	if id := strings.TrimSpace(evidenceID); id != "" {
+		return "specular approvals list --evidence " + id
+	}
+	return "specular approvals list --status open"
+}
+
 // writeSoftAllowBoardHints jumps soft-ALLOW ResourceIDs to approvals show/list
 // (FormatExplain parity — live gate board reverse navigation).
-func writeSoftAllowBoardHints(b *strings.Builder, overrules []ExceptionOverrule, indent string) {
+func writeSoftAllowBoardHints(b *strings.Builder, overrules []ExceptionOverrule, evidenceID, indent string) {
 	ids := SoftAllowResourceIDs(overrules)
 	for _, id := range ids {
 		fmt.Fprintf(b, "%sShow           specular approvals show %s\n", indent, id)
 	}
 	if len(ids) > 0 {
-		fmt.Fprintf(b, "%sList           specular approvals list --status open\n", indent)
+		fmt.Fprintf(b, "%sList           %s\n", indent, SoftAllowListHint(evidenceID))
 	}
 }
 

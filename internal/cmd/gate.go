@@ -136,7 +136,9 @@ func runGate(cmd *cobra.Command, _ []string) error {
 				EvidenceID: evidenceID,
 			}))
 		default:
-			fmt.Print(gate.FormatText(res))
+			fmt.Print(gate.FormatTextWith(res, gate.FormatTextOptions{
+				EvidenceID: evidenceID,
+			}))
 		}
 	}
 

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gate Soft-ALLOW list `--evidence`**: text / markdown Soft List prefer
+  `approvals list --evidence <id>` when the gate run persisted an evidence
+  record (`FormatTextWith` / markdown opts; FormatExplain #157 parity).
+
 - **Evidence list Soft-ALLOW jumps**: Soft=yes rows footer to
   `approvals list --evidence <id>` / `explain <id>`; `--json` rows include
   `softAllowIds` (session status Soft-ALLOW footer parity). FormatExplain
