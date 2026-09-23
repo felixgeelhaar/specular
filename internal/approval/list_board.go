@@ -115,6 +115,29 @@ func FormatEvidenceListHints(rows []ListRow) string {
 	return b.String()
 }
 
+// FormatOpenExceptionHints returns human footer lines for open exceptions
+// (approvals show / evidence show when bound / list --status open). Empty when none.
+func FormatOpenExceptionHints(recs []Record) string {
+	if len(recs) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("Open exceptions:\n")
+	for _, rec := range recs {
+		id := strings.TrimSpace(rec.ResourceID)
+		if id == "" {
+			continue
+		}
+		fmt.Fprintf(&b, "  %s  specular approvals show %s\n", id, id)
+		if evid := strings.TrimSpace(rec.EvidenceID); evid != "" {
+			fmt.Fprintf(&b, "       specular evidence show %s\n", evid)
+			fmt.Fprintf(&b, "       specular explain %s\n", evid)
+		}
+	}
+	b.WriteString("  List  specular approvals list --status open\n")
+	return b.String()
+}
+
 // FormatExpires formats ExpiresAt for human boards.
 func FormatExpires(t *time.Time) string {
 	if t == nil || t.IsZero() {

@@ -81,4 +81,31 @@ func TestBuildListBoard(t *testing.T) {
 	if FormatEvidenceListHints([]ListRow{{ResourceID: "x"}}) != "" {
 		t.Fatal("expected empty hints without EvidenceID")
 	}
+
+	openHints := FormatOpenExceptionHints([]Record{
+		{ResourceID: "exception-open", EvidenceID: "ev_1"},
+		{ResourceID: "exception-bare"},
+	})
+	for _, want := range []string{
+		"Open exceptions:",
+		"exception-open  specular approvals show exception-open",
+		"specular evidence show ev_1",
+		"specular explain ev_1",
+		"exception-bare  specular approvals show exception-bare",
+		"List  specular approvals list --status open",
+	} {
+		if !strings.Contains(openHints, want) {
+			t.Fatalf("missing %q:\n%s", want, openHints)
+		}
+	}
+	bareIdx := strings.Index(openHints, "exception-bare")
+	if bareIdx < 0 {
+		t.Fatal("missing bare exception")
+	}
+	if strings.Contains(openHints[bareIdx:], "evidence show") {
+		t.Fatalf("bare exception should not invent evidence show:\n%s", openHints[bareIdx:])
+	}
+	if FormatOpenExceptionHints(nil) != "" {
+		t.Fatal("expected empty open hints")
+	}
 }
