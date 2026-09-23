@@ -161,6 +161,40 @@ func writeOverrules(b *strings.Builder, overrules []ExceptionOverrule) {
 	for _, o := range overrules {
 		fmt.Fprintf(b, "    ⚠ %s soft-ALLOW %s (%s)\n", o.ResourceID, o.Kind, o.Binding)
 	}
+	writeSoftAllowBoardHints(b, overrules, "    ")
+}
+
+// SoftAllowResourceIDs returns deduped soft-ALLOW exception ids (explain/gate board jumps).
+func SoftAllowResourceIDs(overrules []ExceptionOverrule) []string {
+	if len(overrules) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(overrules))
+	out := make([]string, 0, len(overrules))
+	for _, o := range overrules {
+		id := strings.TrimSpace(o.ResourceID)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
+}
+
+// writeSoftAllowBoardHints jumps soft-ALLOW ResourceIDs to approvals show/list
+// (FormatExplain parity — live gate board reverse navigation).
+func writeSoftAllowBoardHints(b *strings.Builder, overrules []ExceptionOverrule, indent string) {
+	ids := SoftAllowResourceIDs(overrules)
+	for _, id := range ids {
+		fmt.Fprintf(b, "%sShow           specular approvals show %s\n", indent, id)
+	}
+	if len(ids) > 0 {
+		fmt.Fprintf(b, "%sList           specular approvals list --status open\n", indent)
+	}
 }
 
 func writeOpenExceptions(b *strings.Builder, exceptions []ApprovalSummary) {

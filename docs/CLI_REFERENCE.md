@@ -147,6 +147,8 @@ Exit codes: `0` ALLOW, `3` policy DENY, `4` drift DENY.
 On DENY, text / markdown / `specular explain` append **Next steps** with
 section-specific remediation (`session attest`, APP verify, governed start,
 drift/policy/risk fixes). Approvals Hint remains the exception soft-ALLOW path.
+On soft-ALLOW, text / markdown Approvals Overruled jump to
+`approvals show <id>` / `approvals list --status open` (explain parity).
 
 Product intent: [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md).
 

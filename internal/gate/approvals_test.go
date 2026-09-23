@@ -117,17 +117,19 @@ func TestFormatTextApprovalsHintWhenProvenanceDeny(t *testing.T) {
 	}
 }
 
-func TestSoftAllowPolicyHintMultiFail(t *testing.T) {
+func TestSoftAllowResourceIDsDedup(t *testing.T) {
 	t.Parallel()
-	got := SoftAllowPolicyHint(&Result{
-		Drift:      DriftSection{Status: StatusFail},
-		Provenance: ProvenanceSection{Status: StatusFail},
+	ids := SoftAllowResourceIDs([]ExceptionOverrule{
+		{ResourceID: "exception-a", Kind: "drift"},
+		{ResourceID: "exception-a", Kind: "policy"},
+		{ResourceID: "  ", Kind: "risk"},
+		{ResourceID: "exception-b", Kind: "risk"},
 	})
-	if got != "drift|provenance" {
-		t.Fatalf("got %q", got)
+	if len(ids) != 2 || ids[0] != "exception-a" || ids[1] != "exception-b" {
+		t.Fatalf("ids=%v", ids)
 	}
-	if SoftAllowPolicyHint(nil) != "drift|policy|risk|provenance" {
-		t.Fatalf("nil fallback")
+	if SoftAllowResourceIDs(nil) != nil {
+		t.Fatal("expected nil for empty")
 	}
 }
 

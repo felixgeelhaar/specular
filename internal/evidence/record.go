@@ -223,7 +223,7 @@ func writeExplainRefs(b *strings.Builder, rec *Record) {
 }
 
 func writeApprovalRefs(b *strings.Builder, g *gate.Result) {
-	ids := softAllowResourceIDs(g)
+	ids := gate.SoftAllowResourceIDs(g.Approvals.Overrules)
 	for _, id := range ids {
 		fmt.Fprintf(b, "Approval     specular approvals show %s\n", id)
 	}
@@ -241,26 +241,6 @@ func writeSessionRefs(b *strings.Builder, g *gate.Result) {
 		fmt.Fprintf(b, "Session      specular session show %s\n", sid)
 		fmt.Fprintf(b, "             specular explain --session %s\n", sid)
 	}
-}
-
-func softAllowResourceIDs(g *gate.Result) []string {
-	if g == nil || len(g.Approvals.Overrules) == 0 {
-		return nil
-	}
-	seen := make(map[string]struct{}, len(g.Approvals.Overrules))
-	out := make([]string, 0, len(g.Approvals.Overrules))
-	for _, o := range g.Approvals.Overrules {
-		id := strings.TrimSpace(o.ResourceID)
-		if id == "" {
-			continue
-		}
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		seen[id] = struct{}{}
-		out = append(out, id)
-	}
-	return out
 }
 
 func writeChangeSummary(b *strings.Builder, rec *Record) {
@@ -472,10 +452,13 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
 // writeSoftAllowBoardHints jumps soft-ALLOW ResourceIDs to approvals show/list
 // (session show ↔ explain reverse navigation).
 func writeSoftAllowBoardHints(b *strings.Builder, g *gate.Result) {
-	for _, id := range softAllowResourceIDs(g) {
+	ids := gate.SoftAllowResourceIDs(g.Approvals.Overrules)
+	for _, id := range ids {
 		fmt.Fprintf(b, "Show         specular approvals show %s\n", id)
 	}
-	b.WriteString("List         specular approvals list --status open\n")
+	if len(ids) > 0 {
+		b.WriteString("List         specular approvals list --status open\n")
+	}
 }
 
 func writeApprovalExceptions(b *strings.Builder, exceptions []gate.ApprovalSummary) {

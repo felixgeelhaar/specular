@@ -47,6 +47,23 @@ func TestDecideSoftAllowDriftByScope(t *testing.T) {
 	if !strings.Contains(text, "Overruled") || !strings.Contains(text, "soft-ALLOW drift") {
 		t.Fatalf("board:\n%s", text)
 	}
+	for _, want := range []string{
+		"Show           specular approvals show exception-EX-192",
+		"List           specular approvals list --status open",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing soft-ALLOW jump %q:\n%s", want, text)
+		}
+	}
+	md := FormatMarkdown(res)
+	for _, want := range []string{
+		"Show: `specular approvals show exception-EX-192`",
+		"List: `specular approvals list --status open`",
+	} {
+		if !strings.Contains(md, want) {
+			t.Fatalf("missing markdown soft-ALLOW jump %q:\n%s", want, md)
+		}
+	}
 }
 
 func TestDecideNoSoftAllowUnboundException(t *testing.T) {

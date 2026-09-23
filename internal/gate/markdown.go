@@ -159,6 +159,10 @@ func writeMarkdownApprovals(b *strings.Builder, res *Result) {
 		for _, o := range res.Approvals.Overrules {
 			fmt.Fprintf(b, "- ⚠ `%s` → `%s` (%s)\n", o.ResourceID, o.Kind, o.Binding)
 		}
+		for _, id := range SoftAllowResourceIDs(res.Approvals.Overrules) {
+			fmt.Fprintf(b, "- Show: `specular approvals show %s`\n", id)
+		}
+		b.WriteString("- List: `specular approvals list --status open`\n")
 		b.WriteString("\n")
 	}
 	if len(res.Approvals.Exceptions) > 0 {
