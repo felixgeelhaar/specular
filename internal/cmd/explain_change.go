@@ -26,11 +26,15 @@ specular gate. Pass an evidence id (ev_…) or a git commit prefix (e.g.
 abc123) to select a record. With --fresh, re-run the gate (and persist
 evidence) before explaining.
 
-Graph filters (newest match):
+Graph selectors (newest match; mutually exclusive):
   --file <substr>     root / drift finding paths (evidence list --path)
   --control <substr>  failed checks / exception policy / soft-ALLOW bind
   --commit <prefix>   record / gate.change commit SHA prefix
   --session <id>      exact gate.provenance.sessions[] match (fleet board id)
+
+Trust filters (combinable with each other and one graph selector):
+  --verdict / --risk / --soft-allow / --attested / --governed / --protocol / --harness
+  (same semantics as evidence list)
 
 Human text is an auditor-facing AI CHANGE RECORD (PRODUCT_INTENT §19).
 --json emits the unchanged machine-readable evidence record.
@@ -46,8 +50,10 @@ Examples:
   specular explain abc123
   specular explain --commit abc123
   specular explain --session auth
-  specular explain --file internal/auth/token.go
+  specular explain --session auth --verdict DENY
+  specular explain --file internal/auth/token.go --risk HIGH
   specular explain --control SEC-17
+  specular explain --verdict DENY --soft-allow=false
   specular explain --fresh --policy-file .specular/policy.yaml
   specular explain --json
 `,
@@ -79,6 +85,11 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 	commitFilter = strings.TrimSpace(commitFilter)
 	sessionFilter = strings.TrimSpace(sessionFilter)
 
+	trust, trustErr := explainTrustFilter(cmd)
+	if trustErr != nil {
+		return trustErr
+	}
+
 	// Positional short SHA → --commit (PRODUCT_INTENT §20: explain abc123).
 	if len(args) == 1 && commitFilter == "" && looksLikeCommitPrefix(args[0]) {
 		commitFilter = args[0]
@@ -92,6 +103,9 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 		{name: "session", value: sessionFilter},
 	}, fresh, args); err != nil {
 		return err
+	}
+	if trust.Active() && fresh {
+		return fmt.Errorf("explain: trust filters cannot be combined with --fresh")
 	}
 
 	var rec *evidence.Record
@@ -114,27 +128,34 @@ func runChangeExplain(cmd *cobra.Command, args []string) error {
 			return writeErr
 		}
 	case fileFilter != "":
-		rec, err = loadEvidenceByFilter(projectRoot, evidence.ListFilter{
+		rec, err = loadEvidenceByFilter(projectRoot, withTrust(evidence.ListFilter{
 			PathContains: fileFilter,
 			Limit:        1,
-		}, "file", fileFilter)
+		}, trust), "file", fileFilter)
 	case controlFilter != "":
-		rec, err = loadEvidenceByFilter(projectRoot, evidence.ListFilter{
+		rec, err = loadEvidenceByFilter(projectRoot, withTrust(evidence.ListFilter{
 			ControlContains: controlFilter,
 			Limit:           1,
-		}, "control", controlFilter)
+		}, trust), "control", controlFilter)
 	case commitFilter != "":
-		rec, err = loadEvidenceByFilter(projectRoot, evidence.ListFilter{
+		rec, err = loadEvidenceByFilter(projectRoot, withTrust(evidence.ListFilter{
 			CommitPrefix: commitFilter,
 			Limit:        1,
-		}, "commit", commitFilter)
+		}, trust), "commit", commitFilter)
 	case sessionFilter != "":
-		rec, err = loadEvidenceByFilter(projectRoot, evidence.ListFilter{
+		rec, err = loadEvidenceByFilter(projectRoot, withTrust(evidence.ListFilter{
 			Session: sessionFilter,
 			Limit:   1,
-		}, "session", sessionFilter)
+		}, trust), "session", sessionFilter)
 	case len(args) == 1:
 		rec, err = evidence.Load(projectRoot, args[0])
+		if err == nil && trust.Active() && !trust.Match(rec) {
+			return fmt.Errorf("explain: evidence %s does not match trust filters", args[0])
+		}
+	case trust.Active():
+		f := trust
+		f.Limit = 1
+		rec, err = loadEvidenceByFilter(projectRoot, f, "trust", "")
 	default:
 		rec, err = evidence.LoadLatest(projectRoot)
 	}
@@ -214,12 +235,83 @@ func explainPolicyFile(cmd *cobra.Command) string {
 	return strings.TrimSpace(v)
 }
 
+func explainTrustFilter(cmd *cobra.Command) (evidence.ListFilter, error) {
+	var f evidence.ListFilter
+	verdict, _ := cmd.Flags().GetString("verdict")
+	if verdict != "" {
+		f.Verdict = gate.Verdict(strings.ToUpper(strings.TrimSpace(verdict)))
+	}
+	risk, _ := cmd.Flags().GetString("risk")
+	f.RiskLevel = strings.TrimSpace(risk)
+	harness, _ := cmd.Flags().GetString("harness")
+	f.Harness = strings.TrimSpace(harness)
+	if cmd.Flags().Changed("soft-allow") {
+		v, _ := cmd.Flags().GetBool("soft-allow")
+		f.SoftAllow = &v
+	}
+	if cmd.Flags().Changed("attested") {
+		v, _ := cmd.Flags().GetBool("attested")
+		f.Attested = &v
+	}
+	if cmd.Flags().Changed("governed") {
+		v, _ := cmd.Flags().GetBool("governed")
+		f.Governed = &v
+	}
+	if cmd.Flags().Changed("protocol") {
+		v, _ := cmd.Flags().GetBool("protocol")
+		f.Protocol = &v
+	}
+	if f.Verdict != "" {
+		switch f.Verdict {
+		case gate.Allow, gate.Deny:
+		default:
+			return f, fmt.Errorf("explain: invalid verdict %q (want ALLOW or DENY)", f.Verdict)
+		}
+	}
+	if level := strings.TrimSpace(f.RiskLevel); level != "" {
+		switch strings.ToUpper(level) {
+		case "NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL":
+		default:
+			return f, fmt.Errorf("explain: invalid risk %q (want NONE|LOW|MEDIUM|HIGH|CRITICAL)", level)
+		}
+	}
+	return f, nil
+}
+
+func withTrust(base, trust evidence.ListFilter) evidence.ListFilter {
+	if trust.Verdict != "" {
+		base.Verdict = trust.Verdict
+	}
+	if trust.RiskLevel != "" {
+		base.RiskLevel = trust.RiskLevel
+	}
+	if trust.Harness != "" {
+		base.Harness = trust.Harness
+	}
+	if trust.SoftAllow != nil {
+		base.SoftAllow = trust.SoftAllow
+	}
+	if trust.Attested != nil {
+		base.Attested = trust.Attested
+	}
+	if trust.Governed != nil {
+		base.Governed = trust.Governed
+	}
+	if trust.Protocol != nil {
+		base.Protocol = trust.Protocol
+	}
+	return base
+}
+
 func loadEvidenceByFilter(projectRoot string, filter evidence.ListFilter, flag, substr string) (*evidence.Record, error) {
 	recs, err := evidence.List(projectRoot, filter)
 	if err != nil {
 		return nil, err
 	}
 	if len(recs) == 0 {
+		if flag == "trust" {
+			return nil, fmt.Errorf("explain: no evidence matches trust filters (try: specular evidence list)")
+		}
 		listFlag := flag
 		if flag == "file" {
 			listFlag = "path"
@@ -248,6 +340,13 @@ func init() {
 	changeExplainCmd.Flags().String("control", "", "Explain newest evidence matching failed check / exception policy / soft-ALLOW bind (PRODUCT_INTENT §20)")
 	changeExplainCmd.Flags().String("commit", "", "Explain newest evidence whose commit SHA starts with this prefix (PRODUCT_INTENT §20)")
 	changeExplainCmd.Flags().String("session", "", "Explain newest evidence for this session id (gate.provenance.sessions[]; PRODUCT_INTENT §20)")
+	changeExplainCmd.Flags().String("verdict", "", "Only evidence with this gate verdict (ALLOW or DENY)")
+	changeExplainCmd.Flags().String("risk", "", "Only evidence with this risk level (NONE|LOW|MEDIUM|HIGH|CRITICAL)")
+	changeExplainCmd.Flags().String("harness", "", "Only evidence whose harness label contains this substring")
+	changeExplainCmd.Flags().Bool("soft-allow", false, "Only evidence with (or without, =false) soft-ALLOW overrules")
+	changeExplainCmd.Flags().Bool("attested", false, "Only evidence with (or without, =false) attested provenance")
+	changeExplainCmd.Flags().Bool("governed", false, "Only evidence with (or without, =false) governed provenance")
+	changeExplainCmd.Flags().Bool("protocol", false, "Only evidence with (or without, =false) APP protocol schema+bound")
 	changeExplainCmd.Flags().Bool("json", false, "Emit the evidence record as JSON")
 	rootCmd.AddCommand(changeExplainCmd)
 }

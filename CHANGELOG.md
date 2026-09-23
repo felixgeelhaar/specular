@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Explain trust filters**: `--verdict` / `--risk` / `--soft-allow` /
+  `--attested` / `--governed` / `--protocol` / `--harness` select the newest
+  matching Change Evidence Graph record (combinable with one graph selector
+  `--file`/`--control`/`--commit`/`--session`; evidence list parity).
+
 - **Evidence list trust board**: human `evidence list` prints GATE/SOFT/RISK/
   ATTEST/GOV/PROTO/COMMIT/SESSION/HARNESS/CREATED (session status vocabulary);
   `--json` emits `{summary, records}` instead of a bare ID array.

@@ -171,13 +171,20 @@ specular explain --json
 | `--control <substr>` | Newest record matching failed checks / exception `--policy` / soft-ALLOW bind (same as `evidence list --control`) |
 | `--commit <prefix>` | Newest record whose commit SHA starts with prefix (same as `evidence list --commit`; positional hex args like `abc123` also work) |
 | `--session <id>` | Newest record whose `gate.provenance.sessions[]` contains this exact session id (same as `evidence list --session`) |
+| `--verdict ALLOW\|DENY` | Trust filter: only matching gate verdict (combinable; evidence list parity) |
+| `--risk NONE\|…\|CRITICAL` | Trust filter: only matching risk level |
+| `--soft-allow[=true\|false]` | Trust filter: soft-ALLOW overrules present / absent |
+| `--attested[=true\|false]` | Trust filter: attested provenance |
+| `--governed[=true\|false]` | Trust filter: governed provenance |
+| `--protocol[=true\|false]` | Trust filter: APP protocol schema+bound |
+| `--harness <substr>` | Trust filter: harness label substring |
 | `--fresh` | Re-run `specular gate` (persist evidence) then explain |
 | `--policy-file` | Policy file when using `--fresh` (`--policy` is a deprecated alias) |
 | `--strict-spec` | Require specs when using `--fresh` |
 | `--json` | Emit the evidence record as JSON |
 | `--project-root` | Repository root (default: cwd) |
 
-`--file` / `--control` / `--commit` / `--session` are mutually exclusive with each other, `evidence-id`, and `--fresh`. A positional hex SHA prefix (4–40 chars, not `ev_…`) is treated as `--commit`. Default (no args) loads the latest evidence pointer.
+`--file` / `--control` / `--commit` / `--session` are mutually exclusive with each other, `evidence-id`, and `--fresh`. Trust filters (`--verdict` / `--risk` / `--soft-allow` / `--attested` / `--governed` / `--protocol` / `--harness`) are combinable with each other and with one graph selector; they cannot combine with `--fresh`. A positional hex SHA prefix (4–40 chars, not `ev_…`) is treated as `--commit`. Default (no args) loads the latest evidence pointer (or newest trust-filter match when trust filters are set).
 
 ### provenance
 

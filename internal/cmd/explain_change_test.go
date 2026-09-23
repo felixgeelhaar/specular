@@ -226,6 +226,82 @@ func TestExplainGraphFiltersExclusive(t *testing.T) {
 	}
 }
 
+func TestExplainTrustFilterMerge(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 23, 12, 0, 0, 0, time.UTC)
+	_ = mustWriteExplainRecord(t, root, &evidence.Record{
+		ID:        "ev_allow_soft",
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(-time.Hour),
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Risk:    gate.RiskSection{Level: "MEDIUM"},
+			Provenance: gate.ProvenanceSection{
+				Attested: true,
+				Sessions: []string{"auth"},
+			},
+			Approvals: gate.ApprovalsSection{
+				Overrules: []gate.ExceptionOverrule{{Kind: "drift"}},
+			},
+		},
+	})
+	deny := mustWriteExplainRecord(t, root, &evidence.Record{
+		ID:        "ev_deny_high",
+		Schema:    evidence.Schema,
+		CreatedAt: now,
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Risk:    gate.RiskSection{Level: "HIGH"},
+			Provenance: gate.ProvenanceSection{
+				Attested: false,
+				Sessions: []string{"auth"},
+			},
+		},
+	})
+
+	yes := true
+	no := false
+	rec, err := loadEvidenceByFilter(root, withTrust(evidence.ListFilter{
+		Session: "auth",
+		Limit:   1,
+	}, evidence.ListFilter{Verdict: gate.Deny, SoftAllow: &no}), "session", "auth")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.ID != deny.ID {
+		t.Fatalf("got %s want %s", rec.ID, deny.ID)
+	}
+
+	rec, err = loadEvidenceByFilter(root, evidence.ListFilter{
+		Verdict:   gate.Allow,
+		SoftAllow: &yes,
+		Limit:     1,
+	}, "trust", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.ID != "ev_allow_soft" {
+		t.Fatalf("got %s", rec.ID)
+	}
+
+	_, err = loadEvidenceByFilter(root, evidence.ListFilter{
+		Verdict:   gate.Deny,
+		RiskLevel: "CRITICAL",
+		Limit:     1,
+	}, "trust", "")
+	if err == nil || !strings.Contains(err.Error(), "trust filters") {
+		t.Fatalf("err=%v", err)
+	}
+
+	base := withTrust(evidence.ListFilter{Session: "x"}, evidence.ListFilter{
+		Verdict: gate.Allow, RiskLevel: "LOW", Harness: "codex", SoftAllow: &yes,
+	})
+	if base.Session != "x" || base.Verdict != gate.Allow || base.RiskLevel != "LOW" || base.Harness != "codex" || base.SoftAllow == nil || !*base.SoftAllow {
+		t.Fatalf("%+v", base)
+	}
+}
+
 func mustWriteExplainRecord(t *testing.T, root string, rec *evidence.Record) *evidence.Record {
 	t.Helper()
 	if rec.ID == "" {
