@@ -286,9 +286,9 @@ func TestExplainTrustFilterMerge(t *testing.T) {
 	}
 
 	_, err = loadEvidenceByFilter(root, evidence.ListFilter{
-		Verdict: gate.Deny,
+		Verdict:   gate.Deny,
 		RiskLevel: "CRITICAL",
-		Limit:   1,
+		Limit:     1,
 	}, "trust", "")
 	if err == nil || !strings.Contains(err.Error(), "trust filters") {
 		t.Fatalf("err=%v", err)
