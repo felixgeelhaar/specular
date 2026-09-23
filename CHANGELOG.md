@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals list trust board**: human `approvals list` prints
+  ID/TYPE/STATUS/POLICY/SCOPE/EVID/APPROVER/EXPIRES with open/closed/expired
+  summary; `--json` emits `{summary, records}` (session/evidence list parity).
+
 - **Explain trust filters**: `--verdict` / `--risk` / `--soft-allow` /
   `--attested` / `--governed` / `--protocol` / `--harness` select the newest
   matching Change Evidence Graph record (combinable with one graph selector
@@ -114,6 +118,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Evidence list `--json`**: emits `{summary, records}` trust board instead
   of a bare ID array; human list is a tab board (not one ID per line).
+
+- **Approvals list `--json`**: emits `{summary, records}` trust board instead
+  of a bare record array; human list is a tab board (not grouped prose).
 
 - **DENY soft-ALLOW hints include provenance**: gate / evidence Approvals Hint
   and approve exception footer suggest `drift|policy|risk|provenance` (and
