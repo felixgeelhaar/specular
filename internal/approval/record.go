@@ -207,6 +207,27 @@ func FilterByScope(recs []Record, substr string) []Record {
 	return out
 }
 
+// FilterByEvidence keeps records whose EvidenceID equals or has prefix needle
+// (case-insensitive). Empty needle returns all. Used by approvals list
+// --evidence (EVID column query after #149 board).
+func FilterByEvidence(recs []Record, substr string) []Record {
+	needle := strings.ToLower(strings.TrimSpace(substr))
+	if needle == "" {
+		return recs
+	}
+	var out []Record
+	for _, rec := range recs {
+		id := strings.ToLower(strings.TrimSpace(rec.EvidenceID))
+		if id == "" {
+			continue
+		}
+		if id == needle || strings.HasPrefix(id, needle) {
+			out = append(out, rec)
+		}
+	}
+	return out
+}
+
 // CloseOptions configures early revoke of an open exception.
 type CloseOptions struct {
 	Now    time.Time

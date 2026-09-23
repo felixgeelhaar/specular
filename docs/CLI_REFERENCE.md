@@ -837,7 +837,7 @@ List approval records as a trust board (P1 #6 depth).
 ```bash
 specular approvals list [--status open|closed|expired] \
   [--type bundle|drift|policy|plan|exception] \
-  [--policy <substr>] [--scope <substr>] [--json]
+  [--policy <substr>] [--scope <substr>] [--evidence <id|prefix>] [--json]
 ```
 
 **Description:**
@@ -847,7 +847,8 @@ plus open/closed/expired summary. `--status` keeps records whose lifecycle is
 `open` (not closed, not expired), `closed` (explicit revoke), or `expired`
 (past `expires_at`). Closed wins when both closed and expired apply. `--type`
 filters by record type. `--policy` / `--scope` are case-insensitive substrings
-on those fields (combinable with `--status`). `--json` emits
+on those fields (combinable with `--status`). `--evidence` matches `evidence_id`
+exactly or by prefix (EVID column; combinable). `--json` emits
 `{summary, records}`.
 
 **Example:**

@@ -408,6 +408,30 @@ func TestFilterByTypePolicyScope(t *testing.T) {
 	}
 }
 
+func TestFilterByEvidence(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)
+	recs := []Record{
+		{Type: TypeException, ResourceID: "exception-a", ApprovedAt: now, EvidenceID: "ev_abc123def"},
+		{Type: TypeException, ResourceID: "exception-b", ApprovedAt: now, EvidenceID: "ev_xyz999"},
+		{Type: TypeBundle, ResourceID: "bundle-c", ApprovedAt: now},
+	}
+	exact := FilterByEvidence(recs, "ev_abc123def")
+	if len(exact) != 1 || exact[0].ResourceID != "exception-a" {
+		t.Fatalf("exact=%v", idsOfApprovals(exact))
+	}
+	prefix := FilterByEvidence(recs, "EV_ABC")
+	if len(prefix) != 1 || prefix[0].ResourceID != "exception-a" {
+		t.Fatalf("prefix=%v", idsOfApprovals(prefix))
+	}
+	if got := FilterByEvidence(recs, ""); len(got) != 3 {
+		t.Fatalf("empty=%d", len(got))
+	}
+	if got := FilterByEvidence(recs, "ev_missing"); len(got) != 0 {
+		t.Fatalf("miss=%v", idsOfApprovals(got))
+	}
+}
+
 func idsOfApprovals(recs []Record) []string {
 	out := make([]string, len(recs))
 	for i, r := range recs {
