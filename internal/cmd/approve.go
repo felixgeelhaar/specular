@@ -66,8 +66,10 @@ var approvalsListCmd = &cobra.Command{
 	Long: `Display the local approval / exception trail as a trust board.
 
 Columns: ID TYPE STATUS POLICY SCOPE EVID APPROVER EXPIRES
-EVID-bound rows footer to evidence show / explain (approvals show Refs parity).
---json emits {summary, records} (session/evidence list parity).
+EVID-bound rows footer to evidence show / explain / Soft trail pending+doctor
+(approvals show Refs parity). When no EVID Soft trail is present (including
+empty boards), Soft-trails to pending / doctor. --json emits {summary, records}
+(session/evidence list parity).
 
 Filters (combinable):
   --status open|closed|expired   Lifecycle status (closed wins over expired)
@@ -306,11 +308,13 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 			strings.TrimSpace(policySub) != "" || strings.TrimSpace(scopeSub) != "" ||
 			strings.TrimSpace(evidenceSub) != ""; filtered {
 			fmt.Println("No approval records match the given filters.")
+			fmt.Print("\n" + approval.FormatHollowSoftTrailHints())
 			return nil
 		}
 		fmt.Println("No approval records found.")
 		fmt.Println("\nRun 'specular governance init' to create the governance workspace.")
 		fmt.Println("Record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\"")
+		fmt.Print("\n" + approval.FormatHollowSoftTrailHints())
 		return nil
 	}
 
@@ -333,6 +337,8 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 		board.Summary.Open, board.Summary.Closed, board.Summary.Expired, board.Summary.Total)
 	if hints := approval.FormatEvidenceListHints(board.Records); hints != "" {
 		fmt.Print("\n" + hints)
+	} else {
+		fmt.Print("\n" + approval.FormatHollowSoftTrailHints())
 	}
 	return nil
 }

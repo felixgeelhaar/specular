@@ -83,6 +83,15 @@ func TestBuildListBoard(t *testing.T) {
 	if FormatEvidenceListHints([]ListRow{{ResourceID: "x"}}) != "" {
 		t.Fatal("expected empty hints without EvidenceID")
 	}
+	hollow := FormatHollowSoftTrailHints()
+	for _, want := range []string{
+		"Trail  specular approvals pending",
+		"specular doctor",
+	} {
+		if !strings.Contains(hollow, want) {
+			t.Fatalf("missing hollow Soft trail %q:\n%s", want, hollow)
+		}
+	}
 
 	openHints := FormatOpenExceptionHints([]Record{
 		{ResourceID: "exception-open", EvidenceID: "ev_1"},
