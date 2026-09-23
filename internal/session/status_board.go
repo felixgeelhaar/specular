@@ -294,6 +294,10 @@ func (f BoardFilter) Validate() error {
 
 // Match reports whether rec + evidence flags satisfy the filter.
 func (f BoardFilter) Match(rec Record, ev SessionEvidenceFlags) bool {
+	return f.matchSession(rec, ev) && f.matchGate(ev)
+}
+
+func (f BoardFilter) matchSession(rec Record, ev SessionEvidenceFlags) bool {
 	if sub := strings.TrimSpace(f.Harness); sub != "" {
 		if !strings.Contains(strings.ToLower(rec.Harness), strings.ToLower(sub)) {
 			return false
@@ -305,9 +309,16 @@ func (f BoardFilter) Match(rec Record, ev SessionEvidenceFlags) bool {
 	if f.Attested != nil && ev.Attested != *f.Attested {
 		return false
 	}
+	return true
+}
+
+func (f BoardFilter) matchGate(ev SessionEvidenceFlags) bool {
 	needsGate := f.Verdict != "" || f.SoftAllow != nil || f.Protocol != nil || strings.TrimSpace(f.RiskLevel) != ""
+	if !needsGate {
+		return true
+	}
 	hasGate := ev.Verdict != "" || ev.EvidenceID != ""
-	if needsGate && !hasGate {
+	if !hasGate {
 		return false
 	}
 	if f.Verdict != "" && !strings.EqualFold(ev.Verdict, strings.TrimSpace(f.Verdict)) {
@@ -319,16 +330,18 @@ func (f BoardFilter) Match(rec Record, ev SessionEvidenceFlags) bool {
 	if f.Protocol != nil && ev.Protocol != *f.Protocol {
 		return false
 	}
-	if level := strings.TrimSpace(f.RiskLevel); level != "" {
-		got := ev.Risk
-		if got == "" {
-			got = "NONE"
-		}
-		if !strings.EqualFold(got, level) {
-			return false
-		}
+	return f.matchRisk(ev.Risk)
+}
+
+func (f BoardFilter) matchRisk(got string) bool {
+	level := strings.TrimSpace(f.RiskLevel)
+	if level == "" {
+		return true
 	}
-	return true
+	if got == "" {
+		got = "NONE"
+	}
+	return strings.EqualFold(got, level)
 }
 
 // FilterSessions returns sessions matching filter (order preserved).
