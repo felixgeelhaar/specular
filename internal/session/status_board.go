@@ -220,8 +220,8 @@ func (d GateDetails) HasSurface() bool {
 }
 
 // FormatSoftAllowBoardHints returns human footer lines for Soft=yes rows
-// (approvals list --evidence / approvals show SoftAllowIDs / session show).
-// Empty when none.
+// (approvals list --evidence / approvals show SoftAllowIDs / evidence show /
+// explain --session / session show). Empty when none.
 func FormatSoftAllowBoardHints(sessions []Record, evidence map[string]SessionEvidenceFlags) string {
 	if len(sessions) == 0 || len(evidence) == 0 {
 		return ""
@@ -246,6 +246,10 @@ func FormatSoftAllowBoardHints(sessions []Record, evidence map[string]SessionEvi
 				continue
 			}
 			fmt.Fprintf(&b, "       specular approvals show %s\n", aid)
+		}
+		if id := strings.TrimSpace(ev.EvidenceID); id != "" {
+			fmt.Fprintf(&b, "       specular evidence show %s\n", id)
+			fmt.Fprintf(&b, "       specular explain --session %s\n", s.ID)
 		}
 		fmt.Fprintf(&b, "       specular session show %s\n", s.ID)
 	}

@@ -95,8 +95,8 @@ func RowFromRecord(rec *Record) ListRow {
 }
 
 // FormatSoftAllowListHints returns human footer lines for Soft=yes evidence
-// rows (approvals list --evidence / approvals show SoftAllowIDs / explain).
-// Empty when none.
+// rows (approvals list --evidence / approvals show SoftAllowIDs / evidence show /
+// explain). Empty when none.
 func FormatSoftAllowListHints(rows []ListRow) string {
 	if len(rows) == 0 {
 		return ""
@@ -121,6 +121,7 @@ func FormatSoftAllowListHints(rows []ListRow) string {
 			}
 			fmt.Fprintf(&b, "       specular approvals show %s\n", aid)
 		}
+		fmt.Fprintf(&b, "       specular evidence show %s\n", id)
 		fmt.Fprintf(&b, "       specular explain %s\n", id)
 	}
 	return b.String()

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Soft footer evidence jumps**: Soft=yes rows on `session status` /
+  `list` / `wait` jump to `evidence show` / `explain --session` when an
+  EvidenceID is known; `evidence list` Soft footers also print `evidence show`
+  (session show Soft / approvals show Refs parity).
+
 - **Soft footer `approvals show`**: Soft=yes rows on `session status` /
   `list` / `wait` and `evidence list` jump to `approvals show <id>` when
   SoftAllowIDs are known (session show Soft / FormatExplain Overruled parity).
