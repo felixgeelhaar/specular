@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -44,7 +45,10 @@ Examples:
 var evidenceListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List evidence records (newest first)",
-	Long: `List local Change Evidence Graph record IDs under .specular/evidence/.
+	Long: `List local Change Evidence Graph records under .specular/evidence/.
+
+Human output is a trust board (GATE/SOFT/RISK/ATTEST/GOV/PROTO/…) matching
+session status vocabulary. --json emits {summary, records}.
 
 Filters (combinable):
   --verdict ALLOW|DENY              Gate decision
@@ -58,8 +62,6 @@ Filters (combinable):
   --governed[=true|false]           Gate provenance governed / ungoverned
   --protocol[=true|false]           APP docs present+schema+bound / missing, invalid, or unbound
   --limit N                         Cap results after sorting (newest first)
-
---json emits a JSON array of matching IDs.
 `,
 	Args: cobra.NoArgs,
 	RunE: runEvidenceList,
@@ -85,17 +87,14 @@ func runEvidenceList(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	ids := make([]string, len(recs))
-	for i, rec := range recs {
-		ids[i] = rec.ID
-	}
+	board := evidence.BuildListBoard(recs)
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	if jsonOut {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		return enc.Encode(ids)
+		return enc.Encode(board)
 	}
-	if len(ids) == 0 {
+	if len(board.Records) == 0 {
 		if filter.Active() {
 			fmt.Println("No evidence records match filters.")
 			return nil
@@ -103,10 +102,45 @@ func runEvidenceList(cmd *cobra.Command, _ []string) error {
 		fmt.Println("No evidence records. Run: specular gate")
 		return nil
 	}
-	for _, id := range ids {
-		fmt.Println(id)
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(w, "ID\tGATE\tSOFT\tRISK\tATTEST\tGOV\tPROTO\tCOMMIT\tSESSION\tHARNESS\tCREATED")
+	for _, row := range board.Records {
+		created := "-"
+		if !row.CreatedAt.IsZero() {
+			created = row.CreatedAt.UTC().Format("2006-01-02T15:04")
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			row.ID,
+			dashOr(row.Verdict),
+			yesDash(row.SoftAllow),
+			dashOr(row.Risk),
+			yesDash(row.Attested),
+			yesDash(row.Governed),
+			yesDash(row.Protocol),
+			evidence.ShortCommit(row.Commit),
+			evidence.JoinDash(row.Sessions),
+			evidence.JoinDash(row.Harnesses),
+			created,
+		)
 	}
+	_ = w.Flush()
+	fmt.Printf("\nallow=%d  deny=%d  softAllow=%d  total=%d\n",
+		board.Summary.Allow, board.Summary.Deny, board.Summary.SoftAllow, board.Summary.Total)
 	return nil
+}
+
+func yesDash(v bool) string {
+	if v {
+		return "yes"
+	}
+	return "-"
+}
+
+func dashOr(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return "-"
+	}
+	return s
 }
 
 func evidenceListFilter(cmd *cobra.Command) (evidence.ListFilter, error) {
@@ -190,7 +224,7 @@ func evidenceProjectRoot(cmd *cobra.Command) (string, error) {
 
 func init() {
 	evidenceCmd.PersistentFlags().String("project-root", "", "Repository root (default: cwd)")
-	evidenceListCmd.Flags().Bool("json", false, "Emit JSON array of IDs")
+	evidenceListCmd.Flags().Bool("json", false, "Emit {summary, records} trust board JSON")
 	evidenceListCmd.Flags().String("verdict", "", "Filter by gate verdict (ALLOW or DENY)")
 	evidenceListCmd.Flags().String("since", "", "Only records at or after time (duration like 24h, or RFC3339)")
 	evidenceListCmd.Flags().String("path", "", "Only records whose root or finding paths contain substring")
