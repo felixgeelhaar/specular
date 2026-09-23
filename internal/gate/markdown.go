@@ -180,6 +180,25 @@ func writeMarkdownApprovals(b *strings.Builder, res *Result, evidenceID string) 
 			}
 			b.WriteString(line + "\n")
 		}
+		if len(res.Approvals.Overrules) == 0 {
+			seen := make(map[string]struct{})
+			for _, ex := range res.Approvals.Exceptions {
+				id := strings.TrimSpace(ex.ResourceID)
+				if id == "" {
+					continue
+				}
+				if _, ok := seen[id]; ok {
+					continue
+				}
+				seen[id] = struct{}{}
+				fmt.Fprintf(b, "- Show: `specular approvals show %s`\n", id)
+			}
+			if len(seen) > 0 {
+				b.WriteString("- List: `specular approvals list --status open`\n")
+				fmt.Fprintf(b, "- Pending: `%s`\n", SoftAllowPendingHint)
+				fmt.Fprintf(b, "- Doctor: `%s`\n", SoftAllowDoctorHint)
+			}
+		}
 		b.WriteString("\n")
 		return
 	}

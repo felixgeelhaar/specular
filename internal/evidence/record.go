@@ -445,6 +445,9 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result, evidenceID string) 
 	}
 	fmt.Fprintf(b, "Records      %d\n", sec.Count)
 	writeApprovalExceptions(b, sec.Exceptions)
+	if len(sec.Overrules) == 0 && len(sec.Exceptions) > 0 {
+		writeOpenExceptionExplainSoftTrail(b, sec.Exceptions)
+	}
 	writeApprovalRecent(b, sec.Recent)
 	if g.Verdict == gate.Deny && len(sec.Exceptions) == 0 {
 		fmt.Fprintf(b, "Hint         record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
@@ -489,6 +492,29 @@ func writeApprovalExceptions(b *strings.Builder, exceptions []gate.ApprovalSumma
 			fmt.Fprintf(b, "  expires %s\n", ex.ExpiresAt)
 		}
 	}
+}
+
+// writeOpenExceptionExplainSoftTrail jumps advisory open exceptions to Soft
+// trail when Soft Overruled hints were not already printed.
+func writeOpenExceptionExplainSoftTrail(b *strings.Builder, exceptions []gate.ApprovalSummary) {
+	seen := make(map[string]struct{}, len(exceptions))
+	for _, ex := range exceptions {
+		id := strings.TrimSpace(ex.ResourceID)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		fmt.Fprintf(b, "Show         specular approvals show %s\n", id)
+	}
+	if len(seen) == 0 {
+		return
+	}
+	b.WriteString("List         specular approvals list --status open\n")
+	fmt.Fprintf(b, "Pending      %s\n", gate.SoftAllowPendingHint)
+	fmt.Fprintf(b, "Doctor       %s\n", gate.SoftAllowDoctorHint)
 }
 
 func writeApprovalRecent(b *strings.Builder, recent []gate.ApprovalSummary) {

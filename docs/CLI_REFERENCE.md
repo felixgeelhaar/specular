@@ -150,7 +150,9 @@ drift/policy/risk fixes). Approvals Hint remains the exception soft-ALLOW path.
 On soft-ALLOW, text / markdown Approvals Overruled jump to
 `approvals show <id>` / `approvals list --evidence <id>` when evidence was
 persisted (else `--status open`) / `approvals pending` / `doctor`
-(explain / approve Soft-trail parity).
+(explain / approve Soft-trail parity). Advisory open exceptions (not yet
+overruling) get the same Soft trail via show / `list --status open` /
+pending / doctor.
 
 Product intent: [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md).
 

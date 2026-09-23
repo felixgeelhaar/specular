@@ -143,6 +143,9 @@ func writeApprovalsSection(b *strings.Builder, res *Result, evidenceID string) {
 	fmt.Fprintf(b, "  Records        %d\n", sec.Count)
 	writeOverrules(b, sec.Overrules, evidenceID)
 	writeOpenExceptions(b, sec.Exceptions)
+	if len(sec.Overrules) == 0 && len(sec.Exceptions) > 0 {
+		writeOpenExceptionSoftTrail(b, sec.Exceptions, "    ")
+	}
 	writeRecentApprovals(b, sec.Recent)
 	if verdict == Deny && len(sec.Exceptions) == 0 {
 		fmt.Fprintf(b, "  Hint           record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
@@ -227,6 +230,29 @@ func writeOpenExceptions(b *strings.Builder, exceptions []ApprovalSummary) {
 		b.WriteString("\n")
 		writeApprovalDetail(b, ex, "      ")
 	}
+}
+
+// writeOpenExceptionSoftTrail jumps advisory open exceptions to show/list/
+// pending/doctor when Soft Overruled Soft trail was not already printed.
+func writeOpenExceptionSoftTrail(b *strings.Builder, exceptions []ApprovalSummary, indent string) {
+	seen := make(map[string]struct{}, len(exceptions))
+	for _, ex := range exceptions {
+		id := strings.TrimSpace(ex.ResourceID)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		fmt.Fprintf(b, "%sShow           specular approvals show %s\n", indent, id)
+	}
+	if len(seen) == 0 {
+		return
+	}
+	fmt.Fprintf(b, "%sList           specular approvals list --status open\n", indent)
+	fmt.Fprintf(b, "%sPending        %s\n", indent, SoftAllowPendingHint)
+	fmt.Fprintf(b, "%sDoctor         %s\n", indent, SoftAllowDoctorHint)
 }
 
 func writeRecentApprovals(b *strings.Builder, recent []ApprovalSummary) {
