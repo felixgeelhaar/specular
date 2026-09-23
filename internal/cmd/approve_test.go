@@ -87,6 +87,8 @@ func TestFormatApprovalExplainException(t *testing.T) {
 		"             specular explain ev_soft_allow",
 		"specular approvals list",
 		"Open         specular approvals list --status open",
+		"Pending      specular approvals pending",
+		"Doctor       specular doctor",
 		"Gate         specular gate",
 	} {
 		if !strings.Contains(text, want) {
@@ -107,8 +109,14 @@ func TestFormatApprovalExplainNoEvidenceRefs(t *testing.T) {
 	if strings.Contains(text, "evidence show") || strings.Contains(text, "list --status open") {
 		t.Fatalf("unexpected evidence/open refs:\n%s", text)
 	}
-	if !strings.Contains(text, "Gate         specular gate") {
-		t.Fatalf("missing gate ref:\n%s", text)
+	for _, want := range []string{
+		"Pending      specular approvals pending",
+		"Doctor       specular doctor",
+		"Gate         specular gate",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing Soft trail %q:\n%s", want, text)
+		}
 	}
 }
 

@@ -91,7 +91,7 @@ func DashOr(s string) string {
 }
 
 // FormatEvidenceListHints returns human footer lines for rows with an EVID
-// column (evidence show / explain). Empty when none bound.
+// column (evidence show / explain / Soft trail pending+doctor). Empty when none bound.
 func FormatEvidenceListHints(rows []ListRow) string {
 	if len(rows) == 0 {
 		return ""
@@ -112,6 +112,11 @@ func FormatEvidenceListHints(rows []ListRow) string {
 		fmt.Fprintf(&b, "  %s  specular evidence show %s\n", id, evid)
 		fmt.Fprintf(&b, "       specular explain %s\n", evid)
 	}
+	if b.Len() == 0 {
+		return ""
+	}
+	b.WriteString("  Trail  specular approvals pending\n")
+	b.WriteString("         specular doctor\n")
 	return b.String()
 }
 
