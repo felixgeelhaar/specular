@@ -66,11 +66,11 @@ func bindOneEvidence(root, resourceID, evidenceID string, now time.Time) (int, e
 	if !filepath.IsAbs(absPath) {
 		absPath = filepath.Join(root, filepath.FromSlash(target.Path))
 	}
-	if _, err := os.Stat(absPath); err != nil {
-		return 0, fmt.Errorf("approval bind: %w", err)
+	if _, statErr := os.Stat(absPath); statErr != nil {
+		return 0, fmt.Errorf("approval bind: %w", statErr)
 	}
-	if err := rewrite(absPath, target); err != nil {
-		return 0, err
+	if rewriteErr := rewrite(absPath, target); rewriteErr != nil {
+		return 0, rewriteErr
 	}
 	return 1, nil
 }
