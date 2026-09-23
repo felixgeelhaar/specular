@@ -289,7 +289,7 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 
 		if len(list) > 0 {
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tGATE\tSOFT\tWORKTREE\tPID\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tGATE\tSOFT\tRISK\tWORKTREE\tPID\tGOAL")
 			storeDir := mgr.Store().Dir()
 			gates := session.NewestGateBySession(mgr.RepoRoot())
 			for _, s := range list {
@@ -309,12 +309,14 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 				ev := session.EvidenceFlagsFor(storeDir, "", s)
 				gate := "-"
 				soft := false
+				risk := "-"
 				if g, ok := gates[s.ID]; ok {
 					gate = session.DashOr(g.Verdict)
 					soft = g.SoftAllow
+					risk = session.DashOr(g.Risk)
 				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), gate, session.YesDash(soft), wt, pid, goal)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), gate, session.YesDash(soft), risk, wt, pid, goal)
 			}
 			_ = w.Flush()
 		}
@@ -567,8 +569,8 @@ var sessionStatusCmd = &cobra.Command{
 
 Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 With --json, emit {summary, sessions, evidence} for dashboards (not a bare array).
-Evidence includes ATTEST/APP/COMMIT plus GATE verdict/evidenceId and SOFT
-(soft-ALLOW overrules) from newest graph records.`,
+Evidence includes ATTEST/APP/COMMIT plus GATE verdict/evidenceId, SOFT
+(soft-ALLOW overrules), and RISK from newest graph records.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -601,7 +603,7 @@ Evidence includes ATTEST/APP/COMMIT plus GATE verdict/evidenceId and SOFT
 				return nil
 			}
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tGATE\tSOFT\tPID\tBRANCH\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tCOMMIT\tGATE\tSOFT\tRISK\tPID\tBRANCH\tGOAL")
 			for _, s := range board.Sessions {
 				goal := s.Goal
 				if len(goal) > 40 {
@@ -617,8 +619,8 @@ Evidence includes ATTEST/APP/COMMIT plus GATE verdict/evidenceId and SOFT
 				}
 				gov := session.YesDash(s.Governed)
 				ev := board.Evidence[s.ID]
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), session.DashOr(ev.Verdict), session.YesDash(ev.SoftAllow), pid, branch, goal)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.DashOr(ev.Commit), session.DashOr(ev.Verdict), session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), pid, branch, goal)
 			}
 			_ = w.Flush()
 			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",

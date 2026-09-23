@@ -21,8 +21,8 @@ type StatusSummary struct {
 }
 
 // SessionEvidenceFlags reports sibling attestation / APP doc presence,
-// worktree HEAD tip, and newest gate verdict / soft-ALLOW from the Change
-// Evidence Graph (fleet board → explain / evidence show).
+// worktree HEAD tip, and newest gate verdict / soft-ALLOW / risk from the
+// Change Evidence Graph (fleet board → explain / evidence show).
 type SessionEvidenceFlags struct {
 	Attested   bool   `json:"attested"`
 	App        bool   `json:"app"`                  // sibling .provenance.json present
@@ -30,6 +30,7 @@ type SessionEvidenceFlags struct {
 	Verdict    string `json:"verdict,omitempty"`    // ALLOW | DENY from newest evidence
 	EvidenceID string `json:"evidenceId,omitempty"` // newest matching evidence record id
 	SoftAllow  bool   `json:"softAllow,omitempty"`  // newest evidence has exception overrules
+	Risk       string `json:"risk,omitempty"`       // NONE|LOW|MEDIUM|HIGH|CRITICAL
 }
 
 // StatusBoard is the JSON shape for `session status --json`: summary counts
@@ -58,7 +59,7 @@ func EvidenceFlags(sessionsDir, id string) SessionEvidenceFlags {
 }
 
 // EvidenceFlagsFor is EvidenceFlags plus short worktree HEAD and newest gate
-// verdict / soft-ALLOW when repoRoot has matching Change Evidence Graph records.
+// verdict / soft-ALLOW / risk when repoRoot has matching Change Evidence Graph records.
 func EvidenceFlagsFor(sessionsDir, repoRoot string, rec Record) SessionEvidenceFlags {
 	f := EvidenceFlags(sessionsDir, rec.ID)
 	f.Commit = WorktreeHEADShort(rec.WorktreePath)
@@ -73,17 +74,19 @@ type SessionGate struct {
 	Verdict    string
 	EvidenceID string
 	SoftAllow  bool
+	Risk       string
 }
 
 func applySessionGate(f *SessionEvidenceFlags, g SessionGate) {
 	f.Verdict = g.Verdict
 	f.EvidenceID = g.EvidenceID
 	f.SoftAllow = g.SoftAllow
+	f.Risk = g.Risk
 }
 
-// NewestGateBySession returns ALLOW/DENY (evidence id + soft-ALLOW) for each
-// session from the newest matching Change Evidence Graph record under repoRoot.
-// Sessions appearing on older records only keep the newest hit (List order).
+// NewestGateBySession returns ALLOW/DENY (evidence id, soft-ALLOW, risk) for
+// each session from the newest matching Change Evidence Graph record under
+// repoRoot. Sessions on older records only keep the newest hit (List order).
 func NewestGateBySession(repoRoot string) map[string]SessionGate {
 	repoRoot = strings.TrimSpace(repoRoot)
 	if repoRoot == "" {
@@ -103,6 +106,10 @@ func NewestGateBySession(repoRoot string) map[string]SessionGate {
 			continue
 		}
 		soft := len(rec.Gate.Approvals.Overrules) > 0
+		risk := strings.ToUpper(strings.TrimSpace(rec.Gate.Risk.Level))
+		if risk == "" {
+			risk = "NONE"
+		}
 		for _, sid := range rec.Gate.Provenance.Sessions {
 			sid = strings.TrimSpace(sid)
 			if sid == "" {
@@ -111,7 +118,12 @@ func NewestGateBySession(repoRoot string) map[string]SessionGate {
 			if _, exists := out[sid]; exists {
 				continue // newer already recorded (List is newest-first)
 			}
-			out[sid] = SessionGate{Verdict: verdict, EvidenceID: rec.ID, SoftAllow: soft}
+			out[sid] = SessionGate{
+				Verdict:    verdict,
+				EvidenceID: rec.ID,
+				SoftAllow:  soft,
+				Risk:       risk,
+			}
 		}
 	}
 	if len(out) == 0 {
@@ -157,7 +169,7 @@ func BuildStatusBoard(list []Record) StatusBoard {
 }
 
 // BuildStatusBoardWithEvidence is BuildStatusBoard plus optional
-// attest/APP/commit/gate/soft-ALLOW flags. sessionsDir is Manager.Store().Dir();
+// attest/APP/commit/gate/soft-ALLOW/risk flags. sessionsDir is Manager.Store().Dir();
 // repoRoot is the git repository root for .specular/evidence.
 func BuildStatusBoardWithEvidence(list []Record, sessionsDir, repoRoot string) StatusBoard {
 	board := StatusBoard{
