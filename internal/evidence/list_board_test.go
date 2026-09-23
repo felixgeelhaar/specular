@@ -91,6 +91,7 @@ func TestBuildListBoard(t *testing.T) {
 		"Soft-ALLOW:",
 		"ev_allow  specular approvals list --evidence ev_allow",
 		"specular approvals show exception-drift",
+		"specular evidence show ev_allow",
 		"specular explain ev_allow",
 	} {
 		if !strings.Contains(hints, want) {
