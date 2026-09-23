@@ -34,6 +34,8 @@ Resources can be:
 
 Exceptions (PRODUCT_INTENT §18) require --reason and should include --scope.
 They are an explicit auditable trail — they do not silently bypass the gate.
+After recording an exception, human output prints Soft-trail Refs (show /
+list --status open / pending / doctor / gate; evidence show when --evidence).
 
 Examples:
   specular approve bundle-abc123 --message "Reviewed for prod"
@@ -230,6 +232,7 @@ func runApprove(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Saved:       %s\n", approvalPath)
 		fmt.Println("\nNote: an open, non-expired exception can soft-ALLOW a matching gate DENY")
 		fmt.Println("(drift/policy/risk/provenance) when --policy/--scope binds to that deny; otherwise advisory.")
+		printApprovalsCreateSoftTrail(*rec)
 		return nil
 	}
 
@@ -238,6 +241,24 @@ func runApprove(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Approval saved: %s\n", approvalPath)
 	fmt.Printf("Message: %s\n", message)
 	return nil
+}
+
+// printApprovalsCreateSoftTrail reverse-jumps after recording an exception
+// (show / list --status open / pending / doctor / gate; evidence when bound).
+func printApprovalsCreateSoftTrail(rec approval.Record) {
+	fmt.Println("Refs")
+	id := strings.TrimSpace(rec.ResourceID)
+	if id != "" {
+		fmt.Printf("Show         specular approvals show %s\n", id)
+	}
+	fmt.Println("Open         specular approvals list --status open")
+	fmt.Println("Pending      specular approvals pending")
+	fmt.Println("Doctor       specular doctor")
+	fmt.Println("Gate         specular gate")
+	if evid := strings.TrimSpace(rec.EvidenceID); evid != "" {
+		fmt.Printf("Evidence     specular evidence show %s\n", evid)
+		fmt.Printf("             specular explain %s\n", evid)
+	}
 }
 
 func runApprovalsList(cmd *cobra.Command, args []string) error {
