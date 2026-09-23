@@ -826,7 +826,7 @@ $ specular approve exception-EX-192 \
 
 ### approvals list
 
-List approval records with optional filters (P1 #6 depth).
+List approval records as a trust board (P1 #6 depth).
 
 ```bash
 specular approvals list [--status open|closed|expired] \
@@ -836,26 +836,22 @@ specular approvals list [--status open|closed|expired] \
 
 **Description:**
 
-Displays approval records grouped by type and sorted by timestamp.
-`--status` keeps records whose lifecycle is `open` (not closed, not expired),
-`closed` (explicit revoke), or `expired` (past `expires_at`). Closed wins when
-both closed and expired apply. `--type` filters by record type. `--policy` /
-`--scope` are case-insensitive substrings on those fields (combinable with
-`--status`). `--json` emits the matching record array.
+Displays a compact board (`ID TYPE STATUS POLICY SCOPE EVID APPROVER EXPIRES`)
+plus open/closed/expired summary. `--status` keeps records whose lifecycle is
+`open` (not closed, not expired), `closed` (explicit revoke), or `expired`
+(past `expires_at`). Closed wins when both closed and expired apply. `--type`
+filters by record type. `--policy` / `--scope` are case-insensitive substrings
+on those fields (combinable with `--status`). `--json` emits
+`{summary, records}`.
 
 **Example:**
 ```bash
 $ specular approvals list --status open --type exception --policy provenance
 
-APPROVAL / EXCEPTION TRAIL
-──────────────────────────────────────
-Exception records: 1
-  • exception-EX-192
-    Approved by: alice
-    Reason: Emergency auth hotfix
-    Scope: internal/auth/**
+ID                      TYPE       STATUS  POLICY      SCOPE            EVID  APPROVER  EXPIRES
+exception-EX-192        exception  open    provenance  internal/auth/**  -     alice     2026-09-30
 
-Total: 1
+open=1  closed=0  expired=0  total=1
 ```
 
 ### approvals show

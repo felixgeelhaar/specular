@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -58,20 +59,17 @@ var approvalsCmd = &cobra.Command{
 var approvalsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all approval records",
-	Long: `Display approval records with optional filters.
+	Long: `Display the local approval / exception trail as a trust board.
 
-Shows:
-  • Approval type (bundle, drift, policy, plan, exception)
-  • Resource ID, approver, timestamp
-  • Exception reason/scope/policy/expiration when present
+Columns: ID TYPE STATUS POLICY SCOPE EVID APPROVER EXPIRES
+--json emits {summary, records} (session/evidence list parity).
 
 Filters (combinable):
   --status open|closed|expired   Lifecycle status (closed wins over expired)
   --type bundle|drift|policy|plan|exception
   --policy <substr>              Case-insensitive match on policy field
   --scope <substr>               Case-insensitive match on scope field
-
---json emits a machine-readable array of matching records.`,
+`,
 	RunE: runApprovalsList,
 }
 
@@ -258,16 +256,14 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 	recs = approval.FilterByPolicy(recs, policySub)
 	recs = approval.FilterByScope(recs, scopeSub)
 
+	board := approval.BuildListBoard(recs, now)
 	if jsonOut {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		if recs == nil {
-			recs = []approval.Record{}
-		}
-		return enc.Encode(recs)
+		return enc.Encode(board)
 	}
 
-	if len(recs) == 0 {
+	if len(board.Records) == 0 {
 		if filtered := strings.TrimSpace(status) != "" || strings.TrimSpace(typ) != "" ||
 			strings.TrimSpace(policySub) != "" || strings.TrimSpace(scopeSub) != ""; filtered {
 			fmt.Println("No approval records match the given filters.")
@@ -279,38 +275,23 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Println("APPROVAL / EXCEPTION TRAIL")
-	fmt.Println("──────────────────────────────────────")
-
-	approvalsByType := make(map[string][]approval.Record)
-	for _, rec := range recs {
-		approvalsByType[rec.Type] = append(approvalsByType[rec.Type], rec)
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(w, "ID\tTYPE\tSTATUS\tPOLICY\tSCOPE\tEVID\tAPPROVER\tEXPIRES")
+	for _, row := range board.Records {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			row.ResourceID,
+			approval.DashOr(row.Type),
+			approval.DashOr(row.Status),
+			approval.DashOr(row.Policy),
+			approval.DashOr(row.Scope),
+			approval.DashOr(row.EvidenceID),
+			approval.DashOr(row.ApprovedBy),
+			approval.FormatExpires(row.ExpiresAt),
+		)
 	}
-
-	order := []string{
-		approval.TypeException,
-		approval.TypePolicy,
-		approval.TypeBundle,
-		approval.TypeDrift,
-		approval.TypePlan,
-	}
-	for _, approvalType := range order {
-		group := approvalsByType[approvalType]
-		if len(group) == 0 {
-			continue
-		}
-		title := strings.ToUpper(approvalType[:1]) + approvalType[1:]
-		if approvalType == approval.TypeException {
-			title = "Exception"
-		}
-		fmt.Printf("%s records: %d\n", title, len(group))
-		for _, rec := range group {
-			printApprovalHuman(rec, now)
-			fmt.Println()
-		}
-	}
-
-	fmt.Printf("Total: %d\n", len(recs))
+	_ = w.Flush()
+	fmt.Printf("\nopen=%d  closed=%d  expired=%d  total=%d\n",
+		board.Summary.Open, board.Summary.Closed, board.Summary.Expired, board.Summary.Total)
 	return nil
 }
 
@@ -420,43 +401,6 @@ func formatApprovalExplain(rec approval.Record) string {
 	b.WriteString("List         specular approvals list\n")
 	b.WriteString("Gate trail   specular gate / specular explain\n")
 	return b.String()
-}
-
-func printApprovalHuman(rec approval.Record, now time.Time) {
-	fmt.Printf("  • %s\n", rec.ResourceID)
-	fmt.Printf("    Approved by: %s\n", rec.ApprovedBy)
-	fmt.Printf("    Approved at: %s\n", rec.ApprovedAt.Format("2006-01-02 15:04:05"))
-	if rec.Message != "" {
-		fmt.Printf("    Message: %s\n", rec.Message)
-	}
-	if rec.Reason != "" {
-		fmt.Printf("    Reason: %s\n", rec.Reason)
-	}
-	if rec.Scope != "" {
-		fmt.Printf("    Scope: %s\n", rec.Scope)
-	}
-	if rec.Policy != "" {
-		fmt.Printf("    Policy: %s\n", rec.Policy)
-	}
-	if rec.ExpiresAt != nil {
-		status := "open"
-		switch {
-		case rec.IsClosed():
-			status = "closed"
-		case rec.IsExpired(now):
-			status = "expired"
-		}
-		fmt.Printf("    Expires: %s (%s)\n", rec.ExpiresAt.Format(time.RFC3339), status)
-	} else if rec.IsClosed() {
-		fmt.Printf("    Status: closed")
-		if rec.ClosedAt != nil {
-			fmt.Printf(" at %s", rec.ClosedAt.Format(time.RFC3339))
-		}
-		fmt.Println()
-	}
-	if rec.Path != "" {
-		fmt.Printf("    File: %s\n", rec.Path)
-	}
 }
 
 func runApprovalsClose(cmd *cobra.Command, args []string) error {
@@ -726,7 +670,7 @@ func init() {
 	approveCmd.Flags().String("artifact", "", "Affected artifact digest or reference")
 	approveCmd.Flags().String("evidence", "", "Related evidence id (ev_…)")
 
-	approvalsListCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
+	approvalsListCmd.Flags().Bool("json", false, "Emit {summary, records} trust board JSON")
 	approvalsListCmd.Flags().String("status", "", "Filter by lifecycle status (open|closed|expired)")
 	approvalsListCmd.Flags().String("type", "", "Filter by record type (bundle|drift|policy|plan|exception)")
 	approvalsListCmd.Flags().String("policy", "", "Filter by policy field substring (case-insensitive)")
