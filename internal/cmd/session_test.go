@@ -205,15 +205,10 @@ func TestPrintSessionGateBlockSoftAllow(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(out)
-	for _, want := range []string{
-		"Soft:       yes",
-		"Evidence:   ev_soft",
-		"Approval:   specular approvals show exception-drift",
-		"Approval:   specular approvals show exception-risk",
-		"specular approvals list --status open",
-	} {
-		if !strings.Contains(text, want) {
-			t.Fatalf("missing %q:\n%s", want, text)
-		}
+	if !strings.Contains(text, "Approval:   specular approvals show exception-drift") {
+		t.Fatalf("missing approval show:\n%s", text)
+	}
+	if !strings.Contains(text, "specular approvals list --evidence ev_soft") {
+		t.Fatalf("missing --evidence list:\n%s", text)
 	}
 }

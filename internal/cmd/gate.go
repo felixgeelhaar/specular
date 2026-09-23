@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/felixgeelhaar/specular/internal/approval"
 	"github.com/felixgeelhaar/specular/internal/evidence"
 	"github.com/felixgeelhaar/specular/internal/gate"
 )
@@ -116,6 +117,11 @@ func runGate(cmd *cobra.Command, _ []string) error {
 				evidenceID = rec.ID
 				if !quiet && format == "text" {
 					fmt.Fprintf(os.Stderr, "Evidence: %s (.specular/evidence/)\n", rec.ID)
+				}
+				if n, bindErr := approval.BindEvidence(projectRoot, gate.SoftAllowResourceIDs(res.Approvals.Overrules), evidenceID); bindErr != nil {
+					fmt.Fprintf(os.Stderr, "warning: could not bind soft-ALLOW evidence: %v\n", bindErr)
+				} else if n > 0 && !quiet && format == "text" {
+					fmt.Fprintf(os.Stderr, "Soft-ALLOW bound: %d exception(s) → %s\n", n, evidenceID)
 				}
 			}
 		}

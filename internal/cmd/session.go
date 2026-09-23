@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/felixgeelhaar/specular/internal/checkpoint"
+	"github.com/felixgeelhaar/specular/internal/gate"
 	"github.com/felixgeelhaar/specular/internal/session"
 )
 
@@ -440,7 +441,7 @@ func printSessionGateBlock(sessionID string, ev session.GateDetails) {
 		fmt.Printf("Approval:   specular approvals show %s\n", id)
 	}
 	if len(ev.SoftAllowIDs) > 0 {
-		fmt.Println("            specular approvals list --status open")
+		fmt.Printf("            %s\n", gate.SoftAllowListHint(ev.EvidenceID))
 	}
 	if len(ev.NextSteps) > 0 {
 		fmt.Println("\nNext steps:")
