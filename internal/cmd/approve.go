@@ -106,6 +106,8 @@ Also lists open soft-ALLOW exceptions (approvals show / evidence show /
 list --status open) so operators can review the active Soft trail (doctor
 open_exceptions parity). Open exceptions alone do not set exit 1.
 
+--json emits {summary, policyChanges, bundles, drift, openExceptions}.
+
 Exit codes:
   0: No pending approvals
   1: Pending approvals found`,
@@ -543,39 +545,63 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	jsonOut, _ := cmd.Flags().GetBool("json")
+	board := collectPendingBoard()
+	if jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(board); err != nil {
+			return err
+		}
+		if board.Summary.Pending {
+			os.Exit(1)
+		}
+		return nil
+	}
+
 	fmt.Println("=== Pending Approvals ===")
 
-	hasPending := false
+	hasPending := board.Summary.Pending
 
-	if hasPolicyChanges, err := checkPolicyChanges(); err == nil && hasPolicyChanges {
+	if board.PolicyChanges {
 		fmt.Println("📋 Policy Changes:")
 		fmt.Println("  • Policies have changed since last approval")
 		fmt.Println("  • Run 'specular policy diff' to see changes")
 		fmt.Println("  • Run 'specular policy approve' to approve")
 		fmt.Println()
-		hasPending = true
 	}
 
-	if pendingBundles, err := checkPendingBundles(); err == nil && len(pendingBundles) > 0 {
-		fmt.Printf("📦 Bundles: %d pending\n", len(pendingBundles))
-		for _, bundleID := range pendingBundles {
+	if len(board.Bundles) > 0 {
+		fmt.Printf("📦 Bundles: %d pending\n", len(board.Bundles))
+		for _, bundleID := range board.Bundles {
 			fmt.Printf("  • %s\n", bundleID)
 		}
 		fmt.Println("  Run 'specular approve <bundle-id>' to approve")
 		fmt.Println()
-		hasPending = true
 	}
 
-	if hasDrift, err := checkDrift(); err == nil && hasDrift {
+	if board.Drift {
 		fmt.Println("🔀 Drift Detected:")
 		fmt.Println("  • Drift detected but not approved")
 		fmt.Println("  • Run 'specular eval drift' to see details")
 		fmt.Println("  • Run 'specular approve <drift-id>' to approve")
 		fmt.Println()
-		hasPending = true
 	}
 
-	openPrinted := printPendingOpenExceptions()
+	openPrinted := false
+	if len(board.OpenExceptions) > 0 {
+		recs := make([]approval.Record, 0, len(board.OpenExceptions))
+		for _, ref := range board.OpenExceptions {
+			recs = append(recs, approval.Record{
+				ResourceID: ref.ResourceID,
+				EvidenceID: ref.EvidenceID,
+			})
+		}
+		if hints := approval.FormatOpenExceptionHints(recs); hints != "" {
+			fmt.Print("\n" + hints)
+			openPrinted = true
+		}
+	}
 
 	if !hasPending {
 		fmt.Println("✅ No pending approvals")
@@ -589,6 +615,62 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 
 	os.Exit(1)
 	return nil
+}
+
+// PendingOpenException is one open soft-ALLOW exception on the pending board.
+type PendingOpenException struct {
+	ResourceID string `json:"resourceId"`
+	EvidenceID string `json:"evidenceId,omitempty"`
+	Policy     string `json:"policy,omitempty"`
+	Scope      string `json:"scope,omitempty"`
+}
+
+// PendingSummary counts pending work + open soft-ALLOW exceptions.
+type PendingSummary struct {
+	Pending        bool `json:"pending"`
+	OpenExceptions int  `json:"openExceptions"`
+}
+
+// PendingBoard is the JSON shape for `approvals pending --json`.
+type PendingBoard struct {
+	Summary        PendingSummary         `json:"summary"`
+	PolicyChanges  bool                   `json:"policyChanges,omitempty"`
+	Bundles        []string               `json:"bundles,omitempty"`
+	Drift          bool                   `json:"drift,omitempty"`
+	OpenExceptions []PendingOpenException `json:"openExceptions,omitempty"`
+}
+
+func collectPendingBoard() PendingBoard {
+	board := PendingBoard{}
+	if hasPolicyChanges, err := checkPolicyChanges(); err == nil && hasPolicyChanges {
+		board.PolicyChanges = true
+		board.Summary.Pending = true
+	}
+	if pendingBundles, err := checkPendingBundles(); err == nil && len(pendingBundles) > 0 {
+		board.Bundles = pendingBundles
+		board.Summary.Pending = true
+	}
+	if hasDrift, err := checkDrift(); err == nil && hasDrift {
+		board.Drift = true
+		board.Summary.Pending = true
+	}
+	open, err := approval.OpenExceptions(".", time.Now().UTC())
+	if err == nil {
+		for _, rec := range open {
+			id := strings.TrimSpace(rec.ResourceID)
+			if id == "" {
+				continue
+			}
+			board.OpenExceptions = append(board.OpenExceptions, PendingOpenException{
+				ResourceID: id,
+				EvidenceID: strings.TrimSpace(rec.EvidenceID),
+				Policy:     strings.TrimSpace(rec.Policy),
+				Scope:      strings.TrimSpace(rec.Scope),
+			})
+		}
+		board.Summary.OpenExceptions = len(board.OpenExceptions)
+	}
+	return board
 }
 
 // printPendingOpenExceptions surfaces open soft-ALLOW exceptions under pending
@@ -777,6 +859,7 @@ func init() {
 	approvalsListCmd.Flags().String("scope", "", "Filter by scope field substring (case-insensitive)")
 	approvalsListCmd.Flags().String("evidence", "", "Filter by evidence_id exact or prefix (EVID column)")
 	approvalsShowCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
+	approvalsPendingCmd.Flags().Bool("json", false, "Emit {summary, policyChanges, bundles, drift, openExceptions}")
 	approvalsCloseCmd.Flags().String("reason", "", "Optional close note (audit)")
 	approvalsCloseCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 }
