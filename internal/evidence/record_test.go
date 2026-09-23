@@ -233,6 +233,8 @@ func TestFormatExplainRiskAndSoftAllow(t *testing.T) {
 		"scope→a.go",
 		"Show         specular approvals show exception-EX-1",
 		"List         specular approvals list --evidence ev_soft",
+		"Pending      specular approvals pending",
+		"Doctor       specular doctor",
 		"Approval     specular approvals show exception-EX-1",
 		"Open         specular approvals list --evidence ev_soft",
 		"exception soft-ALLOW overrule",

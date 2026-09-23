@@ -229,6 +229,8 @@ func writeApprovalRefs(b *strings.Builder, g *gate.Result, evidenceID string) {
 	}
 	if len(ids) > 0 {
 		fmt.Fprintf(b, "Open         %s\n", softAllowListHint(evidenceID))
+		fmt.Fprintf(b, "Pending      %s\n", gate.SoftAllowPendingHint)
+		fmt.Fprintf(b, "Doctor       %s\n", gate.SoftAllowDoctorHint)
 	}
 }
 
@@ -454,7 +456,7 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result, evidenceID string) 
 }
 
 // writeSoftAllowBoardHints jumps soft-ALLOW ResourceIDs to approvals show/list
-// (session show ↔ explain reverse navigation).
+// plus pending/doctor Soft-trail (gate Soft / approve create parity).
 func writeSoftAllowBoardHints(b *strings.Builder, g *gate.Result, evidenceID string) {
 	ids := gate.SoftAllowResourceIDs(g.Approvals.Overrules)
 	for _, id := range ids {
@@ -462,6 +464,8 @@ func writeSoftAllowBoardHints(b *strings.Builder, g *gate.Result, evidenceID str
 	}
 	if len(ids) > 0 {
 		fmt.Fprintf(b, "List         %s\n", softAllowListHint(evidenceID))
+		fmt.Fprintf(b, "Pending      %s\n", gate.SoftAllowPendingHint)
+		fmt.Fprintf(b, "Doctor       %s\n", gate.SoftAllowDoctorHint)
 	}
 }
 
