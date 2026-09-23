@@ -134,6 +134,7 @@ func writeApprovalsSection(b *strings.Builder, res *Result, evidenceID string) {
 		if verdict == Deny {
 			fmt.Fprintf(b, "  Hint           specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
 				SoftAllowPolicyHint(res))
+			writeDenyApprovalsSoftTrail(b, "  ")
 		}
 		if sec.Note != "" {
 			fmt.Fprintf(b, "  Note           %s\n", sec.Note)
@@ -147,13 +148,21 @@ func writeApprovalsSection(b *strings.Builder, res *Result, evidenceID string) {
 		writeOpenExceptionSoftTrail(b, sec.Exceptions, "    ")
 	}
 	writeRecentApprovals(b, sec.Recent)
-	if verdict == Deny && len(sec.Exceptions) == 0 {
+	if verdict == Deny && len(sec.Exceptions) == 0 && len(sec.Overrules) == 0 {
 		fmt.Fprintf(b, "  Hint           record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
 			SoftAllowPolicyHint(res))
+		writeDenyApprovalsSoftTrail(b, "  ")
 	}
 	if sec.Note != "" {
 		fmt.Fprintf(b, "  Note           %s\n", sec.Note)
 	}
+}
+
+// writeDenyApprovalsSoftTrail jumps DENY SoftAllow Hint paths to pending/doctor
+// when no Soft Overruled / OpenExceptions Soft trail was printed.
+func writeDenyApprovalsSoftTrail(b *strings.Builder, indent string) {
+	fmt.Fprintf(b, "%sPending        %s\n", indent, SoftAllowPendingHint)
+	fmt.Fprintf(b, "%sDoctor         %s\n", indent, SoftAllowDoctorHint)
 }
 
 func writeOverrules(b *strings.Builder, overrules []ExceptionOverrule, evidenceID string) {

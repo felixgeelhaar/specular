@@ -112,6 +112,23 @@ func TestFormatTextApprovalsHintWhenEmptyDeny(t *testing.T) {
 	if !strings.Contains(text, "--policy drift") {
 		t.Fatalf("expected drift-specific policy hint:\n%s", text)
 	}
+	for _, want := range []string{
+		"Pending        specular approvals pending",
+		"Doctor         specular doctor",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing DENY Soft trail %q:\n%s", want, text)
+		}
+	}
+	md := FormatMarkdown(res)
+	for _, want := range []string{
+		"Pending: `specular approvals pending`",
+		"Doctor: `specular doctor`",
+	} {
+		if !strings.Contains(md, want) {
+			t.Fatalf("missing markdown DENY Soft trail %q:\n%s", want, md)
+		}
+	}
 }
 
 func TestFormatTextApprovalsHintWhenProvenanceDeny(t *testing.T) {

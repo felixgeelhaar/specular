@@ -170,9 +170,12 @@ func writeMarkdownApprovals(b *strings.Builder, res *Result, evidenceID string) 
 	if writeMarkdownOpenExceptions(b, res) {
 		return
 	}
-	if res.Verdict == Deny {
-		fmt.Fprintf(b, "_Approvals:_ none open — record with `specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s`\n\n",
+	// Soft trail only when Soft Overruled trail was not already printed.
+	if res.Verdict == Deny && len(res.Approvals.Overrules) == 0 {
+		fmt.Fprintf(b, "_Approvals:_ none open — record with `specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s`\n",
 			SoftAllowPolicyHint(res))
+		fmt.Fprintf(b, "- Pending: `%s`\n", SoftAllowPendingHint)
+		fmt.Fprintf(b, "- Doctor: `%s`\n\n", SoftAllowDoctorHint)
 		return
 	}
 	if res.Approvals.Note != "" && res.Approvals.Count == 0 {

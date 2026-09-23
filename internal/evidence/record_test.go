@@ -267,6 +267,8 @@ func TestFormatExplainDenyWithoutApprovalsHint(t *testing.T) {
 		"specular approve exception-",
 		"--policy policy",
 		"No local exception/approval trail for this DENY",
+		"Pending      specular approvals pending",
+		"Doctor       specular doctor",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)

@@ -146,13 +146,14 @@ Exit codes: `0` ALLOW, `3` policy DENY, `4` drift DENY.
 
 On DENY, text / markdown / `specular explain` append **Next steps** with
 section-specific remediation (`session attest`, APP verify, governed start,
-drift/policy/risk fixes). Approvals Hint remains the exception soft-ALLOW path.
-On soft-ALLOW, text / markdown Approvals Overruled jump to
-`approvals show <id>` / `approvals list --evidence <id>` when evidence was
-persisted (else `--status open`) / `approvals pending` / `doctor`
-(explain / approve Soft-trail parity). Advisory open exceptions (not yet
-overruling) get the same Soft trail via show / `list --status open` /
-pending / doctor.
+drift/policy/risk fixes). Approvals Hint remains the exception soft-ALLOW path;
+when no Soft Overruled / OpenExceptions Soft trail is present, Hint also
+jumps to `approvals pending` / `doctor`. On soft-ALLOW, text / markdown
+Approvals Overruled jump to `approvals show <id>` /
+`approvals list --evidence <id>` when evidence was persisted (else
+`--status open`) / `approvals pending` / `doctor` (explain / approve
+Soft-trail parity). Advisory open exceptions (not yet overruling) get the
+same Soft trail via show / `list --status open` / pending / doctor.
 
 Product intent: [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md).
 

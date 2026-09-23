@@ -440,6 +440,8 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result, evidenceID string) 
 		if g.Verdict == gate.Deny {
 			fmt.Fprintf(b, "Hint         specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
 				gate.SoftAllowPolicyHint(g))
+			fmt.Fprintf(b, "Pending      %s\n", gate.SoftAllowPendingHint)
+			fmt.Fprintf(b, "Doctor       %s\n", gate.SoftAllowDoctorHint)
 		}
 		return
 	}
@@ -449,9 +451,11 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result, evidenceID string) 
 		writeOpenExceptionExplainSoftTrail(b, sec.Exceptions)
 	}
 	writeApprovalRecent(b, sec.Recent)
-	if g.Verdict == gate.Deny && len(sec.Exceptions) == 0 {
+	if g.Verdict == gate.Deny && len(sec.Exceptions) == 0 && len(sec.Overrules) == 0 {
 		fmt.Fprintf(b, "Hint         record an exception: specular approve exception-<id> --reason \"...\" --scope \"...\" --policy %s\n",
 			gate.SoftAllowPolicyHint(g))
+		fmt.Fprintf(b, "Pending      %s\n", gate.SoftAllowPendingHint)
+		fmt.Fprintf(b, "Doctor       %s\n", gate.SoftAllowDoctorHint)
 	}
 	if sec.Note != "" {
 		fmt.Fprintf(b, "Note         %s\n", sec.Note)
