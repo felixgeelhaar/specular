@@ -170,6 +170,8 @@ func TestFormatExplainAllowAttested(t *testing.T) {
 		"Files        clean working tree",
 		"• Worktree /tmp/wt/auth · branch=specular/auth",
 		"• Governed true",
+		"Session      specular session show sp_92d1",
+		"             specular explain --session sp_92d1",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)
@@ -229,6 +231,10 @@ func TestFormatExplainRiskAndSoftAllow(t *testing.T) {
 		"soft-ALLOW drift",
 		"exception-EX-1",
 		"scope→a.go",
+		"Show         specular approvals show exception-EX-1",
+		"List         specular approvals list --status open",
+		"Approval     specular approvals show exception-EX-1",
+		"Open         specular approvals list --status open",
 		"exception soft-ALLOW overrule",
 		"ALLOW via scoped exception soft-ALLOW",
 		"Risk level HIGH (enforced)",
@@ -290,6 +296,27 @@ func TestFormatExplainNil(t *testing.T) {
 	t.Parallel()
 	if got := FormatExplain(nil); got != "No evidence record.\n" {
 		t.Fatalf("got %q", got)
+	}
+}
+
+func TestSoftAllowResourceIDsDedup(t *testing.T) {
+	t.Parallel()
+	g := &gate.Result{
+		Approvals: gate.ApprovalsSection{
+			Overrules: []gate.ExceptionOverrule{
+				{ResourceID: "exception-a", Kind: "drift"},
+				{ResourceID: "exception-a", Kind: "policy"},
+				{ResourceID: "  ", Kind: "risk"},
+				{ResourceID: "exception-b", Kind: "risk"},
+			},
+		},
+	}
+	ids := softAllowResourceIDs(g)
+	if len(ids) != 2 || ids[0] != "exception-a" || ids[1] != "exception-b" {
+		t.Fatalf("ids=%v", ids)
+	}
+	if softAllowResourceIDs(nil) != nil || softAllowResourceIDs(&gate.Result{}) != nil {
+		t.Fatal("expected nil for empty")
 	}
 }
 

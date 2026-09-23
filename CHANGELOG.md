@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Explain board reverse jumps**: soft-ALLOW `FormatExplain` Approvals/Refs
+  point to `approvals show <id>` / `approvals list --status open`; provenance
+  sessions in Refs jump to `session show` / `explain --session` (session show
+  ↔ evidence explain parity).
+
 - **Approvals list trust board**: human `approvals list` prints
   ID/TYPE/STATUS/POLICY/SCOPE/EVID/APPROVER/EXPIRES with open/closed/expired
   summary; `--json` emits `{summary, records}` (session/evidence list parity).
