@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session status/list RISK column**: human boards and
+  `session status --json` evidence map show gate risk level
+  (`NONE|LOW|MEDIUM|HIGH|CRITICAL`; empty → `NONE`) from the newest
+  matching Change Evidence Graph record (`evidence list --risk` parity).
+
 - **Session status/list SOFT column**: human boards and
   `session status --json` evidence map show soft-ALLOW (`softAllow`) when
   the newest matching Change Evidence Graph record has exception overrules
