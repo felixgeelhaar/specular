@@ -419,7 +419,8 @@ Runs comprehensive system health checks across all Specular components:
 - **Project Structure**: Workspace and file structure validation
 - **Governance**: Governance workspace and policy checks; open soft-ALLOW
   exceptions footer to `approvals show` / `evidence show` /
-  `approvals list --status open` (JSON: `open_exceptions`)
+  `approvals list --status open` / Soft trail `approvals pending`
+  (JSON: `open_exceptions`; Next Steps Soft-trail to pending + list)
 - **Progressive trust**: Opt-in policy knobs (`risk:` tiers,
   `provenance.attested` / `provenance.protocol` enforce) — advisory vs
   progressive posture (JSON: `progressive_trust`)
