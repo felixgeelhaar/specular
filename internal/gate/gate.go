@@ -673,8 +673,18 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
+// FormatTextOptions configures FormatTextWith.
+type FormatTextOptions struct {
+	EvidenceID string // Change Evidence Graph id for Soft-ALLOW list --evidence
+}
+
 // FormatText renders the human gate board.
 func FormatText(res *Result) string {
+	return FormatTextWith(res, FormatTextOptions{})
+}
+
+// FormatTextWith renders the human gate board with optional evidence id.
+func FormatTextWith(res *Result, opts FormatTextOptions) string {
 	var b strings.Builder
 	b.WriteString("SPECULAR CHANGE CONTROL\n")
 	b.WriteString(strings.Repeat("─", 46) + "\n")
@@ -726,7 +736,7 @@ func FormatText(res *Result) string {
 		fmt.Fprintf(&b, "  Note           %s\n", res.Policy.Note)
 	}
 	writeRiskSection(&b, res.Risk)
-	writeApprovalsSection(&b, res)
+	writeApprovalsSection(&b, res, opts.EvidenceID)
 	b.WriteString(strings.Repeat("─", 46) + "\n")
 	fmt.Fprintf(&b, "VERDICT: %s\n", res.Verdict)
 	fmt.Fprintf(&b, "REASON:  %s\n", res.Reason)

@@ -233,10 +233,7 @@ func writeApprovalRefs(b *strings.Builder, g *gate.Result, evidenceID string) {
 }
 
 func softAllowListHint(evidenceID string) string {
-	if id := strings.TrimSpace(evidenceID); id != "" {
-		return "specular approvals list --evidence " + id
-	}
-	return "specular approvals list --status open"
+	return gate.SoftAllowListHint(evidenceID)
 }
 
 func writeSessionRefs(b *strings.Builder, g *gate.Result) {

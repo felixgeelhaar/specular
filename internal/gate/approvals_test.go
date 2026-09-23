@@ -117,6 +117,16 @@ func TestFormatTextApprovalsHintWhenProvenanceDeny(t *testing.T) {
 	}
 }
 
+func TestSoftAllowListHint(t *testing.T) {
+	t.Parallel()
+	if SoftAllowListHint("ev_abc") != "specular approvals list --evidence ev_abc" {
+		t.Fatal(SoftAllowListHint("ev_abc"))
+	}
+	if SoftAllowListHint("  ") != "specular approvals list --status open" {
+		t.Fatal(SoftAllowListHint(""))
+	}
+}
+
 func TestSoftAllowResourceIDsDedup(t *testing.T) {
 	t.Parallel()
 	ids := SoftAllowResourceIDs([]ExceptionOverrule{
