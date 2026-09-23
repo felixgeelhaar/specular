@@ -90,6 +90,7 @@ func TestBuildListBoard(t *testing.T) {
 	for _, want := range []string{
 		"Soft-ALLOW:",
 		"ev_allow  specular approvals list --evidence ev_allow",
+		"specular approvals show exception-drift",
 		"specular explain ev_allow",
 	} {
 		if !strings.Contains(hints, want) {

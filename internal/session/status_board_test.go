@@ -303,7 +303,7 @@ func TestFormatSoftAllowBoardHints(t *testing.T) {
 	t.Parallel()
 	sessions := []Record{{ID: "migrate"}, {ID: "auth"}, {ID: "orphan"}}
 	ev := map[string]SessionEvidenceFlags{
-		"migrate": {SoftAllow: true, EvidenceID: "ev_soft"},
+		"migrate": {SoftAllow: true, EvidenceID: "ev_soft", SoftAllowIDs: []string{"exception-drift"}},
 		"auth":    {SoftAllow: false, EvidenceID: "ev_clean"},
 		"orphan":  {SoftAllow: true}, // no evidence id
 	}
@@ -311,6 +311,7 @@ func TestFormatSoftAllowBoardHints(t *testing.T) {
 	for _, want := range []string{
 		"Soft-ALLOW:",
 		"migrate  specular approvals list --evidence ev_soft",
+		"specular approvals show exception-drift",
 		"specular session show migrate",
 		"orphan  specular approvals list --status open",
 		"specular session show orphan",
@@ -321,6 +322,10 @@ func TestFormatSoftAllowBoardHints(t *testing.T) {
 	}
 	if strings.Contains(text, "auth") {
 		t.Fatalf("unexpected auth in soft hints:\n%s", text)
+	}
+	orphanIdx := strings.Index(text, "orphan")
+	if orphanIdx >= 0 && strings.Contains(text[orphanIdx:], "approvals show") {
+		t.Fatalf("orphan without SoftAllowIDs should not invent show:\n%s", text[orphanIdx:])
 	}
 	if FormatSoftAllowBoardHints(nil, ev) != "" || FormatSoftAllowBoardHints(sessions, nil) != "" {
 		t.Fatal("expected empty for nil inputs")
