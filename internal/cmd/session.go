@@ -807,6 +807,10 @@ var sessionWaitCmd = &cobra.Command{
 With no IDs, waits for every currently active (working/waiting) session.
 Exit non-zero if any waited session fails or is stopped, or on timeout.
 
+After wait (and optional --attest/--gate/--bundle), the human board and
+--json output match session status trust columns (GOV…RISK + EXIT), so
+fleet→gate evidence is visible without a separate status call.
+
 Examples:
   specular session wait
   specular session wait auth ratelimit
@@ -854,6 +858,7 @@ Examples:
 			RequireAttested: requireAttested,
 			RequireProtocol: requireProtocol,
 			RequireGoverned: requireGoverned,
+			Quiet:           jsonOut,
 		}
 
 		recs, waitErr := mgr.Wait(cmd.Context(), args, session.WaitOptions{
@@ -863,38 +868,58 @@ Examples:
 			StopOnTimeout: stopOnTimeout,
 		})
 		postOpts.Recs = recs
-		if jsonOut {
-			enc := json.NewEncoder(os.Stdout)
-			enc.SetIndent("", "  ")
-			_ = enc.Encode(recs)
-			if waitErr != nil {
-				return waitErr
-			}
-			postOpts.Quiet = true
-			return runSessionWaitPost(postOpts)
-		}
-		if len(recs) == 0 {
-			fmt.Println("No active sessions to wait for.")
-			if waitErr != nil {
-				return waitErr
-			}
-			return runSessionWaitPost(postOpts)
-		}
-		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tEXIT")
-		for _, s := range recs {
-			exit := "-"
-			if s.ExitCode != nil {
-				exit = fmt.Sprintf("%d", *s.ExitCode)
-			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", s.ID, s.Status, s.Harness, exit)
-		}
-		_ = w.Flush()
 		if waitErr != nil {
+			_ = emitSessionWaitBoard(mgr, recs, jsonOut)
 			return waitErr
 		}
-		return runSessionWaitPost(postOpts)
+		if len(recs) == 0 && !doGate && !doBundle && !doAttest {
+			if !jsonOut {
+				fmt.Println("No active sessions to wait for.")
+			} else {
+				_ = emitSessionWaitBoard(mgr, recs, true)
+			}
+			return nil
+		}
+		postErr := runSessionWaitPost(postOpts)
+		if emitErr := emitSessionWaitBoard(mgr, recs, jsonOut); emitErr != nil && postErr == nil {
+			return emitErr
+		}
+		return postErr
 	},
+}
+
+// emitSessionWaitBoard prints or encodes the waited sessions with status-board
+// trust columns (and EXIT). Evidence is refreshed from disk so --gate results show.
+func emitSessionWaitBoard(mgr *session.Manager, recs []session.Record, jsonOut bool) error {
+	board := session.BuildStatusBoardWithEvidence(recs, mgr.Store().Dir(), mgr.RepoRoot())
+	if jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(board)
+	}
+	if len(board.Sessions) == 0 {
+		fmt.Println("No active sessions to wait for.")
+		return nil
+	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPROTO\tCOMMIT\tGATE\tSOFT\tRISK\tEXIT")
+	for _, s := range board.Sessions {
+		exit := "-"
+		if s.ExitCode != nil {
+			exit = fmt.Sprintf("%d", *s.ExitCode)
+		}
+		gov := session.YesDash(s.Governed)
+		ev := board.Evidence[s.ID]
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App),
+			session.YesDash(ev.Protocol), session.DashOr(ev.Commit), session.DashOr(ev.Verdict),
+			session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), exit)
+	}
+	_ = w.Flush()
+	fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
+		board.Summary.Working, board.Summary.Queued, board.Summary.Completed,
+		board.Summary.Failed, board.Summary.Stopped, board.Summary.Total)
+	return nil
 }
 
 var sessionRestartCmd = &cobra.Command{

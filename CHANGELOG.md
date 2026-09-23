@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session wait board parity**: human `session wait` and `--json` emit the
+  status trust board (`GOV…RISK` + `EXIT`; `--json` → `{summary,sessions,evidence}`)
+  after optional `--attest`/`--gate`/`--bundle` so fleet→gate evidence is visible
+  without a follow-up `session status`.
+
 - **Session status/list trust filters**: `--verdict` / `--soft-allow` /
   `--risk` / `--protocol` / `--attested` / `--governed` / `--harness`
   narrow the fleet board (and `list`) with evidence-list parity; summary
@@ -83,6 +88,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `.provenance.json` presence beside GOV.
 
 ### Changed
+
+- **Session wait `--json`**: emits `{summary, sessions, evidence}` (status
+  board shape) instead of a bare session array; human wait table adds
+  trust columns beside EXIT and prints after `--gate`/`--bundle` so GATE
+  reflects newest evidence.
 
 - **DENY soft-ALLOW hints include provenance**: gate / evidence Approvals Hint
   and approve exception footer suggest `drift|policy|risk|provenance` (and
