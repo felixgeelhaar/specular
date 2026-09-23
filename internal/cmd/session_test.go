@@ -191,12 +191,12 @@ func TestPrintSessionGateBlockSoftAllow(t *testing.T) {
 	os.Stdout = w
 	printSessionGateBlock("migrate", session.GateDetails{
 		SessionEvidenceFlags: session.SessionEvidenceFlags{
-			Verdict:    "ALLOW",
-			EvidenceID: "ev_soft",
-			SoftAllow:  true,
-			Risk:       "MEDIUM",
+			Verdict:      "ALLOW",
+			EvidenceID:   "ev_soft",
+			SoftAllow:    true,
+			SoftAllowIDs: []string{"exception-drift", "exception-risk"},
+			Risk:         "MEDIUM",
 		},
-		SoftAllowIDs: []string{"exception-drift", "exception-risk"},
 	})
 	_ = w.Close()
 	os.Stdout = old

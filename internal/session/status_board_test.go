@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -199,6 +200,9 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 	if gates["migrate"].Verdict != "ALLOW" || !gates["migrate"].SoftAllow || gates["migrate"].EvidenceID != soft.ID || gates["migrate"].Risk != "MEDIUM" || !gates["migrate"].Protocol {
 		t.Fatalf("migrate=%+v want soft ALLOW/MEDIUM/proto/%s", gates["migrate"], soft.ID)
 	}
+	if len(gates["migrate"].SoftAllowIDs) != 1 || gates["migrate"].SoftAllowIDs[0] != "exception-drift" {
+		t.Fatalf("migrate SoftAllowIDs=%v", gates["migrate"].SoftAllowIDs)
+	}
 	if _, ok := gates["missing"]; ok {
 		t.Fatal("unexpected missing session")
 	}
@@ -221,6 +225,9 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 	}
 	if board.Evidence["migrate"].Verdict != "ALLOW" || !board.Evidence["migrate"].SoftAllow || board.Evidence["migrate"].EvidenceID != soft.ID || board.Evidence["migrate"].Risk != "MEDIUM" || !board.Evidence["migrate"].Protocol {
 		t.Fatalf("board migrate=%+v", board.Evidence["migrate"])
+	}
+	if len(board.Evidence["migrate"].SoftAllowIDs) != 1 || board.Evidence["migrate"].SoftAllowIDs[0] != "exception-drift" {
+		t.Fatalf("board SoftAllowIDs=%v", board.Evidence["migrate"].SoftAllowIDs)
 	}
 	if board.Evidence["orphan"].Verdict != "" || board.Evidence["orphan"].EvidenceID != "" || board.Evidence["orphan"].SoftAllow || board.Evidence["orphan"].Risk != "" || board.Evidence["orphan"].Protocol {
 		t.Fatalf("board orphan=%+v", board.Evidence["orphan"])
@@ -289,6 +296,34 @@ func TestGateDetailsForNextSteps(t *testing.T) {
 	empty := GateDetailsFor(store, root, Record{ID: "missing"})
 	if empty.HasSurface() || empty.Verdict != "" || len(empty.NextSteps) != 0 {
 		t.Fatalf("empty=%+v", empty)
+	}
+}
+
+func TestFormatSoftAllowBoardHints(t *testing.T) {
+	t.Parallel()
+	sessions := []Record{{ID: "migrate"}, {ID: "auth"}, {ID: "orphan"}}
+	ev := map[string]SessionEvidenceFlags{
+		"migrate": {SoftAllow: true, EvidenceID: "ev_soft"},
+		"auth":    {SoftAllow: false, EvidenceID: "ev_clean"},
+		"orphan":  {SoftAllow: true}, // no evidence id
+	}
+	text := FormatSoftAllowBoardHints(sessions, ev)
+	for _, want := range []string{
+		"Soft-ALLOW:",
+		"migrate  specular approvals list --evidence ev_soft",
+		"specular session show migrate",
+		"orphan  specular approvals list --status open",
+		"specular session show orphan",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
+	}
+	if strings.Contains(text, "auth") {
+		t.Fatalf("unexpected auth in soft hints:\n%s", text)
+	}
+	if FormatSoftAllowBoardHints(nil, ev) != "" || FormatSoftAllowBoardHints(sessions, nil) != "" {
+		t.Fatal("expected empty for nil inputs")
 	}
 }
 

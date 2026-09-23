@@ -26,14 +26,15 @@ type StatusSummary struct {
 // worktree HEAD tip, and newest gate verdict / soft-ALLOW / risk / protocol
 // from the Change Evidence Graph (fleet board → explain / evidence show).
 type SessionEvidenceFlags struct {
-	Attested   bool   `json:"attested"`
-	App        bool   `json:"app"`                  // sibling .provenance.json present
-	Commit     string `json:"commit,omitempty"`     // short worktree HEAD SHA
-	Verdict    string `json:"verdict,omitempty"`    // ALLOW | DENY from newest evidence
-	EvidenceID string `json:"evidenceId,omitempty"` // newest matching evidence record id
-	SoftAllow  bool   `json:"softAllow,omitempty"`  // newest evidence has exception overrules
-	Risk       string `json:"risk,omitempty"`       // NONE|LOW|MEDIUM|HIGH|CRITICAL
-	Protocol   bool   `json:"protocol,omitempty"`   // newest evidence APP docs schema+bound
+	Attested     bool     `json:"attested"`
+	App          bool     `json:"app"`                    // sibling .provenance.json present
+	Commit       string   `json:"commit,omitempty"`       // short worktree HEAD SHA
+	Verdict      string   `json:"verdict,omitempty"`      // ALLOW | DENY from newest evidence
+	EvidenceID   string   `json:"evidenceId,omitempty"`   // newest matching evidence record id
+	SoftAllow    bool     `json:"softAllow,omitempty"`    // newest evidence has exception overrules
+	SoftAllowIDs []string `json:"softAllowIds,omitempty"` // soft-ALLOW ResourceIDs → approvals show
+	Risk         string   `json:"risk,omitempty"`         // NONE|LOW|MEDIUM|HIGH|CRITICAL
+	Protocol     bool     `json:"protocol,omitempty"`     // newest evidence APP docs schema+bound
 }
 
 // StatusBoard is the JSON shape for `session status --json`: summary counts
@@ -74,17 +75,19 @@ func EvidenceFlagsFor(sessionsDir, repoRoot string, rec Record) SessionEvidenceF
 
 // SessionGate is the newest gate verdict for a session id.
 type SessionGate struct {
-	Verdict    string
-	EvidenceID string
-	SoftAllow  bool
-	Risk       string
-	Protocol   bool
+	Verdict      string
+	EvidenceID   string
+	SoftAllow    bool
+	SoftAllowIDs []string
+	Risk         string
+	Protocol     bool
 }
 
 func applySessionGate(f *SessionEvidenceFlags, g SessionGate) {
 	f.Verdict = g.Verdict
 	f.EvidenceID = g.EvidenceID
 	f.SoftAllow = g.SoftAllow
+	f.SoftAllowIDs = append([]string(nil), g.SoftAllowIDs...)
 	f.Risk = g.Risk
 	f.Protocol = g.Protocol
 }
@@ -111,6 +114,7 @@ func NewestGateBySession(repoRoot string) map[string]SessionGate {
 			continue
 		}
 		soft := len(rec.Gate.Approvals.Overrules) > 0
+		softIDs := gate.SoftAllowResourceIDs(rec.Gate.Approvals.Overrules)
 		risk := strings.ToUpper(strings.TrimSpace(rec.Gate.Risk.Level))
 		if risk == "" {
 			risk = "NONE"
@@ -125,11 +129,12 @@ func NewestGateBySession(repoRoot string) map[string]SessionGate {
 				continue // newer already recorded (List is newest-first)
 			}
 			out[sid] = SessionGate{
-				Verdict:    verdict,
-				EvidenceID: rec.ID,
-				SoftAllow:  soft,
-				Risk:       risk,
-				Protocol:   protocol,
+				Verdict:      verdict,
+				EvidenceID:   rec.ID,
+				SoftAllow:    soft,
+				SoftAllowIDs: softIDs,
+				Risk:         risk,
+				Protocol:     protocol,
 			}
 		}
 	}
@@ -181,16 +186,15 @@ func DashOr(s string) string {
 	return s
 }
 
-// GateDetails is SessionEvidenceFlags plus DENY Next steps and soft-ALLOW
-// exception ids for session show.
+// GateDetails is SessionEvidenceFlags plus DENY Next steps for session show.
 type GateDetails struct {
 	SessionEvidenceFlags
-	NextSteps    []string `json:"nextSteps,omitempty"`
-	SoftAllowIDs []string `json:"softAllowIds,omitempty"` // soft-ALLOW ResourceIDs → approvals show
+	NextSteps []string `json:"nextSteps,omitempty"`
 }
 
-// GateDetailsFor is EvidenceFlagsFor plus DenyNextSteps / soft-ALLOW ids from
-// the loaded newest matching evidence record.
+// GateDetailsFor is EvidenceFlagsFor plus DenyNextSteps from the loaded
+// newest matching evidence record. SoftAllowIDs come from SessionEvidenceFlags
+// (NewestGateBySession); refill from the evidence record if missing.
 func GateDetailsFor(sessionsDir, repoRoot string, rec Record) GateDetails {
 	f := EvidenceFlagsFor(sessionsDir, repoRoot, rec)
 	d := GateDetails{SessionEvidenceFlags: f}
@@ -202,7 +206,9 @@ func GateDetailsFor(sessionsDir, repoRoot string, rec Record) GateDetails {
 		return d
 	}
 	d.NextSteps = gate.DenyNextSteps(erec.Gate)
-	d.SoftAllowIDs = gate.SoftAllowResourceIDs(erec.Gate.Approvals.Overrules)
+	if len(d.SoftAllowIDs) == 0 {
+		d.SoftAllowIDs = gate.SoftAllowResourceIDs(erec.Gate.Approvals.Overrules)
+	}
 	return d
 }
 
@@ -211,6 +217,31 @@ func (d GateDetails) HasSurface() bool {
 	return d.Attested || d.App || d.Commit != "" || d.Verdict != "" ||
 		d.EvidenceID != "" || d.SoftAllow || d.Risk != "" || d.Protocol ||
 		len(d.NextSteps) > 0 || len(d.SoftAllowIDs) > 0
+}
+
+// FormatSoftAllowBoardHints returns human footer lines for Soft=yes rows
+// (approvals list --evidence / session show). Empty when none.
+func FormatSoftAllowBoardHints(sessions []Record, evidence map[string]SessionEvidenceFlags) string {
+	if len(sessions) == 0 || len(evidence) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, s := range sessions {
+		ev := evidence[s.ID]
+		if !ev.SoftAllow {
+			continue
+		}
+		if b.Len() == 0 {
+			b.WriteString("Soft-ALLOW:\n")
+		}
+		if id := strings.TrimSpace(ev.EvidenceID); id != "" {
+			fmt.Fprintf(&b, "  %s  specular approvals list --evidence %s\n", s.ID, id)
+		} else {
+			fmt.Fprintf(&b, "  %s  specular approvals list --status open\n", s.ID)
+		}
+		fmt.Fprintf(&b, "       specular session show %s\n", s.ID)
+	}
+	return b.String()
 }
 
 // BuildStatusBoard aggregates a session list into a dashboard board.
