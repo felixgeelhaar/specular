@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -250,4 +251,133 @@ func BuildStatusBoardWithEvidence(list []Record, sessionsDir, repoRoot string) S
 		}
 	}
 	return board
+}
+
+// BoardFilter selects sessions on the fleet board. Zero-valued fields mean no
+// constraint. Gate-scoped fields (verdict/soft-allow/protocol/risk) require a
+// newest evidence hit; session-scoped fields use Record / sibling flags.
+type BoardFilter struct {
+	Verdict   string // ALLOW or DENY
+	Harness   string // case-insensitive substring on Record.Harness
+	SoftAllow *bool
+	Attested  *bool
+	Governed  *bool // Record.Governed (GOV column)
+	Protocol  *bool
+	RiskLevel string // NONE|LOW|MEDIUM|HIGH|CRITICAL
+}
+
+// Active reports whether any board filter constraint is set.
+func (f BoardFilter) Active() bool {
+	return f.Verdict != "" || strings.TrimSpace(f.Harness) != "" ||
+		f.SoftAllow != nil || f.Attested != nil || f.Governed != nil ||
+		f.Protocol != nil || strings.TrimSpace(f.RiskLevel) != ""
+}
+
+// Validate checks verdict / risk tokens.
+func (f BoardFilter) Validate() error {
+	if f.Verdict != "" {
+		switch strings.ToUpper(strings.TrimSpace(f.Verdict)) {
+		case "ALLOW", "DENY":
+		default:
+			return fmt.Errorf("session: invalid verdict %q (want ALLOW or DENY)", f.Verdict)
+		}
+	}
+	if level := strings.TrimSpace(f.RiskLevel); level != "" {
+		switch strings.ToUpper(level) {
+		case "NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL":
+		default:
+			return fmt.Errorf("session: invalid risk %q (want NONE|LOW|MEDIUM|HIGH|CRITICAL)", level)
+		}
+	}
+	return nil
+}
+
+// Match reports whether rec + evidence flags satisfy the filter.
+func (f BoardFilter) Match(rec Record, ev SessionEvidenceFlags) bool {
+	return f.matchSession(rec, ev) && f.matchGate(ev)
+}
+
+func (f BoardFilter) matchSession(rec Record, ev SessionEvidenceFlags) bool {
+	if sub := strings.TrimSpace(f.Harness); sub != "" {
+		if !strings.Contains(strings.ToLower(rec.Harness), strings.ToLower(sub)) {
+			return false
+		}
+	}
+	if f.Governed != nil && rec.Governed != *f.Governed {
+		return false
+	}
+	if f.Attested != nil && ev.Attested != *f.Attested {
+		return false
+	}
+	return true
+}
+
+func (f BoardFilter) matchGate(ev SessionEvidenceFlags) bool {
+	needsGate := f.Verdict != "" || f.SoftAllow != nil || f.Protocol != nil || strings.TrimSpace(f.RiskLevel) != ""
+	if !needsGate {
+		return true
+	}
+	hasGate := ev.Verdict != "" || ev.EvidenceID != ""
+	if !hasGate {
+		return false
+	}
+	if f.Verdict != "" && !strings.EqualFold(ev.Verdict, strings.TrimSpace(f.Verdict)) {
+		return false
+	}
+	if f.SoftAllow != nil && ev.SoftAllow != *f.SoftAllow {
+		return false
+	}
+	if f.Protocol != nil && ev.Protocol != *f.Protocol {
+		return false
+	}
+	return f.matchRisk(ev.Risk)
+}
+
+func (f BoardFilter) matchRisk(got string) bool {
+	level := strings.TrimSpace(f.RiskLevel)
+	if level == "" {
+		return true
+	}
+	if got == "" {
+		got = "NONE"
+	}
+	return strings.EqualFold(got, level)
+}
+
+// FilterSessions returns sessions matching filter (order preserved).
+// evidence may be nil when filter is inactive; when active, missing map
+// entries are treated as empty flags.
+func FilterSessions(list []Record, evidence map[string]SessionEvidenceFlags, filter BoardFilter) []Record {
+	if !filter.Active() {
+		return append([]Record(nil), list...)
+	}
+	out := make([]Record, 0, len(list))
+	for _, s := range list {
+		var ev SessionEvidenceFlags
+		if evidence != nil {
+			ev = evidence[s.ID]
+		}
+		if filter.Match(s, ev) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// EvidenceMapFor builds per-session flags (attest/APP/commit + newest gate).
+func EvidenceMapFor(list []Record, sessionsDir, repoRoot string) map[string]SessionEvidenceFlags {
+	if len(list) == 0 {
+		return nil
+	}
+	out := make(map[string]SessionEvidenceFlags, len(list))
+	gates := NewestGateBySession(repoRoot)
+	for _, s := range list {
+		f := EvidenceFlags(sessionsDir, s.ID)
+		f.Commit = WorktreeHEADShort(s.WorktreePath)
+		if g, ok := gates[s.ID]; ok {
+			applySessionGate(&f, g)
+		}
+		out[s.ID] = f
+	}
+	return out
 }

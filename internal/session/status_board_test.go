@@ -289,6 +289,68 @@ func TestGateDetailsForNextSteps(t *testing.T) {
 	}
 }
 
+func TestBoardFilter(t *testing.T) {
+	t.Parallel()
+	yes, no := true, false
+	list := []Record{
+		{ID: "auth", Status: StatusCompleted, Harness: "claude-code", Governed: true},
+		{ID: "migrate", Status: StatusCompleted, Harness: "codex", Governed: false},
+		{ID: "orphan", Status: StatusStopped, Harness: "gemini", Governed: false},
+	}
+	ev := map[string]SessionEvidenceFlags{
+		"auth":    {Verdict: "DENY", Risk: "HIGH", Protocol: false, Attested: true},
+		"migrate": {Verdict: "ALLOW", Risk: "MEDIUM", SoftAllow: true, Protocol: true, Attested: true, EvidenceID: "ev_1"},
+		"orphan":  {Attested: false},
+	}
+
+	denyOnly := FilterSessions(list, ev, BoardFilter{Verdict: "DENY"})
+	if len(denyOnly) != 1 || denyOnly[0].ID != "auth" {
+		t.Fatalf("deny=%v", denyOnly)
+	}
+	soft := FilterSessions(list, ev, BoardFilter{SoftAllow: &yes})
+	if len(soft) != 1 || soft[0].ID != "migrate" {
+		t.Fatalf("soft=%v", soft)
+	}
+	ungov := FilterSessions(list, ev, BoardFilter{Governed: &no})
+	if len(ungov) != 2 {
+		t.Fatalf("ungoverned=%v", ungov)
+	}
+	harness := FilterSessions(list, ev, BoardFilter{Harness: "code"})
+	if len(harness) != 2 { // claude-code + codex
+		t.Fatalf("harness=%v", harness)
+	}
+	protoFalse := FilterSessions(list, ev, BoardFilter{Protocol: &no})
+	if len(protoFalse) != 1 || protoFalse[0].ID != "auth" {
+		t.Fatalf("protocol=false=%v", protoFalse)
+	}
+	high := FilterSessions(list, ev, BoardFilter{RiskLevel: "HIGH"})
+	if len(high) != 1 || high[0].ID != "auth" {
+		t.Fatalf("risk=%v", high)
+	}
+	// Gate-scoped filter excludes sessions without evidence.
+	none := FilterSessions(list, ev, BoardFilter{RiskLevel: "NONE"})
+	if len(none) != 0 {
+		t.Fatalf("risk NONE should skip orphan without gate: %v", none)
+	}
+	unattested := FilterSessions(list, ev, BoardFilter{Attested: &no})
+	if len(unattested) != 1 || unattested[0].ID != "orphan" {
+		t.Fatalf("attested=false=%v", unattested)
+	}
+	if err := (BoardFilter{Verdict: "MAYBE"}).Validate(); err == nil {
+		t.Fatal("expected invalid verdict")
+	}
+	if err := (BoardFilter{RiskLevel: "EXTREME"}).Validate(); err == nil {
+		t.Fatal("expected invalid risk")
+	}
+	if (BoardFilter{}).Active() {
+		t.Fatal("empty filter should be inactive")
+	}
+	passive := FilterSessions(list, ev, BoardFilter{})
+	if len(passive) != 3 {
+		t.Fatalf("inactive filter should keep all: %d", len(passive))
+	}
+}
+
 func mustWriteEvidence(t *testing.T, root string, rec *evidence.Record) *evidence.Record {
 	t.Helper()
 	// contentID is unexported; Write path via NewFromGate-style: set ID by writing through package API.
