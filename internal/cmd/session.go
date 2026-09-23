@@ -321,6 +321,9 @@ match status board columns (evidence list parity).`,
 					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.YesDash(ev.Protocol), session.DashOr(ev.Commit), session.DashOr(ev.Verdict), session.DashOr(ev.EvidenceID), session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), wt, pid, goal)
 			}
 			_ = w.Flush()
+			if hints := session.FormatSoftAllowBoardHints(list, evMap); hints != "" {
+				fmt.Print("\n" + hints)
+			}
 		}
 
 		if includeCheckpoints {
@@ -728,6 +731,9 @@ narrow the board (evidence list parity); summary counts reflect the filtered set
 			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
 				board.Summary.Working, board.Summary.Queued, board.Summary.Completed,
 				board.Summary.Failed, board.Summary.Stopped, board.Summary.Total)
+			if hints := session.FormatSoftAllowBoardHints(board.Sessions, board.Evidence); hints != "" {
+				fmt.Print("\n" + hints)
+			}
 			return nil
 		}
 
@@ -945,6 +951,9 @@ func emitSessionWaitBoard(mgr *session.Manager, recs []session.Record, jsonOut, 
 	fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
 		board.Summary.Working, board.Summary.Queued, board.Summary.Completed,
 		board.Summary.Failed, board.Summary.Stopped, board.Summary.Total)
+	if hints := session.FormatSoftAllowBoardHints(board.Sessions, board.Evidence); hints != "" {
+		fmt.Print("\n" + hints)
+	}
 	return nil
 }
 

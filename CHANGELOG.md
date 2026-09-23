@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session status/list/wait Soft-ALLOW jumps**: Soft=yes rows footer to
+  `approvals list --evidence <id>` / `session show`; `--json` evidence map
+  includes `softAllowIds` (session show SoftAllowIDs parity).
+
 - **Approvals list `--evidence`**: filter the trust board by `evidence_id`
   exact or prefix (EVID column; combinable with `--status`/`--type`/
   `--policy`/`--scope`).
