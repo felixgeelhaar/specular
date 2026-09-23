@@ -338,7 +338,8 @@ var sessionShowCmd = &cobra.Command{
 	Long: `Show session details, worktree, harness, and sibling attestation/APP paths.
 
 When a Change Evidence Graph record lists this session, also shows GATE / SOFT /
-RISK / PROTO / evidence id and DENY Next steps, with jumps to explain --session / evidence show.`,
+RISK / PROTO / evidence id and DENY Next steps, with jumps to explain --session /
+evidence show; soft-ALLOW overrules jump to approvals show / list --status open.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
@@ -431,6 +432,12 @@ func printSessionGateBlock(sessionID string, ev session.GateDetails) {
 		fmt.Printf("Evidence:   %s\n", ev.EvidenceID)
 		fmt.Printf("Explain:    specular explain --session %s\n", sessionID)
 		fmt.Printf("            specular evidence show %s\n", ev.EvidenceID)
+	}
+	for _, id := range ev.SoftAllowIDs {
+		fmt.Printf("Approval:   specular approvals show %s\n", id)
+	}
+	if len(ev.SoftAllowIDs) > 0 {
+		fmt.Println("            specular approvals list --status open")
 	}
 	if len(ev.NextSteps) > 0 {
 		fmt.Println("\nNext steps:")

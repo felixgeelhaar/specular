@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"io"
+	"os"
+	"strings"
 	"testing"
 
+	"github.com/felixgeelhaar/specular/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -173,5 +177,42 @@ func TestSessionCommand(t *testing.T) {
 	}
 	if len(sessionCmd.Commands()) < 10 {
 		t.Errorf("expected at least 10 subcommands, got %d", len(sessionCmd.Commands()))
+	}
+}
+
+func TestPrintSessionGateBlockSoftAllow(t *testing.T) {
+	t.Parallel()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	printSessionGateBlock("migrate", session.GateDetails{
+		SessionEvidenceFlags: session.SessionEvidenceFlags{
+			Verdict:    "ALLOW",
+			EvidenceID: "ev_soft",
+			SoftAllow:  true,
+			Risk:       "MEDIUM",
+		},
+		SoftAllowIDs: []string{"exception-drift", "exception-risk"},
+	})
+	_ = w.Close()
+	os.Stdout = old
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(out)
+	for _, want := range []string{
+		"Soft:       yes",
+		"Evidence:   ev_soft",
+		"Approval:   specular approvals show exception-drift",
+		"Approval:   specular approvals show exception-risk",
+		"specular approvals list --status open",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
 	}
 }

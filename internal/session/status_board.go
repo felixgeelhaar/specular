@@ -181,14 +181,16 @@ func DashOr(s string) string {
 	return s
 }
 
-// GateDetails is SessionEvidenceFlags plus DENY Next steps for session show.
+// GateDetails is SessionEvidenceFlags plus DENY Next steps and soft-ALLOW
+// exception ids for session show.
 type GateDetails struct {
 	SessionEvidenceFlags
-	NextSteps []string `json:"nextSteps,omitempty"`
+	NextSteps    []string `json:"nextSteps,omitempty"`
+	SoftAllowIDs []string `json:"softAllowIds,omitempty"` // soft-ALLOW ResourceIDs → approvals show
 }
 
-// GateDetailsFor is EvidenceFlagsFor plus DenyNextSteps from the loaded
-// newest matching evidence record (empty when no evidence / ALLOW).
+// GateDetailsFor is EvidenceFlagsFor plus DenyNextSteps / soft-ALLOW ids from
+// the loaded newest matching evidence record.
 func GateDetailsFor(sessionsDir, repoRoot string, rec Record) GateDetails {
 	f := EvidenceFlagsFor(sessionsDir, repoRoot, rec)
 	d := GateDetails{SessionEvidenceFlags: f}
@@ -200,13 +202,15 @@ func GateDetailsFor(sessionsDir, repoRoot string, rec Record) GateDetails {
 		return d
 	}
 	d.NextSteps = gate.DenyNextSteps(erec.Gate)
+	d.SoftAllowIDs = gate.SoftAllowResourceIDs(erec.Gate.Approvals.Overrules)
 	return d
 }
 
 // HasSurface reports whether any board/show evidence field is populated.
 func (d GateDetails) HasSurface() bool {
 	return d.Attested || d.App || d.Commit != "" || d.Verdict != "" ||
-		d.EvidenceID != "" || d.SoftAllow || d.Risk != "" || d.Protocol || len(d.NextSteps) > 0
+		d.EvidenceID != "" || d.SoftAllow || d.Risk != "" || d.Protocol ||
+		len(d.NextSteps) > 0 || len(d.SoftAllowIDs) > 0
 }
 
 // BuildStatusBoard aggregates a session list into a dashboard board.

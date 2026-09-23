@@ -282,10 +282,46 @@ func TestGateDetailsForNextSteps(t *testing.T) {
 	if allowDetails.Verdict != "ALLOW" || allowDetails.EvidenceID != allow.ID || len(allowDetails.NextSteps) != 0 {
 		t.Fatalf("allow details=%+v", allowDetails)
 	}
+	if len(allowDetails.SoftAllowIDs) != 0 {
+		t.Fatalf("allow SoftAllowIDs=%v", allowDetails.SoftAllowIDs)
+	}
 
 	empty := GateDetailsFor(store, root, Record{ID: "missing"})
 	if empty.HasSurface() || empty.Verdict != "" || len(empty.NextSteps) != 0 {
 		t.Fatalf("empty=%+v", empty)
+	}
+}
+
+func TestGateDetailsForSoftAllowIDs(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 23, 14, 0, 0, 0, time.UTC)
+	soft := mustWriteEvidence(t, root, &evidence.Record{
+		Schema:    evidence.Schema,
+		CreatedAt: now,
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Risk:    gate.RiskSection{Level: "MEDIUM"},
+			Provenance: gate.ProvenanceSection{
+				Status:   gate.StatusPass,
+				Attested: true,
+				Sessions: []string{"migrate"},
+			},
+			Approvals: gate.ApprovalsSection{
+				Overrules: []gate.ExceptionOverrule{
+					{ResourceID: "exception-drift", Kind: "drift", Binding: "scope→a.go"},
+					{ResourceID: "exception-drift", Kind: "policy", Binding: "Tests"},
+					{ResourceID: "exception-risk", Kind: "risk", Binding: "security"},
+				},
+			},
+		},
+	})
+	details := GateDetailsFor(t.TempDir(), root, Record{ID: "migrate"})
+	if !details.SoftAllow || details.EvidenceID != soft.ID {
+		t.Fatalf("details=%+v", details)
+	}
+	if len(details.SoftAllowIDs) != 2 || details.SoftAllowIDs[0] != "exception-drift" || details.SoftAllowIDs[1] != "exception-risk" {
+		t.Fatalf("SoftAllowIDs=%v", details.SoftAllowIDs)
 	}
 }
 
