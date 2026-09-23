@@ -811,6 +811,9 @@ After wait (and optional --attest/--gate/--bundle), the human board and
 --json output match session status trust columns (GOV…RISK + EXIT), so
 fleet→gate evidence is visible without a separate status call.
 
+Trust filters (--verdict/--soft-allow/--risk/--protocol/--attested/--governed/--harness)
+narrow the emitted board only (wait/attest/gate still cover the full waited set).
+
 Examples:
   specular session wait
   specular session wait auth ratelimit
@@ -850,6 +853,10 @@ Examples:
 		if (requireAttested || requireProtocol || requireGoverned) && !doGate && !doBundle {
 			return fmt.Errorf("session: --require-* requires --gate or --bundle")
 		}
+		filter, ferr := sessionBoardFilter(cmd)
+		if ferr != nil {
+			return ferr
+		}
 
 		postOpts := sessionWaitPostOptions{
 			Ctx: cmd.Context(), Mgr: mgr,
@@ -869,28 +876,36 @@ Examples:
 		})
 		postOpts.Recs = recs
 		if waitErr != nil {
-			_ = emitSessionWaitBoard(mgr, recs, jsonOut)
+			_ = emitSessionWaitBoard(mgr, filterWaitRecs(mgr, recs, filter), jsonOut, filter.Active())
 			return waitErr
 		}
 		if len(recs) == 0 && !doGate && !doBundle && !doAttest {
 			if !jsonOut {
 				fmt.Println("No active sessions to wait for.")
 			} else {
-				_ = emitSessionWaitBoard(mgr, recs, true)
+				_ = emitSessionWaitBoard(mgr, recs, true, false)
 			}
 			return nil
 		}
 		postErr := runSessionWaitPost(postOpts)
-		if emitErr := emitSessionWaitBoard(mgr, recs, jsonOut); emitErr != nil && postErr == nil {
+		if emitErr := emitSessionWaitBoard(mgr, filterWaitRecs(mgr, recs, filter), jsonOut, filter.Active()); emitErr != nil && postErr == nil {
 			return emitErr
 		}
 		return postErr
 	},
 }
 
+func filterWaitRecs(mgr *session.Manager, recs []session.Record, filter session.BoardFilter) []session.Record {
+	if !filter.Active() {
+		return recs
+	}
+	evMap := session.EvidenceMapFor(recs, mgr.Store().Dir(), mgr.RepoRoot())
+	return session.FilterSessions(recs, evMap, filter)
+}
+
 // emitSessionWaitBoard prints or encodes the waited sessions with status-board
 // trust columns (and EXIT). Evidence is refreshed from disk so --gate results show.
-func emitSessionWaitBoard(mgr *session.Manager, recs []session.Record, jsonOut bool) error {
+func emitSessionWaitBoard(mgr *session.Manager, recs []session.Record, jsonOut, filtered bool) error {
 	board := session.BuildStatusBoardWithEvidence(recs, mgr.Store().Dir(), mgr.RepoRoot())
 	if jsonOut {
 		enc := json.NewEncoder(os.Stdout)
@@ -898,6 +913,10 @@ func emitSessionWaitBoard(mgr *session.Manager, recs []session.Record, jsonOut b
 		return enc.Encode(board)
 	}
 	if len(board.Sessions) == 0 {
+		if filtered {
+			fmt.Println("No waited sessions match filters.")
+			return nil
+		}
 		fmt.Println("No active sessions to wait for.")
 		return nil
 	}
@@ -1898,6 +1917,7 @@ func init() {
 	sessionWaitCmd.Flags().Bool("require-protocol", false, "With --gate/--bundle: DENY when APP docs missing/invalid/unbound")
 	sessionWaitCmd.Flags().Bool("require-governed", false, "With --gate/--bundle: DENY when no governed session")
 	sessionWaitCmd.Flags().Bool("json", false, "Emit JSON")
+	addSessionBoardFilterFlags(sessionWaitCmd)
 
 	sessionRestartCmd.Flags().String("harness", "", "Switch harness on restart")
 	sessionRestartCmd.Flags().String("goal", "", "Override goal on restart")
