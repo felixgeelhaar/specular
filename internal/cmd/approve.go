@@ -64,6 +64,7 @@ var approvalsListCmd = &cobra.Command{
 	Long: `Display the local approval / exception trail as a trust board.
 
 Columns: ID TYPE STATUS POLICY SCOPE EVID APPROVER EXPIRES
+EVID-bound rows footer to evidence show / explain (approvals show Refs parity).
 --json emits {summary, records} (session/evidence list parity).
 
 Filters (combinable):
@@ -298,6 +299,9 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 	_ = w.Flush()
 	fmt.Printf("\nopen=%d  closed=%d  expired=%d  total=%d\n",
 		board.Summary.Open, board.Summary.Closed, board.Summary.Expired, board.Summary.Total)
+	if hints := approval.FormatEvidenceListHints(board.Records); hints != "" {
+		fmt.Print("\n" + hints)
+	}
 	return nil
 }
 

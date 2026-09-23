@@ -847,7 +847,9 @@ specular approvals list [--status open|closed|expired] \
 **Description:**
 
 Displays a compact board (`ID TYPE STATUS POLICY SCOPE EVID APPROVER EXPIRES`)
-plus open/closed/expired summary. `--status` keeps records whose lifecycle is
+plus open/closed/expired summary. Rows with a bound `evidence_id` footer to
+`evidence show <id>` / `explain <id>` (approvals show Refs parity). `--status`
+keeps records whose lifecycle is
 `open` (not closed, not expired), `closed` (explicit revoke), or `expired`
 (past `expires_at`). Closed wins when both closed and expired apply. `--type`
 filters by record type. `--policy` / `--scope` are case-insensitive substrings
@@ -861,10 +863,14 @@ stamp `evidence_id` on overruled open exceptions. `--json` emits
 ```bash
 $ specular approvals list --status open --type exception --policy provenance
 
-ID                      TYPE       STATUS  POLICY      SCOPE            EVID  APPROVER  EXPIRES
-exception-EX-192        exception  open    provenance  internal/auth/**  -     alice     2026-09-30
+ID                      TYPE       STATUS  POLICY      SCOPE            EVID    APPROVER  EXPIRES
+exception-EX-192        exception  open    provenance  internal/auth/**  ev_abc  alice     2026-09-30
 
 open=1  closed=0  expired=0  total=1
+
+Evidence:
+  exception-EX-192  specular evidence show ev_abc
+                    specular explain ev_abc
 ```
 
 ### approvals show
