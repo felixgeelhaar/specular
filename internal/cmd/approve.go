@@ -119,6 +119,9 @@ var approvalsCloseCmd = &cobra.Command{
 Rewrites the existing YAML in place: stamps closed_at/closed_by and clamps
 expires_at to now. Idempotent when already closed or expired.
 
+After close, human output prints Soft-trail Refs (pending / list --status open /
+doctor / gate) and any remaining open exceptions.
+
   specular approvals close exception-EX-192
   specular approvals close EX-192 --reason "incident mitigated"
   specular approvals revoke exception-app-protocol --json
@@ -481,7 +484,34 @@ func runApprovalsClose(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Saved:       %s\n", rec.Path)
 	}
 	fmt.Println("Note: soft-ALLOW no longer applies for this id")
+	printApprovalsCloseSoftTrail(rec.ResourceID)
 	return nil
+}
+
+// printApprovalsCloseSoftTrail reverse-jumps after revoke: remaining open
+// exceptions (if any) plus pending / list / doctor / gate (Soft trail parity).
+func printApprovalsCloseSoftTrail(closedID string) {
+	fmt.Println("Refs")
+	fmt.Println("Pending      specular approvals pending")
+	fmt.Println("Open         specular approvals list --status open")
+	fmt.Println("Doctor       specular doctor")
+	fmt.Println("Gate         specular gate")
+	open, err := approval.OpenExceptions(".", time.Now().UTC())
+	if err != nil || len(open) == 0 {
+		return
+	}
+	// Drop the just-closed id if it somehow still appears (shouldn't).
+	closedID = strings.TrimSpace(closedID)
+	remaining := make([]approval.Record, 0, len(open))
+	for _, rec := range open {
+		if strings.TrimSpace(rec.ResourceID) == closedID {
+			continue
+		}
+		remaining = append(remaining, rec)
+	}
+	if hints := approval.FormatOpenExceptionHints(remaining); hints != "" {
+		fmt.Print("\n" + hints)
+	}
 }
 
 func runApprovalsPending(cmd *cobra.Command, args []string) error {
