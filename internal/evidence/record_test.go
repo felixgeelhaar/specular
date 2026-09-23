@@ -311,7 +311,7 @@ func TestSoftAllowResourceIDsDedup(t *testing.T) {
 	if len(ids) != 2 || ids[0] != "exception-a" || ids[1] != "exception-b" {
 		t.Fatalf("ids=%v", ids)
 	}
-	if gate.SoftAllowResourceIDs(nil) != nil || gate.SoftAllowResourceIDs(nil) != nil {
+	if gate.SoftAllowResourceIDs(nil) != nil {
 		t.Fatal("expected nil for empty")
 	}
 }
