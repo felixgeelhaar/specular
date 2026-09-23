@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session show DENY Soft trail**: when gate is DENY and SoftAllowIDs are
+  empty, `session show` jumps to `approvals pending` / `doctor` (gate DENY
+  Soft-trail #172 parity). Soft-ALLOW Soft trail unchanged.
+
 - **Gate DENY Soft trail**: when Approvals are empty (no Soft Overruled /
   OpenExceptions trail), gate text / markdown SoftAllow Hint and
   FormatExplain jump to `approvals pending` / `doctor` (Soft Overruled /

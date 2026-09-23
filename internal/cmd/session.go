@@ -343,7 +343,9 @@ var sessionShowCmd = &cobra.Command{
 
 When a Change Evidence Graph record lists this session, also shows GATE / SOFT /
 RISK / PROTO / evidence id and DENY Next steps, with jumps to explain --session /
-evidence show; soft-ALLOW overrules jump to approvals show / list --status open.`,
+evidence show; soft-ALLOW overrules jump to approvals show / list --evidence
+(or --status open) / pending / doctor. On DENY with no SoftAllowIDs, Soft trail
+still jumps to pending / doctor (gate DENY Soft-trail parity).`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
@@ -444,6 +446,10 @@ func printSessionGateBlock(sessionID string, ev session.GateDetails) {
 		fmt.Printf("            %s\n", gate.SoftAllowListHint(ev.EvidenceID))
 		fmt.Printf("            %s\n", gate.SoftAllowPendingHint)
 		fmt.Printf("            %s\n", gate.SoftAllowDoctorHint)
+	} else if strings.EqualFold(strings.TrimSpace(ev.Verdict), "DENY") {
+		// Soft trail when Soft Overruled Soft trail was not printed (gate DENY parity).
+		fmt.Printf("Pending:    %s\n", gate.SoftAllowPendingHint)
+		fmt.Printf("Doctor:     %s\n", gate.SoftAllowDoctorHint)
 	}
 	if len(ev.NextSteps) > 0 {
 		fmt.Println("\nNext steps:")
