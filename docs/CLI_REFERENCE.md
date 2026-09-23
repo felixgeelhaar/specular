@@ -798,7 +798,9 @@ Creates an approval record for:
 **soft-ALLOW** a matching gate DENY when `--policy`/`--scope` binds to that
 deny (drift finding code/path, failed policy check name, risk category/level,
 or provenance / APP / governed bind tokens). Unmatched exceptions stay
-advisory. See `docs/APPROVAL_BEST_PRACTICES.md`.
+advisory. After recording an exception, human output prints Soft-trail Refs
+(`approvals show` / `list --status open` / `pending` / `doctor` / `gate`;
+`evidence show` when `--evidence`). See `docs/APPROVAL_BEST_PRACTICES.md`.
 
 **Example:**
 ```bash
@@ -819,6 +821,13 @@ $ specular approve exception-EX-192 \
     --policy SEC-17 \
     --expires 7d
 ⚠ Exception recorded: exception-EX-192
+…
+Refs
+Show         specular approvals show exception-EX-192
+Open         specular approvals list --status open
+Pending      specular approvals pending
+Doctor       specular doctor
+Gate         specular gate
 ```
 
 **Flags:**

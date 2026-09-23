@@ -233,3 +233,54 @@ func TestPrintApprovalsCloseSoftTrail(t *testing.T) {
 		}
 	}
 }
+
+func TestPrintApprovalsCreateSoftTrail(t *testing.T) {
+	t.Parallel()
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	printApprovalsCreateSoftTrail(approval.Record{
+		ResourceID: "exception-EX-1",
+		EvidenceID: "ev_new",
+	})
+	_ = w.Close()
+	os.Stdout = old
+	buf := make([]byte, 4096)
+	n, _ := r.Read(buf)
+	text := string(buf[:n])
+	for _, want := range []string{
+		"Refs",
+		"Show         specular approvals show exception-EX-1",
+		"Open         specular approvals list --status open",
+		"Pending      specular approvals pending",
+		"Doctor       specular doctor",
+		"Gate         specular gate",
+		"Evidence     specular evidence show ev_new",
+		"             specular explain ev_new",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
+	}
+
+	r2, w2, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w2
+	printApprovalsCreateSoftTrail(approval.Record{ResourceID: "exception-bare"})
+	_ = w2.Close()
+	os.Stdout = old
+	buf2 := make([]byte, 4096)
+	n2, _ := r2.Read(buf2)
+	text2 := string(buf2[:n2])
+	if strings.Contains(text2, "evidence show") {
+		t.Fatalf("bare exception should not invent evidence:\n%s", text2)
+	}
+	if !strings.Contains(text2, "Show         specular approvals show exception-bare") {
+		t.Fatalf("missing show:\n%s", text2)
+	}
+}
