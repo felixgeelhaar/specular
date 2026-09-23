@@ -962,7 +962,9 @@ Pending Approvals:
 Open exceptions:
   exception-EX-192  specular approvals show exception-EX-192
                     specular evidence show ev_abc
-  List  specular approvals list --status open
+  List   specular approvals list --status open
+  Trail  specular approvals pending
+         specular doctor
 ```
 
 ---

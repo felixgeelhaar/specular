@@ -157,7 +157,9 @@ func TestPrintPendingOpenExceptions(t *testing.T) {
 		"Open exceptions:",
 		"exception-pending-open  specular approvals show exception-pending-open",
 		"specular evidence show ev_pend",
-		"List  specular approvals list --status open",
+		"List   specular approvals list --status open",
+		"Trail  specular approvals pending",
+		"specular doctor",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)

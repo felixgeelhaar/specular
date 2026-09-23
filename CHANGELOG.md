@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Soft footer Soft trail**: Soft=yes footers on `session status` / `list` /
+  `wait` and `evidence list`, open-exception footers, and `session show` Soft
+  jumps include `approvals pending` / `doctor` (gate Soft-trail #167 parity).
+
 - **Gate Soft-ALLOW Soft trail**: text / markdown Soft Overruled boards and
   FormatExplain Soft Refs jump to `approvals pending` / `doctor` beside
   show/list (approve create/close Soft-trail parity).

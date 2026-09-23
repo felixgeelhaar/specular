@@ -317,6 +317,8 @@ func TestFormatSoftAllowBoardHints(t *testing.T) {
 		"specular session show migrate",
 		"orphan  specular approvals list --status open",
 		"specular session show orphan",
+		"Trail  specular approvals pending",
+		"specular doctor",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)

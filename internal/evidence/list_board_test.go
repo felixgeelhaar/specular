@@ -93,6 +93,8 @@ func TestBuildListBoard(t *testing.T) {
 		"specular approvals show exception-drift",
 		"specular evidence show ev_allow",
 		"specular explain ev_allow",
+		"Trail  specular approvals pending",
+		"specular doctor",
 	} {
 		if !strings.Contains(hints, want) {
 			t.Fatalf("missing %q:\n%s", want, hints)
