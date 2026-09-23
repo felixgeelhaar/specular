@@ -190,7 +190,7 @@ func FormatExplain(rec *Record) string {
 	writePolicyBlock(&b, g)
 	writeDriftBlock(&b, g)
 	writeRiskBlock(&b, g)
-	writeApprovalsBlock(&b, g)
+	writeApprovalsBlock(&b, g, rec.ID)
 
 	b.WriteString("Why\n")
 	writeWhy(&b, g)
@@ -213,7 +213,7 @@ func writeExplainRefs(b *strings.Builder, rec *Record) {
 	g := rec.Gate
 	b.WriteString("Refs\n")
 	fmt.Fprintf(b, "Evidence     %s\n", evidenceRef(rec))
-	writeApprovalRefs(b, g)
+	writeApprovalRefs(b, g, rec.ID)
 	writeSessionRefs(b, g)
 	if g.Drift.SARIF != "" {
 		fmt.Fprintf(b, "SARIF        %s\n", g.Drift.SARIF)
@@ -222,14 +222,21 @@ func writeExplainRefs(b *strings.Builder, rec *Record) {
 	b.WriteString("Re-run       specular gate\n")
 }
 
-func writeApprovalRefs(b *strings.Builder, g *gate.Result) {
+func writeApprovalRefs(b *strings.Builder, g *gate.Result, evidenceID string) {
 	ids := gate.SoftAllowResourceIDs(g.Approvals.Overrules)
 	for _, id := range ids {
 		fmt.Fprintf(b, "Approval     specular approvals show %s\n", id)
 	}
 	if len(ids) > 0 {
-		b.WriteString("Open         specular approvals list --status open\n")
+		fmt.Fprintf(b, "Open         %s\n", softAllowListHint(evidenceID))
 	}
+}
+
+func softAllowListHint(evidenceID string) string {
+	if id := strings.TrimSpace(evidenceID); id != "" {
+		return "specular approvals list --evidence " + id
+	}
+	return "specular approvals list --status open"
 }
 
 func writeSessionRefs(b *strings.Builder, g *gate.Result) {
@@ -419,7 +426,7 @@ func writeRiskBlock(b *strings.Builder, g *gate.Result) {
 	}
 }
 
-func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
+func writeApprovalsBlock(b *strings.Builder, g *gate.Result, evidenceID string) {
 	b.WriteString("Approvals\n")
 	sec := g.Approvals
 	if len(sec.Overrules) > 0 {
@@ -427,7 +434,7 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
 		for _, o := range sec.Overrules {
 			fmt.Fprintf(b, "⚠ soft-ALLOW %-6s %s (%s)\n", o.Kind, o.ResourceID, o.Binding)
 		}
-		writeSoftAllowBoardHints(b, g)
+		writeSoftAllowBoardHints(b, g, evidenceID)
 	}
 	if sec.Count == 0 {
 		b.WriteString("Status       none recorded\n")
@@ -451,13 +458,13 @@ func writeApprovalsBlock(b *strings.Builder, g *gate.Result) {
 
 // writeSoftAllowBoardHints jumps soft-ALLOW ResourceIDs to approvals show/list
 // (session show ↔ explain reverse navigation).
-func writeSoftAllowBoardHints(b *strings.Builder, g *gate.Result) {
+func writeSoftAllowBoardHints(b *strings.Builder, g *gate.Result, evidenceID string) {
 	ids := gate.SoftAllowResourceIDs(g.Approvals.Overrules)
 	for _, id := range ids {
 		fmt.Fprintf(b, "Show         specular approvals show %s\n", id)
 	}
 	if len(ids) > 0 {
-		b.WriteString("List         specular approvals list --status open\n")
+		fmt.Fprintf(b, "List         %s\n", softAllowListHint(evidenceID))
 	}
 }
 

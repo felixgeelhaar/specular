@@ -48,7 +48,8 @@ var evidenceListCmd = &cobra.Command{
 	Long: `List local Change Evidence Graph records under .specular/evidence/.
 
 Human output is a trust board (GATE/SOFT/RISK/ATTEST/GOV/PROTO/…) matching
-session status vocabulary. --json emits {summary, records}.
+session status vocabulary. Soft=yes rows footer to approvals list --evidence /
+explain. --json emits {summary, records} (rows include softAllowIds).
 
 Filters (combinable):
   --verdict ALLOW|DENY              Gate decision
@@ -126,6 +127,9 @@ func runEvidenceList(cmd *cobra.Command, _ []string) error {
 	_ = w.Flush()
 	fmt.Printf("\nallow=%d  deny=%d  softAllow=%d  total=%d\n",
 		board.Summary.Allow, board.Summary.Deny, board.Summary.SoftAllow, board.Summary.Total)
+	if hints := evidence.FormatSoftAllowListHints(board.Records); hints != "" {
+		fmt.Print("\n" + hints)
+	}
 	return nil
 }
 

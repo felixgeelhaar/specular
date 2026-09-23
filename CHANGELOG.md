@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Evidence list Soft-ALLOW jumps**: Soft=yes rows footer to
+  `approvals list --evidence <id>` / `explain <id>`; `--json` rows include
+  `softAllowIds` (session status Soft-ALLOW footer parity). FormatExplain
+  Soft List/Open also prefer `--evidence <id>` when the record id is known.
+
 - **Provenance show/verify Refs**: human APP output jumps to
   `session show` / `explain --session` / peer `provenance verify|show`
   (FormatExplain session Refs parity).

@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -18,17 +19,18 @@ type ListSummary struct {
 
 // ListRow is one trust-board line for `evidence list` (session status parity).
 type ListRow struct {
-	ID        string    `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	Verdict   string    `json:"verdict,omitempty"`
-	SoftAllow bool      `json:"softAllow,omitempty"`
-	Risk      string    `json:"risk,omitempty"`
-	Attested  bool      `json:"attested"`
-	Governed  bool      `json:"governed"`
-	Protocol  bool      `json:"protocol"`
-	Commit    string    `json:"commit,omitempty"`
-	Sessions  []string  `json:"sessions,omitempty"`
-	Harnesses []string  `json:"harnesses,omitempty"`
+	ID           string    `json:"id"`
+	CreatedAt    time.Time `json:"createdAt"`
+	Verdict      string    `json:"verdict,omitempty"`
+	SoftAllow    bool      `json:"softAllow,omitempty"`
+	SoftAllowIDs []string  `json:"softAllowIds,omitempty"` // soft-ALLOW ResourceIDs
+	Risk         string    `json:"risk,omitempty"`
+	Attested     bool      `json:"attested"`
+	Governed     bool      `json:"governed"`
+	Protocol     bool      `json:"protocol"`
+	Commit       string    `json:"commit,omitempty"`
+	Sessions     []string  `json:"sessions,omitempty"`
+	Harnesses    []string  `json:"harnesses,omitempty"`
 }
 
 // ListBoard is the JSON shape for `evidence list --json`.
@@ -76,6 +78,7 @@ func RowFromRecord(rec *Record) ListRow {
 	g := rec.Gate
 	row.Verdict = strings.TrimSpace(string(g.Verdict))
 	row.SoftAllow = len(g.Approvals.Overrules) > 0
+	row.SoftAllowIDs = gate.SoftAllowResourceIDs(g.Approvals.Overrules)
 	row.Risk = strings.ToUpper(strings.TrimSpace(g.Risk.Level))
 	if row.Risk == "" && row.Verdict != "" {
 		row.Risk = "NONE"
@@ -89,6 +92,30 @@ func RowFromRecord(rec *Record) ListRow {
 	row.Sessions = append([]string(nil), g.Provenance.Sessions...)
 	row.Harnesses = append([]string(nil), g.Provenance.Harnesses...)
 	return row
+}
+
+// FormatSoftAllowListHints returns human footer lines for Soft=yes evidence
+// rows (approvals list --evidence / explain). Empty when none.
+func FormatSoftAllowListHints(rows []ListRow) string {
+	if len(rows) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, row := range rows {
+		if !row.SoftAllow {
+			continue
+		}
+		if b.Len() == 0 {
+			b.WriteString("Soft-ALLOW:\n")
+		}
+		id := strings.TrimSpace(row.ID)
+		if id == "" {
+			continue
+		}
+		fmt.Fprintf(&b, "  %s  specular approvals list --evidence %s\n", id, id)
+		fmt.Fprintf(&b, "       specular explain %s\n", id)
+	}
+	return b.String()
 }
 
 // ShortCommit truncates a SHA for human boards (empty → "-").
