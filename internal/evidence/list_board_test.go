@@ -106,4 +106,23 @@ func TestBuildListBoard(t *testing.T) {
 	if FormatSoftAllowListHints(nil) != "" {
 		t.Fatal("expected empty hints")
 	}
+
+	denyHints := FormatDenySoftTrailHints(board.Records)
+	for _, want := range []string{
+		"DENY Soft trail:",
+		"ev_deny  specular evidence show ev_deny",
+		"specular explain ev_deny",
+		"Trail  specular approvals pending",
+		"specular doctor",
+	} {
+		if !strings.Contains(denyHints, want) {
+			t.Fatalf("missing DENY Soft trail %q:\n%s", want, denyHints)
+		}
+	}
+	if strings.Contains(denyHints, "ev_allow") {
+		t.Fatalf("Soft-ALLOW must not appear in DENY Soft trail:\n%s", denyHints)
+	}
+	if FormatDenySoftTrailHints(nil) != "" {
+		t.Fatal("expected empty DENY Soft trail")
+	}
 }

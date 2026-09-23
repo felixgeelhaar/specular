@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **DENY Soft trail boards**: Soft=no DENY rows on `session status` / `list` /
+  `wait` and `evidence list` footer to evidence show / explain / session show
+  (session) plus Soft trail `approvals pending` / `doctor` (session show DENY
+  Soft-trail #173 / Soft-ALLOW Soft-footer parity). Soft=yes Soft-ALLOW footers
+  unchanged.
+
 - **Session show DENY Soft trail**: when gate is DENY and SoftAllowIDs are
   empty, `session show` jumps to `approvals pending` / `doctor` (gate DENY
   Soft-trail #172 parity). Soft-ALLOW Soft trail unchanged.

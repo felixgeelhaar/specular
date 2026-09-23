@@ -182,7 +182,7 @@ func TestSessionCommand(t *testing.T) {
 }
 
 func TestPrintSessionGateBlockSoftAllow(t *testing.T) {
-	t.Parallel()
+	// Captures os.Stdout — must not run in parallel with sibling stdout tests.
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
@@ -220,7 +220,7 @@ func TestPrintSessionGateBlockSoftAllow(t *testing.T) {
 }
 
 func TestPrintSessionGateBlockDenySoftTrail(t *testing.T) {
-	t.Parallel()
+	// Captures os.Stdout — must not run in parallel with sibling stdout tests.
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)

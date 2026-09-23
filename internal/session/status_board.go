@@ -261,6 +261,38 @@ func FormatSoftAllowBoardHints(sessions []Record, evidence map[string]SessionEvi
 	return b.String()
 }
 
+// FormatDenySoftTrailHints returns human footer lines for DENY Soft=no rows
+// (explain --session / evidence show / session show / Soft trail pending+doctor).
+// Soft=yes Soft-ALLOW footer already covers soft-ALLOW Soft trail; empty when none.
+func FormatDenySoftTrailHints(sessions []Record, evidence map[string]SessionEvidenceFlags) string {
+	if len(sessions) == 0 || len(evidence) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, s := range sessions {
+		ev := evidence[s.ID]
+		if ev.SoftAllow || !strings.EqualFold(strings.TrimSpace(ev.Verdict), "DENY") {
+			continue
+		}
+		if b.Len() == 0 {
+			b.WriteString("DENY Soft trail:\n")
+		}
+		if id := strings.TrimSpace(ev.EvidenceID); id != "" {
+			fmt.Fprintf(&b, "  %s  specular evidence show %s\n", s.ID, id)
+			fmt.Fprintf(&b, "       specular explain --session %s\n", s.ID)
+		} else {
+			fmt.Fprintf(&b, "  %s  specular explain --session %s\n", s.ID, s.ID)
+		}
+		fmt.Fprintf(&b, "       specular session show %s\n", s.ID)
+	}
+	if b.Len() == 0 {
+		return ""
+	}
+	fmt.Fprintf(&b, "  Trail  %s\n", gate.SoftAllowPendingHint)
+	fmt.Fprintf(&b, "         %s\n", gate.SoftAllowDoctorHint)
+	return b.String()
+}
+
 // BuildStatusBoard aggregates a session list into a dashboard board.
 func BuildStatusBoard(list []Record) StatusBoard {
 	return BuildStatusBoardWithEvidence(list, "", "")

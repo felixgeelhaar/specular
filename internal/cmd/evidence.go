@@ -49,8 +49,9 @@ var evidenceListCmd = &cobra.Command{
 
 Human output is a trust board (GATE/SOFT/RISK/ATTEST/GOV/PROTO/…) matching
 session status vocabulary. Soft=yes rows footer to approvals list --evidence /
-approvals show (SoftAllowIDs) / evidence show / explain. --json emits
-{summary, records} (rows include softAllowIds).
+approvals show (SoftAllowIDs) / evidence show / explain / pending / doctor.
+DENY Soft=no rows footer to evidence show / explain / pending / doctor.
+--json emits {summary, records} (rows include softAllowIds).
 
 Filters (combinable):
   --verdict ALLOW|DENY              Gate decision
@@ -129,6 +130,9 @@ func runEvidenceList(cmd *cobra.Command, _ []string) error {
 	fmt.Printf("\nallow=%d  deny=%d  softAllow=%d  total=%d\n",
 		board.Summary.Allow, board.Summary.Deny, board.Summary.SoftAllow, board.Summary.Total)
 	if hints := evidence.FormatSoftAllowListHints(board.Records); hints != "" {
+		fmt.Print("\n" + hints)
+	}
+	if hints := evidence.FormatDenySoftTrailHints(board.Records); hints != "" {
 		fmt.Print("\n" + hints)
 	}
 	return nil
