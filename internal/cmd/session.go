@@ -253,7 +253,9 @@ var sessionListCmd = &cobra.Command{
 	Short: "List managed agent sessions",
 	Long: `List Specular-managed sessions from .specular/sessions.
 
-Use --checkpoints to also show legacy auto checkpoint sessions.`,
+Use --checkpoints to also show legacy auto checkpoint sessions.
+Trust filters (--verdict/--soft-allow/--risk/--protocol/--attested/--governed/--harness)
+match status board columns (evidence list parity).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -275,6 +277,12 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 		if err != nil {
 			return err
 		}
+		filter, ferr := sessionBoardFilter(cmd)
+		if ferr != nil {
+			return ferr
+		}
+		evMap := session.EvidenceMapFor(list, mgr.Store().Dir(), mgr.RepoRoot())
+		list = session.FilterSessions(list, evMap, filter)
 
 		if jsonOut {
 			enc := json.NewEncoder(os.Stdout)
@@ -283,6 +291,10 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 		}
 
 		if len(list) == 0 && !includeCheckpoints {
+			if filter.Active() {
+				fmt.Println("No managed sessions match filters.")
+				return nil
+			}
 			fmt.Println("No managed sessions. Start one with: specular session start \"your goal\"")
 			return nil
 		}
@@ -290,8 +302,6 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 		if len(list) > 0 {
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPROTO\tCOMMIT\tGATE\tSOFT\tRISK\tWORKTREE\tPID\tGOAL")
-			storeDir := mgr.Store().Dir()
-			gates := session.NewestGateBySession(mgr.RepoRoot())
 			for _, s := range list {
 				goal := s.Goal
 				if len(goal) > 48 {
@@ -306,19 +316,9 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 					wt = "-"
 				}
 				gov := session.YesDash(s.Governed)
-				ev := session.EvidenceFlagsFor(storeDir, "", s)
-				gate := "-"
-				soft := false
-				risk := "-"
-				proto := false
-				if g, ok := gates[s.ID]; ok {
-					gate = session.DashOr(g.Verdict)
-					soft = g.SoftAllow
-					risk = session.DashOr(g.Risk)
-					proto = g.Protocol
-				}
+				ev := evMap[s.ID]
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.YesDash(proto), session.DashOr(ev.Commit), gate, session.YesDash(soft), risk, wt, pid, goal)
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.YesDash(ev.Protocol), session.DashOr(ev.Commit), session.DashOr(ev.Verdict), session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), wt, pid, goal)
 			}
 			_ = w.Flush()
 		}
@@ -438,6 +438,46 @@ func printSessionGateBlock(sessionID string, ev session.GateDetails) {
 			fmt.Printf("  • %s\n", step)
 		}
 	}
+}
+
+func sessionBoardFilter(cmd *cobra.Command) (session.BoardFilter, error) {
+	var f session.BoardFilter
+	verdict, _ := cmd.Flags().GetString("verdict")
+	f.Verdict = strings.TrimSpace(verdict)
+	harness, _ := cmd.Flags().GetString("harness")
+	f.Harness = strings.TrimSpace(harness)
+	risk, _ := cmd.Flags().GetString("risk")
+	f.RiskLevel = strings.TrimSpace(risk)
+	if cmd.Flags().Changed("soft-allow") {
+		v, _ := cmd.Flags().GetBool("soft-allow")
+		f.SoftAllow = &v
+	}
+	if cmd.Flags().Changed("attested") {
+		v, _ := cmd.Flags().GetBool("attested")
+		f.Attested = &v
+	}
+	if cmd.Flags().Changed("governed") {
+		v, _ := cmd.Flags().GetBool("governed")
+		f.Governed = &v
+	}
+	if cmd.Flags().Changed("protocol") {
+		v, _ := cmd.Flags().GetBool("protocol")
+		f.Protocol = &v
+	}
+	if err := f.Validate(); err != nil {
+		return f, err
+	}
+	return f, nil
+}
+
+func addSessionBoardFilterFlags(cmd *cobra.Command) {
+	cmd.Flags().String("verdict", "", "Only sessions whose newest evidence gate is ALLOW or DENY")
+	cmd.Flags().String("harness", "", "Only sessions whose harness contains this substring")
+	cmd.Flags().String("risk", "", "Only sessions whose newest evidence risk is NONE|LOW|MEDIUM|HIGH|CRITICAL")
+	cmd.Flags().Bool("soft-allow", false, "Only sessions whose newest evidence has (or lacks, with =false) soft-ALLOW overrules")
+	cmd.Flags().Bool("attested", false, "Only sessions with (or without, =false) sibling attestation")
+	cmd.Flags().Bool("governed", false, "Only sessions with (or without, =false) GOV=yes")
+	cmd.Flags().Bool("protocol", false, "Only sessions whose newest evidence has (or lacks, =false) APP protocol schema+bound")
 }
 
 var sessionStopCmd = &cobra.Command{
@@ -612,7 +652,10 @@ var sessionStatusCmd = &cobra.Command{
 Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 With --json, emit {summary, sessions, evidence} for dashboards (not a bare array).
 Evidence includes ATTEST/APP/PROTO/COMMIT plus GATE verdict/evidenceId, SOFT
-(soft-ALLOW overrules), and RISK from newest graph records.`,
+(soft-ALLOW overrules), and RISK from newest graph records.
+
+Trust filters (--verdict/--soft-allow/--risk/--protocol/--attested/--governed/--harness)
+narrow the board (evidence list parity); summary counts reflect the filtered set.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -625,6 +668,10 @@ Evidence includes ATTEST/APP/PROTO/COMMIT plus GATE verdict/evidenceId, SOFT
 		watch, _ := cmd.Flags().GetBool("watch")
 		interval, _ := cmd.Flags().GetDuration("interval")
 		jsonOut, _ := cmd.Flags().GetBool("json")
+		filter, ferr := sessionBoardFilter(cmd)
+		if ferr != nil {
+			return ferr
+		}
 		if interval <= 0 {
 			interval = 2 * time.Second
 		}
@@ -634,6 +681,8 @@ Evidence includes ATTEST/APP/PROTO/COMMIT plus GATE verdict/evidenceId, SOFT
 			if listErr != nil {
 				return listErr
 			}
+			evMap := session.EvidenceMapFor(list, mgr.Store().Dir(), mgr.RepoRoot())
+			list = session.FilterSessions(list, evMap, filter)
 			board := session.BuildStatusBoardWithEvidence(list, mgr.Store().Dir(), mgr.RepoRoot())
 			if jsonOut {
 				enc := json.NewEncoder(os.Stdout)
@@ -641,6 +690,10 @@ Evidence includes ATTEST/APP/PROTO/COMMIT plus GATE verdict/evidenceId, SOFT
 				return enc.Encode(board)
 			}
 			if len(board.Sessions) == 0 {
+				if filter.Active() {
+					fmt.Println("No managed sessions match filters.")
+					return nil
+				}
 				fmt.Println("No managed sessions.")
 				return nil
 			}
@@ -1786,6 +1839,7 @@ func init() {
 
 	sessionListCmd.Flags().Bool("checkpoints", false, "Also list legacy auto checkpoints")
 	sessionListCmd.Flags().Bool("json", false, "Emit JSON")
+	addSessionBoardFilterFlags(sessionListCmd)
 
 	sessionShowCmd.Flags().BoolP("verbose", "v", false, "Show log tail / task details")
 	sessionShowCmd.Flags().Bool("json", false, "Emit JSON")
@@ -1802,6 +1856,7 @@ func init() {
 	sessionStatusCmd.Flags().Bool("watch", false, "Refresh the status board until interrupted")
 	sessionStatusCmd.Flags().Duration("interval", 2*time.Second, "Refresh interval for --watch")
 	sessionStatusCmd.Flags().Bool("json", false, "Emit JSON")
+	addSessionBoardFilterFlags(sessionStatusCmd)
 	sessionOpenCmd.Flags().Bool("shell", false, "Print a cd command instead of the bare path")
 	sessionOpenCmd.Flags().Bool("editor", false, "Open the worktree in $EDITOR")
 

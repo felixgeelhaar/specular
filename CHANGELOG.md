@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session status/list trust filters**: `--verdict` / `--soft-allow` /
+  `--risk` / `--protocol` / `--attested` / `--governed` / `--harness`
+  narrow the fleet board (and `list`) with evidence-list parity; summary
+  counts and `--json` reflect the filtered set (`--watch` re-applies).
+
 - **Session status/list PROTO column**: human boards and
   `session status --json` evidence map show APP protocol schema+bound
   (`protocol`) from the newest matching Change Evidence Graph record
