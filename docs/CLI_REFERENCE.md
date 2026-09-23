@@ -860,7 +860,8 @@ specular approvals list [--status open|closed|expired] \
 
 Displays a compact board (`ID TYPE STATUS POLICY SCOPE EVID APPROVER EXPIRES`)
 plus open/closed/expired summary. Rows with a bound `evidence_id` footer to
-`evidence show <id>` / `explain <id>` (approvals show Refs parity). `--status`
+`evidence show <id>` / `explain <id>` / Soft-trail `approvals pending` /
+`doctor` (approvals show Refs parity). `--status`
 keeps records whose lifecycle is
 `open` (not closed, not expired), `closed` (explicit revoke), or `expired`
 (past `expires_at`). Closed wins when both closed and expired apply. `--type`
@@ -894,7 +895,8 @@ specular approvals show [resource-id] [--json]
 ```
 
 When `evidence_id` is set, Refs jump to `evidence show` / `explain <id>`.
-Open exceptions also list `approvals list --status open`.
+Open exceptions also list `approvals list --status open`. Refs always include
+Soft-trail `approvals pending` / `doctor` / `gate`.
 
 ### approvals close
 

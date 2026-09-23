@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals Soft trail**: `approvals list` EVID footers and `approvals show`
+  Refs jump to `approvals pending` / `doctor` (gate Soft-trail parity).
+
 - **Soft footer Soft trail**: Soft=yes footers on `session status` / `list` /
   `wait` and `evidence list`, open-exception footers, and `session show` Soft
   jumps include `approvals pending` / `doctor` (gate Soft-trail #167 parity).

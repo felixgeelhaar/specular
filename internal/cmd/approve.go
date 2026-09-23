@@ -435,7 +435,7 @@ func formatApprovalExplain(rec approval.Record) string {
 }
 
 // writeApprovalExplainRefs reverse-jumps to evidence/explain when EvidenceID
-// is bound (FormatExplain → approvals show parity).
+// is bound, plus Soft-trail pending/doctor (gate Soft-trail parity).
 func writeApprovalExplainRefs(b *strings.Builder, rec approval.Record) {
 	b.WriteString("Refs\n")
 	if rec.Path != "" {
@@ -451,6 +451,8 @@ func writeApprovalExplainRefs(b *strings.Builder, rec approval.Record) {
 	if rec.Type == approval.TypeException && rec.IsOpen(time.Now().UTC()) {
 		b.WriteString("Open         specular approvals list --status open\n")
 	}
+	b.WriteString("Pending      specular approvals pending\n")
+	b.WriteString("Doctor       specular doctor\n")
 	b.WriteString("Gate         specular gate\n")
 }
 
