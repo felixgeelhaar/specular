@@ -167,20 +167,7 @@ func writeMarkdownApprovals(b *strings.Builder, res *Result, evidenceID string) 
 		fmt.Fprintf(b, "- Doctor: `%s`\n", SoftAllowDoctorHint)
 		b.WriteString("\n")
 	}
-	if len(res.Approvals.Exceptions) > 0 {
-		label := "_Open exceptions:_"
-		if len(res.Approvals.Overrules) == 0 {
-			label = "_Open exceptions (advisory until bound):_"
-		}
-		b.WriteString(label + "\n")
-		for _, ex := range res.Approvals.Exceptions {
-			line := "- ⚠ `" + ex.ResourceID + "`"
-			if ex.Reason != "" {
-				line += " — " + ex.Reason
-			}
-			b.WriteString(line + "\n")
-		}
-		b.WriteString("\n")
+	if writeMarkdownOpenExceptions(b, res) {
 		return
 	}
 	if res.Verdict == Deny {
@@ -191,6 +178,52 @@ func writeMarkdownApprovals(b *strings.Builder, res *Result, evidenceID string) 
 	if res.Approvals.Note != "" && res.Approvals.Count == 0 {
 		fmt.Fprintf(b, "_Approvals:_ %s\n\n", res.Approvals.Note)
 	}
+}
+
+// writeMarkdownOpenExceptions renders advisory/open exception Soft trail.
+// Returns true when exceptions were present (caller should stop).
+func writeMarkdownOpenExceptions(b *strings.Builder, res *Result) bool {
+	if len(res.Approvals.Exceptions) == 0 {
+		return false
+	}
+	label := "_Open exceptions:_"
+	if len(res.Approvals.Overrules) == 0 {
+		label = "_Open exceptions (advisory until bound):_"
+	}
+	b.WriteString(label + "\n")
+	for _, ex := range res.Approvals.Exceptions {
+		line := "- ⚠ `" + ex.ResourceID + "`"
+		if ex.Reason != "" {
+			line += " — " + ex.Reason
+		}
+		b.WriteString(line + "\n")
+	}
+	if len(res.Approvals.Overrules) == 0 {
+		writeMarkdownOpenExceptionSoftTrail(b, res.Approvals.Exceptions)
+	}
+	b.WriteString("\n")
+	return true
+}
+
+func writeMarkdownOpenExceptionSoftTrail(b *strings.Builder, exceptions []ApprovalSummary) {
+	seen := make(map[string]struct{}, len(exceptions))
+	for _, ex := range exceptions {
+		id := strings.TrimSpace(ex.ResourceID)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		fmt.Fprintf(b, "- Show: `specular approvals show %s`\n", id)
+	}
+	if len(seen) == 0 {
+		return
+	}
+	b.WriteString("- List: `specular approvals list --status open`\n")
+	fmt.Fprintf(b, "- Pending: `%s`\n", SoftAllowPendingHint)
+	fmt.Fprintf(b, "- Doctor: `%s`\n", SoftAllowDoctorHint)
 }
 
 func writeMarkdownFindings(b *strings.Builder, findings []FindingDetail, maxFindings int) {

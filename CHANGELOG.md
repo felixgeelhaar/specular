@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gate advisory OpenExceptions Soft trail**: when open exceptions are
+  advisory (not yet soft-ALLOW Overruled), gate text / markdown and
+  FormatExplain jump to `approvals show` / `list --status open` /
+  `pending` / `doctor` (Soft Overruled Soft-trail parity).
+
 - **Approvals Soft trail**: `approvals list` EVID footers and `approvals show`
   Refs jump to `approvals pending` / `doctor` (gate Soft-trail parity).
 

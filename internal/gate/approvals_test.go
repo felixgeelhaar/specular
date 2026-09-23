@@ -74,10 +74,25 @@ func TestFormatTextApprovalsOnDeny(t *testing.T) {
 		"exception-EX-192",
 		"emergency hotfix",
 		"scope=internal/auth/**",
+		"Show           specular approvals show exception-EX-192",
+		"List           specular approvals list --status open",
+		"Pending        specular approvals pending",
+		"Doctor         specular doctor",
 		"VERDICT: DENY",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)
+		}
+	}
+	md := FormatMarkdown(res)
+	for _, want := range []string{
+		"Show: `specular approvals show exception-EX-192`",
+		"List: `specular approvals list --status open`",
+		"Pending: `specular approvals pending`",
+		"Doctor: `specular doctor`",
+	} {
+		if !strings.Contains(md, want) {
+			t.Fatalf("missing markdown Soft trail %q:\n%s", want, md)
 		}
 	}
 }
