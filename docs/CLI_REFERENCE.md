@@ -2290,7 +2290,7 @@ specular session <subcommand>
 | `session start --manifest <file>` | Start a fleet from a YAML/JSON manifest |
 | `session batch <manifest>` | Alias for fleet launch from a manifest |
 | `session list [--checkpoints]` | List managed sessions (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK columns; optionally legacy checkpoints) |
-| `session show <id>` | Show session details, worktree, harness, log path; lists sibling attestation/APP paths; when present, newest gate GATE/SOFT/RISK/PROTO/`evidenceId` + DENY Next steps (`explain --session` / `evidence show`) |
+| `session show <id>` | Show session details, worktree, harness, log path; lists sibling attestation/APP paths; when present, newest gate GATE/SOFT/RISK/PROTO/`evidenceId` + DENY Next steps (`explain --session` / `evidence show`); soft-ALLOW → `approvals show` / `list --status open` |
 | `session status [--watch]` | Live multi-session board (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK + PID/branch/goal; `--json` → `{summary,sessions,evidence}`) |
 | `session wait [id…]` | Block until sessions finish; prints status trust board (+ EXIT); `--attest` / `--gate` / `--bundle` (+ optional `--require-*`) close the fleet→evidence loop; `--json` → `{summary,sessions,evidence}` |
 | `session logs <id> [--follow]` | Print or follow the session log |
