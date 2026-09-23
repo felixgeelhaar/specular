@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/felixgeelhaar/specular/internal/evidence"
+	"github.com/felixgeelhaar/specular/internal/gate"
 )
 
 // StatusSummary counts sessions by lifecycle bucket for dashboards.
@@ -161,6 +162,34 @@ func DashOr(s string) string {
 		return "-"
 	}
 	return s
+}
+
+// GateDetails is SessionEvidenceFlags plus DENY Next steps for session show.
+type GateDetails struct {
+	SessionEvidenceFlags
+	NextSteps []string `json:"nextSteps,omitempty"`
+}
+
+// GateDetailsFor is EvidenceFlagsFor plus DenyNextSteps from the loaded
+// newest matching evidence record (empty when no evidence / ALLOW).
+func GateDetailsFor(sessionsDir, repoRoot string, rec Record) GateDetails {
+	f := EvidenceFlagsFor(sessionsDir, repoRoot, rec)
+	d := GateDetails{SessionEvidenceFlags: f}
+	if strings.TrimSpace(f.EvidenceID) == "" || strings.TrimSpace(repoRoot) == "" {
+		return d
+	}
+	erec, err := evidence.Load(repoRoot, f.EvidenceID)
+	if err != nil || erec == nil || erec.Gate == nil {
+		return d
+	}
+	d.NextSteps = gate.DenyNextSteps(erec.Gate)
+	return d
+}
+
+// HasSurface reports whether any board/show evidence field is populated.
+func (d GateDetails) HasSurface() bool {
+	return d.Attested || d.App || d.Commit != "" || d.Verdict != "" ||
+		d.EvidenceID != "" || d.SoftAllow || d.Risk != "" || len(d.NextSteps) > 0
 }
 
 // BuildStatusBoard aggregates a session list into a dashboard board.

@@ -226,6 +226,63 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 	}
 }
 
+func TestGateDetailsForNextSteps(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	now := time.Date(2026, 9, 23, 12, 0, 0, 0, time.UTC)
+
+	deny := mustWriteEvidence(t, root, &evidence.Record{
+		Schema:    evidence.Schema,
+		CreatedAt: now,
+		Gate: &gate.Result{
+			Verdict: gate.Deny,
+			Risk:    gate.RiskSection{Level: "HIGH"},
+			Provenance: gate.ProvenanceSection{
+				Status:   gate.StatusFail,
+				Attested: false,
+				Sessions: []string{"auth"},
+				Note:     "attested provenance required",
+			},
+			Drift: gate.DriftSection{Status: gate.StatusFail},
+		},
+	})
+	allow := mustWriteEvidence(t, root, &evidence.Record{
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(time.Hour),
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Risk:    gate.RiskSection{Level: "LOW"},
+			Provenance: gate.ProvenanceSection{
+				Status:   gate.StatusPass,
+				Attested: true,
+				Sessions: []string{"clean"},
+			},
+		},
+	})
+
+	store := t.TempDir()
+	denyDetails := GateDetailsFor(store, root, Record{ID: "auth"})
+	if denyDetails.Verdict != "DENY" || denyDetails.EvidenceID != deny.ID || denyDetails.Risk != "HIGH" {
+		t.Fatalf("deny details=%+v", denyDetails)
+	}
+	if len(denyDetails.NextSteps) == 0 {
+		t.Fatal("expected DENY next steps")
+	}
+	if !denyDetails.HasSurface() {
+		t.Fatal("expected HasSurface")
+	}
+
+	allowDetails := GateDetailsFor(store, root, Record{ID: "clean"})
+	if allowDetails.Verdict != "ALLOW" || allowDetails.EvidenceID != allow.ID || len(allowDetails.NextSteps) != 0 {
+		t.Fatalf("allow details=%+v", allowDetails)
+	}
+
+	empty := GateDetailsFor(store, root, Record{ID: "missing"})
+	if empty.HasSurface() || empty.Verdict != "" || len(empty.NextSteps) != 0 {
+		t.Fatalf("empty=%+v", empty)
+	}
+}
+
 func mustWriteEvidence(t *testing.T, root string, rec *evidence.Record) *evidence.Record {
 	t.Helper()
 	// contentID is unexported; Write path via NewFromGate-style: set ID by writing through package API.
