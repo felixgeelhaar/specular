@@ -898,6 +898,8 @@ specular approvals revoke <exception-id>   # alias
 Rewrites the existing YAML in place: stamps `closed_at` / `closed_by` and
 clamps `expires_at` to now. Idempotent when already closed or expired.
 Gate open-exception discovery uses `IsOpen` (closed + expired both excluded).
+Human output prints Soft-trail Refs (`approvals pending` / `list --status open` /
+`doctor` / `gate`) and remaining open exceptions when any remain.
 
 ```bash
 $ specular approvals close exception-EX-192 --reason "incident mitigated"
@@ -905,6 +907,11 @@ $ specular approvals close exception-EX-192 --reason "incident mitigated"
 Closed by:   alice
 …
 Note: soft-ALLOW no longer applies for this id
+Refs
+Pending      specular approvals pending
+Open         specular approvals list --status open
+Doctor       specular doctor
+Gate         specular gate
 ```
 
 ### approvals pending

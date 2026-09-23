@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals close Soft trail**: after `approvals close` / `revoke`, human
+  output prints Refs to `approvals pending` / `list --status open` /
+  `doctor` / `gate`, plus remaining open exceptions (pending Soft parity).
+
 - **Approvals pending open exceptions**: `approvals pending` lists open
   soft-ALLOW exceptions with `approvals show` / `evidence show` /
   `list --status open` jumps (doctor open_exceptions parity). Open

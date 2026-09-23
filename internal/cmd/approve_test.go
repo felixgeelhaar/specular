@@ -164,3 +164,72 @@ func TestPrintPendingOpenExceptions(t *testing.T) {
 		}
 	}
 }
+
+func TestPrintApprovalsCloseSoftTrail(t *testing.T) {
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	printApprovalsCloseSoftTrail("exception-gone")
+	_ = w.Close()
+	os.Stdout = old
+	buf := make([]byte, 4096)
+	n, _ := r.Read(buf)
+	text := string(buf[:n])
+	for _, want := range []string{
+		"Refs",
+		"Pending      specular approvals pending",
+		"Open         specular approvals list --status open",
+		"Doctor       specular doctor",
+		"Gate         specular gate",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
+	}
+	if strings.Contains(text, "Open exceptions:") {
+		t.Fatalf("unexpected open exceptions with empty store:\n%s", text)
+	}
+
+	now := time.Now().UTC()
+	exp := now.Add(24 * time.Hour)
+	if _, err := approval.Write(".", &approval.Record{
+		Type: approval.TypeException, ResourceID: "exception-still-open",
+		ApprovedBy: "alice", ApprovedAt: now, ExpiresAt: &exp,
+		Reason: "hotfix", Scope: "a.go", Policy: "drift", EvidenceID: "ev_still",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	r2, w2, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w2
+	printApprovalsCloseSoftTrail("exception-gone")
+	_ = w2.Close()
+	os.Stdout = old
+	buf2 := make([]byte, 4096)
+	n2, _ := r2.Read(buf2)
+	text2 := string(buf2[:n2])
+	for _, want := range []string{
+		"Open exceptions:",
+		"exception-still-open  specular approvals show exception-still-open",
+		"specular evidence show ev_still",
+	} {
+		if !strings.Contains(text2, want) {
+			t.Fatalf("missing %q:\n%s", want, text2)
+		}
+	}
+}
