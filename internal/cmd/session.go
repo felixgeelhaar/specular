@@ -301,7 +301,7 @@ match status board columns (evidence list parity).`,
 
 		if len(list) > 0 {
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPROTO\tCOMMIT\tGATE\tSOFT\tRISK\tWORKTREE\tPID\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPROTO\tCOMMIT\tGATE\tEVID\tSOFT\tRISK\tWORKTREE\tPID\tGOAL")
 			for _, s := range list {
 				goal := s.Goal
 				if len(goal) > 48 {
@@ -317,8 +317,8 @@ match status board columns (evidence list parity).`,
 				}
 				gov := session.YesDash(s.Governed)
 				ev := evMap[s.ID]
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.YesDash(ev.Protocol), session.DashOr(ev.Commit), session.DashOr(ev.Verdict), session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), wt, pid, goal)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.YesDash(ev.Protocol), session.DashOr(ev.Commit), session.DashOr(ev.Verdict), session.DashOr(ev.EvidenceID), session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), wt, pid, goal)
 			}
 			_ = w.Flush()
 		}
@@ -651,7 +651,7 @@ var sessionStatusCmd = &cobra.Command{
 
 Use --watch to refresh periodically — the CLI equivalent of a session minimap.
 With --json, emit {summary, sessions, evidence} for dashboards (not a bare array).
-Evidence includes ATTEST/APP/PROTO/COMMIT plus GATE verdict/evidenceId, SOFT
+Evidence includes ATTEST/APP/PROTO/COMMIT plus GATE verdict/EVID (evidenceId), SOFT
 (soft-ALLOW overrules), and RISK from newest graph records.
 
 Trust filters (--verdict/--soft-allow/--risk/--protocol/--attested/--governed/--harness)
@@ -698,7 +698,7 @@ narrow the board (evidence list parity); summary counts reflect the filtered set
 				return nil
 			}
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPROTO\tCOMMIT\tGATE\tSOFT\tRISK\tPID\tBRANCH\tGOAL")
+			fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPROTO\tCOMMIT\tGATE\tEVID\tSOFT\tRISK\tPID\tBRANCH\tGOAL")
 			for _, s := range board.Sessions {
 				goal := s.Goal
 				if len(goal) > 40 {
@@ -714,8 +714,8 @@ narrow the board (evidence list parity); summary counts reflect the filtered set
 				}
 				gov := session.YesDash(s.Governed)
 				ev := board.Evidence[s.ID]
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.YesDash(ev.Protocol), session.DashOr(ev.Commit), session.DashOr(ev.Verdict), session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), pid, branch, goal)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App), session.YesDash(ev.Protocol), session.DashOr(ev.Commit), session.DashOr(ev.Verdict), session.DashOr(ev.EvidenceID), session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), pid, branch, goal)
 			}
 			_ = w.Flush()
 			fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
@@ -902,7 +902,7 @@ func emitSessionWaitBoard(mgr *session.Manager, recs []session.Record, jsonOut b
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPROTO\tCOMMIT\tGATE\tSOFT\tRISK\tEXIT")
+	fmt.Fprintln(w, "ID\tSTATUS\tHARNESS\tGOV\tATTEST\tAPP\tPROTO\tCOMMIT\tGATE\tEVID\tSOFT\tRISK\tEXIT")
 	for _, s := range board.Sessions {
 		exit := "-"
 		if s.ExitCode != nil {
@@ -910,10 +910,10 @@ func emitSessionWaitBoard(mgr *session.Manager, recs []session.Record, jsonOut b
 		}
 		gov := session.YesDash(s.Governed)
 		ev := board.Evidence[s.ID]
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			s.ID, s.Status, s.Harness, gov, session.YesDash(ev.Attested), session.YesDash(ev.App),
 			session.YesDash(ev.Protocol), session.DashOr(ev.Commit), session.DashOr(ev.Verdict),
-			session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), exit)
+			session.DashOr(ev.EvidenceID), session.YesDash(ev.SoftAllow), session.DashOr(ev.Risk), exit)
 	}
 	_ = w.Flush()
 	fmt.Printf("\nworking=%d  queued=%d  completed=%d  failed=%d  stopped=%d  total=%d\n",
