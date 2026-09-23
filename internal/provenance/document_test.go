@@ -163,10 +163,17 @@ func TestFormatHuman(t *testing.T) {
 		"Worktree     /tmp/wt/auth (specular/auth) [auth]",
 		"Git          abcdef012345 on specular/auth (dirty)",
 		"Source       .specular/sessions/auth.attestation.json",
+		"Refs",
+		"Session      specular session show auth",
+		"Explain      specular explain --session auth",
+		"Verify       specular provenance verify auth",
 	} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("missing %q in:\n%s", want, out)
 		}
+	}
+	if refs := FormatHuman(&Document{Schema: Schema, Version: Version}); strings.Contains(refs, "Refs") {
+		t.Fatalf("unexpected Refs without session:\n%s", refs)
 	}
 }
 

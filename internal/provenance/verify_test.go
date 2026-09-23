@@ -94,8 +94,15 @@ func TestWriteBesideAndResolvePrefer(t *testing.T) {
 		t.Fatalf("Bound=%q", bound.Bound)
 	}
 	human := FormatVerifyHuman(bound)
-	if !strings.Contains(human, "Bound        sibling attestation") {
-		t.Fatalf("human:\n%s", human)
+	for _, want := range []string{
+		"Bound        sibling attestation",
+		"Session      specular session show auth",
+		"Explain      specular explain --session auth",
+		"Show         specular provenance show auth",
+	} {
+		if !strings.Contains(human, want) {
+			t.Fatalf("missing %q:\n%s", want, human)
+		}
 	}
 }
 

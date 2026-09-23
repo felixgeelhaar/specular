@@ -196,7 +196,26 @@ func FormatHuman(d *Document) string {
 	if d.Source != "" {
 		fmt.Fprintf(&b, "Source       %s\n", d.Source)
 	}
+	writeProvenanceRefs(&b, d.Session, "verify")
 	return b.String()
+}
+
+// writeProvenanceRefs jumps APP documents to session / explain / verify|show
+// (FormatExplain session Refs parity).
+func writeProvenanceRefs(b *strings.Builder, sessionID, peer string) {
+	sid := strings.TrimSpace(sessionID)
+	if sid == "" {
+		return
+	}
+	b.WriteString("Refs\n")
+	fmt.Fprintf(b, "Session      specular session show %s\n", sid)
+	fmt.Fprintf(b, "Explain      specular explain --session %s\n", sid)
+	switch peer {
+	case "show":
+		fmt.Fprintf(b, "Show         specular provenance show %s\n", sid)
+	default:
+		fmt.Fprintf(b, "Verify       specular provenance verify %s\n", sid)
+	}
 }
 
 func formatWorktreeLine(wt *Worktree) string {

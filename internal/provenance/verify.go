@@ -303,6 +303,7 @@ func FormatVerifyHuman(res *VerifyResult) string {
 	for _, e := range res.Errors {
 		fmt.Fprintf(&b, "Error        %s\n", e)
 	}
+	writeProvenanceRefs(&b, res.Session, "show")
 	return b.String()
 }
 

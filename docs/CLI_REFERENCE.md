@@ -214,6 +214,9 @@ skip sibling checks (`Bound: projected`). Successful sibling checks print
 `Bound: sibling`. Exit 0 on OK. Cryptographic signatures remain on
 `specular auto verify`.
 
+Human `show` / `verify` Refs jump to `session show` / `explain --session`
+and the peer provenance command when a session id is present.
+
 Gate can optionally **enforce** the same checks via policy
 `provenance.protocol: enforce` (see [gate](#gate)); default remains advisory.
 
