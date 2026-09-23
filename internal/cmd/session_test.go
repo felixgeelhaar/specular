@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/felixgeelhaar/specular/internal/session"
 	"github.com/spf13/cobra"
+
+	"github.com/felixgeelhaar/specular/internal/session"
 )
 
 func TestSessionSubcommands(t *testing.T) {
