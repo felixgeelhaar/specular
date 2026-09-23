@@ -132,6 +132,36 @@ func FormatSoftAllowListHints(rows []ListRow) string {
 	return b.String()
 }
 
+// FormatDenySoftTrailHints returns human footer lines for DENY Soft=no evidence
+// rows (evidence show / explain / Soft trail pending+doctor). Soft-ALLOW Soft
+// trail is covered by FormatSoftAllowListHints; empty when none.
+func FormatDenySoftTrailHints(rows []ListRow) string {
+	if len(rows) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, row := range rows {
+		if row.SoftAllow || !strings.EqualFold(strings.TrimSpace(row.Verdict), "DENY") {
+			continue
+		}
+		id := strings.TrimSpace(row.ID)
+		if id == "" {
+			continue
+		}
+		if b.Len() == 0 {
+			b.WriteString("DENY Soft trail:\n")
+		}
+		fmt.Fprintf(&b, "  %s  specular evidence show %s\n", id, id)
+		fmt.Fprintf(&b, "       specular explain %s\n", id)
+	}
+	if b.Len() == 0 {
+		return ""
+	}
+	fmt.Fprintf(&b, "  Trail  %s\n", gate.SoftAllowPendingHint)
+	fmt.Fprintf(&b, "         %s\n", gate.SoftAllowDoctorHint)
+	return b.String()
+}
+
 // ShortCommit truncates a SHA for human boards (empty → "-").
 func ShortCommit(sha string) string {
 	sha = strings.TrimSpace(sha)

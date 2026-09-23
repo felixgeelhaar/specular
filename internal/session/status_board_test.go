@@ -339,6 +339,49 @@ func TestFormatSoftAllowBoardHints(t *testing.T) {
 	}
 }
 
+func TestFormatDenySoftTrailHints(t *testing.T) {
+	t.Parallel()
+	sessions := []Record{{ID: "review"}, {ID: "migrate"}, {ID: "orphan"}}
+	ev := map[string]SessionEvidenceFlags{
+		"review":  {Verdict: "DENY", SoftAllow: false, EvidenceID: "ev_deny"},
+		"migrate": {Verdict: "ALLOW", SoftAllow: true, EvidenceID: "ev_soft", SoftAllowIDs: []string{"exception-drift"}},
+		"orphan":  {Verdict: "DENY", SoftAllow: false}, // no evidence id
+	}
+	text := FormatDenySoftTrailHints(sessions, ev)
+	for _, want := range []string{
+		"DENY Soft trail:",
+		"review  specular evidence show ev_deny",
+		"specular explain --session review",
+		"specular session show review",
+		"orphan  specular explain --session orphan",
+		"specular session show orphan",
+		"Trail  specular approvals pending",
+		"specular doctor",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
+	}
+	if strings.Contains(text, "migrate") || strings.Contains(text, "ev_soft") {
+		t.Fatalf("Soft-ALLOW DENY Soft trail must not include Soft=yes rows:\n%s", text)
+	}
+	orphanIdx := strings.Index(text, "orphan")
+	if orphanIdx >= 0 {
+		tail := text[orphanIdx:]
+		if strings.Contains(tail, "evidence show") {
+			t.Fatalf("orphan without EvidenceID should not invent evidence show:\n%s", tail)
+		}
+	}
+	if FormatDenySoftTrailHints(nil, ev) != "" || FormatDenySoftTrailHints(sessions, nil) != "" {
+		t.Fatal("expected empty for nil inputs")
+	}
+	if FormatDenySoftTrailHints(sessions, map[string]SessionEvidenceFlags{
+		"review": {Verdict: "ALLOW", SoftAllow: false, EvidenceID: "ev_ok"},
+	}) != "" {
+		t.Fatal("ALLOW Soft=no must not Soft trail")
+	}
+}
+
 func TestGateDetailsForSoftAllowIDs(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

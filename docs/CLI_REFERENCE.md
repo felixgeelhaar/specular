@@ -2337,10 +2337,10 @@ specular session <subcommand>
 | `session start <goal>` | Start a detached harness run in an isolated worktree |
 | `session start --manifest <file>` | Start a fleet from a YAML/JSON manifest |
 | `session batch <manifest>` | Alias for fleet launch from a manifest |
-| `session list [--checkpoints]` | List managed sessions (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK columns; Soft=yes → `approvals list --evidence` / `approvals show` / `evidence show` / `explain --session` / `session show`; optionally legacy checkpoints) |
+| `session list [--checkpoints]` | List managed sessions (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK columns; Soft=yes → `approvals list --evidence` / `approvals show` / `evidence show` / `explain --session` / `session show` / pending / doctor; DENY Soft=no → evidence show / explain / session show / pending / doctor Soft trail; optionally legacy checkpoints) |
 | `session show <id>` | Show session details, worktree, harness, log path; lists sibling attestation/APP paths; when present, newest gate GATE/SOFT/RISK/PROTO/`evidenceId` + DENY Next steps (`explain --session` / `evidence show`); soft-ALLOW → `approvals show` / `list --evidence` (or `--status open`) / pending / doctor; DENY with no SoftAllowIDs → pending / doctor Soft trail |
-| `session status [--watch]` | Live multi-session board (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK + PID/branch/goal; Soft=yes → `approvals list --evidence` / `approvals show` / `evidence show` / `explain --session` / `session show`; `--json` → `{summary,sessions,evidence}` with `softAllowIds`) |
-| `session wait [id…]` | Block until sessions finish; prints status trust board (+ EXIT) with Soft-ALLOW jumps (`approvals show` / `evidence show` when known); `--attest` / `--gate` / `--bundle` (+ optional `--require-*`) close the fleet→evidence loop; `--json` → `{summary,sessions,evidence}` |
+| `session status [--watch]` | Live multi-session board (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK + PID/branch/goal; Soft=yes → Soft-ALLOW Soft trail; DENY Soft=no → DENY Soft trail; `--json` → `{summary,sessions,evidence}` with `softAllowIds`) |
+| `session wait [id…]` | Block until sessions finish; prints status trust board (+ EXIT) with Soft-ALLOW Soft trail and DENY Soft=no Soft trail; `--attest` / `--gate` / `--bundle` (+ optional `--require-*`) close the fleet→evidence loop; `--json` → `{summary,sessions,evidence}` |
 | `session logs <id> [--follow]` | Print or follow the session log |
 | `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
 | `session restart <id>` | Re-launch in the same worktree (optional harness swap) |

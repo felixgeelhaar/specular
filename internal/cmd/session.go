@@ -325,6 +325,9 @@ match status board columns (evidence list parity).`,
 			if hints := session.FormatSoftAllowBoardHints(list, evMap); hints != "" {
 				fmt.Print("\n" + hints)
 			}
+			if hints := session.FormatDenySoftTrailHints(list, evMap); hints != "" {
+				fmt.Print("\n" + hints)
+			}
 		}
 
 		if includeCheckpoints {
@@ -743,6 +746,9 @@ narrow the board (evidence list parity); summary counts reflect the filtered set
 			if hints := session.FormatSoftAllowBoardHints(board.Sessions, board.Evidence); hints != "" {
 				fmt.Print("\n" + hints)
 			}
+			if hints := session.FormatDenySoftTrailHints(board.Sessions, board.Evidence); hints != "" {
+				fmt.Print("\n" + hints)
+			}
 			return nil
 		}
 
@@ -961,6 +967,9 @@ func emitSessionWaitBoard(mgr *session.Manager, recs []session.Record, jsonOut, 
 		board.Summary.Working, board.Summary.Queued, board.Summary.Completed,
 		board.Summary.Failed, board.Summary.Stopped, board.Summary.Total)
 	if hints := session.FormatSoftAllowBoardHints(board.Sessions, board.Evidence); hints != "" {
+		fmt.Print("\n" + hints)
+	}
+	if hints := session.FormatDenySoftTrailHints(board.Sessions, board.Evidence); hints != "" {
 		fmt.Print("\n" + hints)
 	}
 	return nil
