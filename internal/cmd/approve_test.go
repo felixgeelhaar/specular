@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -108,5 +109,58 @@ func TestFormatApprovalExplainNoEvidenceRefs(t *testing.T) {
 	}
 	if !strings.Contains(text, "Gate         specular gate") {
 		t.Fatalf("missing gate ref:\n%s", text)
+	}
+}
+
+func TestPrintPendingOpenExceptions(t *testing.T) {
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	if !printPendingOpenExceptions() {
+		// empty store → false
+	} else {
+		t.Fatal("expected false with no approvals")
+	}
+
+	now := time.Now().UTC()
+	exp := now.Add(24 * time.Hour)
+	if _, err := approval.Write(".", &approval.Record{
+		Type: approval.TypeException, ResourceID: "exception-pending-open",
+		ApprovedBy: "alice", ApprovedAt: now, ExpiresAt: &exp,
+		Reason: "hotfix", Scope: "a.go", Policy: "drift", EvidenceID: "ev_pend",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	ok := printPendingOpenExceptions()
+	_ = w.Close()
+	os.Stdout = old
+	if !ok {
+		t.Fatal("expected open exceptions printed")
+	}
+	buf := make([]byte, 4096)
+	n, _ := r.Read(buf)
+	text := string(buf[:n])
+	for _, want := range []string{
+		"Open exceptions:",
+		"exception-pending-open  specular approvals show exception-pending-open",
+		"specular evidence show ev_pend",
+		"List  specular approvals list --status open",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
 	}
 }
