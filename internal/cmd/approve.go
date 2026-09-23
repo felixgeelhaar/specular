@@ -100,6 +100,10 @@ Checks:
   • Unapproved bundles (from bundle create)
   • Unapproved drift (from eval drift)
 
+Also lists open soft-ALLOW exceptions (approvals show / evidence show /
+list --status open) so operators can review the active Soft trail (doctor
+open_exceptions parity). Open exceptions alone do not set exit 1.
+
 Exit codes:
   0: No pending approvals
   1: Pending approvals found`,
@@ -518,14 +522,34 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 		hasPending = true
 	}
 
+	openPrinted := printPendingOpenExceptions()
+
 	if !hasPending {
 		fmt.Println("✅ No pending approvals")
-		fmt.Println("\nAll governance items are approved and up to date.")
+		if !openPrinted {
+			fmt.Println("\nAll governance items are approved and up to date.")
+		} else {
+			fmt.Println("\nNo pending approvals; review open soft-ALLOW exceptions above.")
+		}
 		return nil
 	}
 
 	os.Exit(1)
 	return nil
+}
+
+// printPendingOpenExceptions surfaces open soft-ALLOW exceptions under pending
+// (doctor open_exceptions / Soft reverse-nav parity). Returns true when printed.
+func printPendingOpenExceptions() bool {
+	open, err := approval.OpenExceptions(".", time.Now().UTC())
+	if err != nil || len(open) == 0 {
+		return false
+	}
+	if hints := approval.FormatOpenExceptionHints(open); hints != "" {
+		fmt.Print("\n" + hints)
+		return true
+	}
+	return false
 }
 
 func checkPolicyChanges() (bool, error) {

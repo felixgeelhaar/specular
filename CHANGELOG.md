@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals pending open exceptions**: `approvals pending` lists open
+  soft-ALLOW exceptions with `approvals show` / `evidence show` /
+  `list --status open` jumps (doctor open_exceptions parity). Open
+  exceptions alone do not set exit 1.
+
 - **Soft footer evidence jumps**: Soft=yes rows on `session status` /
   `list` / `wait` jump to `evidence show` / `explain --session` when an
   EvidenceID is known; `evidence list` Soft footers also print `evidence show`

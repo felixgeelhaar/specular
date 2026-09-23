@@ -917,7 +917,10 @@ specular approvals pending
 
 **Description:**
 
-Displays items awaiting approval and suggests the corresponding `specular approve` command.
+Displays items awaiting approval and suggests the corresponding `specular approve`
+command. Also lists open soft-ALLOW exceptions with jumps to `approvals show` /
+`evidence show` / `approvals list --status open` (doctor open_exceptions parity).
+Open exceptions alone do not set exit 1.
 
 **Example:**
 ```bash
@@ -938,6 +941,11 @@ Pending Approvals:
   • Drift detected but not approved
   • Run 'specular eval drift' to see details
   • Run 'specular approve <drift-id>' to approve
+
+Open exceptions:
+  exception-EX-192  specular approvals show exception-EX-192
+                    specular evidence show ev_abc
+  List  specular approvals list --status open
 ```
 
 ---
