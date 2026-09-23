@@ -2280,7 +2280,7 @@ specular session <subcommand>
 | `session list [--checkpoints]` | List managed sessions (GOV/ATTEST/APP/PROTO/COMMIT/GATE/SOFT/RISK columns; optionally legacy checkpoints) |
 | `session show <id>` | Show session details, worktree, harness, log path; lists sibling attestation/APP paths; when present, newest gate GATE/SOFT/RISK/PROTO/`evidenceId` + DENY Next steps (`explain --session` / `evidence show`) |
 | `session status [--watch]` | Live multi-session board (GOV/ATTEST/APP/PROTO/COMMIT/GATE/SOFT/RISK + PID/branch/goal; `--json` → `{summary,sessions,evidence}`) |
-| `session wait [id…]` | Block until sessions finish; `--attest` / `--gate` / `--bundle` (+ optional `--require-*`) close the fleet→evidence loop |
+| `session wait [id…]` | Block until sessions finish; prints status trust board (+ EXIT); `--attest` / `--gate` / `--bundle` (+ optional `--require-*`) close the fleet→evidence loop; `--json` → `{summary,sessions,evidence}` |
 | `session logs <id> [--follow]` | Print or follow the session log |
 | `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
 | `session restart <id>` | Re-launch in the same worktree (optional harness swap) |
@@ -2357,6 +2357,7 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `wait --timeout <dur>` | Fail if sessions are still running after duration |
 | `wait --stop` | With `--timeout`, stop still-running sessions when the deadline fires |
 | `wait --any` | Return when the first named session finishes |
+| `wait --json` | Emit `{summary, sessions, evidence}` trust board (status parity) after wait/post; sessions include `exitCode` |
 | `wait --attest` | Write `.attestation.json` for each waited session after success |
 | `wait --gate` | After wait (and optional `--attest`) succeeds, run product `specular gate` (provenance/drift/policy + evidence; DENY → exit 3/4) |
 | `wait --bundle` | Package attestations + APP `.provenance.json` + drift SARIF + Change Evidence Graph records (+ `--policy` fragments) into an evidence bundle (implies `--gate`) |
