@@ -392,15 +392,28 @@ func formatApprovalExplain(rec approval.Record) string {
 		fmt.Fprintf(&b, "Evidence     %s\n", rec.EvidenceID)
 	}
 	b.WriteString("──────────────────────────────────────\n")
+	writeApprovalExplainRefs(&b, rec)
+	return b.String()
+}
+
+// writeApprovalExplainRefs reverse-jumps to evidence/explain when EvidenceID
+// is bound (FormatExplain → approvals show parity).
+func writeApprovalExplainRefs(b *strings.Builder, rec approval.Record) {
 	b.WriteString("Refs\n")
 	if rec.Path != "" {
-		fmt.Fprintf(&b, "File         %s\n", rec.Path)
+		fmt.Fprintf(b, "File         %s\n", rec.Path)
 	} else {
 		b.WriteString("Store        .specular/approvals/\n")
 	}
+	if id := strings.TrimSpace(rec.EvidenceID); id != "" {
+		fmt.Fprintf(b, "Evidence     specular evidence show %s\n", id)
+		fmt.Fprintf(b, "             specular explain %s\n", id)
+	}
 	b.WriteString("List         specular approvals list\n")
-	b.WriteString("Gate trail   specular gate / specular explain\n")
-	return b.String()
+	if rec.Type == approval.TypeException && rec.IsOpen(time.Now().UTC()) {
+		b.WriteString("Open         specular approvals list --status open\n")
+	}
+	b.WriteString("Gate         specular gate\n")
 }
 
 func runApprovalsClose(cmd *cobra.Command, args []string) error {

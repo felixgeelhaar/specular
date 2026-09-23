@@ -70,6 +70,7 @@ func TestFormatApprovalExplainException(t *testing.T) {
 		Policy:     "SEC-17",
 		Requester:  "bob",
 		ExpiresAt:  &exp,
+		EvidenceID: "ev_soft_allow",
 		Path:       ".specular/approvals/exception-20260921-100000.yaml",
 	})
 	for _, want := range []string{
@@ -80,11 +81,32 @@ func TestFormatApprovalExplainException(t *testing.T) {
 		"Scope        internal/auth/**",
 		"Policy       SEC-17",
 		"Status       OPEN",
+		"Evidence     ev_soft_allow",
+		"Evidence     specular evidence show ev_soft_allow",
+		"             specular explain ev_soft_allow",
 		"specular approvals list",
-		"specular gate",
+		"Open         specular approvals list --status open",
+		"Gate         specular gate",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)
 		}
+	}
+}
+
+func TestFormatApprovalExplainNoEvidenceRefs(t *testing.T) {
+	t.Parallel()
+	text := formatApprovalExplain(approval.Record{
+		Type:       approval.TypeBundle,
+		ResourceID: "bundle-abc",
+		ApprovedBy: "alice",
+		ApprovedAt: time.Date(2026, 9, 21, 10, 0, 0, 0, time.UTC),
+		Message:    "ok",
+	})
+	if strings.Contains(text, "evidence show") || strings.Contains(text, "list --status open") {
+		t.Fatalf("unexpected evidence/open refs:\n%s", text)
+	}
+	if !strings.Contains(text, "Gate         specular gate") {
+		t.Fatalf("missing gate ref:\n%s", text)
 	}
 }

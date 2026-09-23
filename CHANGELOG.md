@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals show evidence refs**: when `evidence_id` is bound, Refs jump to
+  `evidence show <id>` / `explain <id>`; open exceptions also list
+  `approvals list --status open` (FormatExplain → approvals show parity).
+
 - **Gate soft-ALLOW board jumps**: text / markdown Approvals Overruled
   point to `approvals show <id>` / `approvals list --status open`
   (FormatExplain #150 parity on the live gate board).

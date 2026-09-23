@@ -868,6 +868,9 @@ Show one approval/exception in AI CHANGE RECORD style.
 specular approvals show [resource-id] [--json]
 ```
 
+When `evidence_id` is set, Refs jump to `evidence show` / `explain <id>`.
+Open exceptions also list `approvals list --status open`.
+
 ### approvals close
 
 Early-end (revoke) an open exception so soft-ALLOW no longer applies.
