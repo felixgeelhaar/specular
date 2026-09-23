@@ -71,7 +71,7 @@ Filters (combinable):
   --type bundle|drift|policy|plan|exception
   --policy <substr>              Case-insensitive match on policy field
   --scope <substr>               Case-insensitive match on scope field
-  --evidence <id|prefix>         Match evidence_id (EVID column; exact or prefix)
+  --evidence <id|prefix>         Match evidence_id (EVID) or SoftAllow overrule ResourceIDs
 `,
 	RunE: runApprovalsList,
 }
