@@ -49,7 +49,8 @@ var evidenceListCmd = &cobra.Command{
 
 Human output is a trust board (GATE/SOFT/RISK/ATTEST/GOV/PROTO/…) matching
 session status vocabulary. Soft=yes rows footer to approvals list --evidence /
-explain. --json emits {summary, records} (rows include softAllowIds).
+approvals show (SoftAllowIDs) / explain. --json emits {summary, records}
+(rows include softAllowIds).
 
 Filters (combinable):
   --verdict ALLOW|DENY              Gate decision

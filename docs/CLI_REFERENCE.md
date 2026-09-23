@@ -2304,10 +2304,10 @@ specular session <subcommand>
 | `session start <goal>` | Start a detached harness run in an isolated worktree |
 | `session start --manifest <file>` | Start a fleet from a YAML/JSON manifest |
 | `session batch <manifest>` | Alias for fleet launch from a manifest |
-| `session list [--checkpoints]` | List managed sessions (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK columns; Soft=yes → `approvals list --evidence` / `session show`; optionally legacy checkpoints) |
+| `session list [--checkpoints]` | List managed sessions (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK columns; Soft=yes → `approvals list --evidence` / `approvals show` / `session show`; optionally legacy checkpoints) |
 | `session show <id>` | Show session details, worktree, harness, log path; lists sibling attestation/APP paths; when present, newest gate GATE/SOFT/RISK/PROTO/`evidenceId` + DENY Next steps (`explain --session` / `evidence show`); soft-ALLOW → `approvals show` / `list --status open` |
-| `session status [--watch]` | Live multi-session board (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK + PID/branch/goal; Soft=yes footer jumps; `--json` → `{summary,sessions,evidence}` with `softAllowIds`) |
-| `session wait [id…]` | Block until sessions finish; prints status trust board (+ EXIT) with Soft-ALLOW jumps; `--attest` / `--gate` / `--bundle` (+ optional `--require-*`) close the fleet→evidence loop; `--json` → `{summary,sessions,evidence}` |
+| `session status [--watch]` | Live multi-session board (GOV/ATTEST/APP/PROTO/COMMIT/GATE/EVID/SOFT/RISK + PID/branch/goal; Soft=yes → `approvals list --evidence` / `approvals show` / `session show`; `--json` → `{summary,sessions,evidence}` with `softAllowIds`) |
+| `session wait [id…]` | Block until sessions finish; prints status trust board (+ EXIT) with Soft-ALLOW jumps (`approvals show` when SoftAllowIDs known); `--attest` / `--gate` / `--bundle` (+ optional `--require-*`) close the fleet→evidence loop; `--json` → `{summary,sessions,evidence}` |
 | `session logs <id> [--follow]` | Print or follow the session log |
 | `session open <id>` | Print worktree path (or `cd` / `$EDITOR`) |
 | `session restart <id>` | Re-launch in the same worktree (optional harness swap) |
