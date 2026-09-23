@@ -116,7 +116,8 @@ func FormatEvidenceListHints(rows []ListRow) string {
 }
 
 // FormatOpenExceptionHints returns human footer lines for open exceptions
-// (approvals show / evidence show when bound / list --status open). Empty when none.
+// (approvals show / evidence show when bound / list --status open / Soft trail
+// pending+doctor). Empty when none.
 func FormatOpenExceptionHints(recs []Record) string {
 	if len(recs) == 0 {
 		return ""
@@ -134,7 +135,9 @@ func FormatOpenExceptionHints(recs []Record) string {
 			fmt.Fprintf(&b, "       specular explain %s\n", evid)
 		}
 	}
-	b.WriteString("  List  specular approvals list --status open\n")
+	b.WriteString("  List   specular approvals list --status open\n")
+	b.WriteString("  Trail  specular approvals pending\n")
+	b.WriteString("         specular doctor\n")
 	return b.String()
 }
 

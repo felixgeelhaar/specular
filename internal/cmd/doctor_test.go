@@ -473,7 +473,9 @@ func TestCheckGovernanceOpenExceptions(t *testing.T) {
 		"Open exceptions:",
 		"exception-open-doc  specular approvals show exception-open-doc",
 		"specular evidence show ev_doc",
-		"List  specular approvals list --status open",
+		"List   specular approvals list --status open",
+		"Trail  specular approvals pending",
+		"specular doctor",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)

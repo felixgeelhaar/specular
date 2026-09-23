@@ -442,6 +442,8 @@ func printSessionGateBlock(sessionID string, ev session.GateDetails) {
 	}
 	if len(ev.SoftAllowIDs) > 0 {
 		fmt.Printf("            %s\n", gate.SoftAllowListHint(ev.EvidenceID))
+		fmt.Printf("            %s\n", gate.SoftAllowPendingHint)
+		fmt.Printf("            %s\n", gate.SoftAllowDoctorHint)
 	}
 	if len(ev.NextSteps) > 0 {
 		fmt.Println("\nNext steps:")

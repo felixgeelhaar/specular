@@ -211,4 +211,10 @@ func TestPrintSessionGateBlockSoftAllow(t *testing.T) {
 	if !strings.Contains(text, "specular approvals list --evidence ev_soft") {
 		t.Fatalf("missing --evidence list:\n%s", text)
 	}
+	if !strings.Contains(text, "specular approvals pending") {
+		t.Fatalf("missing pending Soft trail:\n%s", text)
+	}
+	if !strings.Contains(text, "specular doctor") {
+		t.Fatalf("missing doctor Soft trail:\n%s", text)
+	}
 }
