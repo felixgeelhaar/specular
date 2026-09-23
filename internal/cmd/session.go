@@ -333,7 +333,11 @@ Use --checkpoints to also show legacy auto checkpoint sessions.`,
 var sessionShowCmd = &cobra.Command{
 	Use:   "show <session-id>",
 	Short: "Show detailed information about a session",
-	Args:  cobra.ExactArgs(1),
+	Long: `Show session details, worktree, harness, and sibling attestation/APP paths.
+
+When a Change Evidence Graph record lists this session, also shows GATE / SOFT /
+RISK / evidence id and DENY Next steps, with jumps to explain --session / evidence show.`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
 		jsonOut, _ := cmd.Flags().GetBool("json")
@@ -346,10 +350,15 @@ var sessionShowCmd = &cobra.Command{
 
 		if mgr, err := session.NewManager(cwd); err == nil {
 			if rec, err := mgr.Get(id); err == nil {
+				gateEv := session.GateDetailsFor(mgr.Store().Dir(), mgr.RepoRoot(), *rec)
 				if jsonOut {
+					out := sessionShowJSON{Record: *rec}
+					if gateEv.HasSurface() {
+						out.Evidence = &gateEv
+					}
 					enc := json.NewEncoder(os.Stdout)
 					enc.SetIndent("", "  ")
-					return enc.Encode(rec)
+					return enc.Encode(out)
 				}
 				fmt.Printf("Session: %s\n\n", rec.ID)
 				fmt.Printf("Status:     %s\n", rec.Status)
@@ -380,6 +389,7 @@ var sessionShowCmd = &cobra.Command{
 					fmt.Printf("Provenance: %s\n", filepath.ToSlash(provRel))
 					fmt.Printf("Verify:     specular provenance verify %s\n", rec.ID)
 				}
+				printSessionGateBlock(rec.ID, gateEv)
 				if rec.Error != "" {
 					fmt.Printf("Error:      %s\n", rec.Error)
 				}
@@ -396,6 +406,35 @@ var sessionShowCmd = &cobra.Command{
 		// Fall back to checkpoint show
 		return showCheckpointSession(id, jsonOut, verbose)
 	},
+}
+
+// sessionShowJSON extends the session record with optional newest-gate evidence.
+type sessionShowJSON struct {
+	session.Record
+	Evidence *session.GateDetails `json:"evidence,omitempty"`
+}
+
+func printSessionGateBlock(sessionID string, ev session.GateDetails) {
+	if ev.Verdict == "" && ev.EvidenceID == "" {
+		return
+	}
+	if ev.Commit != "" {
+		fmt.Printf("Commit:     %s\n", ev.Commit)
+	}
+	fmt.Printf("Gate:       %s\n", session.DashOr(ev.Verdict))
+	fmt.Printf("Soft:       %s\n", session.YesDash(ev.SoftAllow))
+	fmt.Printf("Risk:       %s\n", session.DashOr(ev.Risk))
+	if ev.EvidenceID != "" {
+		fmt.Printf("Evidence:   %s\n", ev.EvidenceID)
+		fmt.Printf("Explain:    specular explain --session %s\n", sessionID)
+		fmt.Printf("            specular evidence show %s\n", ev.EvidenceID)
+	}
+	if len(ev.NextSteps) > 0 {
+		fmt.Println("\nNext steps:")
+		for _, step := range ev.NextSteps {
+			fmt.Printf("  • %s\n", step)
+		}
+	}
 }
 
 var sessionStopCmd = &cobra.Command{

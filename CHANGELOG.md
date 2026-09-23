@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session show gate evidence**: `session show` prints COMMIT / GATE / SOFT /
+  RISK / `evidenceId` from the newest matching Change Evidence Graph record,
+  DENY Next steps when applicable, and jumps to `explain --session` /
+  `evidence show`. `--json` adds an `evidence` object beside the session record.
+
 - **Session status/list RISK column**: human boards and
   `session status --json` evidence map show gate risk level
   (`NONE|LOW|MEDIUM|HIGH|CRITICAL`; empty → `NONE`) from the newest
