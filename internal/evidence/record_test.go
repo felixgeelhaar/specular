@@ -301,21 +301,17 @@ func TestFormatExplainNil(t *testing.T) {
 
 func TestSoftAllowResourceIDsDedup(t *testing.T) {
 	t.Parallel()
-	g := &gate.Result{
-		Approvals: gate.ApprovalsSection{
-			Overrules: []gate.ExceptionOverrule{
-				{ResourceID: "exception-a", Kind: "drift"},
-				{ResourceID: "exception-a", Kind: "policy"},
-				{ResourceID: "  ", Kind: "risk"},
-				{ResourceID: "exception-b", Kind: "risk"},
-			},
-		},
+	overrules := []gate.ExceptionOverrule{
+		{ResourceID: "exception-a", Kind: "drift"},
+		{ResourceID: "exception-a", Kind: "policy"},
+		{ResourceID: "  ", Kind: "risk"},
+		{ResourceID: "exception-b", Kind: "risk"},
 	}
-	ids := softAllowResourceIDs(g)
+	ids := gate.SoftAllowResourceIDs(overrules)
 	if len(ids) != 2 || ids[0] != "exception-a" || ids[1] != "exception-b" {
 		t.Fatalf("ids=%v", ids)
 	}
-	if softAllowResourceIDs(nil) != nil || softAllowResourceIDs(&gate.Result{}) != nil {
+	if gate.SoftAllowResourceIDs(nil) != nil || gate.SoftAllowResourceIDs(nil) != nil {
 		t.Fatal("expected nil for empty")
 	}
 }

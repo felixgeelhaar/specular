@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gate soft-ALLOW board jumps**: text / markdown Approvals Overruled
+  point to `approvals show <id>` / `approvals list --status open`
+  (FormatExplain #150 parity on the live gate board).
+
 - **Explain board reverse jumps**: soft-ALLOW `FormatExplain` Approvals/Refs
   point to `approvals show <id>` / `approvals list --status open`; provenance
   sessions in Refs jump to `session show` / `explain --session` (session show
