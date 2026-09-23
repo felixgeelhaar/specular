@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session wait trust filters**: `session wait` accepts the same
+  `--verdict` / `--soft-allow` / `--risk` / `--protocol` / `--attested` /
+  `--governed` / `--harness` flags as status/list; filters the emitted board
+  only (wait/attest/gate still cover the full waited set).
+
 - **Session status/list/wait EVID column**: human boards show newest Change
   Evidence Graph id beside GATE (`evidence.<id>.evidenceId` parity) so fleet
   operators can jump to `evidence show <id>` / `explain` without `session show`.

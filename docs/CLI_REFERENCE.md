@@ -2347,13 +2347,13 @@ Native harnesses auto-enable `--governed` when `.specular/policy.yaml` or
 | `status --watch` | Refresh the board until interrupted |
 | `status --interval <dur>` | Refresh interval (default `2s`) |
 | `status --json` | Emit `{summary, sessions, evidence}` board with ATTEST/APP/COMMIT flags, GATE `verdict`/`evidenceId` (human **EVID**), `softAllow`, `risk`, and `protocol` (APP schema+bound) from newest evidence (use `list --json` for a bare array) |
-| `status`/`list` `--verdict ALLOW\|DENY` | Only sessions whose newest evidence gate matches |
-| `status`/`list` `--soft-allow[=true\|false]` | Only sessions with/without soft-ALLOW overrules on newest evidence |
-| `status`/`list` `--risk NONE\|…\|CRITICAL` | Only sessions whose newest evidence risk matches |
-| `status`/`list` `--protocol[=true\|false]` | Only sessions with/without APP protocol schema+bound on newest evidence |
-| `status`/`list` `--attested[=true\|false]` | Only sessions with/without sibling attestation |
-| `status`/`list` `--governed[=true\|false]` | Only sessions with/without GOV=yes |
-| `status`/`list` `--harness <substr>` | Only sessions whose harness contains substring |
+| `status`/`list`/`wait` `--verdict ALLOW\|DENY` | Only sessions whose newest evidence gate matches (wait: filters board only) |
+| `status`/`list`/`wait` `--soft-allow[=true\|false]` | Only sessions with/without soft-ALLOW overrules on newest evidence |
+| `status`/`list`/`wait` `--risk NONE\|…\|CRITICAL` | Only sessions whose newest evidence risk matches |
+| `status`/`list`/`wait` `--protocol[=true\|false]` | Only sessions with/without APP protocol schema+bound on newest evidence |
+| `status`/`list`/`wait` `--attested[=true\|false]` | Only sessions with/without sibling attestation |
+| `status`/`list`/`wait` `--governed[=true\|false]` | Only sessions with/without GOV=yes |
+| `status`/`list`/`wait` `--harness <substr>` | Only sessions whose harness contains substring |
 | `wait --timeout <dur>` | Fail if sessions are still running after duration |
 | `wait --stop` | With `--timeout`, stop still-running sessions when the deadline fires |
 | `wait --any` | Return when the first named session finishes |
