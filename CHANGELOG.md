@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Evidence list trust board**: human `evidence list` prints GATE/SOFT/RISK/
+  ATTEST/GOV/PROTO/COMMIT/SESSION/HARNESS/CREATED (session status vocabulary);
+  `--json` emits `{summary, records}` instead of a bare ID array.
+
 - **Session wait trust filters**: `session wait` accepts the same
   `--verdict` / `--soft-allow` / `--risk` / `--protocol` / `--attested` /
   `--governed` / `--harness` flags as status/list; filters the emitted board
@@ -102,6 +106,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board shape) instead of a bare session array; human wait table adds
   trust columns beside EXIT and prints after `--gate`/`--bundle` so GATE
   reflects newest evidence.
+
+- **Evidence list `--json`**: emits `{summary, records}` trust board instead
+  of a bare ID array; human list is a tab board (not one ID per line).
 
 - **DENY soft-ALLOW hints include provenance**: gate / evidence Approvals Hint
   and approve exception footer suggest `drift|policy|risk|provenance` (and
