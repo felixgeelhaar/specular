@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Doctor open exceptions**: `specular doctor` surfaces open soft-ALLOW
+  exceptions (`open_exceptions` in JSON) with jumps to `approvals show` /
+  `evidence show` / `approvals list --status open`, and a Next Step to review
+  them (P1 #6 depth; Soft-ALLOW reverse-nav).
+
 - **Approvals list EVID jumps**: rows with a bound `evidence_id` footer to
   `evidence show <id>` / `explain <id>` (approvals show Refs / evidence list
   Soft-ALLOW reverse-nav parity).

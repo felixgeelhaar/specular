@@ -4,9 +4,11 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/felixgeelhaar/specular/internal/approval"
 	"github.com/felixgeelhaar/specular/internal/policy"
 )
 
@@ -221,6 +223,21 @@ func TestGenerateNextSteps(t *testing.T) {
 	if !hasTrust {
 		t.Fatalf("expected progressive-trust next step, got %v", report.NextSteps)
 	}
+
+	// Open exceptions → approvals list --status open
+	report.NextSteps = nil
+	report.OpenExceptions = []DoctorOpenException{{ResourceID: "exception-EX-1", EvidenceID: "ev_1"}}
+	generateNextSteps(report)
+	hasOpen := false
+	for _, step := range report.NextSteps {
+		if strings.Contains(step, "approvals list --status open") {
+			hasOpen = true
+			break
+		}
+	}
+	if !hasOpen {
+		t.Fatalf("expected open-exceptions next step, got %v", report.NextSteps)
+	}
 }
 
 func TestDoctorReportJSON(t *testing.T) {
@@ -403,5 +420,63 @@ func TestAttachProgressiveTrust(t *testing.T) {
 	text := policy.FormatProgressiveTrust(*p)
 	if !strings.Contains(text, "provenance.protocol: enforce") {
 		t.Fatalf("%s", text)
+	}
+}
+
+func TestCheckGovernanceOpenExceptions(t *testing.T) {
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	exp := now.Add(24 * time.Hour)
+	if _, err := approval.Write(".", &approval.Record{
+		Type: approval.TypeException, ResourceID: "exception-open-doc",
+		ApprovedBy: "alice", ApprovedAt: now, ExpiresAt: &exp,
+		Reason: "hotfix", Scope: "a.go", Policy: "drift", EvidenceID: "ev_doc",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	report := &DoctorReport{NextSteps: []string{}}
+	checkGovernance(report)
+	if report.Governance == nil || report.Governance.Approvals == nil {
+		t.Fatal("expected approvals check")
+	}
+	if !strings.Contains(report.Governance.Approvals.Message, "1 open exceptions") {
+		t.Fatalf("message=%q", report.Governance.Approvals.Message)
+	}
+	if len(report.OpenExceptions) != 1 || report.OpenExceptions[0].ResourceID != "exception-open-doc" {
+		t.Fatalf("open=%+v", report.OpenExceptions)
+	}
+	if report.OpenExceptions[0].EvidenceID != "ev_doc" {
+		t.Fatalf("evidence=%+v", report.OpenExceptions[0])
+	}
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	printOpenExceptions(report)
+	_ = w.Close()
+	os.Stdout = old
+	out := make([]byte, 4096)
+	n, _ := r.Read(out)
+	text := string(out[:n])
+	for _, want := range []string{
+		"Open exceptions:",
+		"exception-open-doc  specular approvals show exception-open-doc",
+		"specular evidence show ev_doc",
+		"List  specular approvals list --status open",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q:\n%s", want, text)
+		}
 	}
 }

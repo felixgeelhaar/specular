@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/felixgeelhaar/specular/internal/approval"
 	"github.com/felixgeelhaar/specular/internal/detect"
 	"github.com/felixgeelhaar/specular/internal/policy"
 	"github.com/felixgeelhaar/specular/internal/provider"
@@ -35,6 +36,7 @@ Checks include:
   • Required files (spec.yaml, policy.yaml, routing.yaml)
   • Git repository status
   • Environment variables and API keys
+  • Open soft-ALLOW exceptions (approvals show / list --status open)
 
 The --quick flag skips slow checks like API health verification.
 The --verbose flag shows additional diagnostic details.
@@ -68,6 +70,15 @@ func init() {
 	rootCmd.AddCommand(doctorCmd)
 }
 
+// DoctorOpenException is one open soft-ALLOW exception surfaced by doctor.
+type DoctorOpenException struct {
+	ResourceID string `json:"resourceId"`
+	EvidenceID string `json:"evidenceId,omitempty"`
+	Policy     string `json:"policy,omitempty"`
+	Scope      string `json:"scope,omitempty"`
+	ExpiresAt  string `json:"expiresAt,omitempty"`
+}
+
 // DoctorReport represents the complete health check report
 type DoctorReport struct {
 	Docker           *DoctorCheck              `json:"docker"`
@@ -80,6 +91,7 @@ type DoctorReport struct {
 	Git              *DoctorCheck              `json:"git"`
 	Governance       *GovernanceChecks         `json:"governance,omitempty"`
 	ProgressiveTrust *policy.GovernancePosture `json:"progressive_trust,omitempty"`
+	OpenExceptions   []DoctorOpenException     `json:"open_exceptions,omitempty"`
 	Issues           []string                  `json:"issues"`
 	Warnings         []string                  `json:"warnings"`
 	NextSteps        []string                  `json:"next_steps"`
@@ -630,7 +642,7 @@ func checkGovernance(report *DoctorReport) {
 		}
 	}
 
-	// Check approvals directory
+	// Check approvals directory (+ open exceptions for soft-ALLOW reverse-nav)
 	if entries, err := os.ReadDir(".specular/approvals"); err == nil {
 		approvalCount := 0
 		for _, entry := range entries {
@@ -639,12 +651,26 @@ func checkGovernance(report *DoctorReport) {
 			}
 		}
 
+		now := time.Now().UTC()
+		openRecs, openErr := approval.OpenExceptions(".", now)
+		openCount := 0
+		if openErr == nil {
+			openCount = len(openRecs)
+			report.OpenExceptions = doctorOpenExceptions(openRecs)
+		}
+
+		msg := fmt.Sprintf("%d approval records", approvalCount)
+		if openCount > 0 {
+			msg = fmt.Sprintf("%d approval records (%d open exceptions)", approvalCount, openCount)
+		}
+
 		gov.Approvals = &DoctorCheck{
 			Name:    "Approvals",
 			Status:  "ok",
-			Message: fmt.Sprintf("%d approval records", approvalCount),
+			Message: msg,
 			Details: map[string]interface{}{
 				"count": approvalCount,
+				"open":  openCount,
 			},
 		}
 	}
@@ -670,6 +696,12 @@ func checkGovernance(report *DoctorReport) {
 }
 
 func generateNextSteps(report *DoctorReport) {
+	// Open soft-ALLOW exceptions — review via approvals list / show.
+	if len(report.OpenExceptions) > 0 {
+		report.NextSteps = append(report.NextSteps,
+			"Review open exceptions: specular approvals list --status open")
+	}
+
 	// Add logical next steps based on current state
 	if report.Spec == nil || report.Spec.Status == "missing" {
 		// Already added in checkProjectStructure
@@ -698,6 +730,33 @@ func generateNextSteps(report *DoctorReport) {
 			report.NextSteps = append([]string{"Install Docker from https://docker.com"}, report.NextSteps...)
 		}
 	}
+}
+
+func doctorOpenExceptions(recs []approval.Record) []DoctorOpenException {
+	if len(recs) == 0 {
+		return nil
+	}
+	out := make([]DoctorOpenException, 0, len(recs))
+	for _, rec := range recs {
+		id := strings.TrimSpace(rec.ResourceID)
+		if id == "" {
+			continue
+		}
+		ref := DoctorOpenException{
+			ResourceID: id,
+			EvidenceID: strings.TrimSpace(rec.EvidenceID),
+			Policy:     strings.TrimSpace(rec.Policy),
+			Scope:      strings.TrimSpace(rec.Scope),
+		}
+		if rec.ExpiresAt != nil && !rec.ExpiresAt.IsZero() {
+			ref.ExpiresAt = rec.ExpiresAt.UTC().Format(time.RFC3339)
+		}
+		out = append(out, ref)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func outputReport(cmdCtx *CommandContext, report *DoctorReport, verbose bool) error {
@@ -877,6 +936,24 @@ func printGovernance(report *DoctorReport, verbose bool) {
 		printCheck(gov.Traces, verbose)
 	}
 	fmt.Println()
+	printOpenExceptions(report)
+}
+
+func printOpenExceptions(report *DoctorReport) {
+	if len(report.OpenExceptions) == 0 {
+		return
+	}
+	recs := make([]approval.Record, 0, len(report.OpenExceptions))
+	for _, ref := range report.OpenExceptions {
+		recs = append(recs, approval.Record{
+			ResourceID: ref.ResourceID,
+			EvidenceID: ref.EvidenceID,
+		})
+	}
+	if hints := approval.FormatOpenExceptionHints(recs); hints != "" {
+		fmt.Print(hints)
+		fmt.Println()
+	}
 }
 
 func printProgressiveTrust(report *DoctorReport) {
