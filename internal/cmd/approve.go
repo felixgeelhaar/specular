@@ -69,6 +69,7 @@ Filters (combinable):
   --type bundle|drift|policy|plan|exception
   --policy <substr>              Case-insensitive match on policy field
   --scope <substr>               Case-insensitive match on scope field
+  --evidence <id|prefix>         Match evidence_id (EVID column; exact or prefix)
 `,
 	RunE: runApprovalsList,
 }
@@ -240,6 +241,7 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 	typ, _ := cmd.Flags().GetString("type")
 	policySub, _ := cmd.Flags().GetString("policy")
 	scopeSub, _ := cmd.Flags().GetString("scope")
+	evidenceSub, _ := cmd.Flags().GetString("evidence")
 	recs, err := approval.List(".")
 	if err != nil {
 		return err
@@ -255,6 +257,7 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 	}
 	recs = approval.FilterByPolicy(recs, policySub)
 	recs = approval.FilterByScope(recs, scopeSub)
+	recs = approval.FilterByEvidence(recs, evidenceSub)
 
 	board := approval.BuildListBoard(recs, now)
 	if jsonOut {
@@ -265,7 +268,8 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 
 	if len(board.Records) == 0 {
 		if filtered := strings.TrimSpace(status) != "" || strings.TrimSpace(typ) != "" ||
-			strings.TrimSpace(policySub) != "" || strings.TrimSpace(scopeSub) != ""; filtered {
+			strings.TrimSpace(policySub) != "" || strings.TrimSpace(scopeSub) != "" ||
+			strings.TrimSpace(evidenceSub) != ""; filtered {
 			fmt.Println("No approval records match the given filters.")
 			return nil
 		}
@@ -688,6 +692,7 @@ func init() {
 	approvalsListCmd.Flags().String("type", "", "Filter by record type (bundle|drift|policy|plan|exception)")
 	approvalsListCmd.Flags().String("policy", "", "Filter by policy field substring (case-insensitive)")
 	approvalsListCmd.Flags().String("scope", "", "Filter by scope field substring (case-insensitive)")
+	approvalsListCmd.Flags().String("evidence", "", "Filter by evidence_id exact or prefix (EVID column)")
 	approvalsShowCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 	approvalsCloseCmd.Flags().String("reason", "", "Optional close note (audit)")
 	approvalsCloseCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
