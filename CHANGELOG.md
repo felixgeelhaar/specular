@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gate Soft-ALLOW Soft trail**: text / markdown Soft Overruled boards and
+  FormatExplain Soft Refs jump to `approvals pending` / `doctor` beside
+  show/list (approve create/close Soft-trail parity).
+
 - **Approve create Soft trail**: after recording an exception, human output
   prints Refs to `approvals show` / `list --status open` / `pending` /
   `doctor` / `gate` (and `evidence show` / `explain` when `--evidence` is set).

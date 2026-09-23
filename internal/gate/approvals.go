@@ -194,8 +194,14 @@ func SoftAllowListHint(evidenceID string) string {
 	return "specular approvals list --status open"
 }
 
+// SoftAllowPendingHint is the Soft-trail jump to approvals pending.
+const SoftAllowPendingHint = "specular approvals pending"
+
+// SoftAllowDoctorHint is the Soft-trail jump to doctor open_exceptions.
+const SoftAllowDoctorHint = "specular doctor"
+
 // writeSoftAllowBoardHints jumps soft-ALLOW ResourceIDs to approvals show/list
-// (FormatExplain parity — live gate board reverse navigation).
+// plus pending/doctor Soft-trail (approve create/close parity).
 func writeSoftAllowBoardHints(b *strings.Builder, overrules []ExceptionOverrule, evidenceID, indent string) {
 	ids := SoftAllowResourceIDs(overrules)
 	for _, id := range ids {
@@ -203,6 +209,8 @@ func writeSoftAllowBoardHints(b *strings.Builder, overrules []ExceptionOverrule,
 	}
 	if len(ids) > 0 {
 		fmt.Fprintf(b, "%sList           %s\n", indent, SoftAllowListHint(evidenceID))
+		fmt.Fprintf(b, "%sPending        %s\n", indent, SoftAllowPendingHint)
+		fmt.Fprintf(b, "%sDoctor         %s\n", indent, SoftAllowDoctorHint)
 	}
 }
 

@@ -125,6 +125,12 @@ func TestSoftAllowListHint(t *testing.T) {
 	if SoftAllowListHint("  ") != "specular approvals list --status open" {
 		t.Fatal(SoftAllowListHint(""))
 	}
+	if SoftAllowPendingHint != "specular approvals pending" {
+		t.Fatal(SoftAllowPendingHint)
+	}
+	if SoftAllowDoctorHint != "specular doctor" {
+		t.Fatal(SoftAllowDoctorHint)
+	}
 }
 
 func TestSoftAllowResourceIDsDedup(t *testing.T) {

@@ -50,6 +50,8 @@ func TestDecideSoftAllowDriftByScope(t *testing.T) {
 	for _, want := range []string{
 		"Show           specular approvals show exception-EX-192",
 		"List           specular approvals list --status open",
+		"Pending        specular approvals pending",
+		"Doctor         specular doctor",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing soft-ALLOW jump %q:\n%s", want, text)
@@ -63,6 +65,8 @@ func TestDecideSoftAllowDriftByScope(t *testing.T) {
 	for _, want := range []string{
 		"Show: `specular approvals show exception-EX-192`",
 		"List: `specular approvals list --status open`",
+		"Pending: `specular approvals pending`",
+		"Doctor: `specular doctor`",
 	} {
 		if !strings.Contains(md, want) {
 			t.Fatalf("missing markdown soft-ALLOW jump %q:\n%s", want, md)

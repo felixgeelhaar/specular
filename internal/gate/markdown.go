@@ -163,6 +163,8 @@ func writeMarkdownApprovals(b *strings.Builder, res *Result, evidenceID string) 
 			fmt.Fprintf(b, "- Show: `specular approvals show %s`\n", id)
 		}
 		fmt.Fprintf(b, "- List: `%s`\n", SoftAllowListHint(evidenceID))
+		fmt.Fprintf(b, "- Pending: `%s`\n", SoftAllowPendingHint)
+		fmt.Fprintf(b, "- Doctor: `%s`\n", SoftAllowDoctorHint)
 		b.WriteString("\n")
 	}
 	if len(res.Approvals.Exceptions) > 0 {
