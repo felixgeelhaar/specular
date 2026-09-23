@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Doctor Soft trail Next Steps**: when open soft-ALLOW exceptions are
+  present, doctor Next Steps jump to `approvals pending` beside
+  `approvals list --status open` (OpenExceptions Soft-trail footer parity).
+
 - **DENY Soft trail boards**: Soft=no DENY rows on `session status` / `list` /
   `wait` and `evidence list` footer to evidence show / explain / session show
   (session) plus Soft trail `approvals pending` / `doctor` (session show DENY

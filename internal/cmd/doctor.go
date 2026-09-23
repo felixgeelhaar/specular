@@ -696,9 +696,10 @@ func checkGovernance(report *DoctorReport) {
 }
 
 func generateNextSteps(report *DoctorReport) {
-	// Open soft-ALLOW exceptions — review via approvals list / show.
+	// Open soft-ALLOW exceptions — Soft trail pending + list --status open.
 	if len(report.OpenExceptions) > 0 {
 		report.NextSteps = append(report.NextSteps,
+			"Review open Soft trail: specular approvals pending",
 			"Review open exceptions: specular approvals list --status open")
 	}
 

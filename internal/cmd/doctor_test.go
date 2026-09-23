@@ -224,19 +224,21 @@ func TestGenerateNextSteps(t *testing.T) {
 		t.Fatalf("expected progressive-trust next step, got %v", report.NextSteps)
 	}
 
-	// Open exceptions → approvals list --status open
+	// Open exceptions → Soft trail pending + approvals list --status open
 	report.NextSteps = nil
 	report.OpenExceptions = []DoctorOpenException{{ResourceID: "exception-EX-1", EvidenceID: "ev_1"}}
 	generateNextSteps(report)
-	hasOpen := false
+	hasPending, hasOpen := false, false
 	for _, step := range report.NextSteps {
+		if strings.Contains(step, "approvals pending") {
+			hasPending = true
+		}
 		if strings.Contains(step, "approvals list --status open") {
 			hasOpen = true
-			break
 		}
 	}
-	if !hasOpen {
-		t.Fatalf("expected open-exceptions next step, got %v", report.NextSteps)
+	if !hasPending || !hasOpen {
+		t.Fatalf("expected Soft trail pending + open list next steps, got %v", report.NextSteps)
 	}
 }
 
