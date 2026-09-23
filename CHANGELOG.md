@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals pending hollow Soft trail**: when no open exceptions Soft trail
+  is printed, `approvals pending` jumps to `doctor` / `list --status open`
+  (doctor Soft-trail / OpenExceptions Soft-trail parity on empty boards).
+
 - **Doctor Soft trail Next Steps**: when open soft-ALLOW exceptions are
   present, doctor Next Steps jump to `approvals pending` beside
   `approvals list --status open` (OpenExceptions Soft-trail footer parity).

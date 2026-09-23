@@ -211,6 +211,34 @@ func TestPrintPendingOpenExceptions(t *testing.T) {
 	}
 }
 
+func TestPrintPendingHollowSoftTrail(t *testing.T) {
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	printPendingHollowSoftTrail()
+	printPendingHollowSoftTrailIfNeeded(true) // no-op when OpenExceptions Soft trail present
+	_ = w.Close()
+	os.Stdout = old
+	buf := make([]byte, 1024)
+	n, _ := r.Read(buf)
+	text := string(buf[:n])
+	for _, want := range []string{
+		"Trail  specular doctor",
+		"specular approvals list --status open",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing hollow Soft trail %q:\n%s", want, text)
+		}
+	}
+	// Doctor Soft trail once (IfNeeded skipped).
+	if strings.Count(text, "specular doctor") != 1 {
+		t.Fatalf("expected one doctor Soft trail, got:\n%s", text)
+	}
+}
+
 func TestPrintApprovalsCloseSoftTrail(t *testing.T) {
 	dir := t.TempDir()
 	cwd, err := os.Getwd()
