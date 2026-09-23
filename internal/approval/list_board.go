@@ -1,6 +1,7 @@
 package approval
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -87,6 +88,31 @@ func DashOr(s string) string {
 		return "-"
 	}
 	return s
+}
+
+// FormatEvidenceListHints returns human footer lines for rows with an EVID
+// column (evidence show / explain). Empty when none bound.
+func FormatEvidenceListHints(rows []ListRow) string {
+	if len(rows) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, row := range rows {
+		evid := strings.TrimSpace(row.EvidenceID)
+		if evid == "" {
+			continue
+		}
+		id := strings.TrimSpace(row.ResourceID)
+		if id == "" {
+			id = evid
+		}
+		if b.Len() == 0 {
+			b.WriteString("Evidence:\n")
+		}
+		fmt.Fprintf(&b, "  %s  specular evidence show %s\n", id, evid)
+		fmt.Fprintf(&b, "       specular explain %s\n", evid)
+	}
+	return b.String()
 }
 
 // FormatExpires formats ExpiresAt for human boards.

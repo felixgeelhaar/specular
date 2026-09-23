@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals list EVID jumps**: rows with a bound `evidence_id` footer to
+  `evidence show <id>` / `explain <id>` (approvals show Refs / evidence list
+  Soft-ALLOW reverse-nav parity).
+
 - **Soft-ALLOW evidence bind**: when gate soft-ALLOWs and persists evidence,
   overruled open exceptions are stamped with `evidence_id` so
   `approvals list --evidence <id>` resolves Soft List jumps. `--evidence`

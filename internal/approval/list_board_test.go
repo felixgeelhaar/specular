@@ -1,6 +1,7 @@
 package approval
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -59,5 +60,25 @@ func TestBuildListBoard(t *testing.T) {
 	}
 	if FormatExpires(nil) != "-" || FormatExpires(&expFuture) != "2026-09-24" {
 		t.Fatal(FormatExpires(&expFuture))
+	}
+
+	hints := FormatEvidenceListHints(board.Records)
+	for _, want := range []string{
+		"Evidence:",
+		"exception-open  specular evidence show ev_1",
+		"specular explain ev_1",
+	} {
+		if !strings.Contains(hints, want) {
+			t.Fatalf("missing %q:\n%s", want, hints)
+		}
+	}
+	if strings.Contains(hints, "exception-closed") || strings.Contains(hints, "exception-expired") {
+		t.Fatalf("unexpected unbound row in evidence hints:\n%s", hints)
+	}
+	if FormatEvidenceListHints(nil) != "" {
+		t.Fatal("expected empty hints")
+	}
+	if FormatEvidenceListHints([]ListRow{{ResourceID: "x"}}) != "" {
+		t.Fatal("expected empty hints without EvidenceID")
 	}
 }
