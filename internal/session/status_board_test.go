@@ -130,7 +130,9 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 			Verdict: gate.Allow,
 			Risk:    gate.RiskSection{Level: "LOW"},
 			Provenance: gate.ProvenanceSection{
-				Sessions: []string{"auth"},
+				Sessions:     []string{"auth"},
+				ProtocolDocs: 1,
+				ProtocolOK:   1,
 			},
 		},
 	})
@@ -140,7 +142,9 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 		Gate: &gate.Result{
 			Verdict: gate.Deny,
 			Provenance: gate.ProvenanceSection{
-				Sessions: []string{"review"},
+				Sessions:     []string{"review"},
+				ProtocolDocs: 1,
+				ProtocolOK:   0, // unbound / invalid
 			},
 		},
 	})
@@ -151,7 +155,9 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 			Verdict: gate.Allow,
 			Risk:    gate.RiskSection{Level: "MEDIUM"},
 			Provenance: gate.ProvenanceSection{
-				Sessions: []string{"migrate"},
+				Sessions:     []string{"migrate"},
+				ProtocolDocs: 2,
+				ProtocolOK:   2,
 			},
 			Approvals: gate.ApprovalsSection{
 				Overrules: []gate.ExceptionOverrule{{
@@ -181,17 +187,17 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 	})
 
 	gates := NewestGateBySession(root)
-	if gates["auth"].Verdict != "ALLOW" || gates["auth"].EvidenceID != newer.ID || gates["auth"].SoftAllow || gates["auth"].Risk != "LOW" {
-		t.Fatalf("auth=%+v want clean ALLOW/LOW/%s (not older %s)", gates["auth"], newer.ID, older.ID)
+	if gates["auth"].Verdict != "ALLOW" || gates["auth"].EvidenceID != newer.ID || gates["auth"].SoftAllow || gates["auth"].Risk != "LOW" || !gates["auth"].Protocol {
+		t.Fatalf("auth=%+v want clean ALLOW/LOW/proto/%s (not older %s)", gates["auth"], newer.ID, older.ID)
 	}
-	if gates["shared"].Verdict != "DENY" || gates["shared"].EvidenceID != older.ID || gates["shared"].SoftAllow || gates["shared"].Risk != "HIGH" {
+	if gates["shared"].Verdict != "DENY" || gates["shared"].EvidenceID != older.ID || gates["shared"].SoftAllow || gates["shared"].Risk != "HIGH" || gates["shared"].Protocol {
 		t.Fatalf("shared=%+v", gates["shared"])
 	}
-	if gates["review"].Verdict != "DENY" || gates["review"].SoftAllow || gates["review"].Risk != "NONE" {
+	if gates["review"].Verdict != "DENY" || gates["review"].SoftAllow || gates["review"].Risk != "NONE" || gates["review"].Protocol {
 		t.Fatalf("review=%+v", gates["review"])
 	}
-	if gates["migrate"].Verdict != "ALLOW" || !gates["migrate"].SoftAllow || gates["migrate"].EvidenceID != soft.ID || gates["migrate"].Risk != "MEDIUM" {
-		t.Fatalf("migrate=%+v want soft ALLOW/MEDIUM/%s", gates["migrate"], soft.ID)
+	if gates["migrate"].Verdict != "ALLOW" || !gates["migrate"].SoftAllow || gates["migrate"].EvidenceID != soft.ID || gates["migrate"].Risk != "MEDIUM" || !gates["migrate"].Protocol {
+		t.Fatalf("migrate=%+v want soft ALLOW/MEDIUM/proto/%s", gates["migrate"], soft.ID)
 	}
 	if _, ok := gates["missing"]; ok {
 		t.Fatal("unexpected missing session")
@@ -207,21 +213,21 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 		{ID: "migrate", Status: StatusCompleted},
 		{ID: "orphan", Status: StatusStopped},
 	}, store, root)
-	if board.Evidence["auth"].Verdict != "ALLOW" || board.Evidence["auth"].EvidenceID != newer.ID || board.Evidence["auth"].SoftAllow || board.Evidence["auth"].Risk != "LOW" {
+	if board.Evidence["auth"].Verdict != "ALLOW" || board.Evidence["auth"].EvidenceID != newer.ID || board.Evidence["auth"].SoftAllow || board.Evidence["auth"].Risk != "LOW" || !board.Evidence["auth"].Protocol {
 		t.Fatalf("board auth=%+v", board.Evidence["auth"])
 	}
-	if board.Evidence["shared"].Verdict != "DENY" || board.Evidence["shared"].SoftAllow || board.Evidence["shared"].Risk != "HIGH" {
+	if board.Evidence["shared"].Verdict != "DENY" || board.Evidence["shared"].SoftAllow || board.Evidence["shared"].Risk != "HIGH" || board.Evidence["shared"].Protocol {
 		t.Fatalf("board shared=%+v", board.Evidence["shared"])
 	}
-	if board.Evidence["migrate"].Verdict != "ALLOW" || !board.Evidence["migrate"].SoftAllow || board.Evidence["migrate"].EvidenceID != soft.ID || board.Evidence["migrate"].Risk != "MEDIUM" {
+	if board.Evidence["migrate"].Verdict != "ALLOW" || !board.Evidence["migrate"].SoftAllow || board.Evidence["migrate"].EvidenceID != soft.ID || board.Evidence["migrate"].Risk != "MEDIUM" || !board.Evidence["migrate"].Protocol {
 		t.Fatalf("board migrate=%+v", board.Evidence["migrate"])
 	}
-	if board.Evidence["orphan"].Verdict != "" || board.Evidence["orphan"].EvidenceID != "" || board.Evidence["orphan"].SoftAllow || board.Evidence["orphan"].Risk != "" {
+	if board.Evidence["orphan"].Verdict != "" || board.Evidence["orphan"].EvidenceID != "" || board.Evidence["orphan"].SoftAllow || board.Evidence["orphan"].Risk != "" || board.Evidence["orphan"].Protocol {
 		t.Fatalf("board orphan=%+v", board.Evidence["orphan"])
 	}
 
 	ev := EvidenceFlagsFor(store, root, Record{ID: "migrate"})
-	if ev.Verdict != "ALLOW" || !ev.SoftAllow || ev.EvidenceID != soft.ID || ev.Risk != "MEDIUM" {
+	if ev.Verdict != "ALLOW" || !ev.SoftAllow || ev.EvidenceID != soft.ID || ev.Risk != "MEDIUM" || !ev.Protocol {
 		t.Fatalf("EvidenceFlagsFor=%+v", ev)
 	}
 }

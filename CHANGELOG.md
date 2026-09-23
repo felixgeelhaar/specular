@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session status/list PROTO column**: human boards and
+  `session status --json` evidence map show APP protocol schema+bound
+  (`protocol`) from the newest matching Change Evidence Graph record
+  (`evidence list --protocol` parity; distinct from APP file presence).
+
 - **Session show gate evidence**: `session show` prints COMMIT / GATE / SOFT /
   RISK / `evidenceId` from the newest matching Change Evidence Graph record,
   DENY Next steps when applicable, and jumps to `explain --session` /
