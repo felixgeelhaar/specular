@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session status/list/wait EVID column**: human boards show newest Change
+  Evidence Graph id beside GATE (`evidence.<id>.evidenceId` parity) so fleet
+  operators can jump to `evidence show <id>` / `explain` without `session show`.
+
 - **Session wait board parity**: human `session wait` and `--json` emit the
   status trust board (`GOV…RISK` + `EXIT`; `--json` → `{summary,sessions,evidence}`)
   after optional `--attest`/`--gate`/`--bundle` so fleet→gate evidence is visible
