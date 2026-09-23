@@ -208,22 +208,40 @@ func FilterByScope(recs []Record, substr string) []Record {
 }
 
 // FilterByEvidence keeps records whose EvidenceID equals or has prefix needle
-// (case-insensitive). Empty needle returns all. Used by approvals list
-// --evidence (EVID column query after #149 board).
-func FilterByEvidence(recs []Record, substr string) []Record {
+// (case-insensitive), or whose ResourceID is in softResourceIDs (SoftAllow
+// overrule join for Soft List jumps before/without bind). Empty needle returns all.
+func FilterByEvidence(recs []Record, substr string, softResourceIDs ...string) []Record {
 	needle := strings.ToLower(strings.TrimSpace(substr))
 	if needle == "" {
 		return recs
 	}
+	soft := make(map[string]struct{}, len(softResourceIDs))
+	for _, id := range softResourceIDs {
+		id = strings.TrimSpace(id)
+		if id != "" {
+			soft[id] = struct{}{}
+		}
+	}
 	var out []Record
+	seen := make(map[string]struct{})
 	for _, rec := range recs {
 		id := strings.ToLower(strings.TrimSpace(rec.EvidenceID))
-		if id == "" {
+		match := id != "" && (id == needle || strings.HasPrefix(id, needle))
+		if !match {
+			_, match = soft[strings.TrimSpace(rec.ResourceID)]
+		}
+		if !match {
 			continue
 		}
-		if id == needle || strings.HasPrefix(id, needle) {
-			out = append(out, rec)
+		key := rec.Path
+		if key == "" {
+			key = rec.ResourceID
 		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, rec)
 	}
 	return out
 }

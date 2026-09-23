@@ -852,7 +852,9 @@ plus open/closed/expired summary. `--status` keeps records whose lifecycle is
 (past `expires_at`). Closed wins when both closed and expired apply. `--type`
 filters by record type. `--policy` / `--scope` are case-insensitive substrings
 on those fields (combinable with `--status`). `--evidence` matches `evidence_id`
-exactly or by prefix (EVID column; combinable). `--json` emits
+exactly or by prefix (EVID column; combinable), and also includes exceptions
+that soft-ALLOWed the named Change Evidence Graph record. Soft-ALLOW gate runs
+stamp `evidence_id` on overruled open exceptions. `--json` emits
 `{summary, records}`.
 
 **Example:**

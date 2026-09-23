@@ -13,7 +13,9 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/felixgeelhaar/specular/internal/approval"
+	"github.com/felixgeelhaar/specular/internal/evidence"
 	"github.com/felixgeelhaar/specular/internal/exec"
+	"github.com/felixgeelhaar/specular/internal/gate"
 	"github.com/felixgeelhaar/specular/internal/license"
 	"github.com/felixgeelhaar/specular/internal/telemetry"
 )
@@ -69,7 +71,7 @@ Filters (combinable):
   --type bundle|drift|policy|plan|exception
   --policy <substr>              Case-insensitive match on policy field
   --scope <substr>               Case-insensitive match on scope field
-  --evidence <id|prefix>         Match evidence_id (EVID column; exact or prefix)
+  --evidence <id|prefix>         Match evidence_id (EVID) or SoftAllow overrule ResourceIDs
 `,
 	RunE: runApprovalsList,
 }
@@ -257,7 +259,7 @@ func runApprovalsList(cmd *cobra.Command, args []string) error {
 	}
 	recs = approval.FilterByPolicy(recs, policySub)
 	recs = approval.FilterByScope(recs, scopeSub)
-	recs = approval.FilterByEvidence(recs, evidenceSub)
+	recs = approval.FilterByEvidence(recs, evidenceSub, softAllowResourceIDsForEvidence(".", evidenceSub)...)
 
 	board := approval.BuildListBoard(recs, now)
 	if jsonOut {
@@ -696,4 +698,29 @@ func init() {
 	approvalsShowCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
 	approvalsCloseCmd.Flags().String("reason", "", "Optional close note (audit)")
 	approvalsCloseCmd.Flags().Bool("json", false, "Emit machine-readable JSON")
+}
+
+// softAllowResourceIDsForEvidence returns SoftAllow overrule ResourceIDs from
+// the newest evidence matching needle (exact or prefix). Used so Soft List
+// --evidence resolves before BindEvidence stamps evidence_id.
+func softAllowResourceIDsForEvidence(root, needle string) []string {
+	needle = strings.ToLower(strings.TrimSpace(needle))
+	if needle == "" {
+		return nil
+	}
+	recs, err := evidence.List(root, evidence.ListFilter{})
+	if err != nil || len(recs) == 0 {
+		return nil
+	}
+	for _, rec := range recs {
+		if rec == nil || rec.Gate == nil {
+			continue
+		}
+		id := strings.ToLower(strings.TrimSpace(rec.ID))
+		if id == "" || (id != needle && !strings.HasPrefix(id, needle)) {
+			continue
+		}
+		return gate.SoftAllowResourceIDs(rec.Gate.Approvals.Overrules)
+	}
+	return nil
 }

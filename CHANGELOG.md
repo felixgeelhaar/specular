@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Soft-ALLOW evidence bind**: when gate soft-ALLOWs and persists evidence,
+  overruled open exceptions are stamped with `evidence_id` so
+  `approvals list --evidence <id>` resolves Soft List jumps. `--evidence`
+  also joins SoftAllow overrule ResourceIDs from the named evidence record
+  (pre-bind Soft trails). `session show` Soft List prefers `--evidence`.
+
 - **Gate Soft-ALLOW list `--evidence`**: text / markdown Soft List prefer
   `approvals list --evidence <id>` when the gate run persisted an evidence
   record (`FormatTextWith` / markdown opts; FormatExplain #157 parity).
