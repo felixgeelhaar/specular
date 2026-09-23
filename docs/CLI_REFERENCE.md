@@ -186,6 +186,10 @@ specular explain --json
 
 `--file` / `--control` / `--commit` / `--session` are mutually exclusive with each other, `evidence-id`, and `--fresh`. Trust filters (`--verdict` / `--risk` / `--soft-allow` / `--attested` / `--governed` / `--protocol` / `--harness`) are combinable with each other and with one graph selector; they cannot combine with `--fresh`. A positional hex SHA prefix (4–40 chars, not `ev_…`) is treated as `--commit`. Default (no args) loads the latest evidence pointer (or newest trust-filter match when trust filters are set).
 
+Human `FormatExplain` (non-`--json`) Approvals/Refs reverse-jump soft-ALLOW
+exception ids to `approvals show` / `approvals list --status open`, and
+provenance sessions in Refs to `session show` / `explain --session`.
+
 ### provenance
 
 Show and verify open Agent Provenance Protocol documents (`specular.provenance/v1`).
