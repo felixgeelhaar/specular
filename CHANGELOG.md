@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gate DENY Soft trail**: when Approvals are empty (no Soft Overruled /
+  OpenExceptions trail), gate text / markdown SoftAllow Hint and
+  FormatExplain jump to `approvals pending` / `doctor` (Soft Overruled /
+  OpenExceptions Soft-trail parity).
+
 - **Approvals pending `--json`**: emit
   `{summary, policyChanges, bundles, drift, openExceptions}` (doctor
   `open_exceptions` / Soft trail automation parity). Open exceptions alone
