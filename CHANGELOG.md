@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session status/list SOFT column**: human boards and
+  `session status --json` evidence map show soft-ALLOW (`softAllow`) when
+  the newest matching Change Evidence Graph record has exception overrules
+  (`evidence list --soft-allow` parity) beside GATE.
+
 - **Session status/list GATE column**: human boards and
   `session status --json` evidence map show ALLOW/DENY (plus `evidenceId`)
   from the newest Change Evidence Graph record whose

@@ -142,16 +142,52 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 			},
 		},
 	})
+	soft := mustWriteEvidence(t, root, &evidence.Record{
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(-1 * time.Minute),
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Provenance: gate.ProvenanceSection{
+				Sessions: []string{"migrate"},
+			},
+			Approvals: gate.ApprovalsSection{
+				Overrules: []gate.ExceptionOverrule{{
+					Kind:       "drift",
+					ResourceID: "exception-drift",
+				}},
+			},
+		},
+	})
+	// Older soft-ALLOW must not win over newer clean ALLOW for "auth".
+	_ = mustWriteEvidence(t, root, &evidence.Record{
+		Schema:    evidence.Schema,
+		CreatedAt: now.Add(-90 * time.Minute),
+		Gate: &gate.Result{
+			Verdict: gate.Allow,
+			Provenance: gate.ProvenanceSection{
+				Sessions: []string{"auth"},
+			},
+			Approvals: gate.ApprovalsSection{
+				Overrules: []gate.ExceptionOverrule{{
+					Kind:       "policy",
+					ResourceID: "exception-old",
+				}},
+			},
+		},
+	})
 
 	gates := NewestGateBySession(root)
-	if gates["auth"].Verdict != "ALLOW" || gates["auth"].EvidenceID != newer.ID {
-		t.Fatalf("auth=%+v want ALLOW/%s (not older %s)", gates["auth"], newer.ID, older.ID)
+	if gates["auth"].Verdict != "ALLOW" || gates["auth"].EvidenceID != newer.ID || gates["auth"].SoftAllow {
+		t.Fatalf("auth=%+v want clean ALLOW/%s (not older %s)", gates["auth"], newer.ID, older.ID)
 	}
-	if gates["shared"].Verdict != "DENY" || gates["shared"].EvidenceID != older.ID {
+	if gates["shared"].Verdict != "DENY" || gates["shared"].EvidenceID != older.ID || gates["shared"].SoftAllow {
 		t.Fatalf("shared=%+v", gates["shared"])
 	}
-	if gates["review"].Verdict != "DENY" {
+	if gates["review"].Verdict != "DENY" || gates["review"].SoftAllow {
 		t.Fatalf("review=%+v", gates["review"])
+	}
+	if gates["migrate"].Verdict != "ALLOW" || !gates["migrate"].SoftAllow || gates["migrate"].EvidenceID != soft.ID {
+		t.Fatalf("migrate=%+v want soft ALLOW/%s", gates["migrate"], soft.ID)
 	}
 	if _, ok := gates["missing"]; ok {
 		t.Fatal("unexpected missing session")
@@ -164,20 +200,24 @@ func TestNewestGateBySessionAndBoard(t *testing.T) {
 	board := BuildStatusBoardWithEvidence([]Record{
 		{ID: "auth", Status: StatusCompleted},
 		{ID: "shared", Status: StatusFailed},
+		{ID: "migrate", Status: StatusCompleted},
 		{ID: "orphan", Status: StatusStopped},
 	}, store, root)
-	if board.Evidence["auth"].Verdict != "ALLOW" || board.Evidence["auth"].EvidenceID != newer.ID {
+	if board.Evidence["auth"].Verdict != "ALLOW" || board.Evidence["auth"].EvidenceID != newer.ID || board.Evidence["auth"].SoftAllow {
 		t.Fatalf("board auth=%+v", board.Evidence["auth"])
 	}
-	if board.Evidence["shared"].Verdict != "DENY" {
+	if board.Evidence["shared"].Verdict != "DENY" || board.Evidence["shared"].SoftAllow {
 		t.Fatalf("board shared=%+v", board.Evidence["shared"])
 	}
-	if board.Evidence["orphan"].Verdict != "" || board.Evidence["orphan"].EvidenceID != "" {
+	if board.Evidence["migrate"].Verdict != "ALLOW" || !board.Evidence["migrate"].SoftAllow || board.Evidence["migrate"].EvidenceID != soft.ID {
+		t.Fatalf("board migrate=%+v", board.Evidence["migrate"])
+	}
+	if board.Evidence["orphan"].Verdict != "" || board.Evidence["orphan"].EvidenceID != "" || board.Evidence["orphan"].SoftAllow {
 		t.Fatalf("board orphan=%+v", board.Evidence["orphan"])
 	}
 
-	ev := EvidenceFlagsFor(store, root, Record{ID: "auth"})
-	if ev.Verdict != "ALLOW" || ev.EvidenceID != newer.ID {
+	ev := EvidenceFlagsFor(store, root, Record{ID: "migrate"})
+	if ev.Verdict != "ALLOW" || !ev.SoftAllow || ev.EvidenceID != soft.ID {
 		t.Fatalf("EvidenceFlagsFor=%+v", ev)
 	}
 }
