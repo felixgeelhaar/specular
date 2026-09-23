@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -27,7 +28,7 @@ func TestBuildListBoard(t *testing.T) {
 					ProtocolOK:   1,
 				},
 				Approvals: gate.ApprovalsSection{
-					Overrules: []gate.ExceptionOverrule{{Kind: "drift"}},
+					Overrules: []gate.ExceptionOverrule{{Kind: "drift", ResourceID: "exception-drift"}},
 				},
 			},
 		},
@@ -61,6 +62,9 @@ func TestBuildListBoard(t *testing.T) {
 	if allow.Verdict != "ALLOW" || !allow.SoftAllow || allow.Risk != "LOW" || !allow.Attested || !allow.Governed || !allow.Protocol {
 		t.Fatalf("allow=%+v", allow)
 	}
+	if len(allow.SoftAllowIDs) != 1 || allow.SoftAllowIDs[0] != "exception-drift" {
+		t.Fatalf("SoftAllowIDs=%v", allow.SoftAllowIDs)
+	}
 	if allow.Commit != "abcdef0123456789" || JoinDash(allow.Sessions) != "auth" {
 		t.Fatalf("allow commit/session=%q %v", allow.Commit, allow.Sessions)
 	}
@@ -80,5 +84,22 @@ func TestBuildListBoard(t *testing.T) {
 	}
 	if JoinDash(nil) != "-" || JoinDash([]string{"a", "b"}) != "a,b" {
 		t.Fatal(JoinDash([]string{"a", "b"}))
+	}
+
+	hints := FormatSoftAllowListHints(board.Records)
+	for _, want := range []string{
+		"Soft-ALLOW:",
+		"ev_allow  specular approvals list --evidence ev_allow",
+		"specular explain ev_allow",
+	} {
+		if !strings.Contains(hints, want) {
+			t.Fatalf("missing %q:\n%s", want, hints)
+		}
+	}
+	if strings.Contains(hints, "ev_deny") {
+		t.Fatalf("unexpected deny in soft hints:\n%s", hints)
+	}
+	if FormatSoftAllowListHints(nil) != "" {
+		t.Fatal("expected empty hints")
 	}
 }
