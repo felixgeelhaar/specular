@@ -942,8 +942,10 @@ specular approvals pending [--json]
 
 Displays items awaiting approval and suggests the corresponding `specular approve`
 command. Also lists open soft-ALLOW exceptions with jumps to `approvals show` /
-`evidence show` / `approvals list --status open` (doctor open_exceptions parity).
-Open exceptions alone do not set exit 1. `--json` emits
+`evidence show` / `approvals list --status open` / Soft trail pending+doctor
+(doctor open_exceptions parity). When no open exceptions Soft trail is present,
+pending still Soft-trails to `doctor` / `list --status open`. Open exceptions
+alone do not set exit 1. `--json` emits
 `{summary, policyChanges, bundles, drift, openExceptions}`.
 
 **Example:**

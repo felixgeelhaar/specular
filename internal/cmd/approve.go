@@ -103,8 +103,10 @@ Checks:
   • Unapproved drift (from eval drift)
 
 Also lists open soft-ALLOW exceptions (approvals show / evidence show /
-list --status open) so operators can review the active Soft trail (doctor
-open_exceptions parity). Open exceptions alone do not set exit 1.
+list --status open / Soft trail pending+doctor) so operators can review the
+active Soft trail (doctor open_exceptions parity). When no open exceptions
+Soft trail is printed, still Soft-trails to doctor / list --status open.
+Open exceptions alone do not set exit 1.
 
 --json emits {summary, policyChanges, bundles, drift, openExceptions}.
 
@@ -607,14 +609,31 @@ func runApprovalsPending(cmd *cobra.Command, args []string) error {
 		fmt.Println("✅ No pending approvals")
 		if !openPrinted {
 			fmt.Println("\nAll governance items are approved and up to date.")
+			printPendingHollowSoftTrail()
 		} else {
 			fmt.Println("\nNo pending approvals; review open soft-ALLOW exceptions above.")
 		}
 		return nil
 	}
 
+	printPendingHollowSoftTrailIfNeeded(openPrinted)
 	os.Exit(1)
 	return nil
+}
+
+// printPendingHollowSoftTrail jumps empty pending boards to doctor / list
+// when OpenExceptions Soft trail was not already printed.
+func printPendingHollowSoftTrail() {
+	fmt.Printf("Trail  %s\n", gate.SoftAllowDoctorHint)
+	fmt.Println("       specular approvals list --status open")
+}
+
+func printPendingHollowSoftTrailIfNeeded(openPrinted bool) {
+	if openPrinted {
+		return
+	}
+	fmt.Println()
+	printPendingHollowSoftTrail()
 }
 
 // PendingOpenException is one open soft-ALLOW exception on the pending board.
