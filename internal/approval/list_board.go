@@ -120,6 +120,12 @@ func FormatEvidenceListHints(rows []ListRow) string {
 	return b.String()
 }
 
+// FormatHollowSoftTrailHints returns Soft trail pending/doctor when no EVID Soft
+// trail was printed (pending hollow Soft-trail parity).
+func FormatHollowSoftTrailHints() string {
+	return "Trail  specular approvals pending\n         specular doctor\n"
+}
+
 // FormatOpenExceptionHints returns human footer lines for open exceptions
 // (approvals show / evidence show when bound / list --status open / Soft trail
 // pending+doctor). Empty when none.

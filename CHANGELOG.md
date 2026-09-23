@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals list hollow Soft trail**: when no EVID Soft trail is printed
+  (including empty / filtered-empty boards), `approvals list` jumps to
+  `approvals pending` / `doctor` (pending hollow Soft-trail #176 parity).
+
 - **Approvals pending hollow Soft trail**: when no open exceptions Soft trail
   is printed, `approvals pending` jumps to `doctor` / `list --status open`
   (doctor Soft-trail / OpenExceptions Soft-trail parity on empty boards).
