@@ -120,6 +120,42 @@ func TestFormatApprovalExplainNoEvidenceRefs(t *testing.T) {
 	}
 }
 
+func TestCollectPendingBoard(t *testing.T) {
+	dir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	board := collectPendingBoard()
+	if board.Summary.Pending || board.Summary.OpenExceptions != 0 {
+		t.Fatalf("empty board=%+v", board)
+	}
+
+	now := time.Now().UTC()
+	exp := now.Add(24 * time.Hour)
+	if _, err := approval.Write(".", &approval.Record{
+		Type: approval.TypeException, ResourceID: "exception-json-open",
+		ApprovedBy: "alice", ApprovedAt: now, ExpiresAt: &exp,
+		Reason: "hotfix", Scope: "a.go", Policy: "drift", EvidenceID: "ev_json",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	board = collectPendingBoard()
+	if board.Summary.Pending {
+		t.Fatalf("open exceptions alone should not set pending: %+v", board.Summary)
+	}
+	if board.Summary.OpenExceptions != 1 || len(board.OpenExceptions) != 1 {
+		t.Fatalf("open=%+v", board.OpenExceptions)
+	}
+	if board.OpenExceptions[0].ResourceID != "exception-json-open" || board.OpenExceptions[0].EvidenceID != "ev_json" {
+		t.Fatalf("ref=%+v", board.OpenExceptions[0])
+	}
+}
+
 func TestPrintPendingOpenExceptions(t *testing.T) {
 	dir := t.TempDir()
 	cwd, err := os.Getwd()

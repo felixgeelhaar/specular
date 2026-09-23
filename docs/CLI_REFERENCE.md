@@ -933,7 +933,7 @@ Gate         specular gate
 Show pending approvals requiring action.
 
 ```bash
-specular approvals pending
+specular approvals pending [--json]
 ```
 
 **Description:**
@@ -941,7 +941,8 @@ specular approvals pending
 Displays items awaiting approval and suggests the corresponding `specular approve`
 command. Also lists open soft-ALLOW exceptions with jumps to `approvals show` /
 `evidence show` / `approvals list --status open` (doctor open_exceptions parity).
-Open exceptions alone do not set exit 1.
+Open exceptions alone do not set exit 1. `--json` emits
+`{summary, policyChanges, bundles, drift, openExceptions}`.
 
 **Example:**
 ```bash

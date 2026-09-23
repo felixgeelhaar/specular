@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Approvals pending `--json`**: emit
+  `{summary, policyChanges, bundles, drift, openExceptions}` (doctor
+  `open_exceptions` / Soft trail automation parity). Open exceptions alone
+  still exit 0; pending policy/bundle/drift still exit 1.
+
 - **Gate advisory OpenExceptions Soft trail**: when open exceptions are
   advisory (not yet soft-ALLOW Overruled), gate text / markdown and
   FormatExplain jump to `approvals show` / `list --status open` /
