@@ -10,7 +10,7 @@ import (
 func TestBindEvidence(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	now := time.Date(2026, 9, 23, 12, 0, 0, 0, time.UTC)
+	now := time.Now().UTC().Truncate(time.Second)
 	exp := now.Add(24 * time.Hour)
 	path, err := Write(root, &Record{
 		Type: TypeException, ResourceID: "exception-drift",
