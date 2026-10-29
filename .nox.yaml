@@ -26,11 +26,6 @@ scan:
     # Classification: False Positive (module digests). Last reviewed: 2026-07-11
     - go.sum
     - "**/go.sum"
-    # npm lockfiles (website/ Astro Starlight docs + example plugin packages):
-    # integrity hashes look like API keys to the entropy detector. Dependency
-    # CVEs are surfaced via OSV directly, not the lockfile text.
-    # Classification: False Positive (integrity hashes). Last reviewed: 2026-07-11
-    - "**/package-lock.json"
     # Markdown is prose — README, docs/, ARCHITECTURE/SECURITY notes, and the
     # website/ content. The secret/PII entropy rules fire on ordinary
     # documentation. High-confidence real secret patterns are still caught in
