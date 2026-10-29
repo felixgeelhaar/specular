@@ -126,8 +126,11 @@ func Load(root, id string) (*Record, error) {
 	if id == "" {
 		return nil, fmt.Errorf("evidence: empty id")
 	}
+	if id != filepath.Base(id) || strings.ContainsAny(id, `/\`) || id == "." || id == ".." {
+		return nil, fmt.Errorf("evidence: invalid id %q", id)
+	}
 	path := filepath.Join(Dir(root), id+".json")
-	raw, readErr := os.ReadFile(path)
+	raw, readErr := os.ReadFile(path) //nolint:gosec // id validated above to a single path element
 	if readErr != nil {
 		return nil, fmt.Errorf("evidence: load %s: %w", id, readErr)
 	}

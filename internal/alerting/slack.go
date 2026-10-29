@@ -109,7 +109,7 @@ func (m *SlackManager) Resolve(ctx context.Context, dedupeKey string) error {
 			{
 				Color:     severityToSlackColor(SeverityInfo),
 				Title:     "Alert Resolved",
-				Text:      fmt.Sprintf("Alert `%s` has been resolved.", dedupeKey),
+				Text:      fmt.Sprintf("Alert %#q has been resolved.", dedupeKey),
 				Footer:    "Specular",
 				Timestamp: time.Now().Unix(),
 			},

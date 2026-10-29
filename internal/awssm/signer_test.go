@@ -87,8 +87,7 @@ func TestAWSSecretsManagerSigner_KeyFormat(t *testing.T) {
 	assert.True(t, ok, "Should be ECDSA public key")
 
 	// Verify the keys match
-	assert.Equal(t, ecdsaPrivateKey.PublicKey.X, ecdsaPublicKey.X)
-	assert.Equal(t, ecdsaPrivateKey.PublicKey.Y, ecdsaPublicKey.Y)
+	assert.True(t, ecdsaPrivateKey.PublicKey.Equal(ecdsaPublicKey), "public keys should match")
 }
 
 func TestAWSSecretsManagerSigner_VerifySignature(t *testing.T) {

@@ -78,6 +78,12 @@ func NewManager(repoRoot string) (*Manager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("worktree: resolve path: %w", err)
 	}
+	// Git reports canonical (symlink-resolved) paths, e.g. /private/var on
+	// macOS where /var is a symlink. Resolve here so path comparisons against
+	// `git worktree list` output (managed-prefix checks) match.
+	if resolved, evalErr := filepath.EvalSymlinks(abs); evalErr == nil {
+		abs = resolved
+	}
 	root, err := findRepoRoot(abs)
 	if err != nil {
 		return nil, err

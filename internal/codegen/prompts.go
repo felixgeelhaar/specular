@@ -160,12 +160,12 @@ func (pb *PromptBuilder) BuildPrompt(req CodeGenerationRequest) (systemPrompt st
 	if len(req.APIs) > 0 {
 		sb.WriteString("## API Endpoints to Implement\n\n")
 		for _, api := range req.APIs {
-			sb.WriteString(fmt.Sprintf("- **%s** `%s`\n", api.Method, api.Path))
+			sb.WriteString(fmt.Sprintf("- **%s** %#q\n", api.Method, api.Path))
 			if api.Request != "" {
-				sb.WriteString(fmt.Sprintf("  - Request: `%s`\n", api.Request))
+				sb.WriteString(fmt.Sprintf("  - Request: %#q\n", api.Request))
 			}
 			if api.Response != "" {
-				sb.WriteString(fmt.Sprintf("  - Response: `%s`\n", api.Response))
+				sb.WriteString(fmt.Sprintf("  - Response: %#q\n", api.Response))
 			}
 		}
 		sb.WriteString("\n")

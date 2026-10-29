@@ -208,7 +208,7 @@ func SetSessionCookie(w http.ResponseWriter, token string, expiresAt int64, secu
 		maxAge = 0
 	}
 
-	cookie := &http.Cookie{
+	cookie := &http.Cookie{ //nolint:gosec // G124: Secure is caller-controlled and false only for plain-HTTP local development
 		Name:     "session_token",
 		Value:    token,
 		Path:     "/",

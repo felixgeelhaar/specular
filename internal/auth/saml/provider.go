@@ -251,7 +251,7 @@ func (p *Provider) InitiateLogin(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Redirect to IdP
-	http.Redirect(w, r, redirectURL.String(), http.StatusFound)
+	http.Redirect(w, r, redirectURL.String(), http.StatusFound) //nolint:gosec // G710: URL is built by the SAML library from the configured IdP SSO endpoint, not from request input
 	return nil
 }
 
