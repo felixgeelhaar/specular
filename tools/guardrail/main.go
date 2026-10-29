@@ -61,7 +61,7 @@ func main() {
 				}
 			}
 			// File write with permissive mode (>=0644)
-			if funIdent, ok := call.Fun.(*ast.Ident); ok && (funIdent.Name == "WriteFile" || funIdent.Name == "WriteFile" || funIdent.Name == "WriteFile") {
+			if funIdent, ok := call.Fun.(*ast.Ident); ok && funIdent.Name == "WriteFile" {
 				// Simplified: any WriteFile call considered a violation (requires mode check for real enforcement)
 				report(file, fset.Position(call.Pos()), "os.WriteFile used without safe mode – ensure permissions are restrictive")
 				violations = true

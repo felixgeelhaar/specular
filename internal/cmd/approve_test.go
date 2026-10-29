@@ -59,7 +59,7 @@ func TestApprovalRecord(t *testing.T) {
 
 func TestFormatApprovalExplainException(t *testing.T) {
 	t.Parallel()
-	exp := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
+	exp := time.Now().UTC().Add(7 * 24 * time.Hour)
 	text := formatApprovalExplain(approval.Record{
 		Type:       approval.TypeException,
 		ResourceID: "exception-EX-192",
