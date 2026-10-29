@@ -108,7 +108,7 @@ func repackBundle(sourceDir, bundlePath string) error {
 
 		// Write file content if regular file
 		if info.Mode().IsRegular() {
-			fileHandle, openErr := os.Open(path)
+			fileHandle, openErr := os.Open(path) //nolint:gosec // G122: path comes from walking a caller-owned local directory; bundle is built from a trusted tree
 			if openErr != nil {
 				return openErr
 			}

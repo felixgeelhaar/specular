@@ -532,7 +532,7 @@ func copyFile(src, dst string, mode os.FileMode) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(dst, data, mode)
+	return os.WriteFile(dst, data, mode) //nolint:gosec // G703: dst is derived from the plugin install dir by the caller
 }
 
 // Uninstall removes a plugin

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -237,7 +238,7 @@ func generateSessionID(userID string, createdAt time.Time) string {
 	// In production, should add random component for additional uniqueness
 	timestamp := createdAt.Unix()
 	return jwt.RegisteredClaims{
-		ID: userID + "-" + string(rune(timestamp)),
+		ID: userID + "-" + strconv.FormatInt(timestamp, 10),
 	}.ID
 }
 

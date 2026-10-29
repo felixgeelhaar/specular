@@ -910,7 +910,7 @@ func createSessionPullRequest(ctx context.Context, rec *Record, opts PushOptions
 	}
 	body := strings.TrimSpace(opts.PRBody)
 	if body == "" {
-		body = fmt.Sprintf("## Specular session\n\n- **ID:** `%s`\n- **Harness:** `%s`\n- **Governed:** %v\n- **Goal:** %s\n\nLanded via `specular session push --pr`.\n",
+		body = fmt.Sprintf("## Specular session\n\n- **ID:** %#q\n- **Harness:** %#q\n- **Governed:** %v\n- **Goal:** %s\n\nLanded via `specular session push --pr`.\n",
 			rec.ID, rec.Harness, rec.Governed, rec.Goal)
 	}
 	args := []string{"pr", "create", "--title", title, "--body", body}
@@ -1165,7 +1165,7 @@ func (m *Manager) Attest(ctx context.Context, id string, opts AttestOptions) (*A
 	if jsonErr != nil {
 		return nil, jsonErr
 	}
-	if writeErr := os.WriteFile(path, data, 0o600); writeErr != nil {
+	if writeErr := os.WriteFile(path, data, 0o600); writeErr != nil { //nolint:gosec // G703: path is the operator-supplied output path or the session store dir
 		return nil, fmt.Errorf("session: write attestation: %w", writeErr)
 	}
 	// Emit open Agent Provenance Protocol doc beside the attestation (P1 #3 depth).
