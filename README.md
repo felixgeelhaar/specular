@@ -4,6 +4,8 @@
 
 # Specular
 
+[![nox security grade](.github/nox-badge.svg)](.github/workflows/nox-scan.yml)
+
 **The trust boundary for AI-authored code**
 
 A Go-based CLI that evaluates proposed software changes for provenance, drift, policy, and verification before they ship:

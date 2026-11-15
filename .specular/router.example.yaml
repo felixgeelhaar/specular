@@ -64,10 +64,10 @@ providers:
     config:
       path: ./providers/codex/codex-provider
       timeout: 120s
-      model: gpt-3.5-turbo-instruct
+      model: gpt-4o-mini
 
     models:
-      fast: gpt-3.5-turbo-instruct
+      fast: gpt-4o-mini
       capable: gpt-4-turbo
       codegen: gpt-4o
       longcontext: gpt-4-turbo
