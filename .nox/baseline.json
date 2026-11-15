@@ -2282,6 +2282,238 @@
       "file_path": "scripts/verify-release.sh",
       "severity": "high",
       "created_at": "2026-09-20T16:25:41.737337Z"
+    },
+    {
+      "fingerprint": "2c726b7b55915eaacd3081e0537cf1222d3a936f1a7fef8ae5c7e69865dbd66a",
+      "rule_id": "VULN-001",
+      "file_path": "Dockerfile.release",
+      "severity": "medium",
+      "reason": "False positive: ALPINE-CVE-2026-4738 is a gdal (frmts/zlib/contrib/infback9) advisory mis-attributed to Alpine zlib; image is digest-pinned to supported alpine:3.24 and no zlib fix exists to upgrade to",
+      "created_at": "2026-11-15T10:20:34.852815Z"
+    },
+    {
+      "fingerprint": "2708122929736fff7433a03ce211cd6b09cf7d3c271250709af83cc379a98735",
+      "rule_id": "VULN-001",
+      "file_path": "go.mod",
+      "severity": "info",
+      "reason": "False positive: ALPINE-CVE-2026-4738 is a gdal (frmts/zlib/contrib/infback9) advisory mis-attributed to Alpine zlib; image is digest-pinned to supported alpine:3.24 and no zlib fix exists to upgrade to",
+      "created_at": "2026-11-15T10:20:34.852815Z"
+    },
+    {
+      "fingerprint": "a578073a5bb0e04041fb6c4aed7e7a9e5dceecf23ee150b1a53ee89d7dee4c29",
+      "rule_id": "VULN-001",
+      "file_path": "go.mod",
+      "severity": "info",
+      "reason": "False positive: ALPINE-CVE-2026-4738 is a gdal (frmts/zlib/contrib/infback9) advisory mis-attributed to Alpine zlib; image is digest-pinned to supported alpine:3.24 and no zlib fix exists to upgrade to",
+      "created_at": "2026-11-15T10:20:34.852815Z"
+    },
+    {
+      "fingerprint": "90b488b798a21971f780a6138b445098aa57499bbc19f5df16221374bbcb171f",
+      "rule_id": "AI-050",
+      "file_path": "internal/router/fallback_test.go",
+      "severity": "low",
+      "reason": "Reviewed: MaxRetries\u003c=0 deliberately means no retry (opt-in, configurable via router config); tests exercise that path",
+      "created_at": "2026-11-15T10:21:13.582435Z"
+    },
+    {
+      "fingerprint": "17c79b4fc3ced7a1b11c0d37c89575c58c32e75c72bfebfe0b1fd206e3640fef",
+      "rule_id": "AI-050",
+      "file_path": "internal/router/retry_test.go",
+      "severity": "low",
+      "reason": "Reviewed: MaxRetries\u003c=0 deliberately means no retry (opt-in, configurable via router config); tests exercise that path",
+      "created_at": "2026-11-15T10:21:13.582435Z"
+    },
+    {
+      "fingerprint": "f1144248e6d198debc824fa99da541d260d98d7e8a598179a999986de10ebef0",
+      "rule_id": "AI-050",
+      "file_path": "internal/router/router.go",
+      "severity": "medium",
+      "reason": "Reviewed: MaxRetries\u003c=0 deliberately means no retry (opt-in, configurable via router config); tests exercise that path",
+      "created_at": "2026-11-15T10:21:13.582435Z"
+    },
+    {
+      "fingerprint": "1432a112c75251a0f9369c354d936631b55a91b7aff02c9d9ad0b85be239da1b",
+      "rule_id": "AI-050",
+      "file_path": "internal/router/stream_test.go",
+      "severity": "low",
+      "reason": "Reviewed: MaxRetries\u003c=0 deliberately means no retry (opt-in, configurable via router config); tests exercise that path",
+      "created_at": "2026-11-15T10:21:13.582435Z"
+    },
+    {
+      "fingerprint": "cf346e37ed753335c1f898201cc2fa4ccd149ab2a4fcf32eef7a7f10706a3886",
+      "rule_id": "AI-050",
+      "file_path": "internal/router/stream_test.go",
+      "severity": "low",
+      "reason": "Reviewed: MaxRetries\u003c=0 deliberately means no retry (opt-in, configurable via router config); tests exercise that path",
+      "created_at": "2026-11-15T10:21:13.582435Z"
+    },
+    {
+      "fingerprint": "ddf33bf37eb966f5423433bcd8323705f033391fe9fe53c453105a9711e550c4",
+      "rule_id": "IAC-155",
+      "file_path": ".github/workflows/examples/continuous-build.yml",
+      "severity": "low",
+      "reason": "Reviewed: workflow_dispatch is limited to users with repository write access; no deployment environment is defined for these workflows",
+      "created_at": "2026-11-15T10:21:34.200457Z"
+    },
+    {
+      "fingerprint": "efffd45e45bdf218052ebd23a0a2fc2295219290f6341d868fed455c871b6993",
+      "rule_id": "IAC-155",
+      "file_path": ".github/workflows/nox-remediate.yml",
+      "severity": "medium",
+      "reason": "Reviewed: workflow_dispatch is limited to users with repository write access; no deployment environment is defined for these workflows",
+      "created_at": "2026-11-15T10:21:34.200457Z"
+    },
+    {
+      "fingerprint": "e5cd1bb6f14149f7491516d5f97167cc1b3c2726f8f103db7e2749cc997a37e8",
+      "rule_id": "IAC-155",
+      "file_path": ".github/workflows/performance.yml",
+      "severity": "medium",
+      "reason": "Reviewed: workflow_dispatch is limited to users with repository write access; no deployment environment is defined for these workflows",
+      "created_at": "2026-11-15T10:21:34.200457Z"
+    },
+    {
+      "fingerprint": "09d79998b5c7424a284b643b53815f6c9ba525b7adfd07bbadfde073aac67c21",
+      "rule_id": "IAC-155",
+      "file_path": ".github/workflows/release.yml",
+      "severity": "medium",
+      "reason": "Reviewed: workflow_dispatch is limited to users with repository write access; no deployment environment is defined for these workflows",
+      "created_at": "2026-11-15T10:21:34.200457Z"
+    },
+    {
+      "fingerprint": "9adcd682b4283d4b5a1c233b4b6a0db64a8f31bd50106cc235f430752565b7a0",
+      "rule_id": "IAC-155",
+      "file_path": "examples/cicd-github-actions/session-fleet-bundle.yml",
+      "severity": "low",
+      "reason": "Reviewed: workflow_dispatch is limited to users with repository write access; no deployment environment is defined for these workflows",
+      "created_at": "2026-11-15T10:21:34.200457Z"
+    },
+    {
+      "fingerprint": "9086d10184a04eaea5b4e77afd412defad599503dcccd03938373f04544740a5",
+      "rule_id": "SEC-161",
+      "file_path": "internal/security/secrets_test.go",
+      "severity": "medium",
+      "reason": "False positive: synthetic test fixture (published example JWT/key) assembled from split literals",
+      "created_at": "2026-11-15T10:24:57.610537Z"
+    },
+    {
+      "fingerprint": "18401f23755212e19d01fca8e86356a9fdefd4b5ced1e22e5f10e3e0c2f50406",
+      "rule_id": "TAINT-007",
+      "file_path": "internal/auth/saml/provider.go",
+      "severity": "medium",
+      "reason": "False positive: redirect URL is built by the crewjam/saml library from the configured IdP SSO endpoint, not from request input (see nolint G710 comment)",
+      "created_at": "2026-11-15T10:25:24.977344Z"
+    },
+    {
+      "fingerprint": "957a08c4bb3c38f65e7a368b248a601c80143876bedd0ea9df10dbc7abeadf6b",
+      "rule_id": "IAC-142",
+      "file_path": "deployments/kubernetes/deployment.yaml",
+      "severity": "low",
+      "reason": "Reviewed: manifest spreads replicas with topologySpreadConstraints (ScheduleAnyway) instead of anti-affinity, which avoids unschedulable pods on small clusters",
+      "created_at": "2026-11-15T10:26:34.238491Z"
+    },
+    {
+      "fingerprint": "8a180d19ec7e7da969661665e01dcaeb182de3a34e29736f80cc0e1e98cd3090",
+      "rule_id": "IAC-364",
+      "file_path": "deployments/kubernetes/deployment.yaml",
+      "severity": "low",
+      "reason": "Positive signal (topology spread constraints defined), not a defect",
+      "created_at": "2026-11-15T10:26:57.979138Z"
+    },
+    {
+      "fingerprint": "78c83fad116a4b1726cb57aca6a10e791f545e2b9076e0470d2d3482c19d1953",
+      "rule_id": "IAC-364",
+      "file_path": "internal/templates/workflows/microservice.yaml",
+      "severity": "low",
+      "reason": "Positive signal (topology spread constraints defined), not a defect",
+      "created_at": "2026-11-15T10:26:57.979138Z"
+    },
+    {
+      "fingerprint": "4dba4d53700099875c2ad55012fad55adbd680f5a4b2c0bc724df0e3962c132f",
+      "rule_id": "AI-006",
+      "file_path": "providers/claude/main.go",
+      "severity": "medium",
+      "reason": "False positive: line builds the prompt string passed to the provider CLI subprocess; the prompt is not logged",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "4b6897524e23e005264f09dcb065192658315fc179e5a04b219279a0def3b79f",
+      "rule_id": "AI-006",
+      "file_path": "providers/codex/main.go",
+      "severity": "medium",
+      "reason": "False positive: line builds the prompt string passed to the provider CLI subprocess; the prompt is not logged",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "e5b675c31544a6f94231df8f6fd875489e4efa202baaadd886323c3da6ab39d3",
+      "rule_id": "AI-006",
+      "file_path": "providers/gemini/main.go",
+      "severity": "medium",
+      "reason": "False positive: line builds the prompt string passed to the provider CLI subprocess; the prompt is not logged",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "f1144248e6d198debc824fa99da541d260d98d7e8a598179a999986de10ebef0",
+      "rule_id": "AI-050",
+      "file_path": "internal/router/router.go",
+      "severity": "medium",
+      "reason": "Reviewed: MaxRetries\u003c=0 deliberately means no retry (opt-in via router config); not an unguarded AI call",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "1432a112c75251a0f9369c354d936631b55a91b7aff02c9d9ad0b85be239da1b",
+      "rule_id": "AI-050",
+      "file_path": "internal/router/stream_test.go",
+      "severity": "low",
+      "reason": "Reviewed: MaxRetries\u003c=0 deliberately means no retry (opt-in via router config); not an unguarded AI call",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "1432a112c75251a0f9369c354d936631b55a91b7aff02c9d9ad0b85be239da1b",
+      "rule_id": "AI-050",
+      "file_path": "internal/router/stream_test.go",
+      "severity": "low",
+      "reason": "Reviewed: MaxRetries\u003c=0 deliberately means no retry (opt-in via router config); not an unguarded AI call",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "1432a112c75251a0f9369c354d936631b55a91b7aff02c9d9ad0b85be239da1b",
+      "rule_id": "AI-050",
+      "file_path": "internal/router/stream_test.go",
+      "severity": "low",
+      "reason": "Reviewed: MaxRetries\u003c=0 deliberately means no retry (opt-in via router config); not an unguarded AI call",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "2dcb499b1f98c45943c5f4b1fe66a3b151042e04690ee013db7c339a43c28ad1",
+      "rule_id": "DATA-001",
+      "file_path": "internal/cmd/config.go",
+      "severity": "low",
+      "reason": "False positive: example address in a documentation comment or test fixture",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "222a21070030b4fe32865fcfcd29d66dee218ff9ad9ba453a20dd69a41677060",
+      "rule_id": "IAC-142",
+      "file_path": "internal/templates/workflows/microservice.yaml",
+      "severity": "low",
+      "reason": "Reviewed: manifest spreads replicas with topologySpreadConstraints (ScheduleAnyway) instead of anti-affinity, avoiding unschedulable pods on small clusters",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "703c06c8863b3a40ee62b4d574f919fafcbf383f173fe9a1aef5acc6209bec69",
+      "rule_id": "IAC-315",
+      "file_path": "examples/cicd-github-actions/bundle-workflow.yml",
+      "severity": "low",
+      "reason": "Reviewed: example workflow publishes a bundle to GHCR and needs packages:write",
+      "created_at": "2026-11-15T10:30:27Z"
+    },
+    {
+      "fingerprint": "2a10f4feed700a3835d745b32d182ee529c1bfd5dc4313a7d01f5f041cb918ab",
+      "rule_id": "VULN-002",
+      "file_path": "website/package-lock.json",
+      "severity": "medium",
+      "reason": "False positive: h3 is the legitimate unjs HTTP framework, a transitive dependency of astro; flagged by name similarity only",
+      "created_at": "2026-11-15T10:32:19.232095Z"
     }
   ]
 }
