@@ -82,3 +82,4 @@ docs/*strategy*.md
 RELEASE_PLAN*.md
 docs/tech_design.md
 AGENTS.md
+/tools/guardrail/guardrail

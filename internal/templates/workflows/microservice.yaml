@@ -140,6 +140,13 @@ files:
             labels:
               app: {{.service_name}}
           spec:
+            topologySpreadConstraints:
+              - maxSkew: 1
+                topologyKey: kubernetes.io/hostname
+                whenUnsatisfiable: ScheduleAnyway
+                labelSelector:
+                  matchLabels:
+                    app: {{.service_name}}
             containers:
               - name: {{.service_name}}
                 image: {{.service_name}}:latest
