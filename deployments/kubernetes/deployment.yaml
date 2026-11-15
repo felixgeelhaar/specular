@@ -21,6 +21,13 @@ spec:
         app: specular
         version: v2.0
     spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: specular
       containers:
       - name: specular
         image: specular:latest  # Replace with your image
